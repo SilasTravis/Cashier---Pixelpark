@@ -22,7 +22,7 @@ class Sidebar extends StatelessWidget {
   final String branchName;
   final VoidCallback onLogout;
 
-  static const _width = ResponsivePanel(compact: 176, standard: 200, wide: 220);
+  static const _width = ResponsivePanel(compact: 156, standard: 200, wide: 220);
 
   @override
   Widget build(BuildContext context) {

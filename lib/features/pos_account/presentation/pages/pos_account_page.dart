@@ -14,12 +14,12 @@ class PosAccountPage extends StatelessWidget {
   const PosAccountPage({super.key});
 
   static const _searchPanel = ResponsivePanel(
-    compact: 260,
+    compact: 218,
     standard: 286,
     wide: 320,
   );
   static const _topupPanel = ResponsivePanel(
-    compact: 260,
+    compact: 208,
     standard: 300,
     wide: 330,
   );
