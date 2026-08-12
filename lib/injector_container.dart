@@ -11,6 +11,9 @@ import 'features/auth/data/repositories/auth_repository_impl.dart';
 import 'features/auth/domain/repositories/auth_repository.dart';
 import 'features/auth/domain/usecases/login_usecase.dart';
 import 'features/auth/presentation/bloc/login_bloc.dart';
+import 'features/shift/data/shift_remote_data_source.dart';
+import 'features/shift/data/shift_repository_impl.dart';
+import 'features/shift/presentation/bloc/shift_bloc.dart';
 
 final GetIt sl = GetIt.instance;
 
@@ -21,6 +24,7 @@ Future<void> init() async {
   sl.registerLazySingleton<Dio>(() => buildDio(sl(), sl()));
 
   _authFeature();
+  _shiftFeature();
 }
 
 Future<void> _initHive() async {
@@ -41,5 +45,15 @@ void _authFeature() {
 
   sl.registerLazySingleton<AuthRemoteDataSource>(
     () => AuthRemoteDataSourceImpl(sl()),
+  );
+}
+
+void _shiftFeature() {
+  sl.registerFactory<ShiftBloc>(() => ShiftBloc(sl()));
+
+  sl.registerLazySingleton<ShiftRepository>(() => ShiftRepository(sl()));
+
+  sl.registerLazySingleton<ShiftRemoteDataSource>(
+    () => ShiftRemoteDataSourceImpl(sl()),
   );
 }
