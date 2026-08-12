@@ -19,6 +19,7 @@ import 'features/pos_sale/data/pos_sale_repository_impl.dart';
 import 'features/pos_sale/presentation/bloc/pos_sale_bloc.dart';
 import 'features/products/data/products_remote_data_source.dart';
 import 'features/products/data/products_repository_impl.dart';
+import 'features/products/presentation/bloc/products_bloc.dart';
 import 'features/shift/data/shift_remote_data_source.dart';
 import 'features/shift/data/shift_repository_impl.dart';
 import 'features/shift/presentation/bloc/shift_bloc.dart';
@@ -70,6 +71,8 @@ void _shiftFeature() {
 }
 
 void _productsFeature() {
+  sl.registerFactory<ProductsBloc>(() => ProductsBloc(sl()));
+
   sl.registerLazySingleton<ProductsRepository>(() => ProductsRepository(sl()));
 
   sl.registerLazySingleton<ProductsRemoteDataSource>(
