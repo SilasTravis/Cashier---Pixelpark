@@ -1,0 +1,9 @@
+{
+  "@@locale": "en",
+  "appTitle": "Bolajon — kassa",
+  "loginTitle": "Kassaga kirish",
+  "loginUsername": "Login",
+  "loginPassword": "Parol",
+  "loginButton": "Kirish",
+  "loginError": "Login yoki parol noto'g'ri"
+}
