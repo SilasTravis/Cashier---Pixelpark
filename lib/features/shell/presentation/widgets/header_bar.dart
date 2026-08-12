@@ -49,7 +49,9 @@ class HeaderBar extends StatelessWidget {
             children: [
               Text(
                 'Smena tushumi',
-                style: AppTextStyles.muted(AppTextStyles.body).copyWith(fontSize: 11),
+                style: AppTextStyles.muted(
+                  AppTextStyles.body,
+                ).copyWith(fontSize: 11),
               ),
               Text(
                 _formatUzs(totals.grandTotalUzs),

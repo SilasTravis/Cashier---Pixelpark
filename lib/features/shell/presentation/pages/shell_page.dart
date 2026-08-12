@@ -6,6 +6,7 @@ import '../../../../core/theme/nocturne_colors.dart';
 import '../../../../injector_container.dart';
 import '../../../../router/app_navigator.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
+import '../../../pos_account/presentation/pages/pos_account_page.dart';
 import '../../../shift/presentation/bloc/shift_bloc.dart';
 import '../model/shell_tab.dart';
 import '../widgets/close_shift_dialog.dart';
@@ -39,7 +40,9 @@ class _ShellViewState extends State<_ShellView> {
   Future<void> _logout(BuildContext context) async {
     await sl<AuthRepository>().logout();
     if (!context.mounted) return;
-    Navigator.of(context).pushNamedAndRemoveUntil(Routes.login, (route) => false);
+    Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil(Routes.login, (route) => false);
   }
 
   @override
@@ -53,11 +56,12 @@ class _ShellViewState extends State<_ShellView> {
           Expanded(
             child: BlocConsumer<ShiftBloc, ShiftState>(
               listenWhen: (previous, current) =>
-                  previous.lastClosed != current.lastClosed && current.lastClosed != null,
+                  previous.lastClosed != current.lastClosed &&
+                  current.lastClosed != null,
               listener: (context, state) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Smena yopildi')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('Smena yopildi')));
               },
               builder: (context, state) {
                 if (!state.hasOpenShift) {
@@ -78,7 +82,8 @@ class _ShellViewState extends State<_ShellView> {
                           HeaderBar(
                             tab: _tab,
                             shift: state.shift,
-                            onCloseShift: () => showCloseShiftDialog(context, state.shift!),
+                            onCloseShift: () =>
+                                showCloseShiftDialog(context, state.shift!),
                           ),
                           Expanded(child: _TabContent(tab: _tab)),
                         ],
@@ -102,11 +107,14 @@ class _TabContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Text(
-        '${tab.label} — tez orada',
-        style: const TextStyle(color: NocturneColors.text),
+    return switch (tab) {
+      ShellTab.posAccount => const PosAccountPage(),
+      ShellTab.posSale || ShellTab.products => Center(
+        child: Text(
+          '${tab.label} — tez orada',
+          style: const TextStyle(color: NocturneColors.text),
+        ),
       ),
-    );
+    };
   }
 }

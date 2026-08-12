@@ -24,7 +24,10 @@ class ShiftBloc extends Bloc<ShiftEvent, ShiftState> {
     await _load(emit);
   }
 
-  Future<void> _onRefreshed(ShiftRefreshed event, Emitter<ShiftState> emit) async {
+  Future<void> _onRefreshed(
+    ShiftRefreshed event,
+    Emitter<ShiftState> emit,
+  ) async {
     await _load(emit, silent: true);
   }
 
@@ -36,29 +39,50 @@ class ShiftBloc extends Bloc<ShiftEvent, ShiftState> {
         if (failure is ServerFailure && failure.code == 'SHIFT_NOT_OPEN') {
           emit(state.copyWith(isLoading: false, shift: null, clearShift: true));
         } else {
-          emit(state.copyWith(isLoading: false, errorMessage: _messageOf(failure)));
+          emit(
+            state.copyWith(isLoading: false, errorMessage: _messageOf(failure)),
+          );
         }
       },
-      (shift) => emit(state.copyWith(isLoading: false, shift: shift, errorMessage: null)),
+      (shift) => emit(
+        state.copyWith(isLoading: false, shift: shift, errorMessage: null),
+      ),
     );
   }
 
-  Future<void> _onOpenRequested(ShiftOpenRequested event, Emitter<ShiftState> emit) async {
+  Future<void> _onOpenRequested(
+    ShiftOpenRequested event,
+    Emitter<ShiftState> emit,
+  ) async {
     emit(state.copyWith(isLoading: true, errorMessage: null));
-    final result = await _repository.openShift(openingCashUzs: event.openingCashUzs);
+    final result = await _repository.openShift(
+      openingCashUzs: event.openingCashUzs,
+    );
     result.fold(
-      (failure) => emit(state.copyWith(isLoading: false, errorMessage: _messageOf(failure))),
+      (failure) => emit(
+        state.copyWith(isLoading: false, errorMessage: _messageOf(failure)),
+      ),
       (shift) => emit(state.copyWith(isLoading: false, shift: shift)),
     );
   }
 
-  Future<void> _onCloseRequested(ShiftCloseRequested event, Emitter<ShiftState> emit) async {
+  Future<void> _onCloseRequested(
+    ShiftCloseRequested event,
+    Emitter<ShiftState> emit,
+  ) async {
     emit(state.copyWith(isLoading: true, errorMessage: null));
     final result = await _repository.closeShift(closingNote: event.closingNote);
     result.fold(
-      (failure) => emit(state.copyWith(isLoading: false, errorMessage: _messageOf(failure))),
+      (failure) => emit(
+        state.copyWith(isLoading: false, errorMessage: _messageOf(failure)),
+      ),
       (shift) => emit(
-        state.copyWith(isLoading: false, shift: null, clearShift: true, lastClosed: shift),
+        state.copyWith(
+          isLoading: false,
+          shift: null,
+          clearShift: true,
+          lastClosed: shift,
+        ),
       ),
     );
   }

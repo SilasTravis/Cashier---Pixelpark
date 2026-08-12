@@ -16,7 +16,8 @@ Future<void> showCloseShiftDialog(BuildContext context, Shift shift) {
         value: bloc,
         child: BlocListener<ShiftBloc, ShiftState>(
           listenWhen: (previous, current) =>
-              previous.lastClosed != current.lastClosed && current.lastClosed != null,
+              previous.lastClosed != current.lastClosed &&
+              current.lastClosed != null,
           listener: (context, state) => Navigator.of(dialogContext).pop(),
           child: AlertDialog(
             backgroundColor: NocturneColors.surface,
@@ -27,9 +28,15 @@ Future<void> showCloseShiftDialog(BuildContext context, Shift shift) {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _SummaryRow(label: 'Cheklar soni', value: '${shift.totals.salesCount}'),
+                  _SummaryRow(
+                    label: 'Cheklar soni',
+                    value: '${shift.totals.salesCount}',
+                  ),
                   _SummaryRow(label: 'Naqd', value: _uzs(shift.totals.cashUzs)),
-                  _SummaryRow(label: 'Karta', value: _uzs(shift.totals.cardUzs)),
+                  _SummaryRow(
+                    label: 'Karta',
+                    value: _uzs(shift.totals.cardUzs),
+                  ),
                   const Divider(height: 20),
                   _SummaryRow(
                     label: 'Jami smena tushumi',
@@ -82,7 +89,11 @@ String _uzs(int amount) {
 }
 
 class _SummaryRow extends StatelessWidget {
-  const _SummaryRow({required this.label, required this.value, this.emphasize = false});
+  const _SummaryRow({
+    required this.label,
+    required this.value,
+    this.emphasize = false,
+  });
 
   final String label;
   final String value;
@@ -97,7 +108,9 @@ class _SummaryRow extends StatelessWidget {
         children: [
           Text(
             label,
-            style: AppTextStyles.muted(AppTextStyles.body).copyWith(fontSize: 13),
+            style: AppTextStyles.muted(
+              AppTextStyles.body,
+            ).copyWith(fontSize: 13),
           ),
           Text(
             value,

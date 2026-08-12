@@ -31,7 +31,8 @@ class ShiftRemoteDataSourceImpl implements ShiftRemoteDataSource {
   );
 
   @override
-  Future<Shift> getCurrentShift() => _request(() => dio.get('/v1/pos/shifts/current'));
+  Future<Shift> getCurrentShift() =>
+      _request(() => dio.get('/v1/pos/shifts/current'));
 
   Future<Shift> _request(Future<Response> Function() call) async {
     try {
@@ -52,7 +53,9 @@ class ShiftRemoteDataSourceImpl implements ShiftRemoteDataSource {
     return Shift(
       id: json['id'] as String,
       openedAt: DateTime.parse(json['openedAt'] as String),
-      closedAt: json['closedAt'] == null ? null : DateTime.parse(json['closedAt'] as String),
+      closedAt: json['closedAt'] == null
+          ? null
+          : DateTime.parse(json['closedAt'] as String),
       status: json['status'] as String,
       totals: ShiftTotals(
         salesCount: totals['salesCount'] as int,

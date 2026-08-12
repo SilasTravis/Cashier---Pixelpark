@@ -11,6 +11,11 @@ import 'features/auth/data/repositories/auth_repository_impl.dart';
 import 'features/auth/domain/repositories/auth_repository.dart';
 import 'features/auth/domain/usecases/login_usecase.dart';
 import 'features/auth/presentation/bloc/login_bloc.dart';
+import 'features/pos_account/data/pos_account_remote_data_source.dart';
+import 'features/pos_account/data/pos_account_repository_impl.dart';
+import 'features/pos_account/presentation/bloc/pos_account_bloc.dart';
+import 'features/products/data/products_remote_data_source.dart';
+import 'features/products/data/products_repository_impl.dart';
 import 'features/shift/data/shift_remote_data_source.dart';
 import 'features/shift/data/shift_repository_impl.dart';
 import 'features/shift/presentation/bloc/shift_bloc.dart';
@@ -25,6 +30,8 @@ Future<void> init() async {
 
   _authFeature();
   _shiftFeature();
+  _productsFeature();
+  _posAccountFeature();
 }
 
 Future<void> _initHive() async {
@@ -55,5 +62,25 @@ void _shiftFeature() {
 
   sl.registerLazySingleton<ShiftRemoteDataSource>(
     () => ShiftRemoteDataSourceImpl(sl()),
+  );
+}
+
+void _productsFeature() {
+  sl.registerLazySingleton<ProductsRepository>(() => ProductsRepository(sl()));
+
+  sl.registerLazySingleton<ProductsRemoteDataSource>(
+    () => ProductsRemoteDataSourceImpl(sl()),
+  );
+}
+
+void _posAccountFeature() {
+  sl.registerFactory<PosAccountBloc>(() => PosAccountBloc(sl(), sl()));
+
+  sl.registerLazySingleton<PosAccountRepository>(
+    () => PosAccountRepository(sl()),
+  );
+
+  sl.registerLazySingleton<PosAccountRemoteDataSource>(
+    () => PosAccountRemoteDataSourceImpl(sl()),
   );
 }

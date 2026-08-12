@@ -80,7 +80,10 @@ class _OpenShiftPromptState extends State<OpenShiftPrompt> {
                       const SizedBox(height: 12),
                       Text(
                         state.errorMessage!,
-                        style: const TextStyle(color: NocturneColors.danger, fontSize: 13),
+                        style: const TextStyle(
+                          color: NocturneColors.danger,
+                          fontSize: 13,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -95,7 +98,9 @@ class _OpenShiftPromptState extends State<OpenShiftPrompt> {
                                 final raw = _cashController.text.trim();
                                 context.read<ShiftBloc>().add(
                                   ShiftOpenRequested(
-                                    openingCashUzs: raw.isEmpty ? null : int.parse(raw),
+                                    openingCashUzs: raw.isEmpty
+                                        ? null
+                                        : int.parse(raw),
                                   ),
                                 );
                               },

@@ -28,7 +28,13 @@ class ShiftTotals extends Equatable {
   );
 
   @override
-  List<Object?> get props => [salesCount, subtotalUzs, cashUzs, cardUzs, topupUzs];
+  List<Object?> get props => [
+    salesCount,
+    subtotalUzs,
+    cashUzs,
+    cardUzs,
+    topupUzs,
+  ];
 }
 
 class Shift extends Equatable {

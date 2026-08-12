@@ -36,7 +36,11 @@ class Sidebar extends StatelessWidget {
         children: [
           const SizedBox(height: 12),
           for (final tab in ShellTab.values)
-            _NavTile(tab: tab, selected: tab == selected, onTap: () => onSelect(tab)),
+            _NavTile(
+              tab: tab,
+              selected: tab == selected,
+              onTap: () => onSelect(tab),
+            ),
           const Spacer(),
           const Divider(height: 1),
           Padding(
@@ -45,10 +49,15 @@ class Sidebar extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 16,
-                  backgroundColor: NocturneColors.accent.withValues(alpha: 0.15),
+                  backgroundColor: NocturneColors.accent.withValues(
+                    alpha: 0.15,
+                  ),
                   child: Text(
                     cashierName.isEmpty ? '?' : cashierName[0].toUpperCase(),
-                    style: const TextStyle(color: NocturneColors.accent, fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                      color: NocturneColors.accent,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -64,7 +73,9 @@ class Sidebar extends StatelessWidget {
                       ),
                       Text(
                         branchName,
-                        style: AppTextStyles.muted(AppTextStyles.body).copyWith(fontSize: 11),
+                        style: AppTextStyles.muted(
+                          AppTextStyles.body,
+                        ).copyWith(fontSize: 11),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
@@ -85,7 +96,11 @@ class Sidebar extends StatelessWidget {
 }
 
 class _NavTile extends StatelessWidget {
-  const _NavTile({required this.tab, required this.selected, required this.onTap});
+  const _NavTile({
+    required this.tab,
+    required this.selected,
+    required this.onTap,
+  });
 
   final ShellTab tab;
   final bool selected;
@@ -96,7 +111,9 @@ class _NavTile extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       child: Material(
-        color: selected ? NocturneColors.accent.withValues(alpha: 0.12) : Colors.transparent,
+        color: selected
+            ? NocturneColors.accent.withValues(alpha: 0.12)
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(8),
         child: InkWell(
           onTap: onTap,
@@ -108,7 +125,9 @@ class _NavTile extends StatelessWidget {
                 Icon(
                   tab.icon,
                   size: 18,
-                  color: selected ? NocturneColors.accent : NocturneColors.neutral500,
+                  color: selected
+                      ? NocturneColors.accent
+                      : NocturneColors.neutral500,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -116,7 +135,9 @@ class _NavTile extends StatelessWidget {
                     tab.label,
                     style: AppTextStyles.body.copyWith(
                       fontSize: 13,
-                      color: selected ? NocturneColors.accent : NocturneColors.text,
+                      color: selected
+                          ? NocturneColors.accent
+                          : NocturneColors.text,
                       fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                     ),
                   ),

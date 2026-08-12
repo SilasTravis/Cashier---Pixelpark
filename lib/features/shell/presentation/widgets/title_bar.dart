@@ -50,13 +50,19 @@ class _TitleBarState extends State<TitleBar> with WindowListener {
               behavior: HitTestBehavior.translucent,
               onPanStart: (_) => windowManager.startDragging(),
               onDoubleTap: () => windowManager.isMaximized().then(
-                (isMax) => isMax ? windowManager.unmaximize() : windowManager.maximize(),
+                (isMax) => isMax
+                    ? windowManager.unmaximize()
+                    : windowManager.maximize(),
               ),
               child: Padding(
                 padding: const EdgeInsets.only(left: 12),
                 child: Row(
                   children: [
-                    const Icon(PhosphorIconsFill.storefront, size: 14, color: NocturneColors.accent),
+                    const Icon(
+                      PhosphorIconsFill.storefront,
+                      size: 14,
+                      color: NocturneColors.accent,
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       'Bolajon — kassa',
@@ -75,10 +81,13 @@ class _TitleBarState extends State<TitleBar> with WindowListener {
             onPressed: () => windowManager.minimize(),
           ),
           _TitleBarButton(
-            icon: _isMaximized ? PhosphorIconsRegular.copySimple : PhosphorIconsRegular.square,
+            icon: _isMaximized
+                ? PhosphorIconsRegular.copySimple
+                : PhosphorIconsRegular.square,
             iconSize: _isMaximized ? 12 : 11,
-            onPressed: () =>
-                _isMaximized ? windowManager.unmaximize() : windowManager.maximize(),
+            onPressed: () => _isMaximized
+                ? windowManager.unmaximize()
+                : windowManager.maximize(),
           ),
           _TitleBarButton(
             icon: PhosphorIconsRegular.x,
@@ -113,8 +122,14 @@ class _TitleBarButton extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onPressed,
-          hoverColor: (hoverColor ?? NocturneColors.neutral800).withValues(alpha: 0.5),
-          child: Icon(icon, size: iconSize, color: NocturneColors.text.withValues(alpha: 0.7)),
+          hoverColor: (hoverColor ?? NocturneColors.neutral800).withValues(
+            alpha: 0.5,
+          ),
+          child: Icon(
+            icon,
+            size: iconSize,
+            color: NocturneColors.text.withValues(alpha: 0.7),
+          ),
         ),
       ),
     );
