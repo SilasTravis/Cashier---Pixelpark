@@ -7,6 +7,7 @@ import '../../../../injector_container.dart';
 import '../../../../router/app_navigator.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
 import '../../../pos_account/presentation/pages/pos_account_page.dart';
+import '../../../pos_sale/presentation/pages/pos_sale_page.dart';
 import '../../../shift/presentation/bloc/shift_bloc.dart';
 import '../model/shell_tab.dart';
 import '../widgets/close_shift_dialog.dart';
@@ -109,7 +110,8 @@ class _TabContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return switch (tab) {
       ShellTab.posAccount => const PosAccountPage(),
-      ShellTab.posSale || ShellTab.products => Center(
+      ShellTab.posSale => const PosSalePage(),
+      ShellTab.products => Center(
         child: Text(
           '${tab.label} — tez orada',
           style: const TextStyle(color: NocturneColors.text),
