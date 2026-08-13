@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphor_icons/phosphor_icons.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../../../../core/theme/nocturne_colors.dart';

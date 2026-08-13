@@ -1,5 +1,5 @@
 import 'package:flutter/widgets.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphor_icons/phosphor_icons.dart';
 
 /// Maps the design system's `ph-*` icon class name (stored on `Product.icon`
 /// from the Dashboard) to a Phosphor Flutter icon. Falls back to a generic

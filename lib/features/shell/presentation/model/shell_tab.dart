@@ -1,5 +1,5 @@
 import 'package:flutter/widgets.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphor_icons/phosphor_icons.dart';
 
 enum ShellTab {
   posAccount(label: 'Hisob va QR', icon: PhosphorIconsRegular.qrCode),

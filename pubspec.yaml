@@ -29,8 +29,10 @@ dependencies:
   intl: ^0.20.2
   # qr code rendering (gate-pass slips)
   qr_flutter: ^4.1.0
-  # icons matching the Cashier design system (Phosphor)
-  phosphor_flutter: ^2.1.0
+  # icons matching the Cashier design system (Phosphor) — funccloud fork,
+  # not upstream phosphor_flutter: upstream subclasses IconData, which
+  # Flutter 3.43+ made a final class, breaking the build.
+  phosphor_icons: ^3.0.1
   # frameless window + custom title bar
   window_manager: ^0.4.3
   # app version for the background update checker
