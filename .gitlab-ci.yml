@@ -1,0 +1,42 @@
+variables:
+  API_BASE_URL: "https://test.api.pixelpark.uz/api"
+
+stages:
+  - verify
+  - build
+
+# Requires a self-hosted GitLab Runner registered with the `windows` tag,
+# shell executor, with the Flutter SDK on PATH and Visual Studio Build Tools
+# (Desktop development with C++ workload) installed — GitLab CI cannot
+# install either of those during the job, they must already be on the
+# runner's host. See: https://docs.flutter.dev/platform-integration/windows/building
+
+analyze:
+  stage: verify
+  tags: [windows]
+  script:
+    - flutter --version
+    - flutter pub get
+    - flutter analyze
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "development"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - when: manual
+
+build_windows:
+  stage: build
+  tags: [windows]
+  needs: [analyze]
+  script:
+    - flutter pub get
+    - flutter build windows --release --dart-define=API_BASE_URL=$API_BASE_URL
+  artifacts:
+    name: "cashier_app-windows-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - build/windows/x64/runner/Release/
+    expire_in: 30 days
+  rules:
+    - if: $CI_COMMIT_BRANCH == "development"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - when: manual
