@@ -17,7 +17,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          channel: stable
+          # Pinned, not "stable": phosphor_flutter 2.1.0 (latest on pub.dev)
+          # subclasses IconData, which newer Flutter SDKs made a `final`
+          # class — breaking the build. Unpin once phosphor_flutter ships a
+          # fix, or the app migrates to a maintained alternative.
+          flutter-version: 3.44.8
       - run: flutter pub get
       - run: flutter analyze
 
@@ -29,7 +33,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          channel: stable
+          # Pinned, not "stable": phosphor_flutter 2.1.0 (latest on pub.dev)
+          # subclasses IconData, which newer Flutter SDKs made a `final`
+          # class — breaking the build. Unpin once phosphor_flutter ships a
+          # fix, or the app migrates to a maintained alternative.
+          flutter-version: 3.44.8
       - run: flutter config --enable-windows-desktop
       - run: flutter pub get
       - run: flutter build windows --release --dart-define=API_BASE_URL=${{ env.API_BASE_URL }}
