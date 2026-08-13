@@ -18,7 +18,7 @@ class ShiftRemoteDataSourceImpl implements ShiftRemoteDataSource {
   Future<Shift> openShift({int? openingCashUzs}) => _request(
     () => dio.post(
       '/v1/pos/shifts/open',
-      data: {if (openingCashUzs != null) 'openingCashUzs': openingCashUzs},
+      data: {'openingCashUzs': ?openingCashUzs},
     ),
   );
 
@@ -26,7 +26,7 @@ class ShiftRemoteDataSourceImpl implements ShiftRemoteDataSource {
   Future<Shift> closeShift({String? closingNote}) => _request(
     () => dio.post(
       '/v1/pos/shifts/close',
-      data: {if (closingNote != null) 'closingNote': closingNote},
+      data: {'closingNote': ?closingNote},
     ),
   );
 
