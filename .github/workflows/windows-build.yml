@@ -8,7 +8,8 @@ on:
   workflow_dispatch: {}
 
 env:
-  API_BASE_URL: https://test.api.pixelpark.uz/api
+  # main builds against production; every other ref against stage.
+  API_BASE_URL: ${{ github.ref == 'refs/heads/main' && 'https://api.pixelpark.uz/api' || 'https://test.api.pixelpark.uz/api' }}
 
 jobs:
   analyze:
