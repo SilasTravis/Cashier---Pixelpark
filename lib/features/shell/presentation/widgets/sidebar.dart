@@ -6,23 +6,29 @@ import '../../../../core/theme/nocturne_colors.dart';
 import '../../../../core/utils/responsive.dart';
 import '../model/shell_tab.dart';
 
+/// Matches the design's slim dark nav rail: a compact "Kassa · {cashier}"
+/// kicker up top, the tab list, then shift-open time + close-shift pinned to
+/// the bottom — no avatar/logout footer (that moved to the Settings tab).
 class Sidebar extends StatelessWidget {
   const Sidebar({
     super.key,
     required this.selected,
     required this.onSelect,
     required this.cashierName,
-    required this.branchName,
-    required this.onLogout,
+    required this.shiftOpenedAt,
+    required this.onCloseShift,
   });
 
   final ShellTab selected;
   final ValueChanged<ShellTab> onSelect;
   final String cashierName;
-  final String branchName;
-  final VoidCallback onLogout;
+  final DateTime? shiftOpenedAt;
+  final VoidCallback? onCloseShift;
 
   static const _width = ResponsivePanel(compact: 156, standard: 200, wide: 220);
+
+  String _time(DateTime dt) =>
+      '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
 
   @override
   Widget build(BuildContext context) {
@@ -33,8 +39,18 @@ class Sidebar extends StatelessWidget {
         border: Border(right: BorderSide(color: NocturneColors.divider)),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+            child: Text(
+              cashierName.isEmpty ? 'Kassa' : 'Kassa · $cashierName',
+              style: AppTextStyles.kicker.copyWith(
+                color: NocturneColors.text.withValues(alpha: 0.45),
+              ),
+            ),
+          ),
           for (final tab in ShellTab.values)
             _NavTile(
               tab: tab,
@@ -42,49 +58,29 @@ class Sidebar extends StatelessWidget {
               onTap: () => onSelect(tab),
             ),
           const Spacer(),
-          const Divider(height: 1),
           Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
+            padding: const EdgeInsets.fromLTRB(10, 0, 10, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                CircleAvatar(
-                  radius: 16,
-                  backgroundColor: NocturneColors.accent.withValues(
-                    alpha: 0.15,
-                  ),
-                  child: Text(
-                    cashierName.isEmpty ? '?' : cashierName[0].toUpperCase(),
-                    style: const TextStyle(
-                      color: NocturneColors.accent,
-                      fontWeight: FontWeight.w600,
+                if (shiftOpenedAt != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      "Smena ${_time(shiftOpenedAt!)} da ochildi",
+                      style: AppTextStyles.body.copyWith(
+                        fontSize: 11,
+                        color: NocturneColors.text.withValues(alpha: 0.45),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        cashierName,
-                        style: AppTextStyles.body.copyWith(fontSize: 13),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        branchName,
-                        style: AppTextStyles.muted(
-                          AppTextStyles.body,
-                        ).copyWith(fontSize: 11),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                OutlinedButton.icon(
+                  onPressed: onCloseShift,
+                  style: OutlinedButton.styleFrom(
+                    alignment: Alignment.centerLeft,
                   ),
-                ),
-                IconButton(
-                  tooltip: 'Chiqish',
-                  onPressed: onLogout,
-                  icon: const Icon(PhosphorIconsRegular.signOut, size: 18),
+                  icon: const Icon(PhosphorIconsRegular.signOut, size: 16),
+                  label: const Text("Smenani yopish"),
                 ),
               ],
             ),

@@ -24,6 +24,12 @@ class PosAccountSearchRequested extends PosAccountEvent {
   const PosAccountSearchRequested();
 }
 
+/// Fired once on page load — populates the browsable "latest customers"
+/// list shown before the cashier has typed a phone number.
+class PosAccountRecentCustomersRequested extends PosAccountEvent {
+  const PosAccountRecentCustomersRequested();
+}
+
 class PosAccountCustomerSelected extends PosAccountEvent {
   const PosAccountCustomerSelected(this.customer);
 
@@ -78,27 +84,63 @@ class PosAccountTopupRequested extends PosAccountEvent {
   List<Object?> get props => [amountUzs, cashUzs, cardUzs];
 }
 
+/// Fired once on page load, alongside [PosAccountRecentCustomersRequested]
+/// — Standard/VIP tariffs.
+class PosAccountPlansRequested extends PosAccountEvent {
+  const PosAccountPlansRequested();
+}
+
+/// Starts a visit (Standard or VIP — whichever [planKey] is) for each
+/// selected child — no payment involved, both are billed from the
+/// customer's balance at exit. See `PosController.issuePlanEntry` on the
+/// backend.
+class PosAccountPlanEntryRequested extends PosAccountEvent {
+  const PosAccountPlanEntryRequested({
+    required this.planKey,
+    required this.childIds,
+  });
+
+  final String planKey;
+  final List<String> childIds;
+
+  @override
+  List<Object?> get props => [planKey, childIds];
+}
+
+class PosAccountEntryAcknowledged extends PosAccountEvent {
+  const PosAccountEntryAcknowledged();
+}
+
+/// Fired once on page load — the ticket-type products (socks etc.) that can
+/// be added to a plan-entry checkout.
 class PosAccountProductsRequested extends PosAccountEvent {
   const PosAccountProductsRequested();
 }
 
-class PosAccountPassesRequested extends PosAccountEvent {
-  const PosAccountPassesRequested({
-    required this.productId,
+/// Refreshes the selected customer's currently-inside children (fired on
+/// selection and after a checkout enters new children).
+class PosAccountPlayingRequested extends PosAccountEvent {
+  const PosAccountPlayingRequested();
+}
+
+/// The one-stop "to'lov + chop etish": optional collected cash/card (topped
+/// onto the balance first), optional products (debited FROM the balance),
+/// and the Standard/VIP day passes. The plan itself is billed at exit.
+class PosAccountCheckoutRequested extends PosAccountEvent {
+  const PosAccountCheckoutRequested({
+    required this.planKey,
     required this.childIds,
+    required this.products,
     required this.cashUzs,
     required this.cardUzs,
   });
 
-  final String productId;
+  final String planKey;
   final List<String> childIds;
+  final List<CheckoutLine> products;
   final int cashUzs;
   final int cardUzs;
 
   @override
-  List<Object?> get props => [productId, childIds, cashUzs, cardUzs];
-}
-
-class PosAccountIssuedPassesAcknowledged extends PosAccountEvent {
-  const PosAccountIssuedPassesAcknowledged();
+  List<Object?> get props => [planKey, childIds, products, cashUzs, cardUzs];
 }

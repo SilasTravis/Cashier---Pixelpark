@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
+import '../../../../core/utils/currency.dart';
 import '../../domain/sale_receipt.dart';
 
 Future<void> showReceiptDialog(BuildContext context, SaleReceipt receipt) {
@@ -30,7 +31,7 @@ Future<void> showReceiptDialog(BuildContext context, SaleReceipt receipt) {
                         ),
                       ),
                       Text(
-                        '${item.lineTotalUzs} so\'m',
+                        formatUzs(item.lineTotalUzs),
                         style: AppTextStyles.body.copyWith(fontSize: 13),
                       ),
                     ],
@@ -39,11 +40,11 @@ Future<void> showReceiptDialog(BuildContext context, SaleReceipt receipt) {
               const Divider(height: 20),
               _SummaryRow(
                 label: 'Jami',
-                value: '${receipt.subtotalUzs} so\'m',
+                value: formatUzs(receipt.subtotalUzs),
                 emphasize: true,
               ),
-              _SummaryRow(label: 'Naqd', value: '${receipt.cashUzs} so\'m'),
-              _SummaryRow(label: 'Karta', value: '${receipt.cardUzs} so\'m'),
+              _SummaryRow(label: 'Naqd', value: formatUzs(receipt.cashUzs)),
+              _SummaryRow(label: 'Karta', value: formatUzs(receipt.cardUzs)),
             ],
           ),
         ),

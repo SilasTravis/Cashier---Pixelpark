@@ -5,54 +5,78 @@ class PosAccountState extends Equatable {
     this.phoneDigits = '',
     this.isSearching = false,
     this.results = const [],
+    this.recentCustomers = const [],
     this.selectedCustomer,
-    this.isLoadingProducts = false,
-    this.products = const [],
     this.isBusy = false,
     this.errorMessage,
-    this.lastIssuedPasses,
+    this.plans = const [],
+    this.isLoadingPlans = false,
+    this.products = const [],
+    this.playing = const [],
+    this.lastEntryResult,
   });
 
   final String phoneDigits;
   final bool isSearching;
   final List<Customer> results;
+
+  /// Latest customers, shown as a browsable default before the cashier
+  /// types anything — capped to 10 in the bloc.
+  final List<Customer> recentCustomers;
   final Customer? selectedCustomer;
-  final bool isLoadingProducts;
-  final List<Product> products;
   final bool isBusy;
   final String? errorMessage;
 
-  /// Set right after a successful pass issuance so the UI can pop the QR
-  /// slip dialog; cleared once acknowledged.
-  final IssuedPasses? lastIssuedPasses;
+  /// Standard/VIP tariffs — fetched once at page load, not per customer.
+  final List<KidsPlan> plans;
+  final bool isLoadingPlans;
+
+  /// Ticket-type products sellable at the plan-entry checkout — fetched
+  /// once at page load, same lifecycle as [plans].
+  final List<Product> products;
+
+  /// The selected customer's currently-inside children with live due-so-far
+  /// — refreshed on selection and after each checkout.
+  final List<PlayingChild> playing;
+
+  /// Set right after a plan-entry request so the UI can pop the
+  /// entrance-QR slip dialog and surface any per-child failures; cleared
+  /// once acknowledged.
+  final PosEntryResult? lastEntryResult;
 
   PosAccountState copyWith({
     String? phoneDigits,
     bool? isSearching,
     List<Customer>? results,
+    List<Customer>? recentCustomers,
     Customer? selectedCustomer,
     bool clearSelected = false,
-    bool? isLoadingProducts,
-    List<Product>? products,
     bool? isBusy,
     String? errorMessage,
-    IssuedPasses? lastIssuedPasses,
-    bool clearLastIssuedPasses = false,
+    List<KidsPlan>? plans,
+    bool? isLoadingPlans,
+    List<Product>? products,
+    List<PlayingChild>? playing,
+    PosEntryResult? lastEntryResult,
+    bool clearLastEntryResult = false,
   }) {
     return PosAccountState(
       phoneDigits: phoneDigits ?? this.phoneDigits,
       isSearching: isSearching ?? this.isSearching,
       results: results ?? this.results,
+      recentCustomers: recentCustomers ?? this.recentCustomers,
       selectedCustomer: clearSelected
           ? null
           : (selectedCustomer ?? this.selectedCustomer),
-      isLoadingProducts: isLoadingProducts ?? this.isLoadingProducts,
-      products: products ?? this.products,
       isBusy: isBusy ?? this.isBusy,
       errorMessage: errorMessage,
-      lastIssuedPasses: clearLastIssuedPasses
+      plans: plans ?? this.plans,
+      isLoadingPlans: isLoadingPlans ?? this.isLoadingPlans,
+      products: products ?? this.products,
+      playing: playing ?? this.playing,
+      lastEntryResult: clearLastEntryResult
           ? null
-          : (lastIssuedPasses ?? this.lastIssuedPasses),
+          : (lastEntryResult ?? this.lastEntryResult),
     );
   }
 
@@ -61,11 +85,14 @@ class PosAccountState extends Equatable {
     phoneDigits,
     isSearching,
     results,
+    recentCustomers,
     selectedCustomer,
-    isLoadingProducts,
-    products,
     isBusy,
     errorMessage,
-    lastIssuedPasses,
+    plans,
+    isLoadingPlans,
+    products,
+    playing,
+    lastEntryResult,
   ];
 }

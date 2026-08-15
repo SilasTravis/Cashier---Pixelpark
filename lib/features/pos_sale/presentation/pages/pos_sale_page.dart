@@ -22,29 +22,34 @@ class PosSalePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => sl<PosSaleBloc>()..add(const PosSaleStarted()),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
-                  child: CategoryFilter(),
-                ),
-                const Expanded(child: ProductGrid()),
-              ],
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const CategoryFilter(),
+                  const SizedBox(height: 12),
+                  const Expanded(child: ProductGrid()),
+                ],
+              ),
             ),
-          ),
-          Container(
-            width: _cartPanel.of(context),
-            decoration: const BoxDecoration(
-              border: Border(left: BorderSide(color: NocturneColors.divider)),
+            const SizedBox(width: 16),
+            Container(
+              width: _cartPanel.of(context),
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              decoration: BoxDecoration(
+                color: NocturneColors.surface,
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                boxShadow: AppShadow.sm,
+              ),
+              child: const CartPanel(),
             ),
-            child: const CartPanel(),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

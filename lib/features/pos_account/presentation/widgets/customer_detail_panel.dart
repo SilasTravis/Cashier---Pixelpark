@@ -5,12 +5,20 @@ import 'package:phosphor_icons/phosphor_icons.dart';
 
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
+import '../../../../core/utils/currency.dart';
+import '../../../../core/widgets/payment_method_selector.dart';
 import '../../../products/domain/product.dart';
 import '../../domain/customer.dart';
+import '../../domain/kids_plan.dart';
+import '../../domain/playing_child.dart';
 import '../bloc/pos_account_bloc.dart';
-import 'add_child_dialog.dart';
-import 'gate_pass_slip_dialog.dart';
+import 'plan_entry_printing.dart';
 
+const _quickTopupAmounts = [10000, 20000, 50000, 100000];
+
+/// The center pane once a customer is selected — a summary strip (back,
+/// avatar, name, balance) then two cards side by side (wrapping on narrow
+/// widths): children/QR issuance, and balance top-up.
 class CustomerDetailPanel extends StatefulWidget {
   const CustomerDetailPanel({super.key});
 
@@ -20,22 +28,54 @@ class CustomerDetailPanel extends StatefulWidget {
 
 class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
   final Set<String> _selectedChildIds = {};
-  Product? _selectedProduct;
-  final _cashController = TextEditingController();
-  final _cardController = TextEditingController();
+  KidsPlan? _selectedPlan;
+
+  bool _addingChild = false;
+  final _childNameController = TextEditingController();
+
+  PaymentMethod _topupMethod = PaymentMethod.cash;
+  final _topupAmountController = TextEditingController();
+  final _topupCashController = TextEditingController();
+  final _topupCardController = TextEditingController();
+
+  /// productId → qty of the extra goods (socks etc.) sold with this entry.
+  final Map<String, int> _cart = {};
+
+  /// "Balansdan yechish" — only offered while the balance covers the cart.
+  bool _payFromBalance = true;
+
+  PaymentMethod _payMethod = PaymentMethod.cash;
+  final _payAmountController = TextEditingController();
+  final _payCashController = TextEditingController();
+  final _payCardController = TextEditingController();
 
   @override
   void dispose() {
-    _cashController.dispose();
-    _cardController.dispose();
+    _childNameController.dispose();
+    _topupAmountController.dispose();
+    _topupCashController.dispose();
+    _topupCardController.dispose();
+    _payAmountController.dispose();
+    _payCashController.dispose();
+    _payCardController.dispose();
     super.dispose();
   }
 
-  void _resetSelectionFor(Customer? customer) {
+  void _resetFor(Customer? customer) {
     _selectedChildIds.clear();
-    _selectedProduct = null;
-    _cashController.clear();
-    _cardController.clear();
+    _selectedPlan = null;
+    _addingChild = false;
+    _childNameController.clear();
+    _topupMethod = PaymentMethod.cash;
+    _topupAmountController.clear();
+    _topupCashController.clear();
+    _topupCardController.clear();
+    _cart.clear();
+    _payFromBalance = true;
+    _payMethod = PaymentMethod.cash;
+    _payAmountController.clear();
+    _payCashController.clear();
+    _payCardController.clear();
   }
 
   @override
@@ -46,169 +86,226 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
           listenWhen: (previous, current) =>
               previous.selectedCustomer?.id != current.selectedCustomer?.id,
           listener: (context, state) =>
-              setState(() => _resetSelectionFor(state.selectedCustomer)),
+              setState(() => _resetFor(state.selectedCustomer)),
         ),
         BlocListener<PosAccountBloc, PosAccountState>(
           listenWhen: (previous, current) =>
-              previous.lastIssuedPasses != current.lastIssuedPasses &&
-              current.lastIssuedPasses != null,
-          listener: (context, state) async {
-            final issued = state.lastIssuedPasses!;
+              previous.lastEntryResult != current.lastEntryResult &&
+              current.lastEntryResult != null,
+          listener: (context, state) {
+            final result = state.lastEntryResult!;
             final childNames = {
               for (final child
                   in state.selectedCustomer?.children ?? const <Child>[])
                 child.id: child.fullName,
             };
-            await showGatePassSlipDialog(context, issued, childNames);
-            if (context.mounted) {
-              context.read<PosAccountBloc>().add(
-                const PosAccountIssuedPassesAcknowledged(),
-              );
-              setState(() => _resetSelectionFor(state.selectedCustomer));
-            }
+            printPlanEntryLabels(context, result, childNames);
+            context.read<PosAccountBloc>().add(
+              const PosAccountEntryAcknowledged(),
+            );
+            setState(() => _resetFor(state.selectedCustomer));
           },
         ),
       ],
       child: BlocBuilder<PosAccountBloc, PosAccountState>(
         builder: (context, state) {
           final customer = state.selectedCustomer;
-          if (customer == null) {
-            return Center(
-              child: Text(
-                'Mijozni tanlang',
-                style: AppTextStyles.muted(AppTextStyles.body),
-              ),
-            );
-          }
+          if (customer == null) return const SizedBox.shrink();
 
-          final cash = int.tryParse(_cashController.text) ?? 0;
-          final card = int.tryParse(_cardController.text) ?? 0;
-          final total = _selectedProduct == null
+          final productsById = {for (final p in state.products) p.id: p};
+          final cartTotal = _cart.entries.fold<int>(
+            0,
+            (sum, line) =>
+                sum + (productsById[line.key]?.priceUzs ?? 0) * line.value,
+          );
+          // VIP is prepaid INTO the balance here (the 22:00 close-out
+          // debits it from there); Standard has no upfront tariff — it
+          // bills per exit by actual minutes.
+          final vipTotal = _selectedPlan?.kind == KidsPlanKind.flatDay
+              ? (_selectedPlan!.flatUzs ?? 0) * _selectedChildIds.length
+              : 0;
+          final neededTotal = cartTotal + vipTotal;
+          final shortfall = neededTotal - customer.balance;
+          final balanceCovers = shortfall <= 0;
+          // Money must be collected when the balance can't cover the total,
+          // or when the cashier explicitly keeps the balance untouched.
+          final requiredPayment = neededTotal == 0
               ? 0
-              : _selectedProduct!.priceUzs * _selectedChildIds.length;
-          final canIssue =
+              : balanceCovers
+              ? (_payFromBalance ? 0 : neededTotal)
+              : shortfall;
+
+          final payAmount =
+              int.tryParse(_payAmountController.text.replaceAll(' ', '')) ?? 0;
+          final paySplit = PaymentSplit.compute(
+            method: _payMethod,
+            totalUzs: payAmount,
+            cashInput: _payCashController.text,
+            cardInput: _payCardController.text,
+          );
+          final paymentOk =
+              requiredPayment == 0 ||
+              (payAmount >= requiredPayment && paySplit.isValid);
+
+          final canEnter =
               !state.isBusy &&
-              _selectedProduct != null &&
+              _selectedPlan != null &&
               _selectedChildIds.isNotEmpty &&
-              cash + card == total;
+              paymentOk;
+
+          final topupAmount =
+              int.tryParse(_topupAmountController.text.replaceAll(' ', '')) ??
+              0;
+          final topupSplit = PaymentSplit.compute(
+            method: _topupMethod,
+            totalUzs: topupAmount,
+            cashInput: _topupCashController.text,
+            cardInput: _topupCardController.text,
+          );
+          final canTopup = !state.isBusy && topupAmount > 0 && topupSplit.isValid;
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  customer.fullName.isEmpty
-                      ? customer.phoneNumber
-                      : customer.fullName,
-                  style: AppTextStyles.h4,
+                _SummaryStrip(
+                  customer: customer,
+                  onBack: () => context.read<PosAccountBloc>().add(
+                    const PosAccountSelectionCleared(),
+                  ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  customer.phoneNumber,
-                  style: AppTextStyles.muted(
-                    AppTextStyles.body,
-                  ).copyWith(fontSize: 12),
-                ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 12),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Farzandlar', style: AppTextStyles.h6),
-                    TextButton.icon(
-                      onPressed: () => showAddChildDialog(context),
-                      icon: const Icon(PhosphorIconsRegular.plus, size: 14),
-                      label: const Text('Qo\'shish'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                if (customer.children.isEmpty)
-                  Text(
-                    'Hali farzand qo\'shilmagan',
-                    style: AppTextStyles.muted(
-                      AppTextStyles.body,
-                    ).copyWith(fontSize: 12),
-                  )
-                else
-                  for (final child in customer.children)
-                    CheckboxListTile(
-                      value: _selectedChildIds.contains(child.id),
-                      onChanged: (checked) => setState(() {
-                        if (checked ?? false) {
-                          _selectedChildIds.add(child.id);
-                        } else {
-                          _selectedChildIds.remove(child.id);
-                        }
-                      }),
-                      contentPadding: EdgeInsets.zero,
-                      controlAffinity: ListTileControlAffinity.leading,
-                      dense: true,
-                      activeColor: NocturneColors.accent,
-                      title: Text(
-                        child.fullName,
-                        style: AppTextStyles.body.copyWith(fontSize: 13),
-                      ),
-                    ),
-                const SizedBox(height: 20),
-                Text('QR chop etish', style: AppTextStyles.h6),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<Product>(
-                  initialValue: _selectedProduct,
-                  isExpanded: true,
-                  dropdownColor: NocturneColors.surface,
-                  decoration: const InputDecoration(labelText: 'Tarif'),
-                  items: [
-                    for (final product in state.products)
-                      DropdownMenuItem(
-                        value: product,
-                        child: Text(
-                          '${product.name} — ${product.priceUzs} so\'m',
+                    Expanded(
+                      child: _ChildrenCard(
+                        customer: customer,
+                        plans: state.plans,
+                        isLoadingPlans: state.isLoadingPlans,
+                        selectedChildIds: _selectedChildIds,
+                        onToggleChild: (id) => setState(
+                          () => _selectedChildIds.contains(id)
+                              ? _selectedChildIds.remove(id)
+                              : _selectedChildIds.add(id),
+                        ),
+                        addingChild: _addingChild,
+                        onStartAddChild: () =>
+                            setState(() => _addingChild = true),
+                        onCancelAddChild: () => setState(() {
+                          _addingChild = false;
+                          _childNameController.clear();
+                        }),
+                        childNameController: _childNameController,
+                        onSubmitAddChild: () {
+                          final today = DateTime.now();
+                          final iso =
+                              '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+                          context.read<PosAccountBloc>().add(
+                            PosAccountChildAddRequested(
+                              firstName: _childNameController.text.trim(),
+                              birthDate: iso,
+                            ),
+                          );
+                          setState(() {
+                            _addingChild = false;
+                            _childNameController.clear();
+                          });
+                        },
+                        selectedPlan: _selectedPlan,
+                        onSelectPlan: (p) => setState(() => _selectedPlan = p),
+                        checkout: _CheckoutSection(
+                          products: state.products,
+                          cart: _cart,
+                          cartTotal: cartTotal,
+                          vipTotal: vipTotal,
+                          neededTotal: neededTotal,
+                          balance: customer.balance,
+                          balanceCovers: balanceCovers,
+                          shortfall: shortfall,
+                          payFromBalance: _payFromBalance,
+                          onPayFromBalanceChanged: (v) =>
+                              setState(() => _payFromBalance = v),
+                          requiredPayment: requiredPayment,
+                          payMethod: _payMethod,
+                          onPayMethodChanged: (m) =>
+                              setState(() => _payMethod = m),
+                          payAmountController: _payAmountController,
+                          payCashController: _payCashController,
+                          payCardController: _payCardController,
+                          paySplit: paySplit,
+                          payAmount: payAmount,
+                          onChanged: () => setState(() {}),
+                          onAdd: (id) => setState(
+                            () => _cart[id] = (_cart[id] ?? 0) + 1,
+                          ),
+                          onRemove: (id) => setState(() {
+                            final qty = (_cart[id] ?? 0) - 1;
+                            if (qty <= 0) {
+                              _cart.remove(id);
+                            } else {
+                              _cart[id] = qty;
+                            }
+                          }),
+                          selectedChildCount: _selectedChildIds.length,
+                          canSubmit: canEnter,
+                          isBusy: state.isBusy,
+                          onSubmit: () => context.read<PosAccountBloc>().add(
+                            PosAccountCheckoutRequested(
+                              planKey: _selectedPlan!.key,
+                              childIds: _selectedChildIds.toList(),
+                              products: [
+                                for (final line in _cart.entries)
+                                  (productId: line.key, qty: line.value),
+                              ],
+                              cashUzs: requiredPayment == 0
+                                  ? 0
+                                  : paySplit.cashUzs,
+                              cardUzs: requiredPayment == 0
+                                  ? 0
+                                  : paySplit.cardUzs,
+                            ),
+                          ),
                         ),
                       ),
-                  ],
-                  onChanged: (product) =>
-                      setState(() => _selectedProduct = product),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _cashController,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        style: AppTextStyles.body,
-                        onChanged: (_) => setState(() {}),
-                        decoration: const InputDecoration(labelText: 'Naqd'),
-                      ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 12),
                     Expanded(
-                      child: TextField(
-                        controller: _cardController,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        style: AppTextStyles.body,
-                        onChanged: (_) => setState(() {}),
-                        decoration: const InputDecoration(labelText: 'Karta'),
+                      child: _BalanceCard(
+                        customer: customer,
+                        amountController: _topupAmountController,
+                        onAmountChanged: () => setState(() {}),
+                        method: _topupMethod,
+                        onMethodChanged: (m) => setState(() => _topupMethod = m),
+                        cashController: _topupCashController,
+                        cardController: _topupCardController,
+                        split: topupSplit,
+                        amount: topupAmount,
+                        canTopup: canTopup,
+                        isBusy: state.isBusy,
+                        onTopup: () => context.read<PosAccountBloc>().add(
+                          PosAccountTopupRequested(
+                            amountUzs: topupAmount,
+                            cashUzs: topupSplit.cashUzs,
+                            cardUzs: topupSplit.cardUzs,
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  'Jami: $total so\'m',
-                  style: AppTextStyles.muted(
-                    AppTextStyles.body,
-                  ).copyWith(fontSize: 12),
-                ),
+                if (state.playing.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _PlayingCard(
+                    rows: state.playing,
+                    balance: customer.balance,
+                    onRefresh: () => context.read<PosAccountBloc>().add(
+                      const PosAccountPlayingRequested(),
+                    ),
+                  ),
+                ],
                 if (state.errorMessage != null) ...[
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                   Text(
                     state.errorMessage!,
                     style: const TextStyle(
@@ -217,35 +314,1066 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                     ),
                   ),
                 ],
-                const SizedBox(height: 14),
-                SizedBox(
-                  width: double.infinity,
-                  height: 44,
-                  child: ElevatedButton.icon(
-                    onPressed: canIssue
-                        ? () => context.read<PosAccountBloc>().add(
-                            PosAccountPassesRequested(
-                              productId: _selectedProduct!.id,
-                              childIds: _selectedChildIds.toList(),
-                              cashUzs: cash,
-                              cardUzs: card,
-                            ),
-                          )
-                        : null,
-                    icon: state.isBusy
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(PhosphorIconsRegular.qrCode, size: 16),
-                    label: const Text('QR chop etish'),
-                  ),
-                ),
               ],
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _Card extends StatelessWidget {
+  const _Card({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: NocturneColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        boxShadow: AppShadow.sm,
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        child,
+      ]),
+    );
+  }
+}
+
+class _SummaryStrip extends StatelessWidget {
+  const _SummaryStrip({required this.customer, required this.onBack});
+
+  final Customer customer;
+  final VoidCallback onBack;
+
+  String _initials(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return '?';
+    return trimmed.split(RegExp(r'\s+')).take(2).map((p) => p[0].toUpperCase()).join();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final displayName = customer.fullName.isEmpty
+        ? customer.phoneNumber
+        : customer.fullName;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+      decoration: BoxDecoration(
+        color: NocturneColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        boxShadow: AppShadow.sm,
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 36,
+            height: 36,
+            child: OutlinedButton(
+              onPressed: onBack,
+              style: OutlinedButton.styleFrom(padding: EdgeInsets.zero),
+              child: const Icon(PhosphorIconsRegular.arrowLeft, size: 16),
+            ),
+          ),
+          const SizedBox(width: 12),
+          CircleAvatar(
+            radius: 22,
+            backgroundColor: NocturneColors.accent900,
+            child: Text(
+              _initials(displayName),
+              style: const TextStyle(
+                color: NocturneColors.accent300,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  displayName,
+                  style: AppTextStyles.h4,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  customer.phoneNumber,
+                  style: AppTextStyles.muted(
+                    AppTextStyles.body,
+                  ).copyWith(fontSize: 12),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Balans',
+                style: AppTextStyles.kicker.copyWith(
+                  color: NocturneColors.text.withValues(alpha: 0.45),
+                ),
+              ),
+              Text(
+                formatUzs(customer.balance),
+                style: AppTextStyles.h4.copyWith(color: NocturneColors.accent300),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChildrenCard extends StatelessWidget {
+  const _ChildrenCard({
+    required this.customer,
+    required this.plans,
+    required this.isLoadingPlans,
+    required this.selectedChildIds,
+    required this.onToggleChild,
+    required this.addingChild,
+    required this.onStartAddChild,
+    required this.onCancelAddChild,
+    required this.childNameController,
+    required this.onSubmitAddChild,
+    required this.selectedPlan,
+    required this.onSelectPlan,
+    required this.checkout,
+  });
+
+  final Customer customer;
+
+  /// Standard/VIP — always exactly these two once loaded (seeded on the
+  /// backend). Neither is prepaid at the register anymore: both start a
+  /// visit billed from the customer's balance at exit, same as the mobile
+  /// app's own entrance QR.
+  final List<KidsPlan> plans;
+  final bool isLoadingPlans;
+  final Set<String> selectedChildIds;
+  final ValueChanged<String> onToggleChild;
+  final bool addingChild;
+  final VoidCallback onStartAddChild;
+  final VoidCallback onCancelAddChild;
+  final TextEditingController childNameController;
+  final VoidCallback onSubmitAddChild;
+  final KidsPlan? selectedPlan;
+  final ValueChanged<KidsPlan> onSelectPlan;
+
+  /// Products + total + payment + the submit button — owned by the parent
+  /// so this card doesn't have to thread a dozen more callbacks through.
+  final Widget checkout;
+
+  String _noPaymentNote(KidsPlan plan) {
+    final basis = plan.kind == KidsPlanKind.flatDay
+        ? "kunlik tarif bo'yicha"
+        : 'vaqtiga qarab';
+    return "Hozir hech narsa to'lanmaydi — chiqishda balansdan $basis yechiladi.";
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final selCount = selectedChildIds.length;
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Text('Farzandlar', style: AppTextStyles.h5),
+              const SizedBox(width: 8),
+              Text(
+                selCount > 0
+                    ? 'tanlangan: $selCount'
+                    : customer.children.isEmpty
+                    ? "farzand yo'q"
+                    : 'QR uchun tanlang',
+                style: AppTextStyles.muted(
+                  AppTextStyles.body,
+                ).copyWith(fontSize: 11),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          for (final child in customer.children)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: _ChildRow(
+                child: child,
+                selected: selectedChildIds.contains(child.id),
+                onToggle: () => onToggleChild(child.id),
+              ),
+            ),
+          if (!addingChild)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: TextButton.icon(
+                onPressed: onStartAddChild,
+                icon: const Icon(PhosphorIconsRegular.plus, size: 14),
+                label: const Text("Tez qo'shish"),
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              // Listens to the controller directly so the submit button
+              // enables the moment a valid name is typed — the parent
+              // doesn't rebuild on keystrokes.
+              child: ValueListenableBuilder<TextEditingValue>(
+                valueListenable: childNameController,
+                builder: (context, value, _) {
+                  final canSubmit = value.text.trim().length >= 2;
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: childNameController,
+                          autofocus: true,
+                          style: AppTextStyles.body,
+                          onSubmitted: (_) {
+                            if (canSubmit) onSubmitAddChild();
+                          },
+                          decoration: const InputDecoration(
+                            hintText: 'Bola ismi',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        height: 42,
+                        child: FilledButton.icon(
+                          onPressed: canSubmit ? onSubmitAddChild : null,
+                          icon: const Icon(PhosphorIconsRegular.plus, size: 14),
+                          label: const Text("Qo'shish"),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        height: 42,
+                        child: OutlinedButton(
+                          onPressed: onCancelAddChild,
+                          child: const Text('Bekor qilish'),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          const SizedBox(height: 12),
+          Text('Tarif', style: AppTextStyles.body.copyWith(fontSize: 12)),
+          const SizedBox(height: 6),
+          if (isLoadingPlans)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Center(
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            )
+          else if (plans.isEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(color: NocturneColors.divider),
+              ),
+              child: Text(
+                'Tarif topilmadi.',
+                style: AppTextStyles.body.copyWith(
+                  fontSize: 12,
+                  color: NocturneColors.text.withValues(alpha: 0.55),
+                ),
+              ),
+            )
+          else
+            Row(
+              children: [
+                for (final plan in plans) ...[
+                  if (plan.key != plans.first.key) const SizedBox(width: 8),
+                  Expanded(
+                    child: _TariffPill(
+                      plan: plan,
+                      selected: selectedPlan?.key == plan.key,
+                      onTap: () => onSelectPlan(plan),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          if (selectedPlan != null) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                color: NocturneColors.bg,
+              ),
+              child: Text(
+                _noPaymentNote(selectedPlan!),
+                style: AppTextStyles.body.copyWith(
+                  fontSize: 12,
+                  color: NocturneColors.text.withValues(alpha: 0.6),
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          checkout,
+        ],
+      ),
+    );
+  }
+}
+
+/// Products + running total + how the money is settled + the submit button.
+///
+/// The money model mirrors the backend's plan-entry checkout: everything
+/// flows through the balance. Collected cash/card is credited to the
+/// balance first, then products are debited from it; the TARIFF is never
+/// paid here (Standard bills per exit, VIP at the 22:00 close-out).
+class _CheckoutSection extends StatelessWidget {
+  const _CheckoutSection({
+    required this.products,
+    required this.cart,
+    required this.cartTotal,
+    required this.vipTotal,
+    required this.neededTotal,
+    required this.balance,
+    required this.balanceCovers,
+    required this.shortfall,
+    required this.payFromBalance,
+    required this.onPayFromBalanceChanged,
+    required this.requiredPayment,
+    required this.payMethod,
+    required this.onPayMethodChanged,
+    required this.payAmountController,
+    required this.payCashController,
+    required this.payCardController,
+    required this.paySplit,
+    required this.payAmount,
+    required this.onChanged,
+    required this.onAdd,
+    required this.onRemove,
+    required this.selectedChildCount,
+    required this.canSubmit,
+    required this.isBusy,
+    required this.onSubmit,
+  });
+
+  final List<Product> products;
+  final Map<String, int> cart;
+  final int cartTotal;
+
+  /// VIP flat price × selected children — collected now, PARKED on the
+  /// balance for the 22:00 close-out charge. 0 for Standard.
+  final int vipTotal;
+  final int neededTotal;
+  final int balance;
+  final bool balanceCovers;
+  final int shortfall;
+  final bool payFromBalance;
+  final ValueChanged<bool> onPayFromBalanceChanged;
+  final int requiredPayment;
+  final PaymentMethod payMethod;
+  final ValueChanged<PaymentMethod> onPayMethodChanged;
+  final TextEditingController payAmountController;
+  final TextEditingController payCashController;
+  final TextEditingController payCardController;
+  final PaymentSplit paySplit;
+  final int payAmount;
+  final VoidCallback onChanged;
+  final ValueChanged<String> onAdd;
+  final ValueChanged<String> onRemove;
+  final int selectedChildCount;
+  final bool canSubmit;
+  final bool isBusy;
+  final VoidCallback onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (products.isNotEmpty) ...[
+          Text('Mahsulotlar', style: AppTextStyles.body.copyWith(fontSize: 12)),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final product in products)
+                _ProductChip(
+                  product: product,
+                  qty: cart[product.id] ?? 0,
+                  onAdd: () => onAdd(product.id),
+                  onRemove: () => onRemove(product.id),
+                ),
+            ],
+          ),
+        ],
+        if (neededTotal > 0) ...[
+          const SizedBox(height: 12),
+          if (cartTotal > 0 && vipTotal > 0) ...[
+            _TotalRow(label: 'Mahsulotlar', amount: cartTotal),
+            _TotalRow(label: 'VIP tarif', amount: vipTotal),
+            const SizedBox(height: 4),
+          ],
+          Row(
+            children: [
+              Text('Jami', style: AppTextStyles.muted(AppTextStyles.body)),
+              const Spacer(),
+              Text(formatUzs(neededTotal), style: AppTextStyles.h5),
+            ],
+          ),
+          if (vipTotal > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                "VIP tarif puli balansga qo'yiladi — 22:00 da yechiladi.",
+                style: AppTextStyles.muted(
+                  AppTextStyles.body,
+                ).copyWith(fontSize: 11),
+              ),
+            ),
+          const SizedBox(height: 8),
+          if (balanceCovers)
+            SwitchListTile(
+              value: payFromBalance,
+              onChanged: onPayFromBalanceChanged,
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              activeThumbColor: NocturneColors.accent,
+              title: Text(
+                'Balansdan yechish',
+                style: AppTextStyles.body.copyWith(fontSize: 13),
+              ),
+              subtitle: Text(
+                'Joriy balans: ${formatUzs(balance)}',
+                style: AppTextStyles.muted(
+                  AppTextStyles.body,
+                ).copyWith(fontSize: 11),
+              ),
+            )
+          else
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                color: NocturneColors.accent.withValues(alpha: 0.12),
+                border: Border.all(color: NocturneColors.accent),
+              ),
+              child: Text(
+                'Balansdan yechishga yetarli emas — '
+                "kamida ${formatUzs(shortfall)} to'lov kerak.",
+                style: AppTextStyles.body.copyWith(fontSize: 12),
+              ),
+            ),
+          if (requiredPayment > 0) ...[
+            const SizedBox(height: 8),
+            TextField(
+              controller: payAmountController,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              style: AppTextStyles.body.copyWith(fontFamily: null, fontSize: 16),
+              onChanged: (_) => onChanged(),
+              decoration: InputDecoration(
+                labelText: "To'lov summasi",
+                helperText:
+                    "Kamida ${formatUzs(requiredPayment)} — ortig'i balansda qoladi",
+              ),
+            ),
+            const SizedBox(height: 8),
+            PaymentMethodPills(selected: payMethod, onChanged: onPayMethodChanged),
+            if (payMethod == PaymentMethod.split) ...[
+              const SizedBox(height: 8),
+              SplitAmountFields(
+                cashController: payCashController,
+                cardController: payCardController,
+                split: paySplit,
+                totalUzs: payAmount,
+                onChanged: onChanged,
+              ),
+            ],
+          ],
+        ],
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 48,
+          child: FilledButton.icon(
+            onPressed: canSubmit ? onSubmit : null,
+            icon: isBusy
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Icon(
+                    neededTotal > 0
+                        ? PhosphorIconsRegular.printer
+                        : PhosphorIconsRegular.doorOpen,
+                    size: 18,
+                  ),
+            label: Text(
+              neededTotal > 0
+                  ? "To'lov va chop etish"
+                  : selectedChildCount > 0
+                  ? 'Kirish ($selectedChildCount)'
+                  : 'Kirish',
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TotalRow extends StatelessWidget {
+  const _TotalRow({required this.label, required this.amount});
+
+  final String label;
+  final int amount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: AppTextStyles.muted(AppTextStyles.body).copyWith(fontSize: 12),
+          ),
+          const Spacer(),
+          Text(
+            formatUzs(amount),
+            style: AppTextStyles.body.copyWith(fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One product with an inline qty stepper — tap adds the first piece,
+/// then − / + adjust.
+class _ProductChip extends StatelessWidget {
+  const _ProductChip({
+    required this.product,
+    required this.qty,
+    required this.onAdd,
+    required this.onRemove,
+  });
+
+  final Product product;
+  final int qty;
+  final VoidCallback onAdd;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = qty > 0;
+    return Material(
+      color: selected
+          ? NocturneColors.accent.withValues(alpha: 0.12)
+          : Colors.transparent,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: InkWell(
+        onTap: selected ? null : onAdd,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(
+              color: selected ? NocturneColors.accent : NocturneColors.divider,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    product.name,
+                    style: AppTextStyles.body.copyWith(
+                      fontSize: 13,
+                      color: selected
+                          ? NocturneColors.accent
+                          : NocturneColors.text,
+                    ),
+                  ),
+                  Text(
+                    formatUzs(product.priceUzs),
+                    style: AppTextStyles.body.copyWith(
+                      fontSize: 11,
+                      color:
+                          (selected
+                                  ? NocturneColors.accent
+                                  : NocturneColors.text)
+                              .withValues(alpha: 0.7),
+                    ),
+                  ),
+                ],
+              ),
+              if (selected) ...[
+                const SizedBox(width: 8),
+                _StepButton(
+                  icon: PhosphorIconsRegular.minus,
+                  onTap: onRemove,
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Text('$qty', style: AppTextStyles.h5),
+                ),
+                _StepButton(icon: PhosphorIconsRegular.plus, onTap: onAdd),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StepButton extends StatelessWidget {
+  const _StepButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.sm),
+      child: Container(
+        width: 26,
+        height: 26,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          border: Border.all(color: NocturneColors.accent),
+        ),
+        child: Icon(icon, size: 13, color: NocturneColors.accent),
+      ),
+    );
+  }
+}
+
+/// The customer's currently-inside children with their live running cost —
+/// the cashier's instant answer when a parent walks up because the exit QR
+/// refused on a low balance. The top-up card sits right above it.
+class _PlayingCard extends StatelessWidget {
+  const _PlayingCard({
+    required this.rows,
+    required this.balance,
+    required this.onRefresh,
+  });
+
+  final List<PlayingChild> rows;
+  final int balance;
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    final totalDue = rows.fold<int>(0, (sum, row) => sum + row.dueUzs);
+    final short = totalDue - balance;
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Text('Hozir ichkarida', style: AppTextStyles.h5),
+              const SizedBox(width: 8),
+              Text(
+                '${rows.length} bola',
+                style: AppTextStyles.muted(
+                  AppTextStyles.body,
+                ).copyWith(fontSize: 11),
+              ),
+              const Spacer(),
+              SizedBox(
+                height: 30,
+                child: OutlinedButton.icon(
+                  onPressed: onRefresh,
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                  ),
+                  icon: const Icon(PhosphorIconsRegular.arrowsClockwise, size: 13),
+                  label: const Text('Yangilash'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          for (final row in rows)
+            Container(
+              margin: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+              decoration: BoxDecoration(
+                color: NocturneColors.bg,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(color: NocturneColors.divider),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          row.childName,
+                          style: AppTextStyles.body.copyWith(fontSize: 14),
+                        ),
+                        Text(
+                          '${row.planName} · '
+                          'kirdi ${row.enteredAt.hour.toString().padLeft(2, '0')}:${row.enteredAt.minute.toString().padLeft(2, '0')} · '
+                          '${row.minutes} daq',
+                          style: AppTextStyles.muted(
+                            AppTextStyles.body,
+                          ).copyWith(fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Text(formatUzs(row.dueUzs), style: AppTextStyles.h5),
+                ],
+              ),
+            ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Text(
+                'Jami hisob',
+                style: AppTextStyles.muted(AppTextStyles.body),
+              ),
+              const Spacer(),
+              Text(
+                formatUzs(totalDue),
+                style: AppTextStyles.h5.copyWith(
+                  color: short > 0
+                      ? NocturneColors.danger
+                      : NocturneColors.accent300,
+                ),
+              ),
+            ],
+          ),
+          if (short > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                "Balans yetarli emas — chiqish uchun kamida ${formatUzs(short)} to'ldirish kerak.",
+                style: AppTextStyles.body.copyWith(
+                  fontSize: 12,
+                  color: NocturneColors.danger,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChildRow extends StatelessWidget {
+  const _ChildRow({
+    required this.child,
+    required this.selected,
+    required this.onToggle,
+  });
+
+  final Child child;
+  final bool selected;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+      decoration: BoxDecoration(
+        color: NocturneColors.bg,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(
+          color: selected ? NocturneColors.accent : NocturneColors.divider,
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              child.fullName,
+              style: AppTextStyles.body.copyWith(fontSize: 14),
+            ),
+          ),
+          SizedBox(
+            height: 34,
+            child: OutlinedButton.icon(
+              onPressed: onToggle,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: NocturneColors.accent,
+                side: const BorderSide(color: NocturneColors.accent),
+                backgroundColor: selected
+                    ? NocturneColors.accent.withValues(alpha: 0.2)
+                    : Colors.transparent,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+              ),
+              icon: Icon(
+                selected ? PhosphorIconsRegular.check : PhosphorIconsRegular.plus,
+                size: 15,
+              ),
+              label: const Text('QR'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TariffPill extends StatelessWidget {
+  const _TariffPill({
+    required this.plan,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final KidsPlan plan;
+  final bool selected;
+  final VoidCallback onTap;
+
+  IconData get _icon => plan.kind == KidsPlanKind.flatDay
+      ? PhosphorIconsRegular.crownSimple
+      : PhosphorIconsRegular.ticket;
+
+  String get _priceLabel => plan.kind == KidsPlanKind.flatDay
+      ? '${formatUzs(plan.flatUzs ?? 0)} / kun'
+      : '${formatUzs(plan.firstMinuteUzs ?? 0)} / daq dan';
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected
+          ? NocturneColors.accent.withValues(alpha: 0.12)
+          : Colors.transparent,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(
+              color: selected ? NocturneColors.accent : NocturneColors.divider,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                _icon,
+                size: 15,
+                color: selected ? NocturneColors.accent : NocturneColors.text,
+              ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    plan.name,
+                    style: AppTextStyles.body.copyWith(
+                      fontSize: 13,
+                      color: selected
+                          ? NocturneColors.accent
+                          : NocturneColors.text,
+                    ),
+                  ),
+                  Text(
+                    _priceLabel,
+                    style: AppTextStyles.body.copyWith(
+                      fontSize: 11,
+                      color: (selected
+                              ? NocturneColors.accent
+                              : NocturneColors.text)
+                          .withValues(alpha: 0.7),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BalanceCard extends StatelessWidget {
+  const _BalanceCard({
+    required this.customer,
+    required this.amountController,
+    required this.onAmountChanged,
+    required this.method,
+    required this.onMethodChanged,
+    required this.cashController,
+    required this.cardController,
+    required this.split,
+    required this.amount,
+    required this.canTopup,
+    required this.isBusy,
+    required this.onTopup,
+  });
+
+  final Customer customer;
+  final TextEditingController amountController;
+  final VoidCallback onAmountChanged;
+  final PaymentMethod method;
+  final ValueChanged<PaymentMethod> onMethodChanged;
+  final TextEditingController cashController;
+  final TextEditingController cardController;
+  final PaymentSplit split;
+  final int amount;
+  final bool canTopup;
+  final bool isBusy;
+  final VoidCallback onTopup;
+
+  @override
+  Widget build(BuildContext context) {
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text("Balansni to'ldirish", style: AppTextStyles.h5),
+          const SizedBox(height: 4),
+          Text(
+            'Joriy balans: ${formatUzs(customer.balance)}',
+            style: AppTextStyles.muted(AppTextStyles.body).copyWith(fontSize: 12),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final quick in _quickTopupAmounts)
+                _AmountChip(
+                  amount: quick,
+                  selected: amount == quick,
+                  onTap: () => amountController.text = quick.toString(),
+                  onChanged: onAmountChanged,
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: amountController,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            style: AppTextStyles.body.copyWith(fontFamily: null, fontSize: 18),
+            onChanged: (_) => onAmountChanged(),
+            decoration: const InputDecoration(labelText: 'Summa'),
+          ),
+          const SizedBox(height: 10),
+          PaymentMethodPills(selected: method, onChanged: onMethodChanged),
+          if (method == PaymentMethod.split) ...[
+            const SizedBox(height: 8),
+            SplitAmountFields(
+              cashController: cashController,
+              cardController: cardController,
+              split: split,
+              totalUzs: amount,
+              onChanged: onAmountChanged,
+            ),
+          ],
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Text('Yangi balans', style: AppTextStyles.muted(AppTextStyles.body)),
+              const Spacer(),
+              Text(formatUzs(customer.balance + amount), style: AppTextStyles.h5),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 48,
+            child: FilledButton.icon(
+              onPressed: canTopup ? onTopup : null,
+              icon: isBusy
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(PhosphorIconsRegular.wallet, size: 18),
+              label: const Text("To'ldirish"),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AmountChip extends StatelessWidget {
+  const _AmountChip({
+    required this.amount,
+    required this.selected,
+    required this.onTap,
+    required this.onChanged,
+  });
+
+  final int amount;
+  final bool selected;
+  final VoidCallback onTap;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected
+          ? NocturneColors.accent.withValues(alpha: 0.12)
+          : Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          onTap();
+          onChanged();
+        },
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(
+              color: selected ? NocturneColors.accent : NocturneColors.divider,
+            ),
+          ),
+          child: Text(
+            formatUzs(amount),
+            style: AppTextStyles.body.copyWith(
+              fontSize: 13,
+              color: selected ? NocturneColors.accent : NocturneColors.text,
+            ),
+          ),
+        ),
       ),
     );
   }

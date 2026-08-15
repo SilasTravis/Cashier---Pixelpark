@@ -8,6 +8,9 @@ import '../bloc/pos_account_bloc.dart';
 
 const _keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'];
 
+/// Phone entry + keypad — no search button. Typing debounces into a live
+/// search (see `PosAccountBloc._scheduleAutoSearch`); the magnifying glass
+/// here just reflects that a search is in flight.
 class PhoneKeypad extends StatelessWidget {
   const PhoneKeypad({super.key});
 
@@ -28,23 +31,39 @@ class PhoneKeypad extends StatelessWidget {
           previous.isSearching != current.isSearching,
       builder: (context, state) {
         final bloc = context.read<PosAccountBloc>();
-        final canSearch = state.phoneDigits.length >= 7 && !state.isSearching;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
               decoration: BoxDecoration(
                 color: NocturneColors.bg,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: NocturneColors.divider),
               ),
-              child: Text(
-                state.phoneDigits.isEmpty
-                    ? '+998'
-                    : _formatPhone(state.phoneDigits),
-                style: AppTextStyles.h4,
-                textAlign: TextAlign.center,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      state.phoneDigits.isEmpty
+                          ? '+998'
+                          : _formatPhone(state.phoneDigits),
+                      style: AppTextStyles.h4,
+                    ),
+                  ),
+                  if (state.isSearching)
+                    const SizedBox(
+                      width: 15,
+                      height: 15,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  else
+                    Icon(
+                      PhosphorIconsRegular.magnifyingGlass,
+                      size: 15,
+                      color: NocturneColors.accent400,
+                    ),
+                ],
               ),
             ),
             const SizedBox(height: 10),
@@ -71,23 +90,12 @@ class PhoneKeypad extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 10),
-            SizedBox(
-              height: 44,
-              child: ElevatedButton.icon(
-                onPressed: canSearch
-                    ? () => bloc.add(const PosAccountSearchRequested())
-                    : null,
-                icon: state.isSearching
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(
-                        PhosphorIconsRegular.magnifyingGlass,
-                        size: 16,
-                      ),
-                label: const Text('Qidirish'),
+            Text(
+              "Raqamni kiritganda o'ngda natija chiqadi. Mijozni bosib, "
+              "tafsilotlarni ochasiz.",
+              style: AppTextStyles.body.copyWith(
+                fontSize: 11,
+                color: NocturneColors.text.withValues(alpha: 0.45),
               ),
             ),
           ],

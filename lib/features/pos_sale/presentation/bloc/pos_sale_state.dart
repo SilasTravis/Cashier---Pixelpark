@@ -5,6 +5,7 @@ class PosSaleState extends Equatable {
     this.isLoadingProducts = false,
     this.products = const [],
     this.selectedCategory,
+    this.searchQuery = '',
     this.cart = const {},
     this.isCheckingOut = false,
     this.errorMessage,
@@ -15,6 +16,10 @@ class PosSaleState extends Equatable {
   final List<Product> products;
   final String? selectedCategory;
 
+  /// Barcode/name search box above the category chips — filters
+  /// [visibleProducts] client-side alongside the category filter.
+  final String searchQuery;
+
   /// productId → qty.
   final Map<String, int> cart;
   final bool isCheckingOut;
@@ -24,9 +29,15 @@ class PosSaleState extends Equatable {
   List<String> get categories =>
       products.map((p) => p.category).toSet().toList()..sort();
 
-  List<Product> get visibleProducts => selectedCategory == null
-      ? products
-      : products.where((p) => p.category == selectedCategory).toList();
+  List<Product> get visibleProducts {
+    final query = searchQuery.trim().toLowerCase();
+    return products.where((p) {
+      final matchesCategory =
+          selectedCategory == null || p.category == selectedCategory;
+      final matchesQuery = query.isEmpty || p.name.toLowerCase().contains(query);
+      return matchesCategory && matchesQuery;
+    }).toList();
+  }
 
   List<CartLine> get cartLines {
     final byId = {for (final product in products) product.id: product};
@@ -45,6 +56,7 @@ class PosSaleState extends Equatable {
     List<Product>? products,
     String? selectedCategory,
     bool clearCategory = false,
+    String? searchQuery,
     Map<String, int>? cart,
     bool? isCheckingOut,
     String? errorMessage,
@@ -57,6 +69,7 @@ class PosSaleState extends Equatable {
       selectedCategory: clearCategory
           ? null
           : (selectedCategory ?? this.selectedCategory),
+      searchQuery: searchQuery ?? this.searchQuery,
       cart: cart ?? this.cart,
       isCheckingOut: isCheckingOut ?? this.isCheckingOut,
       errorMessage: errorMessage,
@@ -69,6 +82,7 @@ class PosSaleState extends Equatable {
     isLoadingProducts,
     products,
     selectedCategory,
+    searchQuery,
     cart,
     isCheckingOut,
     errorMessage,

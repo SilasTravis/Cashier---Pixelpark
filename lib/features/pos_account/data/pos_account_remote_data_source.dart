@@ -1,8 +1,14 @@
 import 'package:dio/dio.dart';
 
 import '../../../core/error/exceptions.dart';
+import '../../products/domain/product.dart';
 import '../domain/customer.dart';
-import '../domain/gate_pass.dart';
+import '../domain/kids_plan.dart';
+import '../domain/playing_child.dart';
+import '../domain/pos_entry.dart';
+
+/// One product line of a combined checkout: `qty` pieces of `productId`.
+typedef CheckoutLine = ({String productId, int qty});
 
 class TopupResult {
   const TopupResult({required this.balance, required this.transactionId});
@@ -33,10 +39,28 @@ abstract class PosAccountRemoteDataSource {
     required int cardUzs,
   });
 
-  Future<IssuedPasses> issuePasses({
+  Future<List<KidsPlan>> listPlans();
+
+  Future<PosEntryResult> issuePlanEntry({
     required int customerId,
-    required String productId,
+    required String planKey,
     required List<String> childIds,
+  });
+
+  /// Ticket-type products sold at the plan-entry checkout (socks etc.).
+  Future<List<Product>> listProducts();
+
+  /// The customer's currently-inside children with live due-so-far.
+  Future<List<PlayingChild>> listPlaying(int customerId);
+
+  /// The one-stop checkout: collected cash/card top the balance up, the
+  /// products are debited FROM the balance, and the day passes are issued —
+  /// the plan itself is billed at exit, not here.
+  Future<PosEntryResult> planEntryCheckout({
+    required int customerId,
+    required String planKey,
+    required List<String> childIds,
+    required List<CheckoutLine> products,
     required int cashUzs,
     required int cardUzs,
   });
@@ -49,8 +73,14 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
 
   @override
   Future<List<Customer>> searchCustomers(String phone) async {
+    // An empty phone means "no filter" (used for the default recent-
+    // customers list) — omit the query param entirely rather than sending
+    // `phone=`, since the backend 400s on an empty value.
     final response = await _request(
-      () => dio.get('/v1/pos/customers', queryParameters: {'phone': phone}),
+      () => dio.get(
+        '/v1/pos/customers',
+        queryParameters: phone.isEmpty ? null : {'phone': phone},
+      ),
     );
     return (response as List)
         .map((json) => _customerFromJson(json as Map<String, dynamic>))
@@ -112,30 +142,110 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
   }
 
   @override
-  Future<IssuedPasses> issuePasses({
+  Future<List<KidsPlan>> listPlans() async {
+    final response = await _request(() => dio.get('/v1/pos/plans'));
+    return (response as List)
+        .map((json) => _kidsPlanFromJson(json as Map<String, dynamic>))
+        .toList();
+  }
+
+  @override
+  Future<PosEntryResult> issuePlanEntry({
     required int customerId,
-    required String productId,
+    required String planKey,
     required List<String> childIds,
+  }) async {
+    final response = await _request(
+      () => dio.post(
+        '/v1/pos/customers/$customerId/plan-entry',
+        data: {'planKey': planKey, 'childIds': childIds},
+      ),
+    );
+    final map = response as Map<String, dynamic>;
+    return PosEntryResult(
+      entries: (map['entries'] as List)
+          .map((json) => _posEntryFromJson(json as Map<String, dynamic>))
+          .toList(),
+      failures: (map['failures'] as List)
+          .map((json) => _posEntryFailureFromJson(json as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+
+  @override
+  Future<List<Product>> listProducts() async {
+    final response = await _request(() => dio.get('/v1/pos/products'));
+    return (response as List)
+        .map((json) => _productFromJson(json as Map<String, dynamic>))
+        .toList();
+  }
+
+  Product _productFromJson(Map<String, dynamic> json) {
+    return Product(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      priceUzs: json['priceUzs'] as int,
+      category: json['category'] as String,
+      icon: json['icon'] as String,
+    );
+  }
+
+  @override
+  Future<List<PlayingChild>> listPlaying(int customerId) async {
+    final response = await _request(
+      () => dio.get('/v1/pos/customers/$customerId/playing'),
+    );
+    return (response as List)
+        .map((json) => _playingChildFromJson(json as Map<String, dynamic>))
+        .toList();
+  }
+
+  PlayingChild _playingChildFromJson(Map<String, dynamic> json) {
+    return PlayingChild(
+      childId: json['childId'] as String,
+      childName: json['childName'] as String,
+      planName: json['planName'] as String,
+      planKind: json['planKind'] as String,
+      enteredAt: DateTime.parse(json['enteredAt'] as String).toLocal(),
+      minutes: json['minutes'] as int,
+      dueUzs: json['dueUzs'] as int,
+    );
+  }
+
+  @override
+  Future<PosEntryResult> planEntryCheckout({
+    required int customerId,
+    required String planKey,
+    required List<String> childIds,
+    required List<CheckoutLine> products,
     required int cashUzs,
     required int cardUzs,
   }) async {
     final response = await _request(
       () => dio.post(
-        '/v1/pos/customers/$customerId/passes',
+        '/v1/pos/customers/$customerId/plan-entry-checkout',
         data: {
-          'productId': productId,
+          'planKey': planKey,
           'childIds': childIds,
+          'products': [
+            for (final line in products)
+              {'productId': line.productId, 'qty': line.qty},
+          ],
           'cashUzs': cashUzs,
           'cardUzs': cardUzs,
         },
       ),
     );
     final map = response as Map<String, dynamic>;
-    final sale = map['sale'] as Map<String, dynamic>;
-    final passes = (map['passes'] as List)
-        .map((json) => _gatePassFromJson(json as Map<String, dynamic>))
-        .toList();
-    return IssuedPasses(saleId: sale['id'] as String, passes: passes);
+    return PosEntryResult(
+      entries: (map['entries'] as List)
+          .map((json) => _posEntryFromJson(json as Map<String, dynamic>))
+          .toList(),
+      failures: (map['failures'] as List)
+          .map((json) => _posEntryFailureFromJson(json as Map<String, dynamic>))
+          .toList(),
+      balance: map['balance'] as int?,
+    );
   }
 
   Future<dynamic> _request(Future<Response> Function() call) async {
@@ -172,14 +282,35 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
     );
   }
 
-  GatePass _gatePassFromJson(Map<String, dynamic> json) {
-    return GatePass(
-      id: json['id'] as String,
+  KidsPlan _kidsPlanFromJson(Map<String, dynamic> json) {
+    return KidsPlan(
+      key: json['key'] as String,
+      name: json['name'] as String,
+      kind: json['kind'] == 'flat_day'
+          ? KidsPlanKind.flatDay
+          : KidsPlanKind.perMinuteTiers,
+      firstMinuteUzs: json['firstMinuteUzs'] as int?,
+      secondMinuteUzs: json['secondMinuteUzs'] as int?,
+      extraMinuteUzs: json['extraMinuteUzs'] as int?,
+      flatUzs: json['flatUzs'] as int?,
+    );
+  }
+
+  PosEntry _posEntryFromJson(Map<String, dynamic> json) {
+    return PosEntry(
+      childId: json['childId'] as String,
+      token: json['token'] as String,
+      expiresAt: json['expiresAt'] == null
+          ? null
+          : DateTime.parse(json['expiresAt'] as String),
+    );
+  }
+
+  PosEntryFailure _posEntryFailureFromJson(Map<String, dynamic> json) {
+    return PosEntryFailure(
       childId: json['childId'] as String,
       code: json['code'] as String,
-      planLabel: json['planLabel'] as String,
-      priceUzs: json['priceUzs'] as int,
-      expiresAt: DateTime.parse(json['expiresAt'] as String),
+      message: json['message'] as String,
     );
   }
 }

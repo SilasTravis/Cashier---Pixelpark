@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:phosphor_icons/phosphor_icons.dart';
 
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
+import '../../../../core/utils/currency.dart';
+import '../../../../core/widgets/payment_method_selector.dart';
 import '../bloc/pos_sale_bloc.dart';
 import 'receipt_dialog.dart';
 
@@ -16,6 +17,7 @@ class CartPanel extends StatefulWidget {
 }
 
 class _CartPanelState extends State<CartPanel> {
+  PaymentMethod _method = PaymentMethod.cash;
   final _cashController = TextEditingController();
   final _cardController = TextEditingController();
 
@@ -37,6 +39,7 @@ class _CartPanelState extends State<CartPanel> {
         if (context.mounted) {
           context.read<PosSaleBloc>().add(const PosSaleReceiptAcknowledged());
           setState(() {
+            _method = PaymentMethod.cash;
             _cashController.clear();
             _cardController.clear();
           });
@@ -44,12 +47,14 @@ class _CartPanelState extends State<CartPanel> {
       },
       builder: (context, state) {
         final subtotal = state.subtotalUzs;
-        final cash = int.tryParse(_cashController.text) ?? 0;
-        final card = int.tryParse(_cardController.text) ?? 0;
+        final split = PaymentSplit.compute(
+          method: _method,
+          totalUzs: subtotal,
+          cashInput: _cashController.text,
+          cardInput: _cardController.text,
+        );
         final canCheckout =
-            !state.isCheckingOut &&
-            state.cart.isNotEmpty &&
-            cash + card == subtotal;
+            !state.isCheckingOut && state.cart.isNotEmpty && split.isValid;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -100,7 +105,7 @@ class _CartPanelState extends State<CartPanel> {
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                       Text(
-                                        '${line.lineTotalUzs} so\'m',
+                                        formatUzs(line.lineTotalUzs),
                                         style: AppTextStyles.muted(
                                           AppTextStyles.body,
                                         ).copyWith(fontSize: 11),
@@ -135,7 +140,7 @@ class _CartPanelState extends State<CartPanel> {
                     children: [
                       Text('Jami', style: AppTextStyles.h6),
                       Text(
-                        '$subtotal so\'m',
+                        formatUzs(subtotal),
                         style: AppTextStyles.h5.copyWith(
                           color: NocturneColors.accent,
                         ),
@@ -143,35 +148,20 @@ class _CartPanelState extends State<CartPanel> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _cashController,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                          ],
-                          style: AppTextStyles.body,
-                          onChanged: (_) => setState(() {}),
-                          decoration: const InputDecoration(labelText: 'Naqd'),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextField(
-                          controller: _cardController,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                          ],
-                          style: AppTextStyles.body,
-                          onChanged: (_) => setState(() {}),
-                          decoration: const InputDecoration(labelText: 'Karta'),
-                        ),
-                      ),
-                    ],
+                  PaymentMethodPills(
+                    selected: _method,
+                    onChanged: (m) => setState(() => _method = m),
                   ),
+                  if (_method == PaymentMethod.split) ...[
+                    const SizedBox(height: 8),
+                    SplitAmountFields(
+                      cashController: _cashController,
+                      cardController: _cardController,
+                      split: split,
+                      totalUzs: subtotal,
+                      onChanged: () => setState(() {}),
+                    ),
+                  ],
                   if (state.errorMessage != null) ...[
                     const SizedBox(height: 10),
                     Text(
@@ -189,8 +179,8 @@ class _CartPanelState extends State<CartPanel> {
                       onPressed: canCheckout
                           ? () => context.read<PosSaleBloc>().add(
                               PosSaleCheckoutRequested(
-                                cashUzs: cash,
-                                cardUzs: card,
+                                cashUzs: split.cashUzs,
+                                cardUzs: split.cardUzs,
                               ),
                             )
                           : null,

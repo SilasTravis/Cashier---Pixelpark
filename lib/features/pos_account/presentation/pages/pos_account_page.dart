@@ -8,51 +8,56 @@ import '../bloc/pos_account_bloc.dart';
 import '../widgets/customer_detail_panel.dart';
 import '../widgets/customer_results_list.dart';
 import '../widgets/phone_keypad.dart';
-import '../widgets/topup_panel.dart';
 
+/// Two columns, matching the design: a fixed keypad card on the left, and a
+/// center pane that swaps between the search results (hint / list / not
+/// found) and the selected customer's detail — the search results are no
+/// longer squeezed into the narrow keypad column.
 class PosAccountPage extends StatelessWidget {
   const PosAccountPage({super.key});
 
-  static const _searchPanel = ResponsivePanel(
-    compact: 218,
+  static const _keypadPanel = ResponsivePanel(
+    compact: 240,
     standard: 286,
     wide: 320,
-  );
-  static const _topupPanel = ResponsivePanel(
-    compact: 208,
-    standard: 300,
-    wide: 330,
   );
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => sl<PosAccountBloc>(),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            width: _searchPanel.of(context),
-            padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              border: Border(right: BorderSide(color: NocturneColors.divider)),
+      create: (_) => sl<PosAccountBloc>()
+        ..add(const PosAccountRecentCustomersRequested())
+        ..add(const PosAccountPlansRequested())
+        ..add(const PosAccountProductsRequested()),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              width: _keypadPanel.of(context),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: NocturneColors.surface,
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                boxShadow: AppShadow.sm,
+              ),
+              child: const PhoneKeypad(),
             ),
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [const PhoneKeypad(), const CustomerResultsList()],
+            const SizedBox(width: 16),
+            Expanded(
+              child: BlocBuilder<PosAccountBloc, PosAccountState>(
+                buildWhen: (previous, current) =>
+                    previous.selectedCustomer != current.selectedCustomer,
+                builder: (context, state) {
+                  return state.selectedCustomer == null
+                      ? const CustomerResultsList()
+                      : const CustomerDetailPanel();
+                },
               ),
             ),
-          ),
-          const Expanded(child: CustomerDetailPanel()),
-          Container(
-            width: _topupPanel.of(context),
-            decoration: const BoxDecoration(
-              border: Border(left: BorderSide(color: NocturneColors.divider)),
-            ),
-            child: const TopupPanel(),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -29,6 +29,9 @@ dependencies:
   intl: ^0.20.2
   # qr code rendering (gate-pass slips)
   qr_flutter: ^4.1.0
+  # gate-pass sticker print job (58x40mm label) + OS print dialog/spooler
+  pdf: ^3.11.3
+  printing: ^5.14.2
   # icons matching the Cashier design system (Phosphor) — funccloud fork,
   # not upstream phosphor_flutter: upstream subclasses IconData, which
   # Flutter 3.43+ made a final class, breaking the build.
@@ -47,6 +50,8 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/images/gate_pass_label_bg.png
 
 flutter_intl:
   enabled: true

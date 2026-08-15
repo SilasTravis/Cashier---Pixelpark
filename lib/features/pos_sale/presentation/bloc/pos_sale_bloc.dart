@@ -15,6 +15,7 @@ part 'pos_sale_state.dart';
 class PosSaleBloc extends Bloc<PosSaleEvent, PosSaleState> {
   PosSaleBloc(this._repository, this._products) : super(const PosSaleState()) {
     on<PosSaleStarted>(_onStarted);
+    on<PosSaleSearchChanged>(_onSearchChanged);
     on<PosSaleCategorySelected>(_onCategorySelected);
     on<PosSaleProductAdded>(_onProductAdded);
     on<PosSaleQtyChanged>(_onQtyChanged);
@@ -43,6 +44,10 @@ class PosSaleBloc extends Bloc<PosSaleEvent, PosSaleState> {
       (products) =>
           emit(state.copyWith(isLoadingProducts: false, products: products)),
     );
+  }
+
+  void _onSearchChanged(PosSaleSearchChanged event, Emitter<PosSaleState> emit) {
+    emit(state.copyWith(searchQuery: event.query));
   }
 
   void _onCategorySelected(

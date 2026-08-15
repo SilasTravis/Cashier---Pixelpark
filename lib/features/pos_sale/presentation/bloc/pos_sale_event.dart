@@ -11,6 +11,15 @@ class PosSaleStarted extends PosSaleEvent {
   const PosSaleStarted();
 }
 
+class PosSaleSearchChanged extends PosSaleEvent {
+  const PosSaleSearchChanged(this.query);
+
+  final String query;
+
+  @override
+  List<Object?> get props => [query];
+}
+
 class PosSaleCategorySelected extends PosSaleEvent {
   const PosSaleCategorySelected(this.category);
 

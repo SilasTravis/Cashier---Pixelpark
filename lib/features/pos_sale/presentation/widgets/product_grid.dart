@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
+import '../../../../core/utils/currency.dart';
 import '../../../products/domain/product.dart';
 import '../../../products/presentation/product_icon.dart';
 import '../bloc/pos_sale_bloc.dart';
@@ -101,7 +102,7 @@ class _ProductCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${product.priceUzs} so\'m',
+                    formatUzs(product.priceUzs),
                     style: AppTextStyles.muted(
                       AppTextStyles.body,
                     ).copyWith(fontSize: 12),

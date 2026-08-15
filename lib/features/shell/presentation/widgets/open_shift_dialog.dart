@@ -5,11 +5,17 @@ import 'package:phosphor_icons/phosphor_icons.dart';
 
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
+import '../../../../injector_container.dart';
+import '../../../../router/app_navigator.dart';
+import '../../../auth/domain/repositories/auth_repository.dart';
 import '../../../shift/presentation/bloc/shift_bloc.dart';
 
 /// Blocks POS actions until a shift is open — shown as a non-dismissible
 /// overlay right after login (and after a shift close) rather than a modal
-/// dialog, since there is nothing useful to see behind it yet.
+/// dialog, since there is nothing useful to see behind it yet. The sidebar
+/// (and its Settings/logout tab) isn't reachable while this is showing, so
+/// logout lives here too — otherwise a cashier stuck on the wrong account
+/// has no way out short of force-quitting.
 class OpenShiftPrompt extends StatefulWidget {
   const OpenShiftPrompt({super.key});
 
@@ -24,6 +30,14 @@ class _OpenShiftPromptState extends State<OpenShiftPrompt> {
   void dispose() {
     _cashController.dispose();
     super.dispose();
+  }
+
+  Future<void> _logout(BuildContext context) async {
+    await sl<AuthRepository>().logout();
+    if (!context.mounted) return;
+    Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil(Routes.login, (route) => false);
   }
 
   @override
@@ -115,6 +129,12 @@ class _OpenShiftPromptState extends State<OpenShiftPrompt> {
                               )
                             : const Text('Smenani ochish'),
                       ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextButton.icon(
+                      onPressed: state.isLoading ? null : () => _logout(context),
+                      icon: const Icon(PhosphorIconsRegular.signOut, size: 14),
+                      label: const Text('Chiqish'),
                     ),
                   ],
                 ),

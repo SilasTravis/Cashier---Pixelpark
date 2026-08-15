@@ -27,6 +27,10 @@ class UpdateChecker {
   String? _pendingInstallerPath;
 
   void start() {
+    // The manifest/installer flow below downloads and runs a Windows
+    // `.exe` — there's no macOS-native updater yet, so this silent checker
+    // stays a no-op there rather than fetching a file it can't apply.
+    if (!Platform.isWindows) return;
     unawaited(_tick());
     _timer = Timer.periodic(_checkInterval, (_) => unawaited(_tick()));
   }

@@ -2,8 +2,11 @@ import 'package:dartz/dartz.dart';
 
 import '../../../core/error/exceptions.dart';
 import '../../../core/error/failure.dart';
+import '../../products/domain/product.dart';
 import '../domain/customer.dart';
-import '../domain/gate_pass.dart';
+import '../domain/kids_plan.dart';
+import '../domain/playing_child.dart';
+import '../domain/pos_entry.dart';
 import 'pos_account_remote_data_source.dart';
 
 class PosAccountRepository {
@@ -49,17 +52,40 @@ class PosAccountRepository {
     ),
   );
 
-  Future<Either<Failure, IssuedPasses>> issuePasses({
+  Future<Either<Failure, List<KidsPlan>>> listPlans() =>
+      _call(() => remote.listPlans());
+
+  Future<Either<Failure, PosEntryResult>> issuePlanEntry({
     required int customerId,
-    required String productId,
+    required String planKey,
     required List<String> childIds,
+  }) => _call(
+    () => remote.issuePlanEntry(
+      customerId: customerId,
+      planKey: planKey,
+      childIds: childIds,
+    ),
+  );
+
+  Future<Either<Failure, List<Product>>> listProducts() =>
+      _call(() => remote.listProducts());
+
+  Future<Either<Failure, List<PlayingChild>>> listPlaying(int customerId) =>
+      _call(() => remote.listPlaying(customerId));
+
+  Future<Either<Failure, PosEntryResult>> planEntryCheckout({
+    required int customerId,
+    required String planKey,
+    required List<String> childIds,
+    required List<CheckoutLine> products,
     required int cashUzs,
     required int cardUzs,
   }) => _call(
-    () => remote.issuePasses(
+    () => remote.planEntryCheckout(
       customerId: customerId,
-      productId: productId,
+      planKey: planKey,
       childIds: childIds,
+      products: products,
       cashUzs: cashUzs,
       cardUzs: cardUzs,
     ),

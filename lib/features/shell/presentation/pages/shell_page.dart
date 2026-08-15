@@ -4,11 +4,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/local_source/local_source.dart';
 import '../../../../core/theme/nocturne_colors.dart';
 import '../../../../injector_container.dart';
-import '../../../../router/app_navigator.dart';
-import '../../../auth/domain/repositories/auth_repository.dart';
 import '../../../pos_account/presentation/pages/pos_account_page.dart';
 import '../../../pos_sale/presentation/pages/pos_sale_page.dart';
 import '../../../products/presentation/pages/products_page.dart';
+import '../../../settings/presentation/pages/settings_page.dart';
 import '../../../shift/presentation/bloc/shift_bloc.dart';
 import '../model/shell_tab.dart';
 import '../widgets/close_shift_dialog.dart';
@@ -39,14 +38,6 @@ class _ShellView extends StatefulWidget {
 class _ShellViewState extends State<_ShellView> {
   ShellTab _tab = ShellTab.posAccount;
 
-  Future<void> _logout(BuildContext context) async {
-    await sl<AuthRepository>().logout();
-    if (!context.mounted) return;
-    Navigator.of(
-      context,
-    ).pushNamedAndRemoveUntil(Routes.login, (route) => false);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -75,18 +66,14 @@ class _ShellViewState extends State<_ShellView> {
                       selected: _tab,
                       onSelect: (tab) => setState(() => _tab = tab),
                       cashierName: sl<LocalSource>().getCashierFullName() ?? '',
-                      branchName: sl<LocalSource>().getBranchName() ?? '',
-                      onLogout: () => _logout(context),
+                      shiftOpenedAt: state.shift?.openedAt,
+                      onCloseShift: () =>
+                          showCloseShiftDialog(context, state.shift!),
                     ),
                     Expanded(
                       child: Column(
                         children: [
-                          HeaderBar(
-                            tab: _tab,
-                            shift: state.shift,
-                            onCloseShift: () =>
-                                showCloseShiftDialog(context, state.shift!),
-                          ),
+                          HeaderBar(tab: _tab, shift: state.shift),
                           Expanded(child: _TabContent(tab: _tab)),
                         ],
                       ),
@@ -113,6 +100,7 @@ class _TabContent extends StatelessWidget {
       ShellTab.posAccount => const PosAccountPage(),
       ShellTab.posSale => const PosSalePage(),
       ShellTab.products => const ProductsPage(),
+      ShellTab.settings => const SettingsPage(),
     };
   }
 }
