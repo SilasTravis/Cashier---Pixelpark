@@ -7,6 +7,7 @@ import '../../../../core/error/failure.dart';
 import '../../../products/domain/product.dart';
 import '../../data/pos_account_remote_data_source.dart' show CheckoutLine;
 import '../../data/pos_account_repository_impl.dart';
+import '../../domain/active_pass.dart';
 import '../../domain/customer.dart';
 import '../../domain/kids_plan.dart';
 import '../../domain/playing_child.dart';
@@ -31,6 +32,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     on<PosAccountEntryAcknowledged>(_onEntryAcknowledged);
     on<PosAccountProductsRequested>(_onProductsRequested);
     on<PosAccountPlayingRequested>(_onPlayingRequested);
+    on<PosAccountActivePassesRequested>(_onActivePassesRequested);
     on<PosAccountCheckoutRequested>(_onCheckoutRequested);
   }
 
@@ -138,8 +140,15 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     PosAccountCustomerSelected event,
     Emitter<PosAccountState> emit,
   ) async {
-    emit(state.copyWith(selectedCustomer: event.customer, playing: []));
+    emit(
+      state.copyWith(
+        selectedCustomer: event.customer,
+        playing: [],
+        activePasses: [],
+      ),
+    );
     add(const PosAccountPlayingRequested());
+    add(const PosAccountActivePassesRequested());
   }
 
   void _onSelectionCleared(
@@ -257,14 +266,20 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
       customerId: customer.id,
       planKey: event.planKey,
       childIds: event.childIds,
+      replacePlan: event.replacePlan,
     );
     result.fold(
       (failure) => emit(
         state.copyWith(isBusy: false, errorMessage: _messageOf(failure)),
       ),
-      (entryResult) => emit(
-        state.copyWith(isBusy: false, lastEntryResult: entryResult),
-      ),
+      (entryResult) {
+        emit(state.copyWith(isBusy: false, lastEntryResult: entryResult));
+        if (entryResult.entries.isNotEmpty) {
+          // A confirmed switch changes both who is inside and the badges.
+          add(const PosAccountPlayingRequested());
+          add(const PosAccountActivePassesRequested());
+        }
+      },
     );
   }
 
@@ -287,6 +302,22 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     result.fold((failure) {}, (playing) {
       if (state.selectedCustomer?.id == customer.id) {
         emit(state.copyWith(playing: playing));
+      }
+    });
+  }
+
+  Future<void> _onActivePassesRequested(
+    PosAccountActivePassesRequested event,
+    Emitter<PosAccountState> emit,
+  ) async {
+    final customer = state.selectedCustomer;
+    if (customer == null) return;
+    final result = await _repository.listActivePasses(customer.id);
+    // Best-effort like `playing`: a failed badge refresh keeps the previous
+    // badges rather than erroring the page.
+    result.fold((failure) {}, (passes) {
+      if (state.selectedCustomer?.id == customer.id) {
+        emit(state.copyWith(activePasses: passes));
       }
     });
   }
@@ -333,8 +364,9 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
                 : customer.copyWith(balance: entryResult.balance!),
           ),
         );
-        // Fresh entries mean fresh inside-children rows.
+        // Fresh entries mean fresh inside-children rows and badges.
         add(const PosAccountPlayingRequested());
+        add(const PosAccountActivePassesRequested());
       },
     );
   }

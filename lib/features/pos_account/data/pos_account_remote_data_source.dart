@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../../../core/error/exceptions.dart';
 import '../../products/domain/product.dart';
+import '../domain/active_pass.dart';
 import '../domain/customer.dart';
 import '../domain/kids_plan.dart';
 import '../domain/playing_child.dart';
@@ -41,10 +42,13 @@ abstract class PosAccountRemoteDataSource {
 
   Future<List<KidsPlan>> listPlans();
 
+  /// [replacePlan] is the cashier-confirmed plan switch — sent only after
+  /// the conflict modal, never on the first attempt.
   Future<PosEntryResult> issuePlanEntry({
     required int customerId,
     required String planKey,
     required List<String> childIds,
+    bool replacePlan = false,
   });
 
   /// Ticket-type products sold at the plan-entry checkout (socks etc.).
@@ -52,6 +56,9 @@ abstract class PosAccountRemoteDataSource {
 
   /// The customer's currently-inside children with live due-so-far.
   Future<List<PlayingChild>> listPlaying(int customerId);
+
+  /// Each child's still-valid day pass — the children-list plan badge.
+  Future<List<ActivePass>> listActivePasses(int customerId);
 
   /// The one-stop checkout: collected cash/card top the balance up, the
   /// products are debited FROM the balance, and the day passes are issued —
@@ -154,11 +161,16 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
     required int customerId,
     required String planKey,
     required List<String> childIds,
+    bool replacePlan = false,
   }) async {
     final response = await _request(
       () => dio.post(
         '/v1/pos/customers/$customerId/plan-entry',
-        data: {'planKey': planKey, 'childIds': childIds},
+        data: {
+          'planKey': planKey,
+          'childIds': childIds,
+          if (replacePlan) 'replacePlan': true,
+        },
       ),
     );
     final map = response as Map<String, dynamic>;
@@ -166,6 +178,7 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
       entries: (map['entries'] as List)
           .map((json) => _posEntryFromJson(json as Map<String, dynamic>))
           .toList(),
+      conflicts: _conflictsFromJson(map),
       failures: (map['failures'] as List)
           .map((json) => _posEntryFailureFromJson(json as Map<String, dynamic>))
           .toList(),
@@ -198,6 +211,27 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
     return (response as List)
         .map((json) => _playingChildFromJson(json as Map<String, dynamic>))
         .toList();
+  }
+
+  @override
+  Future<List<ActivePass>> listActivePasses(int customerId) async {
+    final response = await _request(
+      () => dio.get('/v1/pos/customers/$customerId/active-passes'),
+    );
+    return (response as List)
+        .map(
+          (json) => _activePassFromJson(json as Map<String, dynamic>),
+        )
+        .toList();
+  }
+
+  ActivePass _activePassFromJson(Map<String, dynamic> json) {
+    return ActivePass(
+      childId: json['childId'] as String,
+      planKey: json['planKey'] as String?,
+      planLabel: json['planLabel'] as String,
+      expiresAt: DateTime.parse(json['expiresAt'] as String).toLocal(),
+    );
   }
 
   PlayingChild _playingChildFromJson(Map<String, dynamic> json) {
@@ -241,10 +275,32 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
       entries: (map['entries'] as List)
           .map((json) => _posEntryFromJson(json as Map<String, dynamic>))
           .toList(),
+      conflicts: _conflictsFromJson(map),
       failures: (map['failures'] as List)
           .map((json) => _posEntryFailureFromJson(json as Map<String, dynamic>))
           .toList(),
       balance: map['balance'] as int?,
+    );
+  }
+
+  /// Absent on older backends — parsed defensively as "no conflicts".
+  List<PosEntryConflict> _conflictsFromJson(Map<String, dynamic> map) {
+    return ((map['conflicts'] as List?) ?? const [])
+        .map(
+          (json) => _posEntryConflictFromJson(json as Map<String, dynamic>),
+        )
+        .toList();
+  }
+
+  PosEntryConflict _posEntryConflictFromJson(Map<String, dynamic> json) {
+    return PosEntryConflict(
+      childId: json['childId'] as String,
+      currentPlanKey: json['currentPlanKey'] as String?,
+      currentPlanLabel: json['currentPlanLabel'] as String,
+      requestedPlanKey: json['requestedPlanKey'] as String,
+      isInside: json['isInside'] as bool,
+      accruedDueUzs: json['accruedDueUzs'] as int,
+      switchable: json['switchable'] as bool,
     );
   }
 

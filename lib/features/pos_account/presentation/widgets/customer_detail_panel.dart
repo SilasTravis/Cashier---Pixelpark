@@ -8,10 +8,12 @@ import '../../../../core/theme/nocturne_colors.dart';
 import '../../../../core/utils/currency.dart';
 import '../../../../core/widgets/payment_method_selector.dart';
 import '../../../products/domain/product.dart';
+import '../../domain/active_pass.dart';
 import '../../domain/customer.dart';
 import '../../domain/kids_plan.dart';
 import '../../domain/playing_child.dart';
 import '../bloc/pos_account_bloc.dart';
+import 'plan_conflict_dialog.dart';
 import 'plan_entry_printing.dart';
 
 const _quickTopupAmounts = [10000, 20000, 50000, 100000];
@@ -104,6 +106,19 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               const PosAccountEntryAcknowledged(),
             );
             setState(() => _resetFor(state.selectedCustomer));
+            if (result.conflicts.isNotEmpty) {
+              final requestedKey = result.conflicts.first.requestedPlanKey;
+              showPlanConflictDialog(
+                context,
+                conflicts: result.conflicts,
+                childNamesById: childNames,
+                requestedPlanName: state.plans
+                    .where((p) => p.key == requestedKey)
+                    .map((p) => p.name)
+                    .firstOrNull ??
+                    requestedKey,
+              );
+            }
           },
         ),
       ],
@@ -183,6 +198,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                         customer: customer,
                         plans: state.plans,
                         isLoadingPlans: state.isLoadingPlans,
+                        activePasses: state.activePasses,
                         selectedChildIds: _selectedChildIds,
                         onToggleChild: (id) => setState(
                           () => _selectedChildIds.contains(id)
@@ -440,6 +456,7 @@ class _ChildrenCard extends StatelessWidget {
     required this.customer,
     required this.plans,
     required this.isLoadingPlans,
+    required this.activePasses,
     required this.selectedChildIds,
     required this.onToggleChild,
     required this.addingChild,
@@ -460,6 +477,10 @@ class _ChildrenCard extends StatelessWidget {
   /// app's own entrance QR.
   final List<KidsPlan> plans;
   final bool isLoadingPlans;
+
+  /// Children's still-valid day passes — powers the per-row plan badge so
+  /// staff see "already on Standart today" BEFORE picking a tariff.
+  final List<ActivePass> activePasses;
   final Set<String> selectedChildIds;
   final ValueChanged<String> onToggleChild;
   final bool addingChild;
@@ -484,6 +505,7 @@ class _ChildrenCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selCount = selectedChildIds.length;
+    final passByChildId = {for (final pass in activePasses) pass.childId: pass};
     return _Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -510,6 +532,7 @@ class _ChildrenCard extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 6),
               child: _ChildRow(
                 child: child,
+                activePlanLabel: passByChildId[child.id]?.planLabel,
                 selected: selectedChildIds.contains(child.id),
                 onToggle: () => onToggleChild(child.id),
               ),
@@ -1096,11 +1119,16 @@ class _PlayingCard extends StatelessWidget {
 class _ChildRow extends StatelessWidget {
   const _ChildRow({
     required this.child,
+    required this.activePlanLabel,
     required this.selected,
     required this.onToggle,
   });
 
   final Child child;
+
+  /// The plan of the child's still-valid day pass, or null — shown as a
+  /// badge so the cashier notices the existing tariff before printing.
+  final String? activePlanLabel;
   final bool selected;
   final VoidCallback onToggle;
 
@@ -1123,6 +1151,23 @@ class _ChildRow extends StatelessWidget {
               style: AppTextStyles.body.copyWith(fontSize: 14),
             ),
           ),
+          if (activePlanLabel != null) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: NocturneColors.accent900,
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              child: Text(
+                '$activePlanLabel · faol',
+                style: AppTextStyles.body.copyWith(
+                  fontSize: 11,
+                  color: NocturneColors.accent300,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
           SizedBox(
             height: 34,
             child: OutlinedButton.icon(

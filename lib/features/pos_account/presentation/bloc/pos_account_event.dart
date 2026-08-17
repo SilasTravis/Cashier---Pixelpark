@@ -98,13 +98,18 @@ class PosAccountPlanEntryRequested extends PosAccountEvent {
   const PosAccountPlanEntryRequested({
     required this.planKey,
     required this.childIds,
+    this.replacePlan = false,
   });
 
   final String planKey;
   final List<String> childIds;
 
+  /// Cashier-confirmed plan switch — set only by the conflict modal's
+  /// "Almashtirish" retry, never on a first attempt.
+  final bool replacePlan;
+
   @override
-  List<Object?> get props => [planKey, childIds];
+  List<Object?> get props => [planKey, childIds, replacePlan];
 }
 
 class PosAccountEntryAcknowledged extends PosAccountEvent {
@@ -121,6 +126,12 @@ class PosAccountProductsRequested extends PosAccountEvent {
 /// selection and after a checkout enters new children).
 class PosAccountPlayingRequested extends PosAccountEvent {
   const PosAccountPlayingRequested();
+}
+
+/// Refreshes the children's active day-pass badges (fired on selection and
+/// after every plan-entry/checkout result).
+class PosAccountActivePassesRequested extends PosAccountEvent {
+  const PosAccountActivePassesRequested();
 }
 
 /// The one-stop "to'lov + chop etish": optional collected cash/card (topped

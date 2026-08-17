@@ -35,20 +35,65 @@ class PosEntryFailure extends Equatable {
   List<Object?> get props => [childId, code, message];
 }
 
+/// One child whose live day pass is on ANOTHER plan than the cashier just
+/// picked — the backend printed nothing and expects a confirmed retry with
+/// `replacePlan` before it settles the old pass and reissues.
+class PosEntryConflict extends Equatable {
+  const PosEntryConflict({
+    required this.childId,
+    required this.currentPlanKey,
+    required this.currentPlanLabel,
+    required this.requestedPlanKey,
+    required this.isInside,
+    required this.accruedDueUzs,
+    required this.switchable,
+  });
+
+  final String childId;
+  final String? currentPlanKey;
+  final String currentPlanLabel;
+  final String requestedPlanKey;
+
+  /// The old pass currently owns the child's open in-park cycle.
+  final bool isInside;
+
+  /// What settling that cycle costs the balance at switch time.
+  final int accruedDueUzs;
+
+  /// False for downgrades (VIP → Standart) — no switch is offered.
+  final bool switchable;
+
+  @override
+  List<Object?> get props => [
+    childId,
+    currentPlanKey,
+    currentPlanLabel,
+    requestedPlanKey,
+    isInside,
+    accruedDueUzs,
+    switchable,
+  ];
+}
+
 class PosEntryResult extends Equatable {
   const PosEntryResult({
     required this.entries,
     required this.failures,
+    this.conflicts = const [],
     this.balance,
   });
 
   final List<PosEntry> entries;
   final List<PosEntryFailure> failures;
 
+  /// Children needing the plan-switch confirmation modal — see
+  /// [PosEntryConflict].
+  final List<PosEntryConflict> conflicts;
+
   /// The customer's balance after a combined checkout (top-up + products) —
   /// null for the plain plan-entry path, which moves no money.
   final int? balance;
 
   @override
-  List<Object?> get props => [entries, failures, balance];
+  List<Object?> get props => [entries, failures, conflicts, balance];
 }

@@ -13,6 +13,7 @@ class PosAccountState extends Equatable {
     this.isLoadingPlans = false,
     this.products = const [],
     this.playing = const [],
+    this.activePasses = const [],
     this.lastEntryResult,
   });
 
@@ -39,6 +40,10 @@ class PosAccountState extends Equatable {
   /// — refreshed on selection and after each checkout.
   final List<PlayingChild> playing;
 
+  /// Each child's still-valid day pass — the "already on this plan today"
+  /// badge; same refresh lifecycle as [playing].
+  final List<ActivePass> activePasses;
+
   /// Set right after a plan-entry request so the UI can pop the
   /// entrance-QR slip dialog and surface any per-child failures; cleared
   /// once acknowledged.
@@ -57,6 +62,7 @@ class PosAccountState extends Equatable {
     bool? isLoadingPlans,
     List<Product>? products,
     List<PlayingChild>? playing,
+    List<ActivePass>? activePasses,
     PosEntryResult? lastEntryResult,
     bool clearLastEntryResult = false,
   }) {
@@ -74,6 +80,7 @@ class PosAccountState extends Equatable {
       isLoadingPlans: isLoadingPlans ?? this.isLoadingPlans,
       products: products ?? this.products,
       playing: playing ?? this.playing,
+      activePasses: activePasses ?? this.activePasses,
       lastEntryResult: clearLastEntryResult
           ? null
           : (lastEntryResult ?? this.lastEntryResult),
@@ -93,6 +100,7 @@ class PosAccountState extends Equatable {
     isLoadingPlans,
     products,
     playing,
+    activePasses,
     lastEntryResult,
   ];
 }

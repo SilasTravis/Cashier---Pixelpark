@@ -3,6 +3,7 @@ import 'package:dartz/dartz.dart';
 import '../../../core/error/exceptions.dart';
 import '../../../core/error/failure.dart';
 import '../../products/domain/product.dart';
+import '../domain/active_pass.dart';
 import '../domain/customer.dart';
 import '../domain/kids_plan.dart';
 import '../domain/playing_child.dart';
@@ -59,11 +60,13 @@ class PosAccountRepository {
     required int customerId,
     required String planKey,
     required List<String> childIds,
+    bool replacePlan = false,
   }) => _call(
     () => remote.issuePlanEntry(
       customerId: customerId,
       planKey: planKey,
       childIds: childIds,
+      replacePlan: replacePlan,
     ),
   );
 
@@ -72,6 +75,9 @@ class PosAccountRepository {
 
   Future<Either<Failure, List<PlayingChild>>> listPlaying(int customerId) =>
       _call(() => remote.listPlaying(customerId));
+
+  Future<Either<Failure, List<ActivePass>>> listActivePasses(int customerId) =>
+      _call(() => remote.listActivePasses(customerId));
 
   Future<Either<Failure, PosEntryResult>> planEntryCheckout({
     required int customerId,
