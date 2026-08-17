@@ -567,9 +567,8 @@ class _ChildrenCard extends StatelessWidget {
   final Customer customer;
 
   /// Standard/VIP — always exactly these two once loaded (seeded on the
-  /// backend). Neither is prepaid at the register anymore: both start a
-  /// visit billed from the customer's balance at exit, same as the mobile
-  /// app's own entrance QR.
+  /// backend). Standard starts a visit billed from the customer's balance
+  /// at exit; VIP is debited from the balance immediately at printing.
   final List<KidsPlan> plans;
   final bool isLoadingPlans;
 
@@ -590,12 +589,11 @@ class _ChildrenCard extends StatelessWidget {
   /// so this card doesn't have to thread a dozen more callbacks through.
   final Widget checkout;
 
-  String _noPaymentNote(KidsPlan plan) {
-    final basis = plan.kind == KidsPlanKind.flatDay
-        ? "kunlik tarif bo'yicha"
-        : 'vaqtiga qarab';
-    return "Hozir hech narsa to'lanmaydi — chiqishda balansdan $basis yechiladi.";
-  }
+  /// Standard only: nothing is due at the register — billing happens at
+  /// exit by played time. VIP gets NO note here: it is debited immediately
+  /// at printing, and the checkout section already says so.
+  String _noPaymentNote() =>
+      "Hozir hech narsa to'lanmaydi — chiqishda balansdan vaqtiga qarab yechiladi.";
 
   @override
   Widget build(BuildContext context) {
@@ -733,7 +731,8 @@ class _ChildrenCard extends StatelessWidget {
                 ],
               ],
             ),
-          if (selectedPlan != null) ...[
+          if (selectedPlan != null &&
+              selectedPlan!.kind != KidsPlanKind.flatDay) ...[
             const SizedBox(height: 10),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -742,7 +741,7 @@ class _ChildrenCard extends StatelessWidget {
                 color: NocturneColors.bg,
               ),
               child: Text(
-                _noPaymentNote(selectedPlan!),
+                _noPaymentNote(),
                 style: AppTextStyles.body.copyWith(
                   fontSize: 12,
                   color: NocturneColors.text.withValues(alpha: 0.6),
