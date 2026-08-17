@@ -174,11 +174,22 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
             (sum, line) =>
                 sum + (productsById[line.key]?.priceUzs ?? 0) * line.value,
           );
-          // VIP is prepaid INTO the balance here (the 22:00 close-out
-          // debits it from there); Standard has no upfront tariff — it
-          // bills per exit by actual minutes.
+          // VIP is debited from the balance at issuance (register prepay);
+          // Standard has no upfront tariff — it bills per exit by actual
+          // minutes. Children already holding today's pass on the SAME
+          // flat-day plan are not charged again — the backend just
+          // re-returns their pass.
+          final activePlanByChild = {
+            for (final p in state.activePasses) p.childId: p.planKey,
+          };
+          final alreadyOnSelectedPlan = <String>{
+            if (_selectedPlan?.kind == KidsPlanKind.flatDay)
+              for (final id in _selectedChildIds)
+                if (activePlanByChild[id] == _selectedPlan!.key) id,
+          };
           final vipTotal = _selectedPlan?.kind == KidsPlanKind.flatDay
-              ? (_selectedPlan!.flatUzs ?? 0) * _selectedChildIds.length
+              ? (_selectedPlan!.flatUzs ?? 0) *
+                    (_selectedChildIds.length - alreadyOnSelectedPlan.length)
               : 0;
           final neededTotal = cartTotal + vipTotal;
           final shortfall = neededTotal - customer.balance;
@@ -323,6 +334,11 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                             }
                           }),
                           selectedChildCount: _selectedChildIds.length,
+                          alreadyVipNames: [
+                            for (final child in customer.children)
+                              if (alreadyOnSelectedPlan.contains(child.id))
+                                child.fullName,
+                          ],
                           printParentQr: _printParentQr,
                           onPrintParentQrChanged: (v) =>
                               setState(() => _printParentQr = v),
@@ -746,8 +762,8 @@ class _ChildrenCard extends StatelessWidget {
 ///
 /// The money model mirrors the backend's plan-entry checkout: everything
 /// flows through the balance. Collected cash/card is credited to the
-/// balance first, then products are debited from it; the TARIFF is never
-/// paid here (Standard bills per exit, VIP at the 22:00 close-out).
+/// balance first, then products are debited from it; the Standard tariff
+/// bills per exit, while VIP is debited from the balance at issuance.
 class _CheckoutSection extends StatelessWidget {
   const _CheckoutSection({
     required this.products,
@@ -773,6 +789,7 @@ class _CheckoutSection extends StatelessWidget {
     required this.onAdd,
     required this.onRemove,
     required this.selectedChildCount,
+    required this.alreadyVipNames,
     required this.printParentQr,
     required this.onPrintParentQrChanged,
     required this.canSubmit,
@@ -784,8 +801,8 @@ class _CheckoutSection extends StatelessWidget {
   final Map<String, int> cart;
   final int cartTotal;
 
-  /// VIP flat price × selected children — collected now, PARKED on the
-  /// balance for the 22:00 close-out charge. 0 for Standard.
+  /// VIP flat price × newly-covered children — debited from the balance
+  /// the moment the stickers print. 0 for Standard.
   final int vipTotal;
   final int neededTotal;
   final int balance;
@@ -809,6 +826,10 @@ class _CheckoutSection extends StatelessWidget {
   final ValueChanged<String> onAdd;
   final ValueChanged<String> onRemove;
   final int selectedChildCount;
+
+  /// Selected children already on today's selected flat-day plan — shown
+  /// as "no second charge" notes and excluded from [vipTotal].
+  final List<String> alreadyVipNames;
 
   /// The free parent sticker rides along with the checkout print.
   final bool printParentQr;
@@ -839,6 +860,16 @@ class _CheckoutSection extends StatelessWidget {
             ],
           ),
         ],
+        for (final name in alreadyVipNames)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              "«$name» allaqachon faol VIP tarifda — qayta to'lov olinmaydi.",
+              style: AppTextStyles.muted(
+                AppTextStyles.body,
+              ).copyWith(fontSize: 11),
+            ),
+          ),
         if (neededTotal > 0) ...[
           const SizedBox(height: 12),
           if (cartTotal > 0 && vipTotal > 0) ...[
@@ -857,7 +888,7 @@ class _CheckoutSection extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 2),
               child: Text(
-                "VIP tarif puli balansga qo'yiladi — 22:00 da yechiladi.",
+                "VIP tarif puli chop etilganda balansdan darhol yechiladi.",
                 style: AppTextStyles.muted(
                   AppTextStyles.body,
                 ).copyWith(fontSize: 11),

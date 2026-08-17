@@ -60,8 +60,8 @@ Future<void> showPlanConflictDialog(
                 Text(
                   '«$requestedPlanName» rejasiga almashtirilsinmi? '
                   '${requestedPlanFlatUzs != null ? '$requestedPlanName narxi '
-                          '(${formatUzs(requestedPlanFlatUzs)}) mijoz '
-                          'balansida bo\'lishi kerak. ' : ''}'
+                          '(${formatUzs(requestedPlanFlatUzs)}) balansdan '
+                          'darhol yechiladi. ' : ''}'
                   'Eski stiker bekor qilinadi va yangi QR chop etiladi.',
                   style: AppTextStyles.body.copyWith(fontSize: 13),
                 ),
