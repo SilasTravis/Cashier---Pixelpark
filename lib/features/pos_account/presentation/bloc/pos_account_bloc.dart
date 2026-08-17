@@ -10,6 +10,7 @@ import '../../data/pos_account_repository_impl.dart';
 import '../../domain/active_pass.dart';
 import '../../domain/customer.dart';
 import '../../domain/kids_plan.dart';
+import '../../domain/parent_pass.dart';
 import '../../domain/playing_child.dart';
 import '../../domain/pos_entry.dart';
 
@@ -27,6 +28,8 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     on<PosAccountNewCustomerRequested>(_onNewCustomerRequested);
     on<PosAccountChildAddRequested>(_onChildAddRequested);
     on<PosAccountTopupRequested>(_onTopupRequested);
+    on<PosAccountParentQrRequested>(_onParentQrRequested);
+    on<PosAccountParentQrAcknowledged>(_onParentQrAcknowledged);
     on<PosAccountPlansRequested>(_onPlansRequested);
     on<PosAccountPlanEntryRequested>(_onPlanEntryRequested);
     on<PosAccountEntryAcknowledged>(_onEntryAcknowledged);
@@ -240,6 +243,29 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
         ),
       ),
     );
+  }
+
+  Future<void> _onParentQrRequested(
+    PosAccountParentQrRequested event,
+    Emitter<PosAccountState> emit,
+  ) async {
+    final customer = state.selectedCustomer;
+    if (customer == null) return;
+    emit(state.copyWith(isBusy: true, errorMessage: null));
+    final result = await _repository.issueParentPass(customer.id);
+    result.fold(
+      (failure) => emit(
+        state.copyWith(isBusy: false, errorMessage: _messageOf(failure)),
+      ),
+      (pass) => emit(state.copyWith(isBusy: false, lastParentPass: pass)),
+    );
+  }
+
+  void _onParentQrAcknowledged(
+    PosAccountParentQrAcknowledged event,
+    Emitter<PosAccountState> emit,
+  ) {
+    emit(state.copyWith(clearLastParentPass: true));
   }
 
   Future<void> _onPlansRequested(

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -94,9 +95,16 @@ class GatePassLabelPrinter {
   /// which is where the label-gap/media configuration lives. If no printer
   /// is found at all, falls back to the [print] dialog so the cashier can
   /// pick one manually.
-  static Future<void> printDirect(List<GatePassLabelEntry> entries) async {
+  ///
+  /// Returns false when the direct submission did NOT happen (no printer,
+  /// or the plugin reported failure) — callers must surface that instead of
+  /// letting the sticker vanish silently.
+  static Future<bool> printDirect(List<GatePassLabelEntry> entries) async {
     assert(entries.isNotEmpty, 'GatePassLabelPrinter.printDirect: no entries');
     final printers = await Printing.listPrinters();
+    debugPrint(
+      'GatePassLabelPrinter: printers=${printers.map((p) => '${p.name}${p.isDefault ? '*' : ''}').join(', ')}',
+    );
     Printer? target;
     for (final p in printers) {
       if (p.name.toLowerCase().contains('godex')) {
@@ -105,8 +113,13 @@ class GatePassLabelPrinter {
       }
     }
     target ??= printers.where((p) => p.isDefault).firstOrNull;
-    if (target == null) return print(entries);
-    await Printing.directPrintPdf(
+    if (target == null) {
+      debugPrint('GatePassLabelPrinter: no printer found — opening dialog');
+      await print(entries);
+      return true;
+    }
+    debugPrint('GatePassLabelPrinter: direct print → ${target.name}');
+    final ok = await Printing.directPrintPdf(
       printer: target,
       // The label size MUST be passed here: on macOS the plugin takes the
       // job's paper size from this format (defaulting to A4/Letter if
@@ -126,6 +139,8 @@ class GatePassLabelPrinter {
       // macOS runs NSPrintOperation.runModal — the popup we're avoiding.)
       dynamicLayout: false,
     );
+    debugPrint('GatePassLabelPrinter: direct print result=$ok');
+    return ok;
   }
 
   /// Prints via the OS print dialog (manual printer choice).

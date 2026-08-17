@@ -5,6 +5,7 @@ import '../../products/domain/product.dart';
 import '../domain/active_pass.dart';
 import '../domain/customer.dart';
 import '../domain/kids_plan.dart';
+import '../domain/parent_pass.dart';
 import '../domain/playing_child.dart';
 import '../domain/pos_entry.dart';
 
@@ -59,6 +60,10 @@ abstract class PosAccountRemoteDataSource {
 
   /// Each child's still-valid day pass — the children-list plan badge.
   Future<List<ActivePass>> listActivePasses(int customerId);
+
+  /// The customer's free parent QR — idempotent per day, so re-tapping
+  /// re-prints the same sticker.
+  Future<ParentPass> issueParentPass(int customerId);
 
   /// The one-stop checkout: collected cash/card top the balance up, the
   /// products are debited FROM the balance, and the day passes are issued —
@@ -223,6 +228,19 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
           (json) => _activePassFromJson(json as Map<String, dynamic>),
         )
         .toList();
+  }
+
+  @override
+  Future<ParentPass> issueParentPass(int customerId) async {
+    final response = await _request(
+      () => dio.post('/v1/pos/customers/$customerId/parent-pass'),
+    );
+    final map = response as Map<String, dynamic>;
+    return ParentPass(
+      code: map['code'] as String,
+      expiresAt: DateTime.parse(map['expiresAt'] as String).toLocal(),
+      customerName: map['customerName'] as String,
+    );
   }
 
   ActivePass _activePassFromJson(Map<String, dynamic> json) {

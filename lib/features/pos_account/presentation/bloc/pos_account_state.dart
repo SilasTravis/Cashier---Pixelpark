@@ -15,6 +15,7 @@ class PosAccountState extends Equatable {
     this.playing = const [],
     this.activePasses = const [],
     this.lastEntryResult,
+    this.lastParentPass,
   });
 
   final String phoneDigits;
@@ -49,6 +50,10 @@ class PosAccountState extends Equatable {
   /// once acknowledged.
   final PosEntryResult? lastEntryResult;
 
+  /// Set right after a parent-QR request so the UI can print the sticker;
+  /// cleared once acknowledged — same lifecycle as [lastEntryResult].
+  final ParentPass? lastParentPass;
+
   PosAccountState copyWith({
     String? phoneDigits,
     bool? isSearching,
@@ -65,6 +70,8 @@ class PosAccountState extends Equatable {
     List<ActivePass>? activePasses,
     PosEntryResult? lastEntryResult,
     bool clearLastEntryResult = false,
+    ParentPass? lastParentPass,
+    bool clearLastParentPass = false,
   }) {
     return PosAccountState(
       phoneDigits: phoneDigits ?? this.phoneDigits,
@@ -84,6 +91,9 @@ class PosAccountState extends Equatable {
       lastEntryResult: clearLastEntryResult
           ? null
           : (lastEntryResult ?? this.lastEntryResult),
+      lastParentPass: clearLastParentPass
+          ? null
+          : (lastParentPass ?? this.lastParentPass),
     );
   }
 
@@ -102,5 +112,6 @@ class PosAccountState extends Equatable {
     playing,
     activePasses,
     lastEntryResult,
+    lastParentPass,
   ];
 }

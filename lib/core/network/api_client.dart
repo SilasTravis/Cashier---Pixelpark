@@ -23,7 +23,7 @@ Dio buildDio(LocalSource localSource, TokenRefresher tokenRefresher) {
     AuthInterceptor(localSource),
     LogInterceptor(
       request: kDebugMode,
-      responseBody: false,
+      responseBody: kDebugMode,
       error: kDebugMode,
       requestBody: kDebugMode,
     ),

@@ -155,3 +155,14 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
   @override
   List<Object?> get props => [planKey, childIds, products, cashUzs, cardUzs];
 }
+
+/// Cashier tapped "Ota-ona QR" — issue (or re-issue) the free parent
+/// sticker for the selected customer and hand it to the UI to print.
+class PosAccountParentQrRequested extends PosAccountEvent {
+  const PosAccountParentQrRequested();
+}
+
+/// UI has printed the parent sticker — clear it from state.
+class PosAccountParentQrAcknowledged extends PosAccountEvent {
+  const PosAccountParentQrAcknowledged();
+}

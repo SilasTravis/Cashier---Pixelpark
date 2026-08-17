@@ -6,6 +6,7 @@ import '../../products/domain/product.dart';
 import '../domain/active_pass.dart';
 import '../domain/customer.dart';
 import '../domain/kids_plan.dart';
+import '../domain/parent_pass.dart';
 import '../domain/playing_child.dart';
 import '../domain/pos_entry.dart';
 import 'pos_account_remote_data_source.dart';
@@ -78,6 +79,9 @@ class PosAccountRepository {
 
   Future<Either<Failure, List<ActivePass>>> listActivePasses(int customerId) =>
       _call(() => remote.listActivePasses(customerId));
+
+  Future<Either<Failure, ParentPass>> issueParentPass(int customerId) =>
+      _call(() => remote.issueParentPass(customerId));
 
   Future<Either<Failure, PosEntryResult>> planEntryCheckout({
     required int customerId,
