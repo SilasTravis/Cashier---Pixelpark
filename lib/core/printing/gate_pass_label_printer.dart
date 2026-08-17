@@ -7,9 +7,10 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
-/// One gate-pass sticker to print: the entrance-QR token (same payload the
-/// mobile app itself generates) and the child's display name.
-typedef GatePassLabelEntry = ({String qrData, String name});
+/// One gate-pass sticker to print. [invertName] renders the name strip as
+/// a filled dark bar with the name in white — the PARENT sticker style,
+/// distinguishable from a child sticker at arm's length.
+typedef GatePassLabelEntry = ({String qrData, String name, bool invertName});
 
 /// Prints 58×40mm gate-pass stickers on a thermal label printer (Godex
 /// G500, 203dpi) via the OS print dialog — no vendor SDK needed.
@@ -247,6 +248,22 @@ class GatePassLabelPrinter {
           drawText: false,
         ),
       ),
+      // Parent style: a filled dark bar over the whole name strip; the
+      // 1-bit thermal driver prints pure black + knocked-out white text
+      // crisply (anything gray would dither — see the class docs).
+      if (entry.invertName)
+        pw.Positioned(
+          left: _mm(_pageX(_nameLeftMm)),
+          top: _mm(_pageY(_nameTopMm)),
+          child: pw.Container(
+            width: _mm((_nameRightMm - _nameLeftMm) * _labelScale),
+            height: _mm((_nameBottomMm - _nameTopMm) * _labelScale),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.black,
+              borderRadius: pw.BorderRadius.circular(_mm(0.8)),
+            ),
+          ),
+        ),
       // rotateBox re-lays-out the rotated child's bounding box, so
       // (left, top) anchors the top-left of the ROTATED box: pre-rotation
       // the text box is (textWidth × fontSize), post-rotation it becomes
@@ -264,6 +281,7 @@ class GatePassLabelPrinter {
               font: font,
               fontSize: fontPt * _labelScale,
               fontWeight: pw.FontWeight.bold,
+              color: entry.invertName ? PdfColors.white : PdfColors.black,
             ),
           ),
         ),

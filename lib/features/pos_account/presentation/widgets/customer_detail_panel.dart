@@ -140,7 +140,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
             final pass = state.lastParentPass!;
             final messenger = ScaffoldMessenger.of(context);
             GatePassLabelPrinter.printDirect([
-              (qrData: pass.code, name: pass.customerName),
+              (qrData: pass.code, name: pass.customerName, invertName: true),
             ]).then((ok) {
               if (ok) return;
               messenger.showSnackBar(

@@ -18,7 +18,11 @@ void printPlanEntryLabels(
     final messenger = ScaffoldMessenger.of(context);
     GatePassLabelPrinter.printDirect([
       for (final entry in result.entries)
-        (qrData: entry.token, name: childNamesById[entry.childId] ?? ''),
+        (
+          qrData: entry.token,
+          name: childNamesById[entry.childId] ?? '',
+          invertName: false,
+        ),
     ]).then((ok) {
       if (ok) return;
       // A silently swallowed sticker is the worst failure mode a gate can
