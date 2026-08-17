@@ -36,6 +36,9 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
   bool _addingChild = false;
   final _childNameController = TextEditingController();
 
+  /// Checkout also prints the free parent QR — default ON per customer.
+  bool _printParentQr = true;
+
   PaymentMethod _topupMethod = PaymentMethod.cash;
   final _topupAmountController = TextEditingController();
   final _topupCashController = TextEditingController();
@@ -73,6 +76,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
     _selectedPlan = null;
     _addingChild = false;
     _childNameController.clear();
+    _printParentQr = true;
     _topupMethod = PaymentMethod.cash;
     _topupAmountController.clear();
     _topupCashController.clear();
@@ -319,12 +323,16 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                             }
                           }),
                           selectedChildCount: _selectedChildIds.length,
+                          printParentQr: _printParentQr,
+                          onPrintParentQrChanged: (v) =>
+                              setState(() => _printParentQr = v),
                           canSubmit: canEnter,
                           isBusy: state.isBusy,
                           onSubmit: () => context.read<PosAccountBloc>().add(
                             PosAccountCheckoutRequested(
                               planKey: _selectedPlan!.key,
                               childIds: _selectedChildIds.toList(),
+                              withParentQr: _printParentQr,
                               products: [
                                 for (final line in _cart.entries)
                                   (productId: line.key, qty: line.value),
@@ -765,6 +773,8 @@ class _CheckoutSection extends StatelessWidget {
     required this.onAdd,
     required this.onRemove,
     required this.selectedChildCount,
+    required this.printParentQr,
+    required this.onPrintParentQrChanged,
     required this.canSubmit,
     required this.isBusy,
     required this.onSubmit,
@@ -799,6 +809,10 @@ class _CheckoutSection extends StatelessWidget {
   final ValueChanged<String> onAdd;
   final ValueChanged<String> onRemove;
   final int selectedChildCount;
+
+  /// The free parent sticker rides along with the checkout print.
+  final bool printParentQr;
+  final ValueChanged<bool> onPrintParentQrChanged;
   final bool canSubmit;
   final bool isBusy;
   final VoidCallback onSubmit;
@@ -913,7 +927,30 @@ class _CheckoutSection extends StatelessWidget {
             ],
           ],
         ],
-        const SizedBox(height: 12),
+        const SizedBox(height: 4),
+        // Transparent Material keeps the tile's ink plumbing happy inside
+        // the card's DecoratedBox (asserts in widget tests otherwise).
+        Material(
+          type: MaterialType.transparency,
+          child: SwitchListTile(
+            value: printParentQr,
+            onChanged: onPrintParentQrChanged,
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            activeThumbColor: NocturneColors.accent,
+            title: Text(
+              'Ota-ona QR ham chop etish',
+              style: AppTextStyles.body.copyWith(fontSize: 13),
+            ),
+            subtitle: Text(
+              'Bepul — kirish-chiqishga cheklovsiz',
+              style: AppTextStyles.muted(
+                AppTextStyles.body,
+              ).copyWith(fontSize: 11),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
         SizedBox(
           height: 48,
           child: FilledButton.icon(

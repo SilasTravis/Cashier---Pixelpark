@@ -144,6 +144,7 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
     required this.products,
     required this.cashUzs,
     required this.cardUzs,
+    this.withParentQr = false,
   });
 
   final String planKey;
@@ -152,8 +153,18 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
   final int cashUzs;
   final int cardUzs;
 
+  /// Also issue + print the free parent QR after a successful entry.
+  final bool withParentQr;
+
   @override
-  List<Object?> get props => [planKey, childIds, products, cashUzs, cardUzs];
+  List<Object?> get props => [
+    planKey,
+    childIds,
+    products,
+    cashUzs,
+    cardUzs,
+    withParentQr,
+  ];
 }
 
 /// Cashier tapped "Ota-ona QR" — issue (or re-issue) the free parent

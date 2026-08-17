@@ -393,6 +393,12 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
         // Fresh entries mean fresh inside-children rows and badges.
         add(const PosAccountPlayingRequested());
         add(const PosAccountActivePassesRequested());
+        // The free parent sticker rides along with the checkout print —
+        // never the other way around: a parent-pass hiccup must not undo
+        // an already-settled checkout, so it only surfaces as an error.
+        if (event.withParentQr && entryResult.entries.isNotEmpty) {
+          add(const PosAccountParentQrRequested());
+        }
       },
     );
   }
