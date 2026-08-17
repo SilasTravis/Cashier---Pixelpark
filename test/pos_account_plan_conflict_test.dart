@@ -149,6 +149,34 @@ void main() {
       );
     });
 
+    test('known balance-failure codes are translated to Uzbek', () async {
+      final adapter = _FakeAdapter({
+        'entries': <Object>[],
+        'failures': [
+          {
+            'childId': 'child-1',
+            'code': 'VIP_PREPAYMENT_REQUIRED',
+            'message': 'A cashier-issued VIP pass must be paid …',
+          },
+        ],
+        'conflicts': <Object>[],
+      });
+      final dio = Dio(BaseOptions(baseUrl: 'http://x'))
+        ..httpClientAdapter = adapter;
+      final source = PosAccountRemoteDataSourceImpl(dio);
+
+      final result = await source.issuePlanEntry(
+        customerId: 7,
+        planKey: 'vip',
+        childIds: const ['child-1'],
+      );
+
+      expect(
+        result.failures.single.message,
+        "VIP uchun balans yetarli emas — avval to'lov qabul qiling",
+      );
+    });
+
     test('listActivePasses parses the badge rows', () async {
       final adapter = _FakeAdapter([
         {

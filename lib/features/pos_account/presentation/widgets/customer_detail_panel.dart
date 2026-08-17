@@ -113,15 +113,18 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
             setState(() => _resetFor(state.selectedCustomer));
             if (result.conflicts.isNotEmpty) {
               final requestedKey = result.conflicts.first.requestedPlanKey;
+              final requestedPlan = state.plans
+                  .where((p) => p.key == requestedKey)
+                  .firstOrNull;
               showPlanConflictDialog(
                 context,
                 conflicts: result.conflicts,
                 childNamesById: childNames,
-                requestedPlanName: state.plans
-                    .where((p) => p.key == requestedKey)
-                    .map((p) => p.name)
-                    .firstOrNull ??
-                    requestedKey,
+                requestedPlanName: requestedPlan?.name ?? requestedKey,
+                requestedPlanFlatUzs:
+                    requestedPlan?.kind == KidsPlanKind.flatDay
+                    ? requestedPlan?.flatUzs
+                    : null,
               );
             }
           },

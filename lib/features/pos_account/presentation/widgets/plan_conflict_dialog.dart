@@ -25,6 +25,10 @@ Future<void> showPlanConflictDialog(
   required List<PosEntryConflict> conflicts,
   required Map<String, String> childNamesById,
   required String requestedPlanName,
+  /// The requested plan's flat day price when it is VIP — the backend
+  /// refuses the switch unless the balance already covers it, so the
+  /// modal says so before the cashier confirms.
+  int? requestedPlanFlatUzs,
 }) {
   final bloc = context.read<PosAccountBloc>();
   final switchable = conflicts.where((c) => c.switchable).toList();
@@ -55,6 +59,9 @@ Future<void> showPlanConflictDialog(
               if (switchable.isNotEmpty)
                 Text(
                   '«$requestedPlanName» rejasiga almashtirilsinmi? '
+                  '${requestedPlanFlatUzs != null ? '$requestedPlanName narxi '
+                          '(${formatUzs(requestedPlanFlatUzs)}) mijoz '
+                          'balansida bo\'lishi kerak. ' : ''}'
                   'Eski stiker bekor qilinadi va yangi QR chop etiladi.',
                   style: AppTextStyles.body.copyWith(fontSize: 13),
                 ),

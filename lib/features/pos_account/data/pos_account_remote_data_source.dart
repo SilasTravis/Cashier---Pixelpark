@@ -365,10 +365,19 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
   }
 
   PosEntryFailure _posEntryFailureFromJson(Map<String, dynamic> json) {
+    final code = json['code'] as String;
     return PosEntryFailure(
       childId: json['childId'] as String,
-      code: json['code'] as String,
-      message: json['message'] as String,
+      code: code,
+      // Backend failure messages are English; the codes the cashier can
+      // actually act on get an Uzbek text here.
+      message: switch (code) {
+        'VIP_PREPAYMENT_REQUIRED' =>
+          "VIP uchun balans yetarli emas — avval to'lov qabul qiling",
+        'PLAN_SWITCH_BALANCE_INSUFFICIENT' =>
+          "Balans yetarli emas — avval balansni to'ldiring",
+        _ => json['message'] as String,
+      },
     );
   }
 }

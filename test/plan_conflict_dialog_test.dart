@@ -40,6 +40,16 @@ class _FakeRemote implements PosAccountRemoteDataSource {
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+const _upgrade = PosEntryConflict(
+  childId: 'child-1',
+  currentPlanKey: 'standard',
+  currentPlanLabel: 'Standart',
+  requestedPlanKey: 'vip',
+  isInside: false,
+  accruedDueUzs: 0,
+  switchable: true,
+);
+
 const _downgrade = PosEntryConflict(
   childId: 'child-1',
   currentPlanKey: 'vip',
@@ -51,6 +61,44 @@ const _downgrade = PosEntryConflict(
 );
 
 void main() {
+  testWidgets('a VIP switch spells out the register prepayment', (
+    tester,
+  ) async {
+    final remote = _FakeRemote();
+    final bloc = PosAccountBloc(PosAccountRepository(remote));
+    addTearDown(bloc.close);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BlocProvider.value(
+          value: bloc,
+          child: Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () => showPlanConflictDialog(
+                  context,
+                  conflicts: const [_upgrade],
+                  childNamesById: const {'child-1': 'asd'},
+                  requestedPlanName: 'VIP',
+                  requestedPlanFlatUzs: 75000,
+                ),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining("VIP narxi (75 000 so'm)"),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('blocked downgrade still offers re-printing the current pass', (
     tester,
   ) async {
