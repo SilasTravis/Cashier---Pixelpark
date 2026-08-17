@@ -1,7 +1,8 @@
+import 'dart:io' show Platform;
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter/foundation.dart' show debugPrint, visibleForTesting;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -88,6 +89,12 @@ class GatePassLabelPrinter {
   /// enough to size/center a short name without querying real font metrics.
   static const double _avgGlyphAdvance = 0.6;
 
+  /// Godex G500 native resolution. Rasterizing at exactly this dpi keeps
+  /// the raster 1:1 with the printer's dot grid (and with the bg asset's
+  /// pixel-per-dot art), so the Windows raster path loses nothing vs the
+  /// vector original.
+  static const double _printerDpi = 203.0;
+
   // ---- Public API ---------------------------------------------------------
 
   /// Prints straight to the label printer with NO OS dialog: picks the
@@ -132,7 +139,7 @@ class GatePassLabelPrinter {
         _mm(_labelHeightMm),
         marginAll: 0,
       ),
-      onLayout: (_) => _buildPdf(entries),
+      onLayout: (_) => _printablePdf(entries),
       name: _jobName(entries),
       usePrinterSettings: true,
       // false = skip the OS print-options modal entirely and send straight
@@ -148,7 +155,7 @@ class GatePassLabelPrinter {
   static Future<void> print(List<GatePassLabelEntry> entries) {
     assert(entries.isNotEmpty, 'GatePassLabelPrinter.print: no entries');
     return Printing.layoutPdf(
-      onLayout: (_) => _buildPdf(entries),
+      onLayout: (_) => _printablePdf(entries),
       name: _jobName(entries),
     );
   }
@@ -197,6 +204,70 @@ class GatePassLabelPrinter {
           ),
         ),
       );
+    }
+    return doc.save();
+  }
+
+  // ---- Windows raster path ------------------------------------------------
+
+  /// The PDF that actually goes to the printer.
+  ///
+  /// On macOS that's the vector PDF as-is: the OS rasterizes it itself
+  /// before the driver sees anything. On Windows the printing plugin
+  /// instead draws the PDF's vectors/text/images straight into the printer
+  /// driver's GDI device context (PDFium's FPDF_RenderPage-to-HDC path) —
+  /// and thermal label drivers like the Godex one implement only a small
+  /// slice of GDI, silently dropping the rest: the job spools and labels
+  /// feed, but they come out BLANK. So on Windows we do the OS's job
+  /// ourselves: rasterize every page at the printer's native dpi and
+  /// submit an image-only PDF — the driver then only has to blit one
+  /// opaque bitmap, which every driver supports.
+  static Future<Uint8List> _printablePdf(
+    List<GatePassLabelEntry> entries,
+  ) async {
+    final vector = await _buildPdf(entries);
+    if (!Platform.isWindows) {
+      return vector;
+    }
+    final raster = await rasterizedLabelPdf(
+      Printing.raster(vector, dpi: _printerDpi),
+    );
+    if (raster == null) {
+      // Rasterization produced nothing — send the vector PDF rather than
+      // no job at all (worst case it reproduces the blank print).
+      debugPrint('GatePassLabelPrinter: raster produced 0 pages, '
+          'falling back to vector PDF');
+      return vector;
+    }
+    return raster;
+  }
+
+  /// Re-wraps rasterized pages into an image-only PDF (one full-bleed
+  /// image per label page). Returns null when [pages] yields nothing.
+  @visibleForTesting
+  static Future<Uint8List?> rasterizedLabelPdf(
+    Stream<PdfRasterBase> pages,
+  ) async {
+    final doc = pw.Document();
+    var pageCount = 0;
+    await for (final page in pages) {
+      pageCount++;
+      doc.addPage(
+        pw.Page(
+          pageFormat: PdfPageFormat(
+            _mm(_labelWidthMm),
+            _mm(_labelHeightMm),
+            marginAll: 0,
+          ),
+          build: (context) => pw.FullPage(
+            ignoreMargins: true,
+            child: pw.Image(_OpaqueRasterImage(page), fit: pw.BoxFit.fill),
+          ),
+        ),
+      );
+    }
+    if (pageCount == 0) {
+      return null;
     }
     return doc.save();
   }
@@ -287,5 +358,38 @@ class GatePassLabelPrinter {
         ),
       ),
     ];
+  }
+}
+
+/// Embeds a rasterized page as a plain OPAQUE /DeviceRGB image.
+///
+/// The stock providers (MemoryImage/RawImage) always attach the alpha
+/// channel as a /SMask soft mask — and GDI paints soft-masked images with
+/// AlphaBlend, one of the calls flaky label drivers drop. The raster is
+/// fully opaque anyway (the page paints solid white first), so the alpha
+/// channel is dead weight: strip it and embed bare RGB.
+class _OpaqueRasterImage extends pw.ImageProvider {
+  _OpaqueRasterImage(this._page)
+    : super(_page.width, _page.height, PdfImageOrientation.topLeft, null);
+
+  final PdfRasterBase _page;
+
+  @override
+  PdfImage buildImage(pw.Context context, {int? width, int? height}) {
+    final pixelCount = _page.width * _page.height;
+    final rgba = _page.pixels;
+    final rgb = Uint8List(pixelCount * 3);
+    for (var i = 0; i < pixelCount; i++) {
+      rgb[i * 3] = rgba[i * 4];
+      rgb[i * 3 + 1] = rgba[i * 4 + 1];
+      rgb[i * 3 + 2] = rgba[i * 4 + 2];
+    }
+    return PdfImage(
+      context.document,
+      image: rgb,
+      width: _page.width,
+      height: _page.height,
+      alpha: false,
+    );
   }
 }
