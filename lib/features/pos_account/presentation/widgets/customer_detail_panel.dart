@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:phosphor_icons/phosphor_icons.dart';
 
+import '../../../../core/printing/gate_pass_label_printer.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
 import '../../../../core/utils/currency.dart';
@@ -129,6 +130,34 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
             }
           },
         ),
+        // Prints the free parent sticker the moment the bloc hands one
+        // over — same no-preview flow as the child gate-pass labels.
+        BlocListener<PosAccountBloc, PosAccountState>(
+          listenWhen: (previous, current) =>
+              previous.lastParentPass != current.lastParentPass &&
+              current.lastParentPass != null,
+          listener: (context, state) {
+            final pass = state.lastParentPass!;
+            final messenger = ScaffoldMessenger.of(context);
+            GatePassLabelPrinter.printDirect([
+              (qrData: pass.code, name: pass.customerName),
+            ]).then((ok) {
+              if (ok) return;
+              messenger.showSnackBar(
+                const SnackBar(
+                  backgroundColor: NocturneColors.surface,
+                  content: Text(
+                    'Stiker chop etilmadi — printerni tekshiring',
+                    style: TextStyle(color: NocturneColors.danger),
+                  ),
+                ),
+              );
+            });
+            context.read<PosAccountBloc>().add(
+              const PosAccountParentQrAcknowledged(),
+            );
+          },
+        ),
       ],
       child: BlocBuilder<PosAccountBloc, PosAccountState>(
         builder: (context, state) {
@@ -202,6 +231,10 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               children: [
                 _SummaryStrip(
                   customer: customer,
+                  isBusy: state.isBusy,
+                  onParentQr: () => context.read<PosAccountBloc>().add(
+                    const PosAccountParentQrRequested(),
+                  ),
                   onBack: () => context.read<PosAccountBloc>().add(
                     const PosAccountSelectionCleared(),
                   ),
@@ -383,9 +416,19 @@ class _Card extends StatelessWidget {
 }
 
 class _SummaryStrip extends StatelessWidget {
-  const _SummaryStrip({required this.customer, required this.onBack});
+  const _SummaryStrip({
+    required this.customer,
+    required this.isBusy,
+    required this.onParentQr,
+    required this.onBack,
+  });
 
   final Customer customer;
+  final bool isBusy;
+
+  /// Prints the customer's free parent QR — the ruleless both-direction
+  /// day sticker for the accompanying adult.
+  final VoidCallback onParentQr;
   final VoidCallback onBack;
 
   String _initials(String value) {
@@ -449,6 +492,12 @@ class _SummaryStrip extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+          const SizedBox(width: 12),
+          OutlinedButton.icon(
+            onPressed: isBusy ? null : onParentQr,
+            icon: const Icon(PhosphorIconsRegular.qrCode, size: 16),
+            label: const Text('Ota-ona QR'),
           ),
           const SizedBox(width: 12),
           Column(
