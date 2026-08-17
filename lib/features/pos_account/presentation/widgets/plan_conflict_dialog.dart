@@ -14,8 +14,12 @@ import '../bloc/pos_account_bloc.dart';
 /// same plan-entry with `replacePlan` — the backend settles + kills the old
 /// pass and the fresh QR prints through the normal result flow.
 ///
-/// Downgrades arrive with `switchable == false` and are explained
-/// information-only; the confirm button covers just the switchable children.
+/// Downgrades arrive with `switchable == false`; there the modal instead
+/// offers re-printing the CURRENT pass — the everyday reason a cashier
+/// lands here is a lost sticker, and a blocked switch must not leave them
+/// with no way to print at all. The re-print goes through the same
+/// plan-entry request with the child's current plan, which the backend
+/// answers with the existing pass (same code, old sticker keeps working).
 Future<void> showPlanConflictDialog(
   BuildContext context, {
   required List<PosEntryConflict> conflicts,
@@ -24,6 +28,9 @@ Future<void> showPlanConflictDialog(
 }) {
   final bloc = context.read<PosAccountBloc>();
   final switchable = conflicts.where((c) => c.switchable).toList();
+  // currentPlanKey is null only when the plan row was deleted — nothing to
+  // re-print against then.
+  final reprintable = conflicts.where((c) => c.currentPlanKey != null).toList();
   return showDialog<void>(
     context: context,
     barrierDismissible: true,
@@ -59,6 +66,30 @@ Future<void> showPlanConflictDialog(
             onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Bekor qilish'),
           ),
+          if (reprintable.isNotEmpty)
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                // Children may sit on different current plans — one
+                // same-plan re-print request per plan key.
+                final childIdsByPlan = <String, List<String>>{};
+                for (final c in reprintable) {
+                  childIdsByPlan
+                      .putIfAbsent(c.currentPlanKey!, () => [])
+                      .add(c.childId);
+                }
+                for (final entry in childIdsByPlan.entries) {
+                  bloc.add(
+                    PosAccountPlanEntryRequested(
+                      planKey: entry.key,
+                      childIds: entry.value,
+                    ),
+                  );
+                }
+              },
+              icon: const Icon(PhosphorIconsRegular.printer, size: 16),
+              label: const Text('Qayta chop etish'),
+            ),
           if (switchable.isNotEmpty)
             FilledButton.icon(
               onPressed: () {
@@ -92,7 +123,8 @@ class _ConflictRow extends StatelessWidget {
       '«$childName» bugun «${conflict.currentPlanLabel}» rejasida'
           '${conflict.isInside ? ' (hozir ichkarida)' : ''}.',
       if (!conflict.switchable)
-        'Bu rejadan pasaytirish mumkin emas — mavjud stiker amal qiladi.',
+        'Bu rejadan pasaytirish mumkin emas — stiker yo\'qolgan bo\'lsa, '
+            'mavjud rejani qayta chop eting.',
       if (conflict.switchable && conflict.accruedDueUzs > 0)
         "O'ynagan vaqti uchun ${formatUzs(conflict.accruedDueUzs)} "
             'balansdan yechiladi.',
