@@ -156,6 +156,7 @@ void main() {
           'planKey': 'standard',
           'planLabel': 'Standart',
           'expiresAt': '2026-08-17T17:00:00.000Z',
+          'dueTodayUzs': 25000,
         },
       ]);
       final dio = Dio(BaseOptions(baseUrl: 'http://x'))
@@ -167,6 +168,7 @@ void main() {
       expect(passes, hasLength(1));
       expect(passes.single.childId, 'child-1');
       expect(passes.single.planLabel, 'Standart');
+      expect(passes.single.dueTodayUzs, 25000);
       expect(adapter.lastRequest!.path, '/v1/pos/customers/7/active-passes');
     });
   });
@@ -229,6 +231,7 @@ void main() {
             planKey: 'standard',
             planLabel: 'Standart',
             expiresAt: DateTime.utc(2026, 8, 17, 17),
+            dueTodayUzs: 25000,
           ),
         ];
       final bloc = PosAccountBloc(PosAccountRepository(remote));

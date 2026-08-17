@@ -231,6 +231,8 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
       planKey: json['planKey'] as String?,
       planLabel: json['planLabel'] as String,
       expiresAt: DateTime.parse(json['expiresAt'] as String).toLocal(),
+      // Absent on older backends — badge simply shows 0 until redeploy.
+      dueTodayUzs: json['dueTodayUzs'] as int? ?? 0,
     );
   }
 

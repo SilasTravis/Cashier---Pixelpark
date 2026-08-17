@@ -9,6 +9,7 @@ class ActivePass extends Equatable {
     required this.planKey,
     required this.planLabel,
     required this.expiresAt,
+    required this.dueTodayUzs,
   });
 
   final String childId;
@@ -16,6 +17,17 @@ class ActivePass extends Equatable {
   final String planLabel;
   final DateTime expiresAt;
 
+  /// The day's running cost on this pass — Standard: cumulative tier total
+  /// over today's cycles, VIP: the flat day price. The number the cashier
+  /// reads out when a parent asks "qancha bo'ldi?".
+  final int dueTodayUzs;
+
   @override
-  List<Object?> get props => [childId, planKey, planLabel, expiresAt];
+  List<Object?> get props => [
+    childId,
+    planKey,
+    planLabel,
+    expiresAt,
+    dueTodayUzs,
+  ];
 }

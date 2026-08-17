@@ -51,6 +51,10 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
   final _payCashController = TextEditingController();
   final _payCardController = TextEditingController();
 
+  /// True once the cashier types in the payment field themselves — from
+  /// then on the auto-prefill below keeps its hands off their value.
+  bool _payEdited = false;
+
   @override
   void dispose() {
     _childNameController.dispose();
@@ -75,6 +79,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
     _cart.clear();
     _payFromBalance = true;
     _payMethod = PaymentMethod.cash;
+    _payEdited = false;
     _payAmountController.clear();
     _payCashController.clear();
     _payCardController.clear();
@@ -149,6 +154,15 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               : balanceCovers
               ? (_payFromBalance ? 0 : neededTotal)
               : shortfall;
+
+          // Default the payment field to exactly what's owed, so the
+          // cashier confirms a number instead of typing it. Follows cart /
+          // tariff changes until the cashier edits the field by hand.
+          if (requiredPayment > 0 &&
+              !_payEdited &&
+              _payAmountController.text != '$requiredPayment') {
+            _payAmountController.text = '$requiredPayment';
+          }
 
           final payAmount =
               int.tryParse(_payAmountController.text.replaceAll(' ', '')) ?? 0;
@@ -240,8 +254,13 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                           balanceCovers: balanceCovers,
                           shortfall: shortfall,
                           payFromBalance: _payFromBalance,
-                          onPayFromBalanceChanged: (v) =>
-                              setState(() => _payFromBalance = v),
+                          onPayFromBalanceChanged: (v) => setState(() {
+                            _payFromBalance = v;
+                            // Toggling re-arms the prefill for the new mode.
+                            _payEdited = false;
+                            if (v) _payAmountController.clear();
+                          }),
+                          onPayAmountEdited: () => _payEdited = true,
                           requiredPayment: requiredPayment,
                           payMethod: _payMethod,
                           onPayMethodChanged: (m) =>
@@ -532,7 +551,7 @@ class _ChildrenCard extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 6),
               child: _ChildRow(
                 child: child,
-                activePlanLabel: passByChildId[child.id]?.planLabel,
+                activePass: passByChildId[child.id],
                 selected: selectedChildIds.contains(child.id),
                 onToggle: () => onToggleChild(child.id),
               ),
@@ -681,6 +700,7 @@ class _CheckoutSection extends StatelessWidget {
     required this.shortfall,
     required this.payFromBalance,
     required this.onPayFromBalanceChanged,
+    required this.onPayAmountEdited,
     required this.requiredPayment,
     required this.payMethod,
     required this.onPayMethodChanged,
@@ -711,6 +731,10 @@ class _CheckoutSection extends StatelessWidget {
   final int shortfall;
   final bool payFromBalance;
   final ValueChanged<bool> onPayFromBalanceChanged;
+
+  /// Fired on manual typing in the payment field — stops the auto-prefill
+  /// from overwriting the cashier's own value.
+  final VoidCallback onPayAmountEdited;
   final int requiredPayment;
   final PaymentMethod payMethod;
   final ValueChanged<PaymentMethod> onPayMethodChanged;
@@ -813,7 +837,10 @@ class _CheckoutSection extends StatelessWidget {
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               style: AppTextStyles.body.copyWith(fontFamily: null, fontSize: 16),
-              onChanged: (_) => onChanged(),
+              onChanged: (_) {
+                onPayAmountEdited();
+                onChanged();
+              },
               decoration: InputDecoration(
                 labelText: "To'lov summasi",
                 helperText:
@@ -1119,16 +1146,17 @@ class _PlayingCard extends StatelessWidget {
 class _ChildRow extends StatelessWidget {
   const _ChildRow({
     required this.child,
-    required this.activePlanLabel,
+    required this.activePass,
     required this.selected,
     required this.onToggle,
   });
 
   final Child child;
 
-  /// The plan of the child's still-valid day pass, or null — shown as a
-  /// badge so the cashier notices the existing tariff before printing.
-  final String? activePlanLabel;
+  /// The child's still-valid day pass, or null — shown as a badge (plan +
+  /// today's running cost) so the cashier both notices the existing tariff
+  /// before printing and can answer a parent's "qancha bo'ldi?" on sight.
+  final ActivePass? activePass;
   final bool selected;
   final VoidCallback onToggle;
 
@@ -1151,7 +1179,7 @@ class _ChildRow extends StatelessWidget {
               style: AppTextStyles.body.copyWith(fontSize: 14),
             ),
           ),
-          if (activePlanLabel != null) ...[
+          if (activePass != null) ...[
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
@@ -1159,7 +1187,8 @@ class _ChildRow extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
               child: Text(
-                '$activePlanLabel · faol',
+                '${activePass!.planLabel} · '
+                '${formatUzs(activePass!.dueTodayUzs)}',
                 style: AppTextStyles.body.copyWith(
                   fontSize: 11,
                   color: NocturneColors.accent300,

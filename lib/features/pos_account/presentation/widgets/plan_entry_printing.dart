@@ -15,10 +15,24 @@ void printPlanEntryLabels(
   Map<String, String> childNamesById,
 ) {
   if (result.entries.isNotEmpty) {
+    final messenger = ScaffoldMessenger.of(context);
     GatePassLabelPrinter.printDirect([
       for (final entry in result.entries)
         (qrData: entry.token, name: childNamesById[entry.childId] ?? ''),
-    ]);
+    ]).then((ok) {
+      if (ok) return;
+      // A silently swallowed sticker is the worst failure mode a gate can
+      // have — tell the cashier so they can re-print or check the printer.
+      messenger.showSnackBar(
+        const SnackBar(
+          backgroundColor: NocturneColors.surface,
+          content: Text(
+            'Stiker chop etilmadi — printerni tekshiring',
+            style: TextStyle(color: NocturneColors.danger),
+          ),
+        ),
+      );
+    });
   }
 
   if (result.failures.isNotEmpty) {
