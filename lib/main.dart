@@ -13,8 +13,17 @@ void main() async {
   di.sl<UpdateChecker>().start();
 
   await windowManager.ensureInitialized();
-  const windowOptions = WindowOptions(
-    size: Size(1440, 900),
+  // Dev-only launch-size override for testing small cashier screens:
+  // `flutter run --dart-define=WINDOW_SIZE=1280x760`. Defaults to the
+  // design size when unset.
+  const sizeOverride = String.fromEnvironment('WINDOW_SIZE');
+  final launchSize = switch (sizeOverride.split('x')) {
+    [final w, final h] when double.tryParse(w) != null && double.tryParse(h) != null =>
+      Size(double.parse(w), double.parse(h)),
+    _ => const Size(1440, 900),
+  };
+  final windowOptions = WindowOptions(
+    size: launchSize,
     minimumSize: Size(
       AppConstants.minWindowWidth,
       AppConstants.minWindowHeight,

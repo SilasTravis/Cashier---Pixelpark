@@ -255,11 +255,12 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: _ChildrenCard(
+                // Children/checkout and top-up side by side on a roomy
+                // window; stacked when the detail area is too narrow for
+                // both cards to breathe (small cashier screens, ~800px
+                // windows) — each card needs ~320px of usable width.
+                _TwoCardLayout(
+                  first: _ChildrenCard(
                         customer: customer,
                         plans: state.plans,
                         isLoadingPlans: state.isLoadingPlans,
@@ -363,31 +364,26 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _BalanceCard(
-                        customer: customer,
-                        amountController: _topupAmountController,
-                        onAmountChanged: () => setState(() {}),
-                        method: _topupMethod,
-                        onMethodChanged: (m) => setState(() => _topupMethod = m),
-                        cashController: _topupCashController,
-                        cardController: _topupCardController,
-                        split: topupSplit,
-                        amount: topupAmount,
-                        canTopup: canTopup,
-                        isBusy: state.isBusy,
-                        onTopup: () => context.read<PosAccountBloc>().add(
-                          PosAccountTopupRequested(
-                            amountUzs: topupAmount,
-                            cashUzs: topupSplit.cashUzs,
-                            cardUzs: topupSplit.cardUzs,
-                          ),
-                        ),
+                  second: _BalanceCard(
+                    customer: customer,
+                    amountController: _topupAmountController,
+                    onAmountChanged: () => setState(() {}),
+                    method: _topupMethod,
+                    onMethodChanged: (m) => setState(() => _topupMethod = m),
+                    cashController: _topupCashController,
+                    cardController: _topupCardController,
+                    split: topupSplit,
+                    amount: topupAmount,
+                    canTopup: canTopup,
+                    isBusy: state.isBusy,
+                    onTopup: () => context.read<PosAccountBloc>().add(
+                      PosAccountTopupRequested(
+                        amountUzs: topupAmount,
+                        cashUzs: topupSplit.cashUzs,
+                        cardUzs: topupSplit.cardUzs,
                       ),
                     ),
-                  ],
+                  ),
                 ),
                 if (state.playing.isNotEmpty) ...[
                   const SizedBox(height: 12),
@@ -414,6 +410,41 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
           );
         },
       ),
+    );
+  }
+}
+
+/// Side-by-side on a roomy window, stacked when narrow. Below
+/// [_stackBelow] each Expanded half would drop under ~320px and the
+/// cards' inner rows (tariff pills, child rows, payment fields) stop
+/// fitting — stacking gives every card the full width instead.
+class _TwoCardLayout extends StatelessWidget {
+  const _TwoCardLayout({required this.first, required this.second});
+
+  static const double _stackBelow = 660;
+
+  final Widget first;
+  final Widget second;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < _stackBelow) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [first, const SizedBox(height: 12), second],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: first),
+            const SizedBox(width: 12),
+            Expanded(child: second),
+          ],
+        );
+      },
     );
   }
 }
@@ -466,6 +497,75 @@ class _SummaryStrip extends StatelessWidget {
     final displayName = customer.fullName.isEmpty
         ? customer.phoneNumber
         : customer.fullName;
+
+    final identity = <Widget>[
+      SizedBox(
+        width: 36,
+        height: 36,
+        child: OutlinedButton(
+          onPressed: onBack,
+          style: OutlinedButton.styleFrom(padding: EdgeInsets.zero),
+          child: const Icon(PhosphorIconsRegular.arrowLeft, size: 16),
+        ),
+      ),
+      const SizedBox(width: 12),
+      CircleAvatar(
+        radius: 22,
+        backgroundColor: NocturneColors.accent900,
+        child: Text(
+          _initials(displayName),
+          style: const TextStyle(
+            color: NocturneColors.accent300,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      const SizedBox(width: 12),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              displayName,
+              style: AppTextStyles.h4,
+              overflow: TextOverflow.ellipsis,
+            ),
+            Text(
+              customer.phoneNumber,
+              style: AppTextStyles.muted(
+                AppTextStyles.body,
+              ).copyWith(fontSize: 12),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    ];
+
+    final qrButton = OutlinedButton.icon(
+      onPressed: isBusy ? null : onParentQr,
+      icon: const Icon(PhosphorIconsRegular.qrCode, size: 16),
+      label: const Text('Ota-ona QR'),
+    );
+
+    final balance = Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Balans',
+          style: AppTextStyles.kicker.copyWith(
+            color: NocturneColors.text.withValues(alpha: 0.45),
+          ),
+        ),
+        Text(
+          formatUzs(customer.balance),
+          style: AppTextStyles.h4.copyWith(color: NocturneColors.accent300),
+        ),
+      ],
+    );
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
       decoration: BoxDecoration(
@@ -473,74 +573,38 @@ class _SummaryStrip extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.lg),
         boxShadow: AppShadow.sm,
       ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 36,
-            height: 36,
-            child: OutlinedButton(
-              onPressed: onBack,
-              style: OutlinedButton.styleFrom(padding: EdgeInsets.zero),
-              child: const Icon(PhosphorIconsRegular.arrowLeft, size: 16),
-            ),
-          ),
-          const SizedBox(width: 12),
-          CircleAvatar(
-            radius: 22,
-            backgroundColor: NocturneColors.accent900,
-            child: Text(
-              _initials(displayName),
-              style: const TextStyle(
-                color: NocturneColors.accent300,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
+      // One line when everything fits; on narrow windows the QR button
+      // and balance drop to a second line instead of overflowing.
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < 480) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  displayName,
-                  style: AppTextStyles.h4,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  customer.phoneNumber,
-                  style: AppTextStyles.muted(
-                    AppTextStyles.body,
-                  ).copyWith(fontSize: 12),
-                  overflow: TextOverflow.ellipsis,
+                Row(children: identity),
+                const SizedBox(height: 10),
+                // Wrap, not Row: on a truly cramped strip the balance
+                // drops under the QR button instead of overflowing.
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [qrButton, balance],
                 ),
               ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          OutlinedButton.icon(
-            onPressed: isBusy ? null : onParentQr,
-            icon: const Icon(PhosphorIconsRegular.qrCode, size: 16),
-            label: const Text('Ota-ona QR'),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisSize: MainAxisSize.min,
+            );
+          }
+          return Row(
             children: [
-              Text(
-                'Balans',
-                style: AppTextStyles.kicker.copyWith(
-                  color: NocturneColors.text.withValues(alpha: 0.45),
-                ),
-              ),
-              Text(
-                formatUzs(customer.balance),
-                style: AppTextStyles.h4.copyWith(color: NocturneColors.accent300),
-              ),
+              ...identity,
+              const SizedBox(width: 12),
+              qrButton,
+              const SizedBox(width: 12),
+              balance,
             ],
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -607,15 +671,19 @@ class _ChildrenCard extends StatelessWidget {
             children: [
               Text('Farzandlar', style: AppTextStyles.h5),
               const SizedBox(width: 8),
-              Text(
-                selCount > 0
-                    ? 'tanlangan: $selCount'
-                    : customer.children.isEmpty
-                    ? "farzand yo'q"
-                    : 'QR uchun tanlang',
-                style: AppTextStyles.muted(
-                  AppTextStyles.body,
-                ).copyWith(fontSize: 11),
+              Flexible(
+                child: Text(
+                  selCount > 0
+                      ? 'tanlangan: $selCount'
+                      : customer.children.isEmpty
+                      ? "farzand yo'q"
+                      : 'QR uchun tanlang',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.muted(
+                    AppTextStyles.body,
+                  ).copyWith(fontSize: 11),
+                ),
               ),
             ],
           ),
@@ -1299,18 +1367,24 @@ class _ChildRow extends StatelessWidget {
             ),
           ),
           if (activePass != null) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: NocturneColors.accent900,
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-              ),
-              child: Text(
-                '${activePass!.planLabel} · '
-                '${formatUzs(activePass!.dueTodayUzs)}',
-                style: AppTextStyles.body.copyWith(
-                  fontSize: 11,
-                  color: NocturneColors.accent300,
+            // Flexible + ellipsis so the badge shrinks on narrow windows
+            // instead of pushing the row into an overflow.
+            Flexible(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: NocturneColors.accent900,
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                child: Text(
+                  '${activePass!.planLabel} · '
+                  '${formatUzs(activePass!.dueTodayUzs)}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.body.copyWith(
+                    fontSize: 11,
+                    color: NocturneColors.accent300,
+                  ),
                 ),
               ),
             ),
@@ -1388,30 +1462,39 @@ class _TariffPill extends StatelessWidget {
                 color: selected ? NocturneColors.accent : NocturneColors.text,
               ),
               const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    plan.name,
-                    style: AppTextStyles.body.copyWith(
-                      fontSize: 13,
-                      color: selected
-                          ? NocturneColors.accent
-                          : NocturneColors.text,
+              // Flexible + ellipsis: the pill lives in an Expanded half of
+              // a Row and must degrade gracefully instead of overflowing
+              // when a narrow window squeezes it.
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      plan.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.body.copyWith(
+                        fontSize: 13,
+                        color: selected
+                            ? NocturneColors.accent
+                            : NocturneColors.text,
+                      ),
                     ),
-                  ),
-                  Text(
-                    _priceLabel,
-                    style: AppTextStyles.body.copyWith(
-                      fontSize: 11,
-                      color: (selected
-                              ? NocturneColors.accent
-                              : NocturneColors.text)
-                          .withValues(alpha: 0.7),
+                    Text(
+                      _priceLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.body.copyWith(
+                        fontSize: 11,
+                        color: (selected
+                                ? NocturneColors.accent
+                                : NocturneColors.text)
+                            .withValues(alpha: 0.7),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),
@@ -1500,8 +1583,17 @@ class _BalanceCard extends StatelessWidget {
           const SizedBox(height: 10),
           Row(
             children: [
-              Text('Yangi balans', style: AppTextStyles.muted(AppTextStyles.body)),
-              const Spacer(),
+              // Label yields (ellipsis) so the amount — the number the
+              // cashier actually reads — always stays whole.
+              Expanded(
+                child: Text(
+                  'Yangi balans',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.muted(AppTextStyles.body),
+                ),
+              ),
+              const SizedBox(width: 8),
               Text(formatUzs(customer.balance + amount), style: AppTextStyles.h5),
             ],
           ),

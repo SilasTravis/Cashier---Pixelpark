@@ -144,11 +144,17 @@ class _Pill extends StatelessWidget {
                 color: selected ? NocturneColors.accent : NocturneColors.text,
               ),
               const SizedBox(width: 6),
-              Text(
-                label,
-                style: AppTextStyles.body.copyWith(
-                  fontSize: 13,
-                  color: selected ? NocturneColors.accent : NocturneColors.text,
+              // Flexible + ellipsis: the pills split a row three ways and
+              // must shrink on narrow windows instead of overflowing.
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.body.copyWith(
+                    fontSize: 13,
+                    color: selected ? NocturneColors.accent : NocturneColors.text,
+                  ),
                 ),
               ),
             ],
