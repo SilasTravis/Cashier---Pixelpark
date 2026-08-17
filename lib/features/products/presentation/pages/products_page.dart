@@ -4,6 +4,7 @@ import 'package:phosphor_icons/phosphor_icons.dart';
 
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
+import '../../../../core/utils/currency.dart';
 import '../../../../injector_container.dart';
 import '../bloc/products_bloc.dart';
 import '../product_icon.dart';
@@ -149,7 +150,7 @@ class _ProductsView extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
-                          '${product.priceUzs} so\'m',
+                          formatUzs(product.priceUzs),
                           style: AppTextStyles.h6.copyWith(
                             color: NocturneColors.accent,
                           ),
