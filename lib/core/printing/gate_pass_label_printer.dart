@@ -3,7 +3,8 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart' show debugPrint, visibleForTesting;
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/services.dart'
+    show MethodChannel, PlatformException, rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -46,6 +47,9 @@ typedef GatePassLabelEntry = ({String qrData, String name, bool invertName});
 /// resample the 1-bit art back into grays). Only the QR/name overlays go
 /// through the safe-area mapping — they are PDF vectors and stay sharp.
 class GatePassLabelPrinter {
+  static const _windowsPrintChannel = MethodChannel(
+    'cashier/native_label_printer',
+  );
   // ---- Label geometry (mm) ------------------------------------------------
 
   static const double _labelWidthMm = 58.0;
@@ -127,6 +131,9 @@ class GatePassLabelPrinter {
       return true;
     }
     debugPrint('GatePassLabelPrinter: direct print → ${target.name}');
+    if (Platform.isWindows) {
+      return _printDirectWindows(entries, target);
+    }
     final ok = await Printing.directPrintPdf(
       printer: target,
       // The label size MUST be passed here: on macOS the plugin takes the
@@ -151,6 +158,46 @@ class GatePassLabelPrinter {
     return ok;
   }
 
+  /// Windows' PDFium-to-printer-HDC path can produce a successful but blank
+  /// job on thermal drivers. Send opaque raster pages to a native DIB spooler
+  /// so the driver receives the same simple bitmap operation as its test page.
+  static Future<bool> _printDirectWindows(
+    List<GatePassLabelEntry> entries,
+    Printer target,
+  ) async {
+    final vector = await _buildPdf(entries);
+    final pages = <Map<String, Object>>[];
+    await for (final page in Printing.raster(vector, dpi: _printerDpi)) {
+      pages.add({
+        'width': page.width,
+        'height': page.height,
+        'pixels': page.pixels,
+      });
+    }
+    if (pages.isEmpty) {
+      debugPrint('GatePassLabelPrinter: Windows raster produced 0 pages');
+      return false;
+    }
+    try {
+      final ok = await _windowsPrintChannel.invokeMethod<bool>(
+        'printRgbaPages',
+        {
+          'printerName': target.name,
+          'jobName': _jobName(entries),
+          'pages': pages,
+        },
+      );
+      debugPrint('GatePassLabelPrinter: native Windows print result=$ok');
+      return ok ?? false;
+    } on PlatformException catch (error) {
+      debugPrint(
+        'GatePassLabelPrinter: native Windows print failed: '
+        '${error.code}: ${error.message}',
+      );
+      return false;
+    }
+  }
+
   /// Prints via the OS print dialog (manual printer choice).
   static Future<void> print(List<GatePassLabelEntry> entries) {
     assert(entries.isNotEmpty, 'GatePassLabelPrinter.print: no entries');
@@ -162,8 +209,8 @@ class GatePassLabelPrinter {
 
   static String _jobName(List<GatePassLabelEntry> entries) =>
       entries.length == 1
-          ? 'gate-pass-${entries.single.name}'
-          : 'gate-pass-batch';
+      ? 'gate-pass-${entries.single.name}'
+      : 'gate-pass-batch';
 
   // ---- PDF assembly -------------------------------------------------------
 
@@ -235,8 +282,10 @@ class GatePassLabelPrinter {
     if (raster == null) {
       // Rasterization produced nothing — send the vector PDF rather than
       // no job at all (worst case it reproduces the blank print).
-      debugPrint('GatePassLabelPrinter: raster produced 0 pages, '
-          'falling back to vector PDF');
+      debugPrint(
+        'GatePassLabelPrinter: raster produced 0 pages, '
+        'falling back to vector PDF',
+      );
       return vector;
     }
     return raster;
