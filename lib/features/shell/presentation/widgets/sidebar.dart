@@ -13,6 +13,8 @@ class Sidebar extends StatelessWidget {
   const Sidebar({
     super.key,
     required this.selected,
+    required this.collapsed,
+    required this.onToggle,
     required this.onSelect,
     required this.cashierName,
     required this.shiftOpenedAt,
@@ -20,12 +22,15 @@ class Sidebar extends StatelessWidget {
   });
 
   final ShellTab selected;
+  final bool collapsed;
+  final VoidCallback onToggle;
   final ValueChanged<ShellTab> onSelect;
   final String cashierName;
   final DateTime? shiftOpenedAt;
   final VoidCallback? onCloseShift;
 
   static const _width = ResponsivePanel(compact: 156, standard: 200, wide: 220);
+  static const double _collapsedWidth = 68;
 
   String _time(DateTime dt) =>
       '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
@@ -33,7 +38,7 @@ class Sidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: _width.of(context),
+      width: collapsed ? _collapsedWidth : _width.of(context),
       decoration: const BoxDecoration(
         color: NocturneColors.surface,
         border: Border(right: BorderSide(color: NocturneColors.divider)),
@@ -41,29 +46,58 @@ class Sidebar extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
           Padding(
-            padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
-            child: Text(
-              cashierName.isEmpty ? 'Kassa' : 'Kassa · $cashierName',
-              style: AppTextStyles.kicker.copyWith(
-                color: NocturneColors.text.withValues(alpha: 0.45),
-              ),
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Row(
+              mainAxisAlignment: collapsed
+                  ? MainAxisAlignment.center
+                  : MainAxisAlignment.spaceBetween,
+              children: [
+                if (!collapsed)
+                  Expanded(
+                    child: Text(
+                      cashierName.isEmpty ? 'Kassa' : 'Kassa · $cashierName',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.kicker.copyWith(
+                        color: NocturneColors.text.withValues(alpha: 0.45),
+                      ),
+                    ),
+                  ),
+                IconButton(
+                  tooltip: collapsed ? 'Menyuni ochish' : 'Menyuni yopish',
+                  onPressed: onToggle,
+                  icon: Icon(
+                    collapsed
+                        ? PhosphorIconsRegular.caretRight
+                        : PhosphorIconsRegular.caretLeft,
+                    size: 17,
+                  ),
+                ),
+              ],
             ),
           ),
+          const SizedBox(height: 4),
           for (final tab in ShellTab.values)
             _NavTile(
               tab: tab,
               selected: tab == selected,
+              collapsed: collapsed,
               onTap: () => onSelect(tab),
             ),
           const Spacer(),
           Padding(
-            padding: const EdgeInsets.fromLTRB(10, 0, 10, 12),
+            padding: EdgeInsets.fromLTRB(
+              collapsed ? 8 : 10,
+              0,
+              collapsed ? 8 : 10,
+              12,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (shiftOpenedAt != null)
+                if (!collapsed && shiftOpenedAt != null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: Text(
@@ -74,14 +108,21 @@ class Sidebar extends StatelessWidget {
                       ),
                     ),
                   ),
-                OutlinedButton.icon(
-                  onPressed: onCloseShift,
-                  style: OutlinedButton.styleFrom(
-                    alignment: Alignment.centerLeft,
+                if (collapsed)
+                  IconButton.outlined(
+                    tooltip: 'Smenani yopish',
+                    onPressed: onCloseShift,
+                    icon: const Icon(PhosphorIconsRegular.signOut, size: 16),
+                  )
+                else
+                  OutlinedButton.icon(
+                    onPressed: onCloseShift,
+                    style: OutlinedButton.styleFrom(
+                      alignment: Alignment.centerLeft,
+                    ),
+                    icon: const Icon(PhosphorIconsRegular.signOut, size: 16),
+                    label: const Text("Smenani yopish"),
                   ),
-                  icon: const Icon(PhosphorIconsRegular.signOut, size: 16),
-                  label: const Text("Smenani yopish"),
-                ),
               ],
             ),
           ),
@@ -95,16 +136,18 @@ class _NavTile extends StatelessWidget {
   const _NavTile({
     required this.tab,
     required this.selected,
+    required this.collapsed,
     required this.onTap,
   });
 
   final ShellTab tab;
   final bool selected;
+  final bool collapsed;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    final tile = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       child: Material(
         color: selected
@@ -115,8 +158,14 @@ class _NavTile extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(8),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            padding: EdgeInsets.symmetric(
+              horizontal: collapsed ? 0 : 10,
+              vertical: 10,
+            ),
             child: Row(
+              mainAxisAlignment: collapsed
+                  ? MainAxisAlignment.center
+                  : MainAxisAlignment.start,
               children: [
                 Icon(
                   tab.icon,
@@ -125,24 +174,29 @@ class _NavTile extends StatelessWidget {
                       ? NocturneColors.accent
                       : NocturneColors.neutral500,
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    tab.label,
-                    style: AppTextStyles.body.copyWith(
-                      fontSize: 13,
-                      color: selected
-                          ? NocturneColors.accent
-                          : NocturneColors.text,
-                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                if (!collapsed) ...[
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      tab.label,
+                      style: AppTextStyles.body.copyWith(
+                        fontSize: 13,
+                        color: selected
+                            ? NocturneColors.accent
+                            : NocturneColors.text,
+                        fontWeight: selected
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                      ),
                     ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
         ),
       ),
     );
+    return collapsed ? Tooltip(message: tab.label, child: tile) : tile;
   }
 }

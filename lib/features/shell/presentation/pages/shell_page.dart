@@ -37,6 +37,7 @@ class _ShellView extends StatefulWidget {
 
 class _ShellViewState extends State<_ShellView> {
   ShellTab _tab = ShellTab.posAccount;
+  bool? _sidebarCollapsed;
 
   @override
   Widget build(BuildContext context) {
@@ -60,9 +61,14 @@ class _ShellViewState extends State<_ShellView> {
                 if (!state.hasOpenShift) {
                   return const OpenShiftPrompt();
                 }
+                final isCompact = MediaQuery.sizeOf(context).width < 1100;
+                final sidebarCollapsed = _sidebarCollapsed ?? isCompact;
                 return Row(
                   children: [
                     Sidebar(
+                      collapsed: sidebarCollapsed,
+                      onToggle: () =>
+                          setState(() => _sidebarCollapsed = !sidebarCollapsed),
                       selected: _tab,
                       onSelect: (tab) => setState(() => _tab = tab),
                       cashierName: sl<LocalSource>().getCashierFullName() ?? '',

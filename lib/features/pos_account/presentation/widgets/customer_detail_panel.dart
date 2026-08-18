@@ -238,7 +238,8 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
             cashInput: _topupCashController.text,
             cardInput: _topupCardController.text,
           );
-          final canTopup = !state.isBusy && topupAmount > 0 && topupSplit.isValid;
+          final canTopup =
+              !state.isBusy && topupAmount > 0 && topupSplit.isValid;
 
           return SingleChildScrollView(
             child: Column(
@@ -322,9 +323,8 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                           paySplit: paySplit,
                           payAmount: payAmount,
                           onChanged: () => setState(() {}),
-                          onAdd: (id) => setState(
-                            () => _cart[id] = (_cart[id] ?? 0) + 1,
-                          ),
+                          onAdd: (id) =>
+                              setState(() => _cart[id] = (_cart[id] ?? 0) + 1),
                           onRemove: (id) => setState(() {
                             final qty = (_cart[id] ?? 0) - 1;
                             if (qty <= 0) {
@@ -371,7 +371,8 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                         amountController: _topupAmountController,
                         onAmountChanged: () => setState(() {}),
                         method: _topupMethod,
-                        onMethodChanged: (m) => setState(() => _topupMethod = m),
+                        onMethodChanged: (m) =>
+                            setState(() => _topupMethod = m),
                         cashController: _topupCashController,
                         cardController: _topupCardController,
                         split: topupSplit,
@@ -432,9 +433,10 @@ class _Card extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.lg),
         boxShadow: AppShadow.sm,
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        child,
-      ]),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [child],
+      ),
     );
   }
 }
@@ -458,7 +460,11 @@ class _SummaryStrip extends StatelessWidget {
   String _initials(String value) {
     final trimmed = value.trim();
     if (trimmed.isEmpty) return '?';
-    return trimmed.split(RegExp(r'\s+')).take(2).map((p) => p[0].toUpperCase()).join();
+    return trimmed
+        .split(RegExp(r'\s+'))
+        .take(2)
+        .map((p) => p[0].toUpperCase())
+        .join();
   }
 
   @override
@@ -536,7 +542,9 @@ class _SummaryStrip extends StatelessWidget {
               ),
               Text(
                 formatUzs(customer.balance),
-                style: AppTextStyles.h4.copyWith(color: NocturneColors.accent300),
+                style: AppTextStyles.h4.copyWith(
+                  color: NocturneColors.accent300,
+                ),
               ),
             ],
           ),
@@ -932,7 +940,10 @@ class _CheckoutSection extends StatelessWidget {
               controller: payAmountController,
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              style: AppTextStyles.body.copyWith(fontFamily: null, fontSize: 16),
+              style: AppTextStyles.body.copyWith(
+                fontFamily: null,
+                fontSize: 16,
+              ),
               onChanged: (_) {
                 onPayAmountEdited();
                 onChanged();
@@ -944,7 +955,10 @@ class _CheckoutSection extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            PaymentMethodPills(selected: payMethod, onChanged: onPayMethodChanged),
+            PaymentMethodPills(
+              selected: payMethod,
+              onChanged: onPayMethodChanged,
+            ),
             if (payMethod == PaymentMethod.split) ...[
               const SizedBox(height: 8),
               SplitAmountFields(
@@ -1025,7 +1039,9 @@ class _TotalRow extends StatelessWidget {
         children: [
           Text(
             label,
-            style: AppTextStyles.muted(AppTextStyles.body).copyWith(fontSize: 12),
+            style: AppTextStyles.muted(
+              AppTextStyles.body,
+            ).copyWith(fontSize: 12),
           ),
           const Spacer(),
           Text(
@@ -1103,10 +1119,7 @@ class _ProductChip extends StatelessWidget {
               ),
               if (selected) ...[
                 const SizedBox(width: 8),
-                _StepButton(
-                  icon: PhosphorIconsRegular.minus,
-                  onTap: onRemove,
-                ),
+                _StepButton(icon: PhosphorIconsRegular.minus, onTap: onRemove),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Text('$qty', style: AppTextStyles.h5),
@@ -1185,7 +1198,10 @@ class _PlayingCard extends StatelessWidget {
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                   ),
-                  icon: const Icon(PhosphorIconsRegular.arrowsClockwise, size: 13),
+                  icon: const Icon(
+                    PhosphorIconsRegular.arrowsClockwise,
+                    size: 13,
+                  ),
                   label: const Text('Yangilash'),
                 ),
               ),
@@ -1329,7 +1345,9 @@ class _ChildRow extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 12),
               ),
               icon: Icon(
-                selected ? PhosphorIconsRegular.check : PhosphorIconsRegular.plus,
+                selected
+                    ? PhosphorIconsRegular.check
+                    : PhosphorIconsRegular.plus,
                 size: 15,
               ),
               label: const Text('QR'),
@@ -1379,7 +1397,7 @@ class _TariffPill extends StatelessWidget {
             ),
           ),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisSize: MainAxisSize.max,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
@@ -1388,30 +1406,37 @@ class _TariffPill extends StatelessWidget {
                 color: selected ? NocturneColors.accent : NocturneColors.text,
               ),
               const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    plan.name,
-                    style: AppTextStyles.body.copyWith(
-                      fontSize: 13,
-                      color: selected
-                          ? NocturneColors.accent
-                          : NocturneColors.text,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      plan.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.body.copyWith(
+                        fontSize: 13,
+                        color: selected
+                            ? NocturneColors.accent
+                            : NocturneColors.text,
+                      ),
                     ),
-                  ),
-                  Text(
-                    _priceLabel,
-                    style: AppTextStyles.body.copyWith(
-                      fontSize: 11,
-                      color: (selected
-                              ? NocturneColors.accent
-                              : NocturneColors.text)
-                          .withValues(alpha: 0.7),
+                    Text(
+                      _priceLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.body.copyWith(
+                        fontSize: 11,
+                        color:
+                            (selected
+                                    ? NocturneColors.accent
+                                    : NocturneColors.text)
+                                .withValues(alpha: 0.7),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),
@@ -1460,7 +1485,9 @@ class _BalanceCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             'Joriy balans: ${formatUzs(customer.balance)}',
-            style: AppTextStyles.muted(AppTextStyles.body).copyWith(fontSize: 12),
+            style: AppTextStyles.muted(
+              AppTextStyles.body,
+            ).copyWith(fontSize: 12),
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -1500,9 +1527,15 @@ class _BalanceCard extends StatelessWidget {
           const SizedBox(height: 10),
           Row(
             children: [
-              Text('Yangi balans', style: AppTextStyles.muted(AppTextStyles.body)),
+              Text(
+                'Yangi balans',
+                style: AppTextStyles.muted(AppTextStyles.body),
+              ),
               const Spacer(),
-              Text(formatUzs(customer.balance + amount), style: AppTextStyles.h5),
+              Text(
+                formatUzs(customer.balance + amount),
+                style: AppTextStyles.h5,
+              ),
             ],
           ),
           const SizedBox(height: 12),

@@ -17,7 +17,7 @@ class PosAccountPage extends StatelessWidget {
   const PosAccountPage({super.key});
 
   static const _keypadPanel = ResponsivePanel(
-    compact: 240,
+    compact: 220,
     standard: 286,
     wide: 320,
   );
@@ -30,13 +30,17 @@ class PosAccountPage extends StatelessWidget {
         ..add(const PosAccountPlansRequested())
         ..add(const PosAccountProductsRequested()),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
+        padding: breakpointOfContext(context) == Breakpoint.compact
+            ? const EdgeInsets.fromLTRB(12, 12, 12, 14)
+            : const EdgeInsets.fromLTRB(20, 16, 20, 18),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Container(
               width: _keypadPanel.of(context),
-              padding: const EdgeInsets.all(14),
+              padding: EdgeInsets.all(
+                breakpointOfContext(context) == Breakpoint.compact ? 10 : 14,
+              ),
               decoration: BoxDecoration(
                 color: NocturneColors.surface,
                 borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -44,7 +48,11 @@ class PosAccountPage extends StatelessWidget {
               ),
               child: const PhoneKeypad(),
             ),
-            const SizedBox(width: 16),
+            SizedBox(
+              width: breakpointOfContext(context) == Breakpoint.compact
+                  ? 12
+                  : 16,
+            ),
             Expanded(
               child: BlocBuilder<PosAccountBloc, PosAccountState>(
                 buildWhen: (previous, current) =>
