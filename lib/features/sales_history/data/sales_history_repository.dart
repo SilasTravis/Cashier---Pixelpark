@@ -7,12 +7,26 @@ class SalesHistoryRepository {
   final SalesHistoryRemoteDataSource remote;
 
   Future<(SalesHistoryPageData, SalesHistorySummary)> load({
-    required SaleHistoryPeriod period,
+    SaleHistoryPeriod? period,
+    DateTime? from,
+    DateTime? to,
+    String? productId,
     required int page,
   }) async {
     return (
-      await remote.list(period: period, page: page),
-      await remote.summary(period),
+      await remote.list(
+        period: period,
+        from: from,
+        to: to,
+        productId: productId,
+        page: page,
+      ),
+      await remote.summary(
+        period: period,
+        from: from,
+        to: to,
+        productId: productId,
+      ),
     );
   }
 

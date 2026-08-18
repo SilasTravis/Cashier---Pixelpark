@@ -23,3 +23,18 @@ class SalesHistoryPageChanged extends SalesHistoryEvent {
   @override
   List<Object?> get props => [page];
 }
+
+class SalesHistoryProductChanged extends SalesHistoryEvent {
+  const SalesHistoryProductChanged(this.productId);
+  final String? productId;
+  @override
+  List<Object?> get props => [productId];
+}
+
+class SalesHistoryDateRangeChanged extends SalesHistoryEvent {
+  const SalesHistoryDateRangeChanged(this.from, this.to);
+  final DateTime from;
+  final DateTime to;
+  @override
+  List<Object?> get props => [from, to];
+}

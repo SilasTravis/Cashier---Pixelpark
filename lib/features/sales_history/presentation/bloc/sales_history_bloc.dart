@@ -1,6 +1,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../products/data/products_repository_impl.dart';
+import '../../../products/domain/product.dart';
 import '../../data/sales_history_repository.dart';
 import '../../domain/sale_history.dart';
 
@@ -8,43 +10,98 @@ part 'sales_history_event.dart';
 part 'sales_history_state.dart';
 
 class SalesHistoryBloc extends Bloc<SalesHistoryEvent, SalesHistoryState> {
-  SalesHistoryBloc(this.repository) : super(const SalesHistoryState()) {
+  SalesHistoryBloc(this.repository, this.productsRepository)
+    : super(const SalesHistoryState()) {
     on<SalesHistoryStarted>(_load);
     on<SalesHistoryPeriodChanged>(_changePeriod);
     on<SalesHistoryPageChanged>(_changePage);
+    on<SalesHistoryProductChanged>(_changeProduct);
+    on<SalesHistoryDateRangeChanged>(_changeDateRange);
   }
   final SalesHistoryRepository repository;
+  final ProductsRepository productsRepository;
 
   Future<void> _load(
     SalesHistoryStarted event,
     Emitter<SalesHistoryState> emit,
-  ) => _fetch(state.period, state.page, emit);
+  ) async {
+    if (state.products.isEmpty) {
+      final products = await productsRepository.listProducts();
+      products.fold((_) {}, (items) => emit(state.copyWith(products: items)));
+    }
+    await _fetch(page: state.page, emit: emit);
+  }
 
   Future<void> _changePeriod(
     SalesHistoryPeriodChanged event,
     Emitter<SalesHistoryState> emit,
-  ) => _fetch(event.period, 1, emit);
+  ) => _fetch(period: event.period, clearDates: true, page: 1, emit: emit);
 
   Future<void> _changePage(
     SalesHistoryPageChanged event,
     Emitter<SalesHistoryState> emit,
-  ) => _fetch(state.period, event.page, emit);
+  ) => _fetch(page: event.page, emit: emit);
 
-  Future<void> _fetch(
-    SaleHistoryPeriod period,
-    int page,
+  Future<void> _changeProduct(
+    SalesHistoryProductChanged event,
     Emitter<SalesHistoryState> emit,
-  ) async {
+  ) => _fetch(
+    productId: event.productId,
+    clearProduct: event.productId == null,
+    page: 1,
+    emit: emit,
+  );
+
+  Future<void> _changeDateRange(
+    SalesHistoryDateRangeChanged event,
+    Emitter<SalesHistoryState> emit,
+  ) => _fetch(
+    from: event.from,
+    to: event.to,
+    clearPeriod: true,
+    page: 1,
+    emit: emit,
+  );
+
+  Future<void> _fetch({
+    SaleHistoryPeriod? period,
+    DateTime? from,
+    DateTime? to,
+    String? productId,
+    bool clearPeriod = false,
+    bool clearDates = false,
+    bool clearProduct = false,
+    required int page,
+    required Emitter<SalesHistoryState> emit,
+  }) async {
+    final nextPeriod = clearPeriod ? null : (period ?? state.period);
+    final nextFrom = clearDates ? null : (from ?? state.from);
+    final nextTo = clearDates ? null : (to ?? state.to);
+    final nextProductId = clearProduct
+        ? null
+        : (productId ?? state.selectedProductId);
     emit(
       state.copyWith(
         isLoading: true,
-        period: period,
+        period: nextPeriod,
+        clearPeriod: clearPeriod,
+        from: nextFrom,
+        to: nextTo,
+        clearDates: clearDates,
+        selectedProductId: nextProductId,
+        clearProduct: clearProduct,
         page: page,
         clearError: true,
       ),
     );
     try {
-      final result = await repository.load(period: period, page: page);
+      final result = await repository.load(
+        period: nextPeriod,
+        from: nextFrom,
+        to: nextTo,
+        productId: nextProductId,
+        page: page,
+      );
       emit(
         state.copyWith(
           isLoading: false,

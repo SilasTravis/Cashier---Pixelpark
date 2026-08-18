@@ -31,21 +31,76 @@ class _SalesHistoryView extends StatelessWidget {
             child: Column(
               children: [
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    for (final period in SaleHistoryPeriod.values)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: ChoiceChip(
-                          label: Text(period.label),
-                          selected: state.period == period,
-                          onSelected: state.isLoading
-                              ? null
-                              : (_) => context.read<SalesHistoryBloc>().add(
-                                  SalesHistoryPeriodChanged(period),
+                    Expanded(
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          for (final period in SaleHistoryPeriod.values)
+                            ChoiceChip(
+                              label: Text(period.label),
+                              selected: state.period == period,
+                              onSelected: state.isLoading
+                                  ? null
+                                  : (_) => context.read<SalesHistoryBloc>().add(
+                                      SalesHistoryPeriodChanged(period),
+                                    ),
+                            ),
+                          OutlinedButton.icon(
+                            onPressed: state.isLoading
+                                ? null
+                                : () => _pickDateRange(context, state),
+                            icon: const Icon(
+                              PhosphorIconsRegular.calendarBlank,
+                              size: 16,
+                            ),
+                            label: Text(
+                              state.from == null || state.to == null
+                                  ? 'Sana oralig‘i'
+                                  : '${DateFormat('dd.MM.yyyy').format(state.from!)} — '
+                                        '${DateFormat('dd.MM.yyyy').format(state.to!)}',
+                            ),
+                          ),
+                          SizedBox(
+                            width: 230,
+                            child: DropdownButtonFormField<String?>(
+                              initialValue: state.selectedProductId,
+                              isExpanded: true,
+                              decoration: const InputDecoration(
+                                labelText: 'Mahsulot',
+                                prefixIcon: Icon(
+                                  PhosphorIconsRegular.package,
+                                  size: 17,
                                 ),
-                        ),
+                                isDense: true,
+                              ),
+                              items: [
+                                const DropdownMenuItem<String?>(
+                                  value: null,
+                                  child: Text('Barcha mahsulotlar'),
+                                ),
+                                for (final product in state.products)
+                                  DropdownMenuItem<String?>(
+                                    value: product.id,
+                                    child: Text(
+                                      product.name,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                              ],
+                              onChanged: state.isLoading
+                                  ? null
+                                  : (value) => context
+                                        .read<SalesHistoryBloc>()
+                                        .add(SalesHistoryProductChanged(value)),
+                            ),
+                          ),
+                        ],
                       ),
-                    const Spacer(),
+                    ),
                     IconButton(
                       tooltip: 'Yangilash',
                       onPressed: state.isLoading
@@ -134,6 +189,29 @@ class _SalesHistoryView extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+
+  Future<void> _pickDateRange(
+    BuildContext context,
+    SalesHistoryState state,
+  ) async {
+    final now = DateTime.now();
+    final range = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(now.year - 5),
+      lastDate: now,
+      initialDateRange: state.from != null && state.to != null
+          ? DateTimeRange(start: state.from!, end: state.to!)
+          : null,
+      helpText: 'Sotuv davrini tanlang',
+      cancelText: 'Bekor qilish',
+      confirmText: 'Tanlash',
+      saveText: 'Tanlash',
+    );
+    if (range == null || !context.mounted) return;
+    context.read<SalesHistoryBloc>().add(
+      SalesHistoryDateRangeChanged(range.start, range.end),
     );
   }
 }

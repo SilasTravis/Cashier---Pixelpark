@@ -8,7 +8,10 @@ class SalesHistoryRemoteDataSource {
   final Dio dio;
 
   Future<SalesHistoryPageData> list({
-    required SaleHistoryPeriod period,
+    SaleHistoryPeriod? period,
+    DateTime? from,
+    DateTime? to,
+    String? productId,
     required int page,
     int limit = 20,
   }) async {
@@ -16,7 +19,10 @@ class SalesHistoryRemoteDataSource {
       final response = await dio.get(
         '/v1/pos/sales/history',
         queryParameters: {
-          'period': period.apiValue,
+          if (period != null) 'period': period.apiValue,
+          if (from != null) 'from': _date(from),
+          if (to != null) 'to': _date(to),
+          'productId': ?productId,
           'page': page,
           'limit': limit,
         },
@@ -33,11 +39,21 @@ class SalesHistoryRemoteDataSource {
     }
   }
 
-  Future<SalesHistorySummary> summary(SaleHistoryPeriod period) async {
+  Future<SalesHistorySummary> summary({
+    SaleHistoryPeriod? period,
+    DateTime? from,
+    DateTime? to,
+    String? productId,
+  }) async {
     try {
       final response = await dio.get(
         '/v1/pos/sales/history/summary',
-        queryParameters: {'period': period.apiValue},
+        queryParameters: {
+          if (period != null) 'period': period.apiValue,
+          if (from != null) 'from': _date(from),
+          if (to != null) 'to': _date(to),
+          'productId': ?productId,
+        },
       );
       final json = Map<String, dynamic>.from(response.data as Map);
       return SalesHistorySummary(
@@ -51,6 +67,11 @@ class SalesHistoryRemoteDataSource {
       throw ServerException.fromJson(error.response?.data);
     }
   }
+
+  String _date(DateTime value) =>
+      '${value.year.toString().padLeft(4, '0')}-'
+      '${value.month.toString().padLeft(2, '0')}-'
+      '${value.day.toString().padLeft(2, '0')}';
 
   SaleHistoryEntry _sale(Map<String, dynamic> json) => SaleHistoryEntry(
     id: json['id'] as String,

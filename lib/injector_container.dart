@@ -51,7 +51,7 @@ Future<void> init() async {
 }
 
 void _salesHistoryFeature() {
-  sl.registerFactory<SalesHistoryBloc>(() => SalesHistoryBloc(sl()));
+  sl.registerFactory<SalesHistoryBloc>(() => SalesHistoryBloc(sl(), sl()));
   sl.registerLazySingleton<SalesHistoryRepository>(
     () => SalesHistoryRepository(sl()),
   );
