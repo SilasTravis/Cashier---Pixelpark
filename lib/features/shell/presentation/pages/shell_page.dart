@@ -6,7 +6,7 @@ import '../../../../core/theme/nocturne_colors.dart';
 import '../../../../injector_container.dart';
 import '../../../pos_account/presentation/pages/pos_account_page.dart';
 import '../../../pos_sale/presentation/pages/pos_sale_page.dart';
-import '../../../products/presentation/pages/products_page.dart';
+import '../../../sales_history/presentation/pages/sales_history_page.dart';
 import '../../../settings/presentation/pages/settings_page.dart';
 import '../../../shift/presentation/bloc/shift_bloc.dart';
 import '../model/shell_tab.dart';
@@ -105,7 +105,7 @@ class _TabContent extends StatelessWidget {
     return switch (tab) {
       ShellTab.posAccount => const PosAccountPage(),
       ShellTab.posSale => const PosSalePage(),
-      ShellTab.products => const ProductsPage(),
+      ShellTab.salesHistory => const SalesHistoryPage(),
       ShellTab.settings => const SettingsPage(),
     };
   }

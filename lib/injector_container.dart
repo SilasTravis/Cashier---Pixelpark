@@ -21,6 +21,9 @@ import 'features/pos_sale/presentation/bloc/pos_sale_bloc.dart';
 import 'features/products/data/products_remote_data_source.dart';
 import 'features/products/data/products_repository_impl.dart';
 import 'features/products/presentation/bloc/products_bloc.dart';
+import 'features/sales_history/data/sales_history_remote_data_source.dart';
+import 'features/sales_history/data/sales_history_repository.dart';
+import 'features/sales_history/presentation/bloc/sales_history_bloc.dart';
 import 'features/shift/data/shift_remote_data_source.dart';
 import 'features/shift/data/shift_repository_impl.dart';
 import 'features/shift/presentation/bloc/shift_bloc.dart';
@@ -44,6 +47,17 @@ Future<void> init() async {
   _productsFeature();
   _posAccountFeature();
   _posSaleFeature();
+  _salesHistoryFeature();
+}
+
+void _salesHistoryFeature() {
+  sl.registerFactory<SalesHistoryBloc>(() => SalesHistoryBloc(sl()));
+  sl.registerLazySingleton<SalesHistoryRepository>(
+    () => SalesHistoryRepository(sl()),
+  );
+  sl.registerLazySingleton<SalesHistoryRemoteDataSource>(
+    () => SalesHistoryRemoteDataSource(sl()),
+  );
 }
 
 Future<void> _initHive() async {
