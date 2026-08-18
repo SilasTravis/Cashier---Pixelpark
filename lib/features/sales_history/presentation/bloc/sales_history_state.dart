@@ -14,7 +14,7 @@ class SalesHistoryState extends Equatable {
     this.to,
     this.error,
   });
-  static const pageSize = 20;
+  static const pageSize = 100;
   final bool isLoading;
   final SaleHistoryPeriod? period;
   final int page;

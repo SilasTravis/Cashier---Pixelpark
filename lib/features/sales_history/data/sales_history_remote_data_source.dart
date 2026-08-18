@@ -13,7 +13,7 @@ class SalesHistoryRemoteDataSource {
     DateTime? to,
     String? productId,
     required int page,
-    int limit = 20,
+    int limit = 100,
   }) async {
     try {
       final response = await dio.get(
