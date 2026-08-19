@@ -58,6 +58,7 @@
   "@paymentCashValue": {"placeholders": {"value": {"type": "String"}}},
   "paymentCardValue": "Karta: {value}",
   "@paymentCardValue": {"placeholders": {"value": {"type": "String"}}},
+  "paymentBalance": "Balansdan savdo",
   "paymentBalanceValue": "Balans: {value}",
   "@paymentBalanceValue": {"placeholders": {"value": {"type": "String"}}},
   "branch": "Filial",

@@ -444,6 +444,16 @@ class AppLocalization {
     );
   }
 
+  /// `Balance-funded sales`
+  String get paymentBalance {
+    return Intl.message(
+      'Balance-funded sales',
+      name: 'paymentBalance',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Balance: {value}`
   String paymentBalanceValue(String value) {
     return Intl.message(

@@ -37,6 +37,10 @@ Future<void> showCloseShiftDialog(BuildContext context, Shift shift) {
                     label: 'Karta',
                     value: _uzs(shift.totals.cardUzs),
                   ),
+                  _SummaryRow(
+                    label: 'Balansdan savdo (tushum emas)',
+                    value: _uzs(shift.totals.balanceSalesUzs),
+                  ),
                   const Divider(height: 20),
                   _SummaryRow(
                     label: 'Jami smena tushumi',

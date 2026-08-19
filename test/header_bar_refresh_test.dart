@@ -21,9 +21,10 @@ class _FakeShiftRemote implements ShiftRemoteDataSource {
     totals: ShiftTotals(
       salesCount: 1,
       subtotalUzs: 10000,
-      cashUzs: 10000,
+      cashUzs: 10000 + topupUzs,
       cardUzs: 0,
       topupUzs: topupUzs,
+      balanceSalesUzs: 0,
     ),
   );
 

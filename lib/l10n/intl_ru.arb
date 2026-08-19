@@ -58,6 +58,7 @@
   "@paymentCashValue": {"placeholders": {"value": {"type": "String"}}},
   "paymentCardValue": "Карта: {value}",
   "@paymentCardValue": {"placeholders": {"value": {"type": "String"}}},
+  "paymentBalance": "Продажи с баланса",
   "paymentBalanceValue": "Баланс: {value}",
   "@paymentBalanceValue": {"placeholders": {"value": {"type": "String"}}},
   "branch": "Филиал",

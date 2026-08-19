@@ -80,6 +80,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Windows’da o‘rnatilgan printer topilmadi",
     ),
     "pay": MessageLookupByLibrary.simpleMessage("To‘lash"),
+    "paymentBalance": MessageLookupByLibrary.simpleMessage("Balansdan savdo"),
     "paymentBalanceValue": m1,
     "paymentCard": MessageLookupByLibrary.simpleMessage("Karta"),
     "paymentCardValue": m2,

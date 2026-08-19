@@ -148,6 +148,10 @@ class _SalesHistoryView extends StatelessWidget {
                       label: AppLocalization.of(context).paymentCard,
                       value: formatUzs(state.summary.cardUzs),
                     ),
+                    _SummaryCard(
+                      label: AppLocalization.of(context).paymentBalance,
+                      value: formatUzs(state.summary.balanceUzs),
+                    ),
                   ],
                 ),
               ],
@@ -302,10 +306,19 @@ class _SaleCard extends StatelessWidget {
       '${DateFormat('dd.MM.yyyy HH:mm').format(sale.createdAt)}  ·  #${formatReceiptId(sale.id)}',
       style: AppTextStyles.muted(AppTextStyles.body).copyWith(fontSize: 11),
     ),
-    trailing: Text(
-      formatUzs(sale.totalUzs),
-      style: AppTextStyles.h6.copyWith(color: NocturneColors.accent),
-    ),
+    trailing: sale.balanceUzs > 0 && sale.cashUzs == 0 && sale.cardUzs == 0
+        ? Chip(
+            visualDensity: VisualDensity.compact,
+            label: Text(
+              AppLocalization.of(
+                context,
+              ).paymentBalanceValue(formatUzs(sale.balanceUzs)),
+            ),
+          )
+        : Text(
+            formatUzs(sale.totalUzs),
+            style: AppTextStyles.h6.copyWith(color: NocturneColors.accent),
+          ),
     children: [
       if (sale.items.isNotEmpty)
         for (final item in sale.items)

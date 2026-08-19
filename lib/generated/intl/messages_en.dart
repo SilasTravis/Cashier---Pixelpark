@@ -78,6 +78,9 @@ class MessageLookup extends MessageLookupByLibrary {
       "No installed Windows printers found",
     ),
     "pay": MessageLookupByLibrary.simpleMessage("Pay"),
+    "paymentBalance": MessageLookupByLibrary.simpleMessage(
+      "Balance-funded sales",
+    ),
     "paymentBalanceValue": m1,
     "paymentCard": MessageLookupByLibrary.simpleMessage("Card"),
     "paymentCardValue": m2,

@@ -82,6 +82,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "В Windows не найдено установленных принтеров",
     ),
     "pay": MessageLookupByLibrary.simpleMessage("Оплатить"),
+    "paymentBalance": MessageLookupByLibrary.simpleMessage("Продажи с баланса"),
     "paymentBalanceValue": m1,
     "paymentCard": MessageLookupByLibrary.simpleMessage("Карта"),
     "paymentCardValue": m2,

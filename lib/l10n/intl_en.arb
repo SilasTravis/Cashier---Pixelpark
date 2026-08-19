@@ -58,6 +58,7 @@
   "@paymentCashValue": {"placeholders": {"value": {"type": "String"}}},
   "paymentCardValue": "Card: {value}",
   "@paymentCardValue": {"placeholders": {"value": {"type": "String"}}},
+  "paymentBalance": "Balance-funded sales",
   "paymentBalanceValue": "Balance: {value}",
   "@paymentBalanceValue": {"placeholders": {"value": {"type": "String"}}},
   "branch": "Branch",
