@@ -5,6 +5,7 @@ import '../../../../core/local_source/local_source.dart';
 import '../../../../core/theme/nocturne_colors.dart';
 import '../../../../injector_container.dart';
 import '../../../pos_account/presentation/pages/pos_account_page.dart';
+import '../../../inside/presentation/pages/inside_page.dart';
 import '../../../pos_sale/presentation/pages/pos_sale_page.dart';
 import '../../../sales_history/presentation/pages/sales_history_page.dart';
 import '../../../settings/presentation/pages/settings_page.dart';
@@ -15,6 +16,7 @@ import '../widgets/header_bar.dart';
 import '../widgets/open_shift_dialog.dart';
 import '../widgets/sidebar.dart';
 import '../widgets/title_bar.dart';
+import '../../../../generated/l10n.dart';
 
 class ShellPage extends StatelessWidget {
   const ShellPage({super.key});
@@ -53,9 +55,11 @@ class _ShellViewState extends State<_ShellView> {
                   previous.lastClosed != current.lastClosed &&
                   current.lastClosed != null,
               listener: (context, state) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('Smena yopildi')));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(AppLocalization.of(context).shiftClosed),
+                  ),
+                );
               },
               builder: (context, state) {
                 if (!state.hasOpenShift) {
@@ -106,6 +110,7 @@ class _TabContent extends StatelessWidget {
       ShellTab.posAccount => const PosAccountPage(),
       ShellTab.posSale => const PosSalePage(),
       ShellTab.salesHistory => const SalesHistoryPage(),
+      ShellTab.inside => const InsidePage(),
       ShellTab.settings => const SettingsPage(),
     };
   }

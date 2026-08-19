@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'package:cashier_app/features/pos_account/data/pos_account_remote_data_source.dart';
 import 'package:cashier_app/features/pos_account/data/pos_account_repository_impl.dart';
@@ -10,6 +11,7 @@ import 'package:cashier_app/features/pos_account/domain/playing_child.dart';
 import 'package:cashier_app/features/pos_account/domain/pos_entry.dart';
 import 'package:cashier_app/features/pos_account/presentation/bloc/pos_account_bloc.dart';
 import 'package:cashier_app/features/pos_account/presentation/widgets/plan_conflict_dialog.dart';
+import 'package:cashier_app/generated/l10n.dart';
 
 class _FakeRemote implements PosAccountRemoteDataSource {
   final List<({String planKey, List<String> childIds, bool replacePlan})>
@@ -70,6 +72,14 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        locale: const Locale('uz'),
+        localizationsDelegates: const [
+          AppLocalization.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalization.delegate.supportedLocales,
         home: BlocProvider.value(
           value: bloc,
           child: Builder(
@@ -93,10 +103,7 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
-    expect(
-      find.textContaining("VIP narxi (75 000 so'm)"),
-      findsOneWidget,
-    );
+    expect(find.textContaining("VIP narxi (75 000 so'm)"), findsOneWidget);
   });
 
   testWidgets('blocked downgrade still offers re-printing the current pass', (
@@ -120,6 +127,14 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        locale: const Locale('uz'),
+        localizationsDelegates: const [
+          AppLocalization.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalization.delegate.supportedLocales,
         home: BlocProvider.value(
           value: bloc,
           child: Builder(

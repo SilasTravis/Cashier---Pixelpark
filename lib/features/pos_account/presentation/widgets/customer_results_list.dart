@@ -7,6 +7,7 @@ import '../../../../core/theme/nocturne_colors.dart';
 import '../../../../core/utils/currency.dart';
 import '../../domain/customer.dart';
 import '../bloc/pos_account_bloc.dart';
+import '../../../../generated/l10n.dart';
 
 /// The center pane before a customer is selected: a hint until enough digits
 /// are typed, a spinner while searching, the match list, or — no matches —
@@ -19,22 +20,23 @@ class CustomerResultsList extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<PosAccountBloc, PosAccountState>(
       builder: (context, state) {
+        final l10n = AppLocalization.of(context);
         if (state.phoneDigits.isEmpty) {
           return state.recentCustomers.isEmpty
-              ? const _CenteredHint(
+              ? _CenteredHint(
                   icon: PhosphorIconsRegular.userCircleDashed,
-                  text: "Mijozni topish uchun telefon raqamini kiriting",
+                  text: l10n.findCustomerHint,
                 )
               : _CustomerTileList(
-                  title: "So'nggi mijozlar",
-                  subtitle: '${state.recentCustomers.length} ta',
+                  title: l10n.recentCustomers,
+                  subtitle: l10n.customerCount(state.recentCustomers.length),
                   customers: state.recentCustomers,
                 );
         }
         if (state.phoneDigits.length < 7) {
-          return const _CenteredHint(
+          return _CenteredHint(
             icon: PhosphorIconsRegular.userCircleDashed,
-            text: "Mijozni topish uchun telefon raqamini kiriting",
+            text: l10n.findCustomerHint,
           );
         }
         if (state.isSearching) {
@@ -50,8 +52,8 @@ class CustomerResultsList extends StatelessWidget {
           return const _NotFoundCard();
         }
         return _CustomerTileList(
-          title: 'Qidiruv natijasi',
-          subtitle: '${state.results.length} ta mijoz',
+          title: l10n.searchResult,
+          subtitle: l10n.customerCount(state.results.length),
           customers: state.results,
         );
       },
@@ -203,7 +205,7 @@ class _CustomerTile extends StatelessWidget {
                   children: [
                     Text(displayName, style: AppTextStyles.h5),
                     Text(
-                      "$childCount farzand",
+                      AppLocalization.of(context).childCount(childCount),
                       style: AppTextStyles.muted(
                         AppTextStyles.body,
                       ).copyWith(fontSize: 12),
@@ -265,6 +267,7 @@ class _NotFoundCardState extends State<_NotFoundCard> {
   Widget build(BuildContext context) {
     return BlocBuilder<PosAccountBloc, PosAccountState>(
       builder: (context, state) {
+        final l10n = AppLocalization.of(context);
         return Align(
           alignment: Alignment.topLeft,
           child: Container(
@@ -279,10 +282,10 @@ class _NotFoundCardState extends State<_NotFoundCard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Bu raqam topilmadi', style: AppTextStyles.h5),
+                Text(l10n.phoneNotFound, style: AppTextStyles.h5),
                 const SizedBox(height: 2),
                 Text(
-                  '+998 ${state.phoneDigits} bo\'yicha hisob yo\'q.',
+                  l10n.accountNotFoundForPhone(state.phoneDigits),
                   style: AppTextStyles.muted(
                     AppTextStyles.body,
                   ).copyWith(fontSize: 13),
@@ -292,7 +295,7 @@ class _NotFoundCardState extends State<_NotFoundCard> {
                   OutlinedButton.icon(
                     onPressed: () => setState(() => _adding = true),
                     icon: const Icon(PhosphorIconsRegular.userPlus, size: 16),
-                    label: const Text("Mijoz qo'shish"),
+                    label: Text(l10n.addCustomer),
                   )
                 else
                   Wrap(
@@ -307,9 +310,7 @@ class _NotFoundCardState extends State<_NotFoundCard> {
                           autofocus: true,
                           style: AppTextStyles.body,
                           onChanged: (_) => setState(() {}),
-                          decoration: const InputDecoration(
-                            labelText: 'Ism familiya',
-                          ),
+                          decoration: InputDecoration(labelText: l10n.fullName),
                         ),
                       ),
                       FilledButton.icon(
@@ -331,14 +332,14 @@ class _NotFoundCardState extends State<_NotFoundCard> {
                                 ),
                               )
                             : const Icon(PhosphorIconsRegular.check, size: 16),
-                        label: const Text('Saqlash'),
+                        label: Text(l10n.save),
                       ),
                       OutlinedButton(
                         onPressed: () => setState(() {
                           _adding = false;
                           _nameController.clear();
                         }),
-                        child: const Text("Bekor qilish"),
+                        child: Text(l10n.cancel),
                       ),
                     ],
                   ),

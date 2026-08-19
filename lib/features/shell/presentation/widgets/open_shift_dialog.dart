@@ -9,6 +9,7 @@ import '../../../../injector_container.dart';
 import '../../../../router/app_navigator.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
 import '../../../shift/presentation/bloc/shift_bloc.dart';
+import '../../../../generated/l10n.dart';
 
 /// Blocks POS actions until a shift is open — shown as a non-dismissible
 /// overlay right after login (and after a shift close) rather than a modal
@@ -42,6 +43,7 @@ class _OpenShiftPromptState extends State<OpenShiftPrompt> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
     return Container(
       color: NocturneColors.bg,
       child: Center(
@@ -68,10 +70,10 @@ class _OpenShiftPromptState extends State<OpenShiftPrompt> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const Text('Smenani boshlash', style: AppTextStyles.h3),
+                    Text(l10n.shiftStart, style: AppTextStyles.h3),
                     const SizedBox(height: 4),
                     Text(
-                      "Ishni boshlash uchun kassadagi boshlang'ich naqd summani kiriting",
+                      l10n.shiftStartHint,
                       style: AppTextStyles.body.copyWith(
                         color: NocturneColors.text.withValues(alpha: 0.55),
                         fontSize: 13,
@@ -85,9 +87,12 @@ class _OpenShiftPromptState extends State<OpenShiftPrompt> {
                       keyboardType: TextInputType.number,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       textInputAction: TextInputAction.done,
-                      decoration: const InputDecoration(
-                        labelText: "Boshlang'ich naqd (so'm)",
-                        prefixIcon: Icon(PhosphorIconsRegular.wallet, size: 18),
+                      decoration: InputDecoration(
+                        labelText: l10n.shiftOpeningCash,
+                        prefixIcon: const Icon(
+                          PhosphorIconsRegular.wallet,
+                          size: 18,
+                        ),
                       ),
                     ),
                     if (state.errorMessage != null) ...[
@@ -127,7 +132,7 @@ class _OpenShiftPromptState extends State<OpenShiftPrompt> {
                                   color: NocturneColors.accent,
                                 ),
                               )
-                            : const Text('Smenani ochish'),
+                            : Text(l10n.shiftOpen),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -136,7 +141,7 @@ class _OpenShiftPromptState extends State<OpenShiftPrompt> {
                           ? null
                           : () => _logout(context),
                       icon: const Icon(PhosphorIconsRegular.signOut, size: 14),
-                      label: const Text('Chiqish'),
+                      label: Text(l10n.logout),
                     ),
                   ],
                 ),

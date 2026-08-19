@@ -38,6 +38,7 @@ class Sidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
     return Container(
       width: collapsed ? _collapsedWidth : _width.of(context),
       decoration: const BoxDecoration(
@@ -58,7 +59,9 @@ class Sidebar extends StatelessWidget {
                 if (!collapsed)
                   Expanded(
                     child: Text(
-                      cashierName.isEmpty ? 'Kassa' : 'Kassa · $cashierName',
+                      cashierName.isEmpty
+                          ? l10n.cashDesk
+                          : l10n.cashDeskCashier(cashierName),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppTextStyles.kicker.copyWith(
@@ -67,7 +70,7 @@ class Sidebar extends StatelessWidget {
                     ),
                   ),
                 IconButton(
-                  tooltip: collapsed ? 'Menyuni ochish' : 'Menyuni yopish',
+                  tooltip: collapsed ? l10n.menuOpen : l10n.menuClose,
                   onPressed: onToggle,
                   icon: Icon(
                     collapsed
@@ -102,7 +105,7 @@ class Sidebar extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: Text(
-                      "Smena ${_time(shiftOpenedAt!)} da ochildi",
+                      l10n.shiftOpenedAt(_time(shiftOpenedAt!)),
                       style: AppTextStyles.body.copyWith(
                         fontSize: 11,
                         color: NocturneColors.text.withValues(alpha: 0.45),
@@ -111,7 +114,7 @@ class Sidebar extends StatelessWidget {
                   ),
                 if (collapsed)
                   IconButton.outlined(
-                    tooltip: 'Smenani yopish',
+                    tooltip: l10n.shiftClose,
                     onPressed: onCloseShift,
                     icon: const Icon(PhosphorIconsRegular.signOut, size: 16),
                   )
@@ -122,7 +125,7 @@ class Sidebar extends StatelessWidget {
                       alignment: Alignment.centerLeft,
                     ),
                     icon: const Icon(PhosphorIconsRegular.signOut, size: 16),
-                    label: const Text("Smenani yopish"),
+                    label: Text(l10n.shiftClose),
                   ),
               ],
             ),

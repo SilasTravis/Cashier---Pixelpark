@@ -318,9 +318,7 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
           .toList(),
       // Absent on older backends — parsed defensively as "none".
       companionPasses: ((map['companionPasses'] as List?) ?? const [])
-          .map(
-            (json) => _companionPassFromJson(json as Map<String, dynamic>),
-          )
+          .map((json) => _companionPassFromJson(json as Map<String, dynamic>))
           .toList(),
       balance: map['balance'] as int?,
       productSale: map['productSale'] == null

@@ -143,8 +143,9 @@ void main() {
 
       expect(result.conflicts, isEmpty);
       expect(
-        (adapter.lastRequest!.data as Map<String, dynamic>)
-            .containsKey('replacePlan'),
+        (adapter.lastRequest!.data as Map<String, dynamic>).containsKey(
+          'replacePlan',
+        ),
         false,
       );
     });

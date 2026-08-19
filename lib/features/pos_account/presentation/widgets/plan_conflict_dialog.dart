@@ -7,6 +7,7 @@ import '../../../../core/theme/nocturne_colors.dart';
 import '../../../../core/utils/currency.dart';
 import '../../domain/pos_entry.dart';
 import '../bloc/pos_account_bloc.dart';
+import '../../../../generated/l10n.dart';
 
 /// The plan-switch confirmation: the child already holds today's pass on
 /// ANOTHER plan, so nothing was printed. Shows what the child is on now (and
@@ -40,9 +41,10 @@ Future<void> showPlanConflictDialog(
     context: context,
     barrierDismissible: true,
     builder: (dialogContext) {
+      final l10n = AppLocalization.of(dialogContext);
       return AlertDialog(
         backgroundColor: NocturneColors.surface,
-        title: const Text('Reja almashtirish', style: AppTextStyles.h4),
+        title: Text(l10n.planSwitch, style: AppTextStyles.h4),
         content: SizedBox(
           width: 380,
           child: Column(
@@ -59,11 +61,12 @@ Future<void> showPlanConflictDialog(
               ],
               if (switchable.isNotEmpty)
                 Text(
-                  '«$requestedPlanName» rejasiga almashtirilsinmi? '
-                  '${requestedPlanFlatUzs != null ? '$requestedPlanName narxi '
-                            '(${formatUzs(requestedPlanFlatUzs)}) balansdan '
-                            'darhol yechiladi. ' : ''}'
-                  'Eski stiker bekor qilinadi va yangi QR chop etiladi.',
+                  requestedPlanFlatUzs == null
+                      ? l10n.planSwitchQuestion(requestedPlanName)
+                      : l10n.planSwitchVipQuestion(
+                          requestedPlanName,
+                          formatUzs(requestedPlanFlatUzs),
+                        ),
                   style: AppTextStyles.body.copyWith(fontSize: 13),
                 ),
             ],
@@ -72,7 +75,7 @@ Future<void> showPlanConflictDialog(
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Bekor qilish'),
+            child: Text(l10n.cancel),
           ),
           if (reprintable.isNotEmpty)
             OutlinedButton.icon(
@@ -96,7 +99,7 @@ Future<void> showPlanConflictDialog(
                 }
               },
               icon: const Icon(PhosphorIconsRegular.printer, size: 16),
-              label: const Text('Qayta chop etish'),
+              label: Text(l10n.reprint),
             ),
           if (switchable.isNotEmpty)
             FilledButton.icon(
@@ -111,7 +114,7 @@ Future<void> showPlanConflictDialog(
                 );
               },
               icon: const Icon(PhosphorIconsRegular.printer, size: 16),
-              label: const Text('Almashtirish va chop etish'),
+              label: Text(l10n.switchAndPrint),
             ),
         ],
       );
@@ -127,15 +130,16 @@ class _ConflictRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
     final details = <String>[
-      '«$childName» bugun «${conflict.currentPlanLabel}» rejasida'
-          '${conflict.isInside ? ' (hozir ichkarida)' : ''}.',
-      if (!conflict.switchable)
-        'Bu rejadan pasaytirish mumkin emas — stiker yo\'qolgan bo\'lsa, '
-            'mavjud rejani qayta chop eting.',
+      l10n.currentPlanToday(
+        childName,
+        conflict.currentPlanLabel,
+        conflict.isInside ? l10n.insideSuffix : '',
+      ),
+      if (!conflict.switchable) l10n.downgradeForbidden,
       if (conflict.switchable && conflict.accruedDueUzs > 0)
-        "O'ynagan vaqti uchun ${formatUzs(conflict.accruedDueUzs)} "
-            'balansdan yechiladi.',
+        l10n.accruedDue(formatUzs(conflict.accruedDueUzs)),
     ];
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),

@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:phosphor_icons/phosphor_icons.dart';
 
 import 'package:cashier_app/generated/l10n.dart';
@@ -108,11 +109,19 @@ Future<PosAccountBloc> _pumpPanel(WidgetTester tester) async {
 
   await tester.pumpWidget(
     MaterialApp(
-      localizationsDelegates: const [AppLocalization.delegate],
+      locale: const Locale('uz'),
+      localizationsDelegates: const [
+        AppLocalization.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       supportedLocales: AppLocalization.delegate.supportedLocales,
       home: BlocProvider.value(
         value: bloc,
-        child: const Scaffold(body: SingleChildScrollView(child: CustomerDetailPanel())),
+        child: const Scaffold(
+          body: SingleChildScrollView(child: CustomerDetailPanel()),
+        ),
       ),
     ),
   );
@@ -122,65 +131,66 @@ Future<PosAccountBloc> _pumpPanel(WidgetTester tester) async {
 
 void main() {
   group('data source', () {
-    test('checkout sends freeReasons + companions and parses HAMROH passes',
-        () async {
-      final adapter = _FakeAdapter({
-        'entries': [],
-        'failures': [],
-        'conflicts': [],
-        'companionPasses': [
-          {'code': 'HAMROHCODE12', 'expiresAt': '2026-08-19T17:00:00.000Z'},
-        ],
-        'balance': 5000,
-      });
-      final dio = Dio(BaseOptions(baseUrl: 'http://x'))
-        ..httpClientAdapter = adapter;
-      final source = PosAccountRemoteDataSourceImpl(dio);
+    test(
+      'checkout sends freeReasons + companions and parses HAMROH passes',
+      () async {
+        final adapter = _FakeAdapter({
+          'entries': [],
+          'failures': [],
+          'conflicts': [],
+          'companionPasses': [
+            {'code': 'HAMROHCODE12', 'expiresAt': '2026-08-19T17:00:00.000Z'},
+          ],
+          'balance': 5000,
+        });
+        final dio = Dio(BaseOptions(baseUrl: 'http://x'))
+          ..httpClientAdapter = adapter;
+        final source = PosAccountRemoteDataSourceImpl(dio);
 
-      final result = await source.planEntryCheckout(
-        customerId: 7,
-        planKey: 'standard',
-        childIds: const ['child-1'],
-        products: const [],
-        cashUzs: 20000,
-        cardUzs: 0,
-        freeReasons: const {'child-1': 'aile'},
-        companions: 2,
-      );
+        final result = await source.planEntryCheckout(
+          customerId: 7,
+          planKey: 'standard',
+          childIds: const ['child-1'],
+          products: const [],
+          cashUzs: 20000,
+          cardUzs: 0,
+          freeReasons: const {'child-1': 'aile'},
+          companions: 2,
+        );
 
-      final body = adapter.lastRequest!.data as Map<String, dynamic>;
-      expect(body['freeReasons'], [
-        {'childId': 'child-1', 'reason': 'aile'},
-      ]);
-      expect(body['companions'], 2);
-      expect(result.companionPasses, hasLength(1));
-      expect(result.companionPasses.first.code, 'HAMROHCODE12');
-    });
+        final body = adapter.lastRequest!.data as Map<String, dynamic>;
+        expect(body['freeReasons'], [
+          {'childId': 'child-1', 'reason': 'aile'},
+        ]);
+        expect(body['companions'], 2);
+        expect(result.companionPasses, hasLength(1));
+        expect(result.companionPasses.first.code, 'HAMROHCODE12');
+      },
+    );
 
-    test('unused free/companion fields are omitted for older backends',
-        () async {
-      final adapter = _FakeAdapter({
-        'entries': [],
-        'failures': [],
-      });
-      final dio = Dio(BaseOptions(baseUrl: 'http://x'))
-        ..httpClientAdapter = adapter;
-      final source = PosAccountRemoteDataSourceImpl(dio);
+    test(
+      'unused free/companion fields are omitted for older backends',
+      () async {
+        final adapter = _FakeAdapter({'entries': [], 'failures': []});
+        final dio = Dio(BaseOptions(baseUrl: 'http://x'))
+          ..httpClientAdapter = adapter;
+        final source = PosAccountRemoteDataSourceImpl(dio);
 
-      final result = await source.planEntryCheckout(
-        customerId: 7,
-        planKey: 'standard',
-        childIds: const ['child-1'],
-        products: const [],
-        cashUzs: 0,
-        cardUzs: 0,
-      );
+        final result = await source.planEntryCheckout(
+          customerId: 7,
+          planKey: 'standard',
+          childIds: const ['child-1'],
+          products: const [],
+          cashUzs: 0,
+          cardUzs: 0,
+        );
 
-      final body = adapter.lastRequest!.data as Map<String, dynamic>;
-      expect(body.containsKey('freeReasons'), isFalse);
-      expect(body.containsKey('companions'), isFalse);
-      expect(result.companionPasses, isEmpty);
-    });
+        final body = adapter.lastRequest!.data as Map<String, dynamic>;
+        expect(body.containsKey('freeReasons'), isFalse);
+        expect(body.containsKey('companions'), isFalse);
+        expect(result.companionPasses, isEmpty);
+      },
+    );
 
     test('fetchCompanionPriceUzs reads the server-owned price', () async {
       final adapter = _FakeAdapter({'companionPriceUzs': 12000});
@@ -194,8 +204,9 @@ void main() {
   });
 
   group('panel', () {
-    testWidgets('a free reason from the 3-dots menu zeroes the VIP charge',
-        (tester) async {
+    testWidgets('a free reason from the 3-dots menu zeroes the VIP charge', (
+      tester,
+    ) async {
       await _pumpPanel(tester);
 
       // Child + VIP: 75 000 required on a zero balance.
@@ -217,8 +228,9 @@ void main() {
       expect(find.text('Kirish (1)'), findsOneWidget);
     });
 
-    testWidgets('each HAMROH companion adds its price to the required total',
-        (tester) async {
+    testWidgets('each HAMROH companion adds its price to the required total', (
+      tester,
+    ) async {
       await _pumpPanel(tester);
 
       await tester.tap(find.text('QR'));

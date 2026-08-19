@@ -22,12 +22,20 @@ import '../../domain/pos_entry.dart';
 import '../bloc/pos_account_bloc.dart';
 import 'plan_conflict_dialog.dart';
 import 'plan_entry_printing.dart';
+import '../../../../generated/l10n.dart';
 
 const _quickTopupAmounts = [10000, 20000, 50000, 100000];
 
 /// Sentinel for the 3-dots menu's "Bekor qilish" item — see the
 /// PopupMenuButton note in [_ChildRow].
 const _clearFreeReason = Object();
+
+String _freeReasonLabel(AppLocalization l10n, FreeReason reason) =>
+    switch (reason) {
+      FreeReason.disabled => l10n.freeReasonDisabled,
+      FreeReason.aile => l10n.freeReasonAile,
+      FreeReason.subscription => l10n.freeReasonSubscription,
+    };
 
 /// The center pane once a customer is selected — a summary strip (back,
 /// avatar, name, balance) then two cards side by side (wrapping on narrow
@@ -169,17 +177,20 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
           listener: (context, state) {
             final pass = state.lastParentPass!;
             final messenger = ScaffoldMessenger.of(context);
+            final printFailedMessage = AppLocalization.of(
+              context,
+            ).stickerPrintFailed;
             GatePassLabelPrinter.printDirect(
               [(qrData: pass.code, name: pass.customerName, invertName: true)],
               preferredPrinterName: sl<LocalSource>().getQrPrinterName(),
             ).then((ok) {
               if (ok) return;
               messenger.showSnackBar(
-                const SnackBar(
+                SnackBar(
                   backgroundColor: NocturneColors.surface,
                   content: Text(
-                    'Stiker chop etilmadi — printerni tekshiring',
-                    style: TextStyle(color: NocturneColors.danger),
+                    printFailedMessage,
+                    style: const TextStyle(color: NocturneColors.danger),
                   ),
                 ),
               );
@@ -353,8 +364,9 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                           onCompanionAdd: () =>
                               setState(() => _companions += 1),
                           onCompanionRemove: () => setState(
-                            () => _companions =
-                                _companions > 0 ? _companions - 1 : 0,
+                            () => _companions = _companions > 0
+                                ? _companions - 1
+                                : 0,
                           ),
                           neededTotal: neededTotal,
                           balance: customer.balance,
@@ -562,6 +574,7 @@ class _SummaryStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
     final displayName = customer.fullName.isEmpty
         ? customer.phoneNumber
         : customer.fullName;
@@ -620,7 +633,7 @@ class _SummaryStrip extends StatelessWidget {
           OutlinedButton.icon(
             onPressed: isBusy ? null : onParentQr,
             icon: const Icon(PhosphorIconsRegular.qrCode, size: 16),
-            label: const Text('Ota-ona QR'),
+            label: Text(l10n.parentQr),
           ),
           const SizedBox(width: 12),
           Column(
@@ -628,7 +641,7 @@ class _SummaryStrip extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Balans',
+                l10n.balance,
                 style: AppTextStyles.kicker.copyWith(
                   color: NocturneColors.text.withValues(alpha: 0.45),
                 ),
@@ -701,11 +714,11 @@ class _ChildrenCard extends StatelessWidget {
   /// Standard only: nothing is due at the register — billing happens at
   /// exit by played time. VIP gets NO note here: it is debited immediately
   /// at printing, and the checkout section already says so.
-  String _noPaymentNote() =>
-      "Hozir hech narsa to'lanmaydi — chiqishda balansdan vaqtiga qarab yechiladi.";
+  String _noPaymentNote(AppLocalization l10n) => l10n.noPaymentNow;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
     final selCount = selectedChildIds.length;
     final passByChildId = {for (final pass in activePasses) pass.childId: pass};
     return _Card(
@@ -714,14 +727,14 @@ class _ChildrenCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text('Farzandlar', style: AppTextStyles.h5),
+              Text(l10n.children, style: AppTextStyles.h5),
               const SizedBox(width: 8),
               Text(
                 selCount > 0
-                    ? 'tanlangan: $selCount'
+                    ? l10n.selectedCount(selCount)
                     : customer.children.isEmpty
-                    ? "farzand yo'q"
-                    : 'QR uchun tanlang',
+                    ? l10n.noChildren
+                    : l10n.selectForQr,
                 style: AppTextStyles.muted(
                   AppTextStyles.body,
                 ).copyWith(fontSize: 11),
@@ -748,7 +761,7 @@ class _ChildrenCard extends StatelessWidget {
               child: TextButton.icon(
                 onPressed: onStartAddChild,
                 icon: const Icon(PhosphorIconsRegular.plus, size: 14),
-                label: const Text("Tez qo'shish"),
+                label: Text(l10n.quickAdd),
               ),
             )
           else
@@ -772,9 +785,7 @@ class _ChildrenCard extends StatelessWidget {
                           onSubmitted: (_) {
                             if (canSubmit) onSubmitAddChild();
                           },
-                          decoration: const InputDecoration(
-                            hintText: 'Bola ismi',
-                          ),
+                          decoration: InputDecoration(hintText: l10n.childName),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -783,7 +794,7 @@ class _ChildrenCard extends StatelessWidget {
                         child: FilledButton.icon(
                           onPressed: canSubmit ? onSubmitAddChild : null,
                           icon: const Icon(PhosphorIconsRegular.plus, size: 14),
-                          label: const Text("Qo'shish"),
+                          label: Text(l10n.add),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -791,7 +802,7 @@ class _ChildrenCard extends StatelessWidget {
                         height: 42,
                         child: OutlinedButton(
                           onPressed: onCancelAddChild,
-                          child: const Text('Bekor qilish'),
+                          child: Text(l10n.cancel),
                         ),
                       ),
                     ],
@@ -800,7 +811,7 @@ class _ChildrenCard extends StatelessWidget {
               ),
             ),
           const SizedBox(height: 12),
-          Text('Tarif', style: AppTextStyles.body.copyWith(fontSize: 12)),
+          Text(l10n.tariff, style: AppTextStyles.body.copyWith(fontSize: 12)),
           const SizedBox(height: 6),
           if (isLoadingPlans)
             const Padding(
@@ -821,7 +832,7 @@ class _ChildrenCard extends StatelessWidget {
                 border: Border.all(color: NocturneColors.divider),
               ),
               child: Text(
-                'Tarif topilmadi.',
+                l10n.tariffNotFound,
                 style: AppTextStyles.body.copyWith(
                   fontSize: 12,
                   color: NocturneColors.text.withValues(alpha: 0.55),
@@ -853,7 +864,7 @@ class _ChildrenCard extends StatelessWidget {
                 color: NocturneColors.bg,
               ),
               child: Text(
-                _noPaymentNote(),
+                _noPaymentNote(l10n),
                 style: AppTextStyles.body.copyWith(
                   fontSize: 12,
                   color: NocturneColors.text.withValues(alpha: 0.6),
@@ -965,11 +976,12 @@ class _CheckoutSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (products.isNotEmpty) ...[
-          Text('Mahsulotlar', style: AppTextStyles.body.copyWith(fontSize: 12)),
+          Text(l10n.products, style: AppTextStyles.body.copyWith(fontSize: 12)),
           const SizedBox(height: 6),
           Wrap(
             spacing: 8,
@@ -1026,8 +1038,7 @@ class _CheckoutSection extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '${formatUzs(companionPriceUzs)} / dona — '
-                      'ota-ona QR kabi cheklovsiz',
+                      l10n.companionDescription(formatUzs(companionPriceUzs)),
                       style: AppTextStyles.muted(
                         AppTextStyles.body,
                       ).copyWith(fontSize: 11),
@@ -1056,7 +1067,7 @@ class _CheckoutSection extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text(
-              "«$name» allaqachon faol VIP tarifda — qayta to'lov olinmaydi.",
+              l10n.vipAlreadyActive(name),
               style: AppTextStyles.muted(
                 AppTextStyles.body,
               ).copyWith(fontSize: 11),
@@ -1071,8 +1082,9 @@ class _CheckoutSection extends StatelessWidget {
               ].where((amount) => amount > 0).length >
               1) ...[
             if (cartTotal > 0)
-              _TotalRow(label: 'Mahsulotlar', amount: cartTotal),
-            if (vipTotal > 0) _TotalRow(label: 'VIP tarif', amount: vipTotal),
+              _TotalRow(label: l10n.products, amount: cartTotal),
+            if (vipTotal > 0)
+              _TotalRow(label: l10n.vipTariff, amount: vipTotal),
             if (companionsTotal > 0)
               _TotalRow(
                 label: 'HAMROH QR ×$companions',
@@ -1082,7 +1094,7 @@ class _CheckoutSection extends StatelessWidget {
           ],
           Row(
             children: [
-              Text('Jami', style: AppTextStyles.muted(AppTextStyles.body)),
+              Text(l10n.total, style: AppTextStyles.muted(AppTextStyles.body)),
               const Spacer(),
               Text(formatUzs(neededTotal), style: AppTextStyles.h5),
             ],
@@ -1091,7 +1103,7 @@ class _CheckoutSection extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 2),
               child: Text(
-                "VIP tarif puli chop etilganda balansdan darhol yechiladi.",
+                l10n.vipChargedImmediately,
                 style: AppTextStyles.muted(
                   AppTextStyles.body,
                 ).copyWith(fontSize: 11),
@@ -1106,11 +1118,11 @@ class _CheckoutSection extends StatelessWidget {
               contentPadding: EdgeInsets.zero,
               activeThumbColor: NocturneColors.accent,
               title: Text(
-                'Balansdan yechish',
+                l10n.payFromBalance,
                 style: AppTextStyles.body.copyWith(fontSize: 13),
               ),
               subtitle: Text(
-                'Joriy balans: ${formatUzs(balance)}',
+                l10n.currentBalanceValue(formatUzs(balance)),
                 style: AppTextStyles.muted(
                   AppTextStyles.body,
                 ).copyWith(fontSize: 11),
@@ -1125,8 +1137,7 @@ class _CheckoutSection extends StatelessWidget {
                 border: Border.all(color: NocturneColors.accent),
               ),
               child: Text(
-                'Balansdan yechishga yetarli emas — '
-                "kamida ${formatUzs(shortfall)} to'lov kerak.",
+                l10n.balanceInsufficient(formatUzs(shortfall)),
                 style: AppTextStyles.body.copyWith(fontSize: 12),
               ),
             ),
@@ -1145,9 +1156,8 @@ class _CheckoutSection extends StatelessWidget {
                 onChanged();
               },
               decoration: InputDecoration(
-                labelText: "To'lov summasi",
-                helperText:
-                    "Kamida ${formatUzs(requiredPayment)} — ortig'i balansda qoladi",
+                labelText: l10n.paymentAmount,
+                helperText: l10n.paymentMinimumHint(formatUzs(requiredPayment)),
               ),
             ),
             const SizedBox(height: 8),
@@ -1179,11 +1189,11 @@ class _CheckoutSection extends StatelessWidget {
             contentPadding: EdgeInsets.zero,
             activeThumbColor: NocturneColors.accent,
             title: Text(
-              'Ota-ona QR ham chop etish',
+              l10n.printParentQr,
               style: AppTextStyles.body.copyWith(fontSize: 13),
             ),
             subtitle: Text(
-              'Bepul — kirish-chiqishga cheklovsiz',
+              l10n.unlimitedFreeEntry,
               style: AppTextStyles.muted(
                 AppTextStyles.body,
               ).copyWith(fontSize: 11),
@@ -1209,10 +1219,10 @@ class _CheckoutSection extends StatelessWidget {
                   ),
             label: Text(
               neededTotal > 0
-                  ? "To'lov va chop etish"
+                  ? l10n.paymentAndPrint
                   : selectedChildCount > 0
-                  ? 'Kirish ($selectedChildCount)'
-                  : 'Kirish',
+                  ? l10n.enterCount(selectedChildCount)
+                  : l10n.enter,
             ),
           ),
         ),
@@ -1370,6 +1380,7 @@ class _PlayingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
     final totalDue = rows.fold<int>(0, (sum, row) => sum + row.dueUzs);
     final short = totalDue - balance;
     return _Card(
@@ -1378,10 +1389,10 @@ class _PlayingCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text('Hozir ichkarida', style: AppTextStyles.h5),
+              Text(l10n.currentlyInside, style: AppTextStyles.h5),
               const SizedBox(width: 8),
               Text(
-                '${rows.length} bola',
+                l10n.childCount(rows.length),
                 style: AppTextStyles.muted(
                   AppTextStyles.body,
                 ).copyWith(fontSize: 11),
@@ -1398,7 +1409,7 @@ class _PlayingCard extends StatelessWidget {
                     PhosphorIconsRegular.arrowsClockwise,
                     size: 13,
                   ),
-                  label: const Text('Yangilash'),
+                  label: Text(l10n.refresh),
                 ),
               ),
             ],
@@ -1425,9 +1436,11 @@ class _PlayingCard extends StatelessWidget {
                           style: AppTextStyles.body.copyWith(fontSize: 14),
                         ),
                         Text(
-                          '${row.planName} · '
-                          'kirdi ${row.enteredAt.hour.toString().padLeft(2, '0')}:${row.enteredAt.minute.toString().padLeft(2, '0')} · '
-                          '${row.minutes} daq',
+                          l10n.enteredAtMinutes(
+                            row.planName,
+                            '${row.enteredAt.hour.toString().padLeft(2, '0')}:${row.enteredAt.minute.toString().padLeft(2, '0')}',
+                            row.minutes,
+                          ),
                           style: AppTextStyles.muted(
                             AppTextStyles.body,
                           ).copyWith(fontSize: 11),
@@ -1443,7 +1456,7 @@ class _PlayingCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                'Jami hisob',
+                l10n.totalBill,
                 style: AppTextStyles.muted(AppTextStyles.body),
               ),
               const Spacer(),
@@ -1461,7 +1474,7 @@ class _PlayingCard extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
-                "Balans yetarli emas — chiqish uchun kamida ${formatUzs(short)} to'ldirish kerak.",
+                l10n.exitBalanceInsufficient(formatUzs(short)),
                 style: AppTextStyles.body.copyWith(
                   fontSize: 12,
                   color: NocturneColors.danger,
@@ -1500,6 +1513,7 @@ class _ChildRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
       decoration: BoxDecoration(
@@ -1526,7 +1540,7 @@ class _ChildRow extends StatelessWidget {
                 border: Border.all(color: NocturneColors.accent),
               ),
               child: Text(
-                'Bepul · ${freeReason!.label}',
+                '${l10n.free} · ${_freeReasonLabel(l10n, freeReason!)}',
                 style: AppTextStyles.body.copyWith(
                   fontSize: 11,
                   color: NocturneColors.accent,
@@ -1544,7 +1558,7 @@ class _ChildRow extends StatelessWidget {
               ),
               child: Text(
                 '${activePass!.planLabel} · '
-                '${activePass!.freeReason != null ? 'Bepul' : formatUzs(activePass!.dueTodayUzs)}',
+                '${activePass!.freeReason != null ? l10n.free : formatUzs(activePass!.dueTodayUzs)}',
                 style: AppTextStyles.body.copyWith(
                   fontSize: 11,
                   color: NocturneColors.accent300,
@@ -1579,7 +1593,7 @@ class _ChildRow extends StatelessWidget {
           // onSelected (Flutter reads it as a cancel), so clearing uses the
           // `_clearFreeReason` sentinel instead.
           PopupMenuButton<Object>(
-            tooltip: 'Bepul kirish sabablari',
+            tooltip: l10n.freeEntryReasons,
             icon: const Icon(
               PhosphorIconsRegular.dotsThreeVertical,
               size: 18,
@@ -1605,7 +1619,7 @@ class _ChildRow extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        '${reason.label} (bepul)',
+                        '${_freeReasonLabel(l10n, reason)} (${l10n.free.toLowerCase()})',
                         style: AppTextStyles.body.copyWith(fontSize: 13),
                       ),
                     ],
@@ -1623,7 +1637,7 @@ class _ChildRow extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Bekor qilish',
+                        l10n.cancel,
                         style: AppTextStyles.body.copyWith(
                           fontSize: 13,
                           color: NocturneColors.danger,
@@ -1655,12 +1669,12 @@ class _TariffPill extends StatelessWidget {
       ? PhosphorIconsRegular.crownSimple
       : PhosphorIconsRegular.ticket;
 
-  String get _priceLabel => plan.kind == KidsPlanKind.flatDay
-      ? '${formatUzs(plan.flatUzs ?? 0)} / kun'
-      : '${formatUzs(plan.firstMinuteUzs ?? 0)} / daq dan';
-
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
+    final priceLabel = plan.kind == KidsPlanKind.flatDay
+        ? l10n.pricePerDay(formatUzs(plan.flatUzs ?? 0))
+        : l10n.priceFromPerMinute(formatUzs(plan.firstMinuteUzs ?? 0));
     return Material(
       color: selected
           ? NocturneColors.accent.withValues(alpha: 0.12)
@@ -1704,7 +1718,7 @@ class _TariffPill extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      _priceLabel,
+                      priceLabel,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppTextStyles.body.copyWith(
@@ -1758,14 +1772,15 @@ class _BalanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
     return _Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text("Balansni to'ldirish", style: AppTextStyles.h5),
+          Text(l10n.topupBalance, style: AppTextStyles.h5),
           const SizedBox(height: 4),
           Text(
-            'Joriy balans: ${formatUzs(customer.balance)}',
+            l10n.currentBalanceValue(formatUzs(customer.balance)),
             style: AppTextStyles.muted(
               AppTextStyles.body,
             ).copyWith(fontSize: 12),
@@ -1791,7 +1806,7 @@ class _BalanceCard extends StatelessWidget {
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             style: AppTextStyles.body.copyWith(fontFamily: null, fontSize: 18),
             onChanged: (_) => onAmountChanged(),
-            decoration: const InputDecoration(labelText: 'Summa'),
+            decoration: InputDecoration(labelText: l10n.amount),
           ),
           const SizedBox(height: 10),
           PaymentMethodPills(selected: method, onChanged: onMethodChanged),
@@ -1809,7 +1824,7 @@ class _BalanceCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                'Yangi balans',
+                l10n.newBalance,
                 style: AppTextStyles.muted(AppTextStyles.body),
               ),
               const Spacer(),
@@ -1831,7 +1846,7 @@ class _BalanceCard extends StatelessWidget {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(PhosphorIconsRegular.wallet, size: 18),
-              label: const Text("To'ldirish"),
+              label: Text(l10n.topup),
             ),
           ),
         ],

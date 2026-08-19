@@ -8,6 +8,7 @@ import '../../../../core/utils/responsive.dart';
 import '../../../products/domain/product.dart';
 import '../../../products/presentation/product_icon.dart';
 import '../bloc/pos_sale_bloc.dart';
+import '../../../../generated/l10n.dart';
 
 class ProductGrid extends StatelessWidget {
   const ProductGrid({super.key});
@@ -26,7 +27,7 @@ class ProductGrid extends StatelessWidget {
         if (state.visibleProducts.isEmpty) {
           return Center(
             child: Text(
-              'Mahsulot topilmadi',
+              AppLocalization.of(context).productNotFound,
               style: AppTextStyles.muted(AppTextStyles.body),
             ),
           );

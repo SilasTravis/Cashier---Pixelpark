@@ -5,6 +5,7 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
 import '../../../shift/domain/shift.dart';
 import '../../../shift/presentation/bloc/shift_bloc.dart';
+import '../../../../generated/l10n.dart';
 
 Future<void> showCloseShiftDialog(BuildContext context, Shift shift) {
   final bloc = context.read<ShiftBloc>();
@@ -12,6 +13,7 @@ Future<void> showCloseShiftDialog(BuildContext context, Shift shift) {
     context: context,
     barrierDismissible: true,
     builder: (dialogContext) {
+      final l10n = AppLocalization.of(dialogContext);
       return BlocProvider.value(
         value: bloc,
         child: BlocListener<ShiftBloc, ShiftState>(
@@ -21,7 +23,7 @@ Future<void> showCloseShiftDialog(BuildContext context, Shift shift) {
           listener: (context, state) => Navigator.of(dialogContext).pop(),
           child: AlertDialog(
             backgroundColor: NocturneColors.surface,
-            title: const Text('Smenani yopish', style: AppTextStyles.h4),
+            title: Text(l10n.shiftClose, style: AppTextStyles.h4),
             content: SizedBox(
               width: 320,
               child: Column(
@@ -29,21 +31,24 @@ Future<void> showCloseShiftDialog(BuildContext context, Shift shift) {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _SummaryRow(
-                    label: 'Cheklar soni',
+                    label: l10n.receiptCount,
                     value: '${shift.totals.salesCount}',
                   ),
-                  _SummaryRow(label: 'Naqd', value: _uzs(shift.totals.cashUzs)),
                   _SummaryRow(
-                    label: 'Karta',
+                    label: l10n.paymentCash,
+                    value: _uzs(shift.totals.cashUzs),
+                  ),
+                  _SummaryRow(
+                    label: l10n.paymentCard,
                     value: _uzs(shift.totals.cardUzs),
                   ),
                   _SummaryRow(
-                    label: 'Balansdan savdo (tushum emas)',
+                    label: l10n.balanceSalesNotIncome,
                     value: _uzs(shift.totals.balanceSalesUzs),
                   ),
                   const Divider(height: 20),
                   _SummaryRow(
-                    label: 'Jami smena tushumi',
+                    label: l10n.shiftTotalIncome,
                     value: _uzs(shift.totals.grandTotalUzs),
                     emphasize: true,
                   ),
@@ -53,7 +58,7 @@ Future<void> showCloseShiftDialog(BuildContext context, Shift shift) {
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(),
-                child: const Text('Bekor qilish'),
+                child: Text(l10n.cancel),
               ),
               BlocBuilder<ShiftBloc, ShiftState>(
                 builder: (context, state) {
@@ -69,7 +74,7 @@ Future<void> showCloseShiftDialog(BuildContext context, Shift shift) {
                             height: 16,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text('Yopish'),
+                        : Text(l10n.close),
                   );
                 },
               ),

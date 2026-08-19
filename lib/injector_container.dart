@@ -14,6 +14,8 @@ import 'features/auth/domain/repositories/auth_repository.dart';
 import 'features/auth/domain/usecases/login_usecase.dart';
 import 'features/auth/presentation/bloc/login_bloc.dart';
 import 'features/pos_account/data/pos_account_remote_data_source.dart';
+import 'features/inside/data/inside_repository.dart';
+import 'features/inside/presentation/bloc/inside_cubit.dart';
 import 'features/pos_account/data/pos_account_repository_impl.dart';
 import 'features/pos_account/presentation/bloc/pos_account_bloc.dart';
 import 'features/pos_sale/data/pos_sale_remote_data_source.dart';
@@ -50,6 +52,12 @@ Future<void> init() async {
   _posAccountFeature();
   _posSaleFeature();
   _salesHistoryFeature();
+  _insideFeature();
+}
+
+void _insideFeature() {
+  sl.registerFactory<InsideCubit>(() => InsideCubit(sl()));
+  sl.registerLazySingleton<InsideRepository>(() => InsideRepository(sl()));
 }
 
 void _salesHistoryFeature() {

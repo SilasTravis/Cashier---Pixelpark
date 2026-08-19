@@ -538,6 +538,781 @@ class AppLocalization {
       args: [],
     );
   }
+
+  /// `Cash desk`
+  String get cashDesk {
+    return Intl.message('Cash desk', name: 'cashDesk', desc: '', args: []);
+  }
+
+  /// `Cash desk · {name}`
+  String cashDeskCashier(String name) {
+    return Intl.message(
+      'Cash desk · $name',
+      name: 'cashDeskCashier',
+      desc: '',
+      args: [name],
+    );
+  }
+
+  /// `Open menu`
+  String get menuOpen {
+    return Intl.message('Open menu', name: 'menuOpen', desc: '', args: []);
+  }
+
+  /// `Close menu`
+  String get menuClose {
+    return Intl.message('Close menu', name: 'menuClose', desc: '', args: []);
+  }
+
+  /// `Close shift`
+  String get shiftClose {
+    return Intl.message('Close shift', name: 'shiftClose', desc: '', args: []);
+  }
+
+  /// `Shift opened at {time}`
+  String shiftOpenedAt(String time) {
+    return Intl.message(
+      'Shift opened at $time',
+      name: 'shiftOpenedAt',
+      desc: '',
+      args: [time],
+    );
+  }
+
+  /// `Start shift`
+  String get shiftStart {
+    return Intl.message('Start shift', name: 'shiftStart', desc: '', args: []);
+  }
+
+  /// `Enter the opening cash amount in the register`
+  String get shiftStartHint {
+    return Intl.message(
+      'Enter the opening cash amount in the register',
+      name: 'shiftStartHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Opening cash (UZS)`
+  String get shiftOpeningCash {
+    return Intl.message(
+      'Opening cash (UZS)',
+      name: 'shiftOpeningCash',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Open shift`
+  String get shiftOpen {
+    return Intl.message('Open shift', name: 'shiftOpen', desc: '', args: []);
+  }
+
+  /// `Shift closed`
+  String get shiftClosed {
+    return Intl.message(
+      'Shift closed',
+      name: 'shiftClosed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Receipt count`
+  String get receiptCount {
+    return Intl.message(
+      'Receipt count',
+      name: 'receiptCount',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Balance-funded sales (not income)`
+  String get balanceSalesNotIncome {
+    return Intl.message(
+      'Balance-funded sales (not income)',
+      name: 'balanceSalesNotIncome',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Total shift income`
+  String get shiftTotalIncome {
+    return Intl.message(
+      'Total shift income',
+      name: 'shiftTotalIncome',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Enter a phone number to find a customer`
+  String get findCustomerHint {
+    return Intl.message(
+      'Enter a phone number to find a customer',
+      name: 'findCustomerHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Recent customers`
+  String get recentCustomers {
+    return Intl.message(
+      'Recent customers',
+      name: 'recentCustomers',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Search results`
+  String get searchResult {
+    return Intl.message(
+      'Search results',
+      name: 'searchResult',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{count} customers`
+  String customerCount(int count) {
+    return Intl.message(
+      '$count customers',
+      name: 'customerCount',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `{count} children`
+  String childCount(int count) {
+    return Intl.message(
+      '$count children',
+      name: 'childCount',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `Number not found`
+  String get phoneNotFound {
+    return Intl.message(
+      'Number not found',
+      name: 'phoneNotFound',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No account exists for +998 {phone}.`
+  String accountNotFoundForPhone(String phone) {
+    return Intl.message(
+      'No account exists for +998 $phone.',
+      name: 'accountNotFoundForPhone',
+      desc: '',
+      args: [phone],
+    );
+  }
+
+  /// `Add customer`
+  String get addCustomer {
+    return Intl.message(
+      'Add customer',
+      name: 'addCustomer',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Full name`
+  String get fullName {
+    return Intl.message('Full name', name: 'fullName', desc: '', args: []);
+  }
+
+  /// `Save`
+  String get save {
+    return Intl.message('Save', name: 'save', desc: '', args: []);
+  }
+
+  /// `Parent QR`
+  String get parentQr {
+    return Intl.message('Parent QR', name: 'parentQr', desc: '', args: []);
+  }
+
+  /// `Balance`
+  String get balance {
+    return Intl.message('Balance', name: 'balance', desc: '', args: []);
+  }
+
+  /// `Children`
+  String get children {
+    return Intl.message('Children', name: 'children', desc: '', args: []);
+  }
+
+  /// `selected: {count}`
+  String selectedCount(int count) {
+    return Intl.message(
+      'selected: $count',
+      name: 'selectedCount',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `no children`
+  String get noChildren {
+    return Intl.message('no children', name: 'noChildren', desc: '', args: []);
+  }
+
+  /// `Select for QR`
+  String get selectForQr {
+    return Intl.message(
+      'Select for QR',
+      name: 'selectForQr',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Quick add`
+  String get quickAdd {
+    return Intl.message('Quick add', name: 'quickAdd', desc: '', args: []);
+  }
+
+  /// `Child name`
+  String get childName {
+    return Intl.message('Child name', name: 'childName', desc: '', args: []);
+  }
+
+  /// `Add`
+  String get add {
+    return Intl.message('Add', name: 'add', desc: '', args: []);
+  }
+
+  /// `Tariff`
+  String get tariff {
+    return Intl.message('Tariff', name: 'tariff', desc: '', args: []);
+  }
+
+  /// `No tariffs found.`
+  String get tariffNotFound {
+    return Intl.message(
+      'No tariffs found.',
+      name: 'tariffNotFound',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Products`
+  String get products {
+    return Intl.message('Products', name: 'products', desc: '', args: []);
+  }
+
+  /// `{price} each — unrestricted like parent QR`
+  String companionDescription(String price) {
+    return Intl.message(
+      '$price each — unrestricted like parent QR',
+      name: 'companionDescription',
+      desc: '',
+      args: [price],
+    );
+  }
+
+  /// `«{name}» already has an active VIP tariff — no second charge.`
+  String vipAlreadyActive(String name) {
+    return Intl.message(
+      '«$name» already has an active VIP tariff — no second charge.',
+      name: 'vipAlreadyActive',
+      desc: '',
+      args: [name],
+    );
+  }
+
+  /// `VIP tariff`
+  String get vipTariff {
+    return Intl.message('VIP tariff', name: 'vipTariff', desc: '', args: []);
+  }
+
+  /// `The VIP tariff is debited from the balance immediately when printed.`
+  String get vipChargedImmediately {
+    return Intl.message(
+      'The VIP tariff is debited from the balance immediately when printed.',
+      name: 'vipChargedImmediately',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Pay from balance`
+  String get payFromBalance {
+    return Intl.message(
+      'Pay from balance',
+      name: 'payFromBalance',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Current balance: {value}`
+  String currentBalanceValue(String value) {
+    return Intl.message(
+      'Current balance: $value',
+      name: 'currentBalanceValue',
+      desc: '',
+      args: [value],
+    );
+  }
+
+  /// `Insufficient balance — at least {value} must be paid.`
+  String balanceInsufficient(String value) {
+    return Intl.message(
+      'Insufficient balance — at least $value must be paid.',
+      name: 'balanceInsufficient',
+      desc: '',
+      args: [value],
+    );
+  }
+
+  /// `Payment amount`
+  String get paymentAmount {
+    return Intl.message(
+      'Payment amount',
+      name: 'paymentAmount',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `At least {value} — excess remains on the balance`
+  String paymentMinimumHint(String value) {
+    return Intl.message(
+      'At least $value — excess remains on the balance',
+      name: 'paymentMinimumHint',
+      desc: '',
+      args: [value],
+    );
+  }
+
+  /// `Also print parent QR`
+  String get printParentQr {
+    return Intl.message(
+      'Also print parent QR',
+      name: 'printParentQr',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Free — unrestricted entry and exit`
+  String get unlimitedFreeEntry {
+    return Intl.message(
+      'Free — unrestricted entry and exit',
+      name: 'unlimitedFreeEntry',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Currently inside`
+  String get currentlyInside {
+    return Intl.message(
+      'Currently inside',
+      name: 'currentlyInside',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{plan} · entered {time} · {minutes} min`
+  String enteredAtMinutes(String plan, String time, int minutes) {
+    return Intl.message(
+      '$plan · entered $time · $minutes min',
+      name: 'enteredAtMinutes',
+      desc: '',
+      args: [plan, time, minutes],
+    );
+  }
+
+  /// `Total bill`
+  String get totalBill {
+    return Intl.message('Total bill', name: 'totalBill', desc: '', args: []);
+  }
+
+  /// `Insufficient balance — top up at least {value} to exit.`
+  String exitBalanceInsufficient(String value) {
+    return Intl.message(
+      'Insufficient balance — top up at least $value to exit.',
+      name: 'exitBalanceInsufficient',
+      desc: '',
+      args: [value],
+    );
+  }
+
+  /// `Free`
+  String get free {
+    return Intl.message('Free', name: 'free', desc: '', args: []);
+  }
+
+  /// `Free-entry reasons`
+  String get freeEntryReasons {
+    return Intl.message(
+      'Free-entry reasons',
+      name: 'freeEntryReasons',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Disability`
+  String get freeReasonDisabled {
+    return Intl.message(
+      'Disability',
+      name: 'freeReasonDisabled',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `AILE`
+  String get freeReasonAile {
+    return Intl.message('AILE', name: 'freeReasonAile', desc: '', args: []);
+  }
+
+  /// `Subscription`
+  String get freeReasonSubscription {
+    return Intl.message(
+      'Subscription',
+      name: 'freeReasonSubscription',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Top up balance`
+  String get topupBalance {
+    return Intl.message(
+      'Top up balance',
+      name: 'topupBalance',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Amount`
+  String get amount {
+    return Intl.message('Amount', name: 'amount', desc: '', args: []);
+  }
+
+  /// `New balance`
+  String get newBalance {
+    return Intl.message('New balance', name: 'newBalance', desc: '', args: []);
+  }
+
+  /// `Top up`
+  String get topup {
+    return Intl.message('Top up', name: 'topup', desc: '', args: []);
+  }
+
+  /// `Sticker was not printed — check the printer`
+  String get stickerPrintFailed {
+    return Intl.message(
+      'Sticker was not printed — check the printer',
+      name: 'stickerPrintFailed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Failed to enter: {message}`
+  String entryFailed(String message) {
+    return Intl.message(
+      'Failed to enter: $message',
+      name: 'entryFailed',
+      desc: '',
+      args: [message],
+    );
+  }
+
+  /// `Switch tariff`
+  String get planSwitch {
+    return Intl.message(
+      'Switch tariff',
+      name: 'planSwitch',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Switch to the «{plan}» tariff? The old sticker will be cancelled and a new QR printed.`
+  String planSwitchQuestion(String plan) {
+    return Intl.message(
+      'Switch to the «$plan» tariff? The old sticker will be cancelled and a new QR printed.',
+      name: 'planSwitchQuestion',
+      desc: '',
+      args: [plan],
+    );
+  }
+
+  /// `Switch to the «{plan}» tariff? The {plan} price ({price}) will be debited immediately. The old sticker will be cancelled and a new QR printed.`
+  String planSwitchVipQuestion(String plan, String price) {
+    return Intl.message(
+      'Switch to the «$plan» tariff? The $plan price ($price) will be debited immediately. The old sticker will be cancelled and a new QR printed.',
+      name: 'planSwitchVipQuestion',
+      desc: '',
+      args: [plan, price],
+    );
+  }
+
+  /// `«{child}» is on the «{plan}» tariff today{inside}.`
+  String currentPlanToday(String child, String plan, String inside) {
+    return Intl.message(
+      '«$child» is on the «$plan» tariff today$inside.',
+      name: 'currentPlanToday',
+      desc: '',
+      args: [child, plan, inside],
+    );
+  }
+
+  /// ` (currently inside)`
+  String get insideSuffix {
+    return Intl.message(
+      ' (currently inside)',
+      name: 'insideSuffix',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `This tariff cannot be downgraded — if the sticker was lost, reprint the current tariff.`
+  String get downgradeForbidden {
+    return Intl.message(
+      'This tariff cannot be downgraded — if the sticker was lost, reprint the current tariff.',
+      name: 'downgradeForbidden',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{value} will be debited for time already played.`
+  String accruedDue(String value) {
+    return Intl.message(
+      '$value will be debited for time already played.',
+      name: 'accruedDue',
+      desc: '',
+      args: [value],
+    );
+  }
+
+  /// `Reprint`
+  String get reprint {
+    return Intl.message('Reprint', name: 'reprint', desc: '', args: []);
+  }
+
+  /// `Switch and print`
+  String get switchAndPrint {
+    return Intl.message(
+      'Switch and print',
+      name: 'switchAndPrint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Enter a number to see results on the right. Select a customer to open details.`
+  String get keypadHint {
+    return Intl.message(
+      'Enter a number to see results on the right. Select a customer to open details.',
+      name: 'keypadHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Product not found`
+  String get productNotFound {
+    return Intl.message(
+      'Product not found',
+      name: 'productNotFound',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Nothing is due now — played time will be debited from the balance at exit.`
+  String get noPaymentNow {
+    return Intl.message(
+      'Nothing is due now — played time will be debited from the balance at exit.',
+      name: 'noPaymentNow',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Pay and print`
+  String get paymentAndPrint {
+    return Intl.message(
+      'Pay and print',
+      name: 'paymentAndPrint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Enter`
+  String get enter {
+    return Intl.message('Enter', name: 'enter', desc: '', args: []);
+  }
+
+  /// `Enter ({count})`
+  String enterCount(int count) {
+    return Intl.message(
+      'Enter ($count)',
+      name: 'enterCount',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `{value} / day`
+  String pricePerDay(String value) {
+    return Intl.message(
+      '$value / day',
+      name: 'pricePerDay',
+      desc: '',
+      args: [value],
+    );
+  }
+
+  /// `from {value} / min`
+  String priceFromPerMinute(String value) {
+    return Intl.message(
+      'from $value / min',
+      name: 'priceFromPerMinute',
+      desc: '',
+      args: [value],
+    );
+  }
+
+  /// `Inside park`
+  String get tabInside {
+    return Intl.message('Inside park', name: 'tabInside', desc: '', args: []);
+  }
+
+  /// `Search by child, parent or phone`
+  String get insideSearchHint {
+    return Intl.message(
+      'Search by child, parent or phone',
+      name: 'insideSearchHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Inside: {count}`
+  String insideCount(int count) {
+    return Intl.message(
+      'Inside: $count',
+      name: 'insideCount',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `There are no children inside the park`
+  String get insideEmpty {
+    return Intl.message(
+      'There are no children inside the park',
+      name: 'insideEmpty',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No child matches your search`
+  String get insideSearchEmpty {
+    return Intl.message(
+      'No child matches your search',
+      name: 'insideSearchEmpty',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Entered at`
+  String get enteredAt {
+    return Intl.message('Entered at', name: 'enteredAt', desc: '', args: []);
+  }
+
+  /// `Elapsed`
+  String get elapsedTime {
+    return Intl.message('Elapsed', name: 'elapsedTime', desc: '', args: []);
+  }
+
+  /// `{count} min`
+  String minutesCount(int count) {
+    return Intl.message(
+      '$count min',
+      name: 'minutesCount',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `Current charge`
+  String get accruedAmount {
+    return Intl.message(
+      'Current charge',
+      name: 'accruedAmount',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Mark as exited`
+  String get markExited {
+    return Intl.message(
+      'Mark as exited',
+      name: 'markExited',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Lost QR code?`
+  String get manualExitTitle {
+    return Intl.message(
+      'Lost QR code?',
+      name: 'manualExitTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{child} will be marked as exited now. The visit will close at {amount} and be debited from the parent's balance. Continue?`
+  String manualExitQuestion(String child, String amount) {
+    return Intl.message(
+      '$child will be marked as exited now. The visit will close at $amount and be debited from the parent\'s balance. Continue?',
+      name: 'manualExitQuestion',
+      desc: '',
+      args: [child, amount],
+    );
+  }
+
+  /// `The child was successfully marked as exited`
+  String get manualExitSucceeded {
+    return Intl.message(
+      'The child was successfully marked as exited',
+      name: 'manualExitSucceeded',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalization> {
