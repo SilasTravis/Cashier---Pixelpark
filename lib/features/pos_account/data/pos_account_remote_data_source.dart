@@ -67,7 +67,9 @@ abstract class PosAccountRemoteDataSource {
 
   /// The one-stop checkout: collected cash/card top the balance up, the
   /// products are debited FROM the balance, and the day passes are issued —
-  /// the plan itself is billed at exit, not here.
+  /// the plan itself is billed at exit, not here. [freeReasons] maps
+  /// childId → free-entry reason key (absent = billed normally);
+  /// [companions] mints that many paid HAMROH stickers from the balance.
   Future<PosEntryResult> planEntryCheckout({
     required int customerId,
     required String planKey,
@@ -75,7 +77,13 @@ abstract class PosAccountRemoteDataSource {
     required List<CheckoutLine> products,
     required int cashUzs,
     required int cardUzs,
+    Map<String, String> freeReasons = const {},
+    int companions = 0,
   });
+
+  /// Server-owned terminal pricing (currently the HAMROH companion price) —
+  /// so a price change never needs an app re-release.
+  Future<int> fetchCompanionPriceUzs();
 }
 
 class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
@@ -251,6 +259,7 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
       expiresAt: DateTime.parse(json['expiresAt'] as String).toLocal(),
       // Absent on older backends — badge simply shows 0 until redeploy.
       dueTodayUzs: json['dueTodayUzs'] as int? ?? 0,
+      freeReason: json['freeReason'] as String?,
     );
   }
 
@@ -274,6 +283,8 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
     required List<CheckoutLine> products,
     required int cashUzs,
     required int cardUzs,
+    Map<String, String> freeReasons = const {},
+    int companions = 0,
   }) async {
     final response = await _request(
       () => dio.post(
@@ -287,6 +298,13 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
           ],
           'cashUzs': cashUzs,
           'cardUzs': cardUzs,
+          // Omitted when unused so older backends never see the fields.
+          if (freeReasons.isNotEmpty)
+            'freeReasons': [
+              for (final entry in freeReasons.entries)
+                {'childId': entry.key, 'reason': entry.value},
+            ],
+          if (companions > 0) 'companions': companions,
         },
       ),
     );
@@ -299,8 +317,29 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
       failures: (map['failures'] as List)
           .map((json) => _posEntryFailureFromJson(json as Map<String, dynamic>))
           .toList(),
+      // Absent on older backends — parsed defensively as "none".
+      companionPasses: ((map['companionPasses'] as List?) ?? const [])
+          .map(
+            (json) => _companionPassFromJson(json as Map<String, dynamic>),
+          )
+          .toList(),
       balance: map['balance'] as int?,
     );
+  }
+
+  CompanionPass _companionPassFromJson(Map<String, dynamic> json) {
+    return CompanionPass(
+      code: json['code'] as String,
+      expiresAt: json['expiresAt'] == null
+          ? null
+          : DateTime.parse(json['expiresAt'] as String).toLocal(),
+    );
+  }
+
+  @override
+  Future<int> fetchCompanionPriceUzs() async {
+    final response = await _request(() => dio.get('/v1/pos/config'));
+    return (response as Map<String, dynamic>)['companionPriceUzs'] as int;
   }
 
   /// Absent on older backends — parsed defensively as "no conflicts".

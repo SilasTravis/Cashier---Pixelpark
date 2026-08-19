@@ -75,11 +75,24 @@ class PosEntryConflict extends Equatable {
   ];
 }
 
+/// One paid HAMROH companion sticker minted by a checkout — parent-QR door
+/// semantics (both lanes, unlimited, free at the door, dead at 22:00).
+class CompanionPass extends Equatable {
+  const CompanionPass({required this.code, required this.expiresAt});
+
+  final String code;
+  final DateTime? expiresAt;
+
+  @override
+  List<Object?> get props => [code, expiresAt];
+}
+
 class PosEntryResult extends Equatable {
   const PosEntryResult({
     required this.entries,
     required this.failures,
     this.conflicts = const [],
+    this.companionPasses = const [],
     this.balance,
   });
 
@@ -90,10 +103,19 @@ class PosEntryResult extends Equatable {
   /// [PosEntryConflict].
   final List<PosEntryConflict> conflicts;
 
+  /// Paid HAMROH stickers bought with this checkout, print-ready.
+  final List<CompanionPass> companionPasses;
+
   /// The customer's balance after a combined checkout (top-up + products) —
   /// null for the plain plan-entry path, which moves no money.
   final int? balance;
 
   @override
-  List<Object?> get props => [entries, failures, conflicts, balance];
+  List<Object?> get props => [
+    entries,
+    failures,
+    conflicts,
+    companionPasses,
+    balance,
+  ];
 }

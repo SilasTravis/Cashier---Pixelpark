@@ -28,7 +28,8 @@ class PosAccountPage extends StatelessWidget {
       create: (_) => sl<PosAccountBloc>()
         ..add(const PosAccountRecentCustomersRequested())
         ..add(const PosAccountPlansRequested())
-        ..add(const PosAccountProductsRequested()),
+        ..add(const PosAccountProductsRequested())
+        ..add(const PosAccountConfigRequested()),
       child: Padding(
         padding: breakpointOfContext(context) == Breakpoint.compact
             ? const EdgeInsets.fromLTRB(12, 12, 12, 14)

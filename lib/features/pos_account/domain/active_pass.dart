@@ -10,6 +10,7 @@ class ActivePass extends Equatable {
     required this.planLabel,
     required this.expiresAt,
     required this.dueTodayUzs,
+    this.freeReason,
   });
 
   final String childId;
@@ -22,6 +23,9 @@ class ActivePass extends Equatable {
   /// reads out when a parent asks "qancha bo'ldi?".
   final int dueTodayUzs;
 
+  /// Set when the pass was issued free (disabled | aile | subscription).
+  final String? freeReason;
+
   @override
   List<Object?> get props => [
     childId,
@@ -29,5 +33,6 @@ class ActivePass extends Equatable {
     planLabel,
     expiresAt,
     dueTodayUzs,
+    freeReason,
   ];
 }

@@ -37,6 +37,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     on<PosAccountPlayingRequested>(_onPlayingRequested);
     on<PosAccountActivePassesRequested>(_onActivePassesRequested);
     on<PosAccountCheckoutRequested>(_onCheckoutRequested);
+    on<PosAccountConfigRequested>(_onConfigRequested);
   }
 
   final PosAccountRepository _repository;
@@ -159,7 +160,11 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     Emitter<PosAccountState> emit,
   ) {
     emit(
-      PosAccountState(recentCustomers: state.recentCustomers, plans: state.plans),
+      PosAccountState(
+        recentCustomers: state.recentCustomers,
+        plans: state.plans,
+        companionPriceUzs: state.companionPriceUzs,
+      ),
     );
   }
 
@@ -375,6 +380,8 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
       products: event.products,
       cashUzs: event.cashUzs,
       cardUzs: event.cardUzs,
+      freeReasons: event.freeReasons,
+      companions: event.companions,
     );
     result.fold(
       (failure) => emit(
@@ -401,6 +408,18 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
         }
       },
     );
+  }
+
+  Future<void> _onConfigRequested(
+    PosAccountConfigRequested event,
+    Emitter<PosAccountState> emit,
+  ) async {
+    final result = await _repository.fetchCompanionPriceUzs();
+    // Best-effort like plans/products: on failure (or an older backend
+    // without the endpoint) the compiled-in default price stays.
+    result.fold((failure) {}, (price) {
+      emit(state.copyWith(companionPriceUzs: price));
+    });
   }
 
   String _messageOf(Failure failure) {

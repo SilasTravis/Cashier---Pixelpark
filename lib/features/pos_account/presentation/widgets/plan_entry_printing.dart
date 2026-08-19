@@ -8,13 +8,15 @@ import '../../domain/pos_entry.dart';
 /// Fires gate-pass label printing the instant entry is confirmed — no
 /// preview step, no dialog. Any child who couldn't enter (e.g. already
 /// inside) still isn't dropped silently: it surfaces as a SnackBar instead
-/// of a blocking modal.
+/// of a blocking modal. Paid HAMROH companion stickers bought with the
+/// checkout print in the same batch, styled like the parent sticker
+/// (inverted name strip).
 void printPlanEntryLabels(
   BuildContext context,
   PosEntryResult result,
   Map<String, String> childNamesById,
 ) {
-  if (result.entries.isNotEmpty) {
+  if (result.entries.isNotEmpty || result.companionPasses.isNotEmpty) {
     final messenger = ScaffoldMessenger.of(context);
     GatePassLabelPrinter.printDirect([
       for (final entry in result.entries)
@@ -23,6 +25,8 @@ void printPlanEntryLabels(
           name: childNamesById[entry.childId] ?? '',
           invertName: false,
         ),
+      for (final companion in result.companionPasses)
+        (qrData: companion.code, name: 'HAMROH', invertName: true),
     ]).then((ok) {
       if (ok) return;
       // A silently swallowed sticker is the worst failure mode a gate can

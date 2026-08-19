@@ -16,7 +16,12 @@ class PosAccountState extends Equatable {
     this.activePasses = const [],
     this.lastEntryResult,
     this.lastParentPass,
+    this.companionPriceUzs = defaultCompanionPriceUzs,
   });
+
+  /// Fallback HAMROH price used until (or if) `GET /v1/pos/config` answers —
+  /// matches the backend constant at the time this build shipped.
+  static const defaultCompanionPriceUzs = 10000;
 
   final String phoneDigits;
   final bool isSearching;
@@ -54,6 +59,10 @@ class PosAccountState extends Equatable {
   /// cleared once acknowledged — same lifecycle as [lastEntryResult].
   final ParentPass? lastParentPass;
 
+  /// Price of one paid HAMROH companion sticker — server-owned, fetched at
+  /// page load; the compiled-in default covers older backends.
+  final int companionPriceUzs;
+
   PosAccountState copyWith({
     String? phoneDigits,
     bool? isSearching,
@@ -72,6 +81,7 @@ class PosAccountState extends Equatable {
     bool clearLastEntryResult = false,
     ParentPass? lastParentPass,
     bool clearLastParentPass = false,
+    int? companionPriceUzs,
   }) {
     return PosAccountState(
       phoneDigits: phoneDigits ?? this.phoneDigits,
@@ -94,6 +104,7 @@ class PosAccountState extends Equatable {
       lastParentPass: clearLastParentPass
           ? null
           : (lastParentPass ?? this.lastParentPass),
+      companionPriceUzs: companionPriceUzs ?? this.companionPriceUzs,
     );
   }
 
@@ -113,5 +124,6 @@ class PosAccountState extends Equatable {
     activePasses,
     lastEntryResult,
     lastParentPass,
+    companionPriceUzs,
   ];
 }

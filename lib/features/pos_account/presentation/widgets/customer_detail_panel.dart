@@ -11,6 +11,7 @@ import '../../../../core/widgets/payment_method_selector.dart';
 import '../../../products/domain/product.dart';
 import '../../domain/active_pass.dart';
 import '../../domain/customer.dart';
+import '../../domain/free_reason.dart';
 import '../../domain/kids_plan.dart';
 import '../../domain/playing_child.dart';
 import '../bloc/pos_account_bloc.dart';
@@ -18,6 +19,10 @@ import 'plan_conflict_dialog.dart';
 import 'plan_entry_printing.dart';
 
 const _quickTopupAmounts = [10000, 20000, 50000, 100000];
+
+/// Sentinel for the 3-dots menu's "Bekor qilish" item — see the
+/// PopupMenuButton note in [_ChildRow].
+const _clearFreeReason = Object();
 
 /// The center pane once a customer is selected — a summary strip (back,
 /// avatar, name, balance) then two cards side by side (wrapping on narrow
@@ -32,6 +37,14 @@ class CustomerDetailPanel extends StatefulWidget {
 class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
   final Set<String> _selectedChildIds = {};
   KidsPlan? _selectedPlan;
+
+  /// childId → why that child enters FREE (nogiron/aile/obuna) — optional,
+  /// picked from the row's 3-dots menu. Only reasons of SELECTED children
+  /// are sent with the checkout.
+  final Map<String, FreeReason> _childFreeReasons = {};
+
+  /// Paid HAMROH companion stickers to buy with this checkout.
+  int _companions = 0;
 
   bool _addingChild = false;
   final _childNameController = TextEditingController();
@@ -74,6 +87,8 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
   void _resetFor(Customer? customer) {
     _selectedChildIds.clear();
     _selectedPlan = null;
+    _childFreeReasons.clear();
+    _companions = 0;
     _addingChild = false;
     _childNameController.clear();
     _printParentQr = true;
@@ -187,11 +202,22 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               for (final id in _selectedChildIds)
                 if (activePlanByChild[id] == _selectedPlan!.key) id,
           };
+          // A child with a free reason (nogiron/aile/obuna) pays no VIP
+          // price — the backend issues that pass at 0.
+          final freeSelectedIds = <String>{
+            for (final id in _selectedChildIds)
+              if (_childFreeReasons.containsKey(id) &&
+                  !alreadyOnSelectedPlan.contains(id))
+                id,
+          };
           final vipTotal = _selectedPlan?.kind == KidsPlanKind.flatDay
               ? (_selectedPlan!.flatUzs ?? 0) *
-                    (_selectedChildIds.length - alreadyOnSelectedPlan.length)
+                    (_selectedChildIds.length -
+                        alreadyOnSelectedPlan.length -
+                        freeSelectedIds.length)
               : 0;
-          final neededTotal = cartTotal + vipTotal;
+          final companionsTotal = _companions * state.companionPriceUzs;
+          final neededTotal = cartTotal + vipTotal + companionsTotal;
           final shortfall = neededTotal - customer.balance;
           final balanceCovers = shortfall <= 0;
           // Money must be collected when the balance can't cover the total,
@@ -271,6 +297,14 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                               ? _selectedChildIds.remove(id)
                               : _selectedChildIds.add(id),
                         ),
+                        childFreeReasons: _childFreeReasons,
+                        onChildFreeReasonChanged: (id, reason) => setState(() {
+                          if (reason == null) {
+                            _childFreeReasons.remove(id);
+                          } else {
+                            _childFreeReasons[id] = reason;
+                          }
+                        }),
                         addingChild: _addingChild,
                         onStartAddChild: () =>
                             setState(() => _addingChild = true),
@@ -301,6 +335,15 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                           cart: _cart,
                           cartTotal: cartTotal,
                           vipTotal: vipTotal,
+                          companions: _companions,
+                          companionPriceUzs: state.companionPriceUzs,
+                          companionsTotal: companionsTotal,
+                          onCompanionAdd: () =>
+                              setState(() => _companions += 1),
+                          onCompanionRemove: () => setState(
+                            () => _companions =
+                                _companions > 0 ? _companions - 1 : 0,
+                          ),
                           neededTotal: neededTotal,
                           balance: customer.balance,
                           balanceCovers: balanceCovers,
@@ -349,6 +392,12 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                               planKey: _selectedPlan!.key,
                               childIds: _selectedChildIds.toList(),
                               withParentQr: _printParentQr,
+                              freeReasons: {
+                                for (final entry in _childFreeReasons.entries)
+                                  if (_selectedChildIds.contains(entry.key))
+                                    entry.key: entry.value.key,
+                              },
+                              companions: _companions,
                               products: [
                                 for (final line in _cart.entries)
                                   (productId: line.key, qty: line.value),
@@ -562,6 +611,8 @@ class _ChildrenCard extends StatelessWidget {
     required this.activePasses,
     required this.selectedChildIds,
     required this.onToggleChild,
+    required this.childFreeReasons,
+    required this.onChildFreeReasonChanged,
     required this.addingChild,
     required this.onStartAddChild,
     required this.onCancelAddChild,
@@ -585,6 +636,12 @@ class _ChildrenCard extends StatelessWidget {
   final List<ActivePass> activePasses;
   final Set<String> selectedChildIds;
   final ValueChanged<String> onToggleChild;
+
+  /// Optional per-child free-entry reason picked from the row's 3-dots menu
+  /// — null reason in the callback clears the child's pick.
+  final Map<String, FreeReason> childFreeReasons;
+  final void Function(String childId, FreeReason? reason)
+  onChildFreeReasonChanged;
   final bool addingChild;
   final VoidCallback onStartAddChild;
   final VoidCallback onCancelAddChild;
@@ -636,6 +693,9 @@ class _ChildrenCard extends StatelessWidget {
                 activePass: passByChildId[child.id],
                 selected: selectedChildIds.contains(child.id),
                 onToggle: () => onToggleChild(child.id),
+                freeReason: childFreeReasons[child.id],
+                onFreeReasonChanged: (reason) =>
+                    onChildFreeReasonChanged(child.id, reason),
               ),
             ),
           if (!addingChild)
@@ -777,6 +837,11 @@ class _CheckoutSection extends StatelessWidget {
     required this.cart,
     required this.cartTotal,
     required this.vipTotal,
+    required this.companions,
+    required this.companionPriceUzs,
+    required this.companionsTotal,
+    required this.onCompanionAdd,
+    required this.onCompanionRemove,
     required this.neededTotal,
     required this.balance,
     required this.balanceCovers,
@@ -809,8 +874,17 @@ class _CheckoutSection extends StatelessWidget {
   final int cartTotal;
 
   /// VIP flat price × newly-covered children — debited from the balance
-  /// the moment the stickers print. 0 for Standard.
+  /// the moment the stickers print. 0 for Standard. Children with a
+  /// free-entry reason are already excluded.
   final int vipTotal;
+
+  /// Paid HAMROH companion stickers: qty, unit price (server-owned), and
+  /// their subtotal — joins [neededTotal] and the normal payment flow.
+  final int companions;
+  final int companionPriceUzs;
+  final int companionsTotal;
+  final VoidCallback onCompanionAdd;
+  final VoidCallback onCompanionRemove;
   final int neededTotal;
   final int balance;
   final bool balanceCovers;
@@ -867,6 +941,73 @@ class _CheckoutSection extends StatelessWidget {
             ],
           ),
         ],
+        const SizedBox(height: 10),
+        // Paid HAMROH companion sticker — parent-QR door semantics, minted
+        // by the same checkout and settled through the same payment flow.
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(
+              color: companions > 0
+                  ? NocturneColors.accent
+                  : NocturneColors.divider,
+            ),
+            color: companions > 0
+                ? NocturneColors.accent.withValues(alpha: 0.08)
+                : Colors.transparent,
+          ),
+          child: Row(
+            children: [
+              Icon(
+                PhosphorIconsRegular.usersThree,
+                size: 16,
+                color: companions > 0
+                    ? NocturneColors.accent
+                    : NocturneColors.text,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'HAMROH QR',
+                      style: AppTextStyles.body.copyWith(
+                        fontSize: 13,
+                        color: companions > 0
+                            ? NocturneColors.accent
+                            : NocturneColors.text,
+                      ),
+                    ),
+                    Text(
+                      '${formatUzs(companionPriceUzs)} / dona — '
+                      'ota-ona QR kabi cheklovsiz',
+                      style: AppTextStyles.muted(
+                        AppTextStyles.body,
+                      ).copyWith(fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+              if (companions > 0) ...[
+                _StepButton(
+                  icon: PhosphorIconsRegular.minus,
+                  onTap: onCompanionRemove,
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Text('$companions', style: AppTextStyles.h5),
+                ),
+              ],
+              _StepButton(
+                icon: PhosphorIconsRegular.plus,
+                onTap: onCompanionAdd,
+              ),
+            ],
+          ),
+        ),
         for (final name in alreadyVipNames)
           Padding(
             padding: const EdgeInsets.only(top: 6),
@@ -879,9 +1020,20 @@ class _CheckoutSection extends StatelessWidget {
           ),
         if (neededTotal > 0) ...[
           const SizedBox(height: 12),
-          if (cartTotal > 0 && vipTotal > 0) ...[
-            _TotalRow(label: 'Mahsulotlar', amount: cartTotal),
-            _TotalRow(label: 'VIP tarif', amount: vipTotal),
+          if ([
+                cartTotal,
+                vipTotal,
+                companionsTotal,
+              ].where((amount) => amount > 0).length >
+              1) ...[
+            if (cartTotal > 0)
+              _TotalRow(label: 'Mahsulotlar', amount: cartTotal),
+            if (vipTotal > 0) _TotalRow(label: 'VIP tarif', amount: vipTotal),
+            if (companionsTotal > 0)
+              _TotalRow(
+                label: 'HAMROH QR ×$companions',
+                amount: companionsTotal,
+              ),
             const SizedBox(height: 4),
           ],
           Row(
@@ -1284,6 +1436,8 @@ class _ChildRow extends StatelessWidget {
     required this.activePass,
     required this.selected,
     required this.onToggle,
+    required this.freeReason,
+    required this.onFreeReasonChanged,
   });
 
   final Child child;
@@ -1294,6 +1448,11 @@ class _ChildRow extends StatelessWidget {
   final ActivePass? activePass;
   final bool selected;
   final VoidCallback onToggle;
+
+  /// This checkout's free-entry pick for the child, or null (bills
+  /// normally). Chosen from the 3-dots menu; null in the callback clears.
+  final FreeReason? freeReason;
+  final ValueChanged<FreeReason?> onFreeReasonChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -1314,6 +1473,24 @@ class _ChildRow extends StatelessWidget {
               style: AppTextStyles.body.copyWith(fontSize: 14),
             ),
           ),
+          if (freeReason != null) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: NocturneColors.accent.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+                border: Border.all(color: NocturneColors.accent),
+              ),
+              child: Text(
+                'Bepul · ${freeReason!.label}',
+                style: AppTextStyles.body.copyWith(
+                  fontSize: 11,
+                  color: NocturneColors.accent,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
           if (activePass != null) ...[
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -1323,7 +1500,7 @@ class _ChildRow extends StatelessWidget {
               ),
               child: Text(
                 '${activePass!.planLabel} · '
-                '${formatUzs(activePass!.dueTodayUzs)}',
+                '${activePass!.freeReason != null ? 'Bepul' : formatUzs(activePass!.dueTodayUzs)}',
                 style: AppTextStyles.body.copyWith(
                   fontSize: 11,
                   color: NocturneColors.accent300,
@@ -1352,6 +1529,66 @@ class _ChildRow extends StatelessWidget {
               ),
               label: const Text('QR'),
             ),
+          ),
+          const SizedBox(width: 4),
+          // `Object` values: a null-valued PopupMenuItem never reaches
+          // onSelected (Flutter reads it as a cancel), so clearing uses the
+          // `_clearFreeReason` sentinel instead.
+          PopupMenuButton<Object>(
+            tooltip: 'Bepul kirish sabablari',
+            icon: const Icon(
+              PhosphorIconsRegular.dotsThreeVertical,
+              size: 18,
+              color: NocturneColors.text,
+            ),
+            color: NocturneColors.surface,
+            onSelected: (value) =>
+                onFreeReasonChanged(value is FreeReason ? value : null),
+            itemBuilder: (context) => [
+              for (final reason in FreeReason.values)
+                PopupMenuItem<Object>(
+                  value: reason,
+                  child: Row(
+                    children: [
+                      Icon(
+                        freeReason == reason
+                            ? PhosphorIconsRegular.checkCircle
+                            : PhosphorIconsRegular.circle,
+                        size: 16,
+                        color: freeReason == reason
+                            ? NocturneColors.accent
+                            : NocturneColors.text,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${reason.label} (bepul)',
+                        style: AppTextStyles.body.copyWith(fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ),
+              if (freeReason != null)
+                PopupMenuItem<Object>(
+                  value: _clearFreeReason,
+                  child: Row(
+                    children: [
+                      const Icon(
+                        PhosphorIconsRegular.x,
+                        size: 16,
+                        color: NocturneColors.danger,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Bekor qilish',
+                        style: AppTextStyles.body.copyWith(
+                          fontSize: 13,
+                          color: NocturneColors.danger,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
           ),
         ],
       ),

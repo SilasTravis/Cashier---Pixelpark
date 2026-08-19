@@ -145,6 +145,8 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
     required this.cashUzs,
     required this.cardUzs,
     this.withParentQr = false,
+    this.freeReasons = const {},
+    this.companions = 0,
   });
 
   final String planKey;
@@ -156,6 +158,13 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
   /// Also issue + print the free parent QR after a successful entry.
   final bool withParentQr;
 
+  /// childId → free-entry reason key (nogiron/aile/obuna) — those children's
+  /// passes are issued free and the reason is recorded for statistics.
+  final Map<String, String> freeReasons;
+
+  /// Paid HAMROH stickers to buy (companion price each, from the balance).
+  final int companions;
+
   @override
   List<Object?> get props => [
     planKey,
@@ -164,7 +173,14 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
     cashUzs,
     cardUzs,
     withParentQr,
+    freeReasons,
+    companions,
   ];
+}
+
+/// Fired once on page load — pulls server-owned pricing (HAMROH price).
+class PosAccountConfigRequested extends PosAccountEvent {
+  const PosAccountConfigRequested();
 }
 
 /// Cashier tapped "Ota-ona QR" — issue (or re-issue) the free parent

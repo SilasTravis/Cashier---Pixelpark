@@ -90,6 +90,8 @@ class PosAccountRepository {
     required List<CheckoutLine> products,
     required int cashUzs,
     required int cardUzs,
+    Map<String, String> freeReasons = const {},
+    int companions = 0,
   }) => _call(
     () => remote.planEntryCheckout(
       customerId: customerId,
@@ -98,8 +100,13 @@ class PosAccountRepository {
       products: products,
       cashUzs: cashUzs,
       cardUzs: cardUzs,
+      freeReasons: freeReasons,
+      companions: companions,
     ),
   );
+
+  Future<Either<Failure, int>> fetchCompanionPriceUzs() =>
+      _call(() => remote.fetchCompanionPriceUzs());
 
   Future<Either<Failure, T>> _call<T>(Future<T> Function() call) async {
     try {
