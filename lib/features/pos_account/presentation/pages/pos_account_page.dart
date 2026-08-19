@@ -9,10 +9,9 @@ import '../widgets/customer_detail_panel.dart';
 import '../widgets/customer_results_list.dart';
 import '../widgets/phone_keypad.dart';
 
-/// Two columns, matching the design: a fixed keypad card on the left, and a
-/// center pane that swaps between the search results (hint / list / not
-/// found) and the selected customer's detail — the search results are no
-/// longer squeezed into the narrow keypad column.
+/// Search uses a keypad + results layout. Once a customer is selected the
+/// search UI leaves the screen and the account workspace gets the full width;
+/// the detail header's back button returns to search.
 class PosAccountPage extends StatelessWidget {
   const PosAccountPage({super.key});
 
@@ -34,38 +33,42 @@ class PosAccountPage extends StatelessWidget {
         padding: breakpointOfContext(context) == Breakpoint.compact
             ? const EdgeInsets.fromLTRB(12, 12, 12, 14)
             : const EdgeInsets.fromLTRB(20, 16, 20, 18),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              width: _keypadPanel.of(context),
-              padding: EdgeInsets.all(
-                breakpointOfContext(context) == Breakpoint.compact ? 10 : 14,
-              ),
-              decoration: BoxDecoration(
-                color: NocturneColors.surface,
-                borderRadius: BorderRadius.circular(AppRadius.lg),
-                boxShadow: AppShadow.sm,
-              ),
-              child: const PhoneKeypad(),
-            ),
-            SizedBox(
-              width: breakpointOfContext(context) == Breakpoint.compact
-                  ? 12
-                  : 16,
-            ),
-            Expanded(
-              child: BlocBuilder<PosAccountBloc, PosAccountState>(
-                buildWhen: (previous, current) =>
-                    previous.selectedCustomer != current.selectedCustomer,
-                builder: (context, state) {
-                  return state.selectedCustomer == null
-                      ? const CustomerResultsList()
-                      : const CustomerDetailPanel();
-                },
-              ),
-            ),
-          ],
+        child: BlocBuilder<PosAccountBloc, PosAccountState>(
+          buildWhen: (previous, current) =>
+              previous.selectedCustomer != current.selectedCustomer,
+          builder: (context, state) {
+            if (state.selectedCustomer != null) {
+              return const CustomerDetailPanel(
+                key: ValueKey('customer-detail'),
+              );
+            }
+            return Row(
+              key: const ValueKey('customer-search'),
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  width: _keypadPanel.of(context),
+                  padding: EdgeInsets.all(
+                    breakpointOfContext(context) == Breakpoint.compact
+                        ? 10
+                        : 14,
+                  ),
+                  decoration: BoxDecoration(
+                    color: NocturneColors.surface,
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    boxShadow: AppShadow.sm,
+                  ),
+                  child: const PhoneKeypad(),
+                ),
+                SizedBox(
+                  width: breakpointOfContext(context) == Breakpoint.compact
+                      ? 12
+                      : 16,
+                ),
+                const Expanded(child: CustomerResultsList()),
+              ],
+            );
+          },
         ),
       ),
     );
