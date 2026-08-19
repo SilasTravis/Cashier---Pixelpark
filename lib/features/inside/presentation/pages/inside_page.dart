@@ -8,6 +8,7 @@ import 'package:phosphor_icons/phosphor_icons.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
 import '../../../../core/utils/currency.dart';
+import '../../../../core/utils/phone_number.dart';
 import '../../../../generated/l10n.dart';
 import '../../../../injector_container.dart';
 import '../../domain/inside_child.dart';
@@ -150,7 +151,7 @@ class _InsideViewState extends State<_InsideView> {
                                 crossAxisCount: columns,
                                 crossAxisSpacing: 12,
                                 mainAxisSpacing: 12,
-                                mainAxisExtent: 174,
+                                mainAxisExtent: 194,
                               ),
                           itemCount: children.length,
                           itemBuilder: (_, index) => _ChildCard(
@@ -243,11 +244,11 @@ class _ChildCard extends StatelessWidget {
                       style: AppTextStyles.h5,
                     ),
                     Text(
-                      '${child.parentName} · ${child.parentPhone}',
+                      child.parentName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppTextStyles.muted(
-                        AppTextStyles.body.copyWith(fontSize: 13),
+                        AppTextStyles.body.copyWith(fontSize: 13.5),
                       ),
                     ),
                   ],
@@ -260,7 +261,31 @@ class _ChildCard extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(
+                PhosphorIconsRegular.phone,
+                size: 17,
+                color: NocturneColors.accent,
+              ),
+              const SizedBox(width: 7),
+              Expanded(
+                child: SelectionArea(
+                  child: Text(
+                    formatPhoneNumber(child.parentPhone),
+                    maxLines: 1,
+                    style: AppTextStyles.body.copyWith(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: .15,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
