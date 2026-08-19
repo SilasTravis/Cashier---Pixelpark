@@ -5,7 +5,8 @@
 enum FreeReason {
   disabled('disabled', 'Nogiron'),
   aile('aile', 'AILE'),
-  subscription('subscription', 'Obuna');
+  subscription('subscription', 'Obuna'),
+  birthday('birthday', 'Tug‘ilgan kun');
 
   const FreeReason(this.key, this.label);
 
@@ -21,4 +22,11 @@ enum FreeReason {
     }
     return null;
   }
+}
+
+bool isBirthdayInTashkent(DateTime birthDate, {DateTime? now}) {
+  final tashkent = (now ?? DateTime.now()).toUtc().add(
+    const Duration(hours: 5),
+  );
+  return birthDate.month == tashkent.month && birthDate.day == tashkent.day;
 }

@@ -140,6 +140,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Bepul kirish sabablari",
     ),
     "freeReasonAile": MessageLookupByLibrary.simpleMessage("AILE"),
+    "freeReasonBirthday": MessageLookupByLibrary.simpleMessage("Tug‘ilgan kun"),
     "freeReasonDisabled": MessageLookupByLibrary.simpleMessage("Nogiron"),
     "freeReasonSubscription": MessageLookupByLibrary.simpleMessage("Obuna"),
     "fullName": MessageLookupByLibrary.simpleMessage("Ism familiya"),

@@ -994,6 +994,16 @@ class AppLocalization {
     );
   }
 
+  /// `Birthday`
+  String get freeReasonBirthday {
+    return Intl.message(
+      'Birthday',
+      name: 'freeReasonBirthday',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Top up balance`
   String get topupBalance {
     return Intl.message(

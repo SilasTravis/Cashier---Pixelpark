@@ -141,6 +141,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Free-entry reasons",
     ),
     "freeReasonAile": MessageLookupByLibrary.simpleMessage("AILE"),
+    "freeReasonBirthday": MessageLookupByLibrary.simpleMessage("Birthday"),
     "freeReasonDisabled": MessageLookupByLibrary.simpleMessage("Disability"),
     "freeReasonSubscription": MessageLookupByLibrary.simpleMessage(
       "Subscription",

@@ -35,6 +35,7 @@ String _freeReasonLabel(AppLocalization l10n, FreeReason reason) =>
       FreeReason.disabled => l10n.freeReasonDisabled,
       FreeReason.aile => l10n.freeReasonAile,
       FreeReason.subscription => l10n.freeReasonSubscription,
+      FreeReason.birthday => l10n.freeReasonBirthday,
     };
 
 /// The center pane once a customer is selected — a summary strip (back,
@@ -1604,27 +1605,29 @@ class _ChildRow extends StatelessWidget {
                 onFreeReasonChanged(value is FreeReason ? value : null),
             itemBuilder: (context) => [
               for (final reason in FreeReason.values)
-                PopupMenuItem<Object>(
-                  value: reason,
-                  child: Row(
-                    children: [
-                      Icon(
-                        freeReason == reason
-                            ? PhosphorIconsRegular.checkCircle
-                            : PhosphorIconsRegular.circle,
-                        size: 16,
-                        color: freeReason == reason
-                            ? NocturneColors.accent
-                            : NocturneColors.text,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${_freeReasonLabel(l10n, reason)} (${l10n.free.toLowerCase()})',
-                        style: AppTextStyles.body.copyWith(fontSize: 13),
-                      ),
-                    ],
+                if (reason != FreeReason.birthday ||
+                    isBirthdayInTashkent(child.birthDate))
+                  PopupMenuItem<Object>(
+                    value: reason,
+                    child: Row(
+                      children: [
+                        Icon(
+                          freeReason == reason
+                              ? PhosphorIconsRegular.checkCircle
+                              : PhosphorIconsRegular.circle,
+                          size: 16,
+                          color: freeReason == reason
+                              ? NocturneColors.accent
+                              : NocturneColors.text,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${_freeReasonLabel(l10n, reason)} (${l10n.free.toLowerCase()})',
+                          style: AppTextStyles.body.copyWith(fontSize: 13),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
               if (freeReason != null)
                 PopupMenuItem<Object>(
                   value: _clearFreeReason,

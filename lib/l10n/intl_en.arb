@@ -86,7 +86,7 @@
   "printParentQr": "Also print parent QR", "unlimitedFreeEntry": "Free — unrestricted entry and exit", "currentlyInside": "Currently inside",
   "enteredAtMinutes": "{plan} · entered {time} · {minutes} min", "@enteredAtMinutes": {"placeholders":{"plan":{"type":"String"},"time":{"type":"String"},"minutes":{"type":"int"}}},
   "totalBill": "Total bill", "exitBalanceInsufficient": "Insufficient balance — top up at least {value} to exit.", "@exitBalanceInsufficient": {"placeholders":{"value":{"type":"String"}}},
-  "free": "Free", "freeEntryReasons": "Free-entry reasons", "freeReasonDisabled": "Disability", "freeReasonAile": "AILE", "freeReasonSubscription": "Subscription",
+  "free": "Free", "freeEntryReasons": "Free-entry reasons", "freeReasonDisabled": "Disability", "freeReasonAile": "AILE", "freeReasonSubscription": "Subscription", "freeReasonBirthday": "Birthday",
   "topupBalance": "Top up balance", "amount": "Amount", "newBalance": "New balance", "topup": "Top up", "stickerPrintFailed": "Sticker was not printed — check the printer",
   "entryFailed": "Failed to enter: {message}", "@entryFailed": {"placeholders":{"message":{"type":"String"}}}, "planSwitch": "Switch tariff",
   "planSwitchQuestion": "Switch to the «{plan}» tariff? The old sticker will be cancelled and a new QR printed.", "@planSwitchQuestion": {"placeholders":{"plan":{"type":"String"}}},
