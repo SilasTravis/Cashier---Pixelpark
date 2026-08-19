@@ -7,6 +7,7 @@ class ShiftTotals extends Equatable {
     required this.cashUzs,
     required this.cardUzs,
     required this.topupUzs,
+    required this.balanceSalesUzs,
   });
 
   final int salesCount;
@@ -14,10 +15,11 @@ class ShiftTotals extends Equatable {
   final int cashUzs;
   final int cardUzs;
   final int topupUzs;
+  final int balanceSalesUzs;
 
-  /// "Smena tushumi" — product/pass sales plus balance top-ups rung up
-  /// during the shift.
-  int get grandTotalUzs => subtotalUzs + topupUzs;
+  /// Money physically collected by this cashier in the current shift.
+  /// Account-funded sales are reported separately and never added here.
+  int get grandTotalUzs => cashUzs + cardUzs;
 
   static const zero = ShiftTotals(
     salesCount: 0,
@@ -25,6 +27,7 @@ class ShiftTotals extends Equatable {
     cashUzs: 0,
     cardUzs: 0,
     topupUzs: 0,
+    balanceSalesUzs: 0,
   );
 
   @override
@@ -34,6 +37,7 @@ class ShiftTotals extends Equatable {
     cashUzs,
     cardUzs,
     topupUzs,
+    balanceSalesUzs,
   ];
 }
 

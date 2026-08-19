@@ -67,5 +67,9 @@ abstract final class AppTextStyles {
   );
 
   static TextStyle muted(TextStyle base, {double opacity = 0.55}) =>
-      base.copyWith(color: base.color?.withValues(alpha: opacity) ?? NocturneColors.text.withValues(alpha: opacity));
+      base.copyWith(
+        color:
+            base.color?.withValues(alpha: opacity) ??
+            NocturneColors.text.withValues(alpha: opacity),
+      );
 }

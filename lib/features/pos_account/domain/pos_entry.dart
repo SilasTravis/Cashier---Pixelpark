@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import '../../pos_sale/domain/sale_receipt.dart';
+
 /// One issued Standard-plan entrance QR — the same kind of token the mobile
 /// app itself generates, just triggered by the cashier for a walk-in.
 class PosEntry extends Equatable {
@@ -94,6 +96,8 @@ class PosEntryResult extends Equatable {
     this.conflicts = const [],
     this.companionPasses = const [],
     this.balance,
+    this.productSale,
+    this.productsTotalUzs = 0,
   });
 
   final List<PosEntry> entries;
@@ -109,6 +113,8 @@ class PosEntryResult extends Equatable {
   /// The customer's balance after a combined checkout (top-up + products) —
   /// null for the plain plan-entry path, which moves no money.
   final int? balance;
+  final SaleReceipt? productSale;
+  final int productsTotalUzs;
 
   @override
   List<Object?> get props => [
@@ -117,5 +123,7 @@ class PosEntryResult extends Equatable {
     conflicts,
     companionPasses,
     balance,
+    productSale,
+    productsTotalUzs,
   ];
 }

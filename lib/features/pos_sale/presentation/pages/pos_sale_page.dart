@@ -13,7 +13,7 @@ class PosSalePage extends StatelessWidget {
   const PosSalePage({super.key});
 
   static const _cartPanel = ResponsivePanel(
-    compact: 280,
+    compact: 272,
     standard: 330,
     wide: 360,
   );
@@ -23,7 +23,9 @@ class PosSalePage extends StatelessWidget {
     return BlocProvider(
       create: (_) => sl<PosSaleBloc>()..add(const PosSaleStarted()),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
+        padding: breakpointOfContext(context) == Breakpoint.compact
+            ? const EdgeInsets.fromLTRB(12, 12, 12, 14)
+            : const EdgeInsets.fromLTRB(20, 16, 20, 18),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -37,7 +39,11 @@ class PosSalePage extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 16),
+            SizedBox(
+              width: breakpointOfContext(context) == Breakpoint.compact
+                  ? 12
+                  : 16,
+            ),
             Container(
               width: _cartPanel.of(context),
               padding: const EdgeInsets.symmetric(vertical: 4),

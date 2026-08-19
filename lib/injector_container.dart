@@ -4,6 +4,7 @@ import 'package:hive_ce/hive.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'core/local_source/local_source.dart';
+import 'core/localization/locale_cubit.dart';
 import 'core/network/api_client.dart';
 import 'core/network/token_refresher.dart';
 import 'core/update/update_checker.dart';
@@ -41,6 +42,7 @@ Future<void> init() async {
       isSafeToApply: () => sl<LocalSource>().getAccessToken() == null,
     ),
   );
+  sl.registerFactory<LocaleCubit>(() => LocaleCubit(sl()));
 
   _authFeature();
   _shiftFeature();

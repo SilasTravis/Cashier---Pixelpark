@@ -31,6 +31,7 @@ class SaleReceipt extends Equatable {
     required this.subtotalUzs,
     required this.cashUzs,
     required this.cardUzs,
+    this.balanceUzs = 0,
     required this.createdAt,
     required this.items,
   });
@@ -39,6 +40,7 @@ class SaleReceipt extends Equatable {
   final int subtotalUzs;
   final int cashUzs;
   final int cardUzs;
+  final int balanceUzs;
   final DateTime createdAt;
   final List<SaleReceiptItem> items;
 
@@ -48,6 +50,7 @@ class SaleReceipt extends Equatable {
     subtotalUzs,
     cashUzs,
     cardUzs,
+    balanceUzs,
     createdAt,
     items,
   ];

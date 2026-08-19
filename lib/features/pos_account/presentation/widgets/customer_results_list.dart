@@ -163,10 +163,7 @@ class _CustomerTile extends StatelessWidget {
     final trimmed = value.trim();
     if (trimmed.isEmpty) return '?';
     final parts = trimmed.split(RegExp(r'\s+'));
-    return parts
-        .take(2)
-        .map((p) => p[0].toUpperCase())
-        .join();
+    return parts.take(2).map((p) => p[0].toUpperCase()).join();
   }
 
   @override

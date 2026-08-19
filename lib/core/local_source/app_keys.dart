@@ -12,4 +12,7 @@ abstract final class AppKeys {
   static const String branchName = 'branchName';
 
   static const String apiBaseUrl = 'apiBaseUrl';
+  static const String languageCode = 'languageCode';
+  static const String qrPrinterName = 'qrPrinterName';
+  static const String receiptPrinterName = 'receiptPrinterName';
 }

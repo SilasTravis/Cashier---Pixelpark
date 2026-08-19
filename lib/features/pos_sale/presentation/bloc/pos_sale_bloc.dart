@@ -46,7 +46,10 @@ class PosSaleBloc extends Bloc<PosSaleEvent, PosSaleState> {
     );
   }
 
-  void _onSearchChanged(PosSaleSearchChanged event, Emitter<PosSaleState> emit) {
+  void _onSearchChanged(
+    PosSaleSearchChanged event,
+    Emitter<PosSaleState> emit,
+  ) {
     emit(state.copyWith(searchQuery: event.query));
   }
 

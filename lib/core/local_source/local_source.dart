@@ -64,4 +64,26 @@ class LocalSource {
   }
 
   String? getApiBaseUrl() => box.get(AppKeys.apiBaseUrl) as String?;
+
+  Future<void> setLanguageCode(String value) async {
+    await box.put(AppKeys.languageCode, value);
+  }
+
+  String getLanguageCode() =>
+      box.get(AppKeys.languageCode, defaultValue: 'uz') as String;
+
+  Future<void> setQrPrinterName(String? value) async {
+    if (value == null) return box.delete(AppKeys.qrPrinterName);
+    await box.put(AppKeys.qrPrinterName, value);
+  }
+
+  String? getQrPrinterName() => box.get(AppKeys.qrPrinterName) as String?;
+
+  Future<void> setReceiptPrinterName(String? value) async {
+    if (value == null) return box.delete(AppKeys.receiptPrinterName);
+    await box.put(AppKeys.receiptPrinterName, value);
+  }
+
+  String? getReceiptPrinterName() =>
+      box.get(AppKeys.receiptPrinterName) as String?;
 }

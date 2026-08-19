@@ -6,7 +6,10 @@ import 'package:phosphor_icons/phosphor_icons.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
 import '../../../../core/utils/currency.dart';
+import '../../../../core/utils/receipt_id.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../../../injector_container.dart';
+import '../../../../generated/l10n.dart';
 import '../../domain/sale_history.dart';
 import '../bloc/sales_history_bloc.dart';
 
@@ -23,11 +26,12 @@ class _SalesHistoryView extends StatelessWidget {
   const _SalesHistoryView();
   @override
   Widget build(BuildContext context) {
+    final compact = breakpointOfContext(context) == Breakpoint.compact;
     return BlocBuilder<SalesHistoryBloc, SalesHistoryState>(
       builder: (context, state) => Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(compact ? 12 : 16),
             child: Column(
               children: [
                 Row(
@@ -41,7 +45,12 @@ class _SalesHistoryView extends StatelessWidget {
                         children: [
                           for (final period in SaleHistoryPeriod.values)
                             ChoiceChip(
-                              label: Text(period.label),
+                              label: Text(
+                                _periodLabel(
+                                  AppLocalization.of(context),
+                                  period,
+                                ),
+                              ),
                               selected: state.period == period,
                               onSelected: state.isLoading
                                   ? null
@@ -59,28 +68,34 @@ class _SalesHistoryView extends StatelessWidget {
                             ),
                             label: Text(
                               state.from == null || state.to == null
-                                  ? 'Sana oralig‘i'
+                                  ? AppLocalization.of(context).historyDateRange
                                   : '${DateFormat('dd.MM.yyyy').format(state.from!)} — '
                                         '${DateFormat('dd.MM.yyyy').format(state.to!)}',
                             ),
                           ),
                           SizedBox(
-                            width: 230,
+                            width: compact ? 200 : 230,
                             child: DropdownButtonFormField<String?>(
                               initialValue: state.selectedProductId,
                               isExpanded: true,
-                              decoration: const InputDecoration(
-                                labelText: 'Mahsulot',
-                                prefixIcon: Icon(
+                              decoration: InputDecoration(
+                                labelText: AppLocalization.of(
+                                  context,
+                                ).historyProduct,
+                                prefixIcon: const Icon(
                                   PhosphorIconsRegular.package,
                                   size: 17,
                                 ),
                                 isDense: true,
                               ),
                               items: [
-                                const DropdownMenuItem<String?>(
+                                DropdownMenuItem<String?>(
                                   value: null,
-                                  child: Text('Barcha mahsulotlar'),
+                                  child: Text(
+                                    AppLocalization.of(
+                                      context,
+                                    ).historyAllProducts,
+                                  ),
                                 ),
                                 for (final product in state.products)
                                   DropdownMenuItem<String?>(
@@ -102,7 +117,7 @@ class _SalesHistoryView extends StatelessWidget {
                       ),
                     ),
                     IconButton(
-                      tooltip: 'Yangilash',
+                      tooltip: AppLocalization.of(context).refresh,
                       onPressed: state.isLoading
                           ? null
                           : () => context.read<SalesHistoryBloc>().add(
@@ -112,24 +127,30 @@ class _SalesHistoryView extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: compact ? 10 : 12),
                 Row(
                   children: [
                     _SummaryCard(
-                      label: 'Sotuvlar',
-                      value: '${state.summary.count} ta',
+                      label: AppLocalization.of(context).historySales,
+                      value: AppLocalization.of(
+                        context,
+                      ).historyCount(state.summary.count),
                     ),
                     _SummaryCard(
-                      label: 'Jami',
+                      label: AppLocalization.of(context).total,
                       value: formatUzs(state.summary.totalUzs),
                     ),
                     _SummaryCard(
-                      label: 'Naqd',
+                      label: AppLocalization.of(context).paymentCash,
                       value: formatUzs(state.summary.cashUzs),
                     ),
                     _SummaryCard(
-                      label: 'Karta',
+                      label: AppLocalization.of(context).paymentCard,
                       value: formatUzs(state.summary.cardUzs),
+                    ),
+                    _SummaryCard(
+                      label: AppLocalization.of(context).paymentBalance,
+                      value: formatUzs(state.summary.balanceUzs),
                     ),
                   ],
                 ),
@@ -149,7 +170,7 @@ class _SalesHistoryView extends StatelessWidget {
             child: state.items.isEmpty && !state.isLoading
                 ? Center(
                     child: Text(
-                      'Bu davrda sotuvlar yo‘q',
+                      AppLocalization.of(context).historyEmpty,
                       style: AppTextStyles.muted(AppTextStyles.body),
                     ),
                   )
@@ -204,10 +225,10 @@ class _SalesHistoryView extends StatelessWidget {
       initialDateRange: state.from != null && state.to != null
           ? DateTimeRange(start: state.from!, end: state.to!)
           : null,
-      helpText: 'Sotuv davrini tanlang',
-      cancelText: 'Bekor qilish',
-      confirmText: 'Tanlash',
-      saveText: 'Tanlash',
+      helpText: AppLocalization.of(context).historyChoosePeriod,
+      cancelText: AppLocalization.of(context).cancel,
+      confirmText: AppLocalization.of(context).historyChoose,
+      saveText: AppLocalization.of(context).historyChoose,
     );
     if (range == null || !context.mounted) return;
     context.read<SalesHistoryBloc>().add(
@@ -215,6 +236,21 @@ class _SalesHistoryView extends StatelessWidget {
     );
   }
 }
+
+String _periodLabel(AppLocalization l10n, SaleHistoryPeriod period) =>
+    switch (period) {
+      SaleHistoryPeriod.today => l10n.historyToday,
+      SaleHistoryPeriod.sevenDays => l10n.history7Days,
+      SaleHistoryPeriod.thirtyDays => l10n.history30Days,
+      SaleHistoryPeriod.year => l10n.historyYear,
+    };
+
+String _saleTypeLabel(AppLocalization l10n, String type) => switch (type) {
+  'GOODS_CHECKOUT' => l10n.saleGoods,
+  'GATE_PASS' => l10n.saleGatePass,
+  'ACCOUNT_TOPUP' => l10n.saleTopup,
+  _ => l10n.saleGeneric,
+};
 
 class _SummaryCard extends StatelessWidget {
   const _SummaryCard({required this.label, required this.value});
@@ -263,17 +299,26 @@ class _SaleCard extends StatelessWidget {
       side: const BorderSide(color: NocturneColors.divider),
     ),
     title: Text(
-      sale.typeLabel,
+      _saleTypeLabel(AppLocalization.of(context), sale.type),
       style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
     ),
     subtitle: Text(
-      '${DateFormat('dd.MM.yyyy HH:mm').format(sale.createdAt)}  ·  #${sale.id.substring(0, 8)}',
+      '${DateFormat('dd.MM.yyyy HH:mm').format(sale.createdAt)}  ·  #${formatReceiptId(sale.id)}',
       style: AppTextStyles.muted(AppTextStyles.body).copyWith(fontSize: 11),
     ),
-    trailing: Text(
-      formatUzs(sale.totalUzs),
-      style: AppTextStyles.h6.copyWith(color: NocturneColors.accent),
-    ),
+    trailing: sale.balanceUzs > 0 && sale.cashUzs == 0 && sale.cardUzs == 0
+        ? Chip(
+            visualDensity: VisualDensity.compact,
+            label: Text(
+              AppLocalization.of(
+                context,
+              ).paymentBalanceValue(formatUzs(sale.balanceUzs)),
+            ),
+          )
+        : Text(
+            formatUzs(sale.totalUzs),
+            style: AppTextStyles.h6.copyWith(color: NocturneColors.accent),
+          ),
     children: [
       if (sale.items.isNotEmpty)
         for (final item in sale.items)
@@ -287,11 +332,23 @@ class _SaleCard extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
         child: Row(
           children: [
-            if (sale.cashUzs > 0) Text('Naqd: ${formatUzs(sale.cashUzs)}'),
+            if (sale.cashUzs > 0)
+              Text(
+                AppLocalization.of(
+                  context,
+                ).paymentCashValue(formatUzs(sale.cashUzs)),
+              ),
             if (sale.cashUzs > 0 && sale.cardUzs > 0) const Text('  ·  '),
-            if (sale.cardUzs > 0) Text('Karta: ${formatUzs(sale.cardUzs)}'),
+            if (sale.cardUzs > 0)
+              Text(
+                AppLocalization.of(
+                  context,
+                ).paymentCardValue(formatUzs(sale.cardUzs)),
+              ),
             if (sale.balanceUzs > 0)
-              Text('  ·  Balans: ${formatUzs(sale.balanceUzs)}'),
+              Text(
+                '  ·  ${AppLocalization.of(context).paymentBalanceValue(formatUzs(sale.balanceUzs))}',
+              ),
           ],
         ),
       ),

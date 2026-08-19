@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:cashier_app/generated/l10n.dart';
 import 'package:cashier_app/features/shell/presentation/model/shell_tab.dart';
 import 'package:cashier_app/features/shell/presentation/widgets/header_bar.dart';
 import 'package:cashier_app/features/shift/data/shift_remote_data_source.dart';
@@ -20,9 +21,10 @@ class _FakeShiftRemote implements ShiftRemoteDataSource {
     totals: ShiftTotals(
       salesCount: 1,
       subtotalUzs: 10000,
-      cashUzs: 10000,
+      cashUzs: 10000 + topupUzs,
       cardUzs: 0,
       topupUzs: topupUzs,
+      balanceSalesUzs: 0,
     ),
   );
 
@@ -50,6 +52,9 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: const [AppLocalization.delegate],
+        supportedLocales: AppLocalization.delegate.supportedLocales,
         home: BlocProvider.value(
           value: bloc,
           child: Scaffold(
@@ -64,7 +69,7 @@ void main() {
 
     expect(remote.getCurrentShiftCalls, 0);
 
-    await tester.tap(find.byTooltip('Yangilash'));
+    await tester.tap(find.byTooltip('Refresh'));
     await tester.pumpAndSettle();
 
     expect(remote.getCurrentShiftCalls, 1);

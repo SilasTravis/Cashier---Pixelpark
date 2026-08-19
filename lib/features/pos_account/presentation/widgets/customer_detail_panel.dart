@@ -4,16 +4,21 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:phosphor_icons/phosphor_icons.dart';
 
 import '../../../../core/printing/gate_pass_label_printer.dart';
+import '../../../../core/local_source/local_source.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
 import '../../../../core/utils/currency.dart';
 import '../../../../core/widgets/payment_method_selector.dart';
+import '../../../pos_sale/presentation/widgets/receipt_dialog.dart';
+import '../../../pos_sale/domain/sale_receipt.dart';
+import '../../../../injector_container.dart';
 import '../../../products/domain/product.dart';
 import '../../domain/active_pass.dart';
 import '../../domain/customer.dart';
 import '../../domain/free_reason.dart';
 import '../../domain/kids_plan.dart';
 import '../../domain/playing_child.dart';
+import '../../domain/pos_entry.dart';
 import '../bloc/pos_account_bloc.dart';
 import 'plan_conflict_dialog.dart';
 import 'plan_entry_printing.dart';
@@ -119,8 +124,14 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
           listenWhen: (previous, current) =>
               previous.lastEntryResult != current.lastEntryResult &&
               current.lastEntryResult != null,
-          listener: (context, state) {
+          listener: (context, state) async {
             final result = state.lastEntryResult!;
+            final productReceipt =
+                result.productSale ?? _legacyProductReceipt(result, state);
+            if (productReceipt != null) {
+              await printSaleReceiptDirect(context, productReceipt);
+              if (!context.mounted) return;
+            }
             final childNames = {
               for (final child
                   in state.selectedCustomer?.children ?? const <Child>[])
@@ -158,9 +169,10 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
           listener: (context, state) {
             final pass = state.lastParentPass!;
             final messenger = ScaffoldMessenger.of(context);
-            GatePassLabelPrinter.printDirect([
-              (qrData: pass.code, name: pass.customerName, invertName: true),
-            ]).then((ok) {
+            GatePassLabelPrinter.printDirect(
+              [(qrData: pass.code, name: pass.customerName, invertName: true)],
+              preferredPrinterName: sl<LocalSource>().getQrPrinterName(),
+            ).then((ok) {
               if (ok) return;
               messenger.showSnackBar(
                 const SnackBar(
@@ -464,6 +476,38 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
           );
         },
       ),
+    );
+  }
+
+  SaleReceipt? _legacyProductReceipt(
+    PosEntryResult result,
+    PosAccountState state,
+  ) {
+    if (result.productsTotalUzs <= 0 || _cart.isEmpty) return null;
+    final productsById = {
+      for (final product in state.products) product.id: product,
+    };
+    final items = <SaleReceiptItem>[
+      for (final line in _cart.entries)
+        if (productsById[line.key] case final product?)
+          SaleReceiptItem(
+            productId: product.id,
+            nameSnapshot: product.name,
+            priceSnapshotUzs: product.priceUzs,
+            qty: line.value,
+            lineTotalUzs: product.priceUzs * line.value,
+          ),
+    ];
+    if (items.isEmpty) return null;
+    final now = DateTime.now();
+    return SaleReceipt(
+      id: 'account-${state.selectedCustomer?.id ?? 0}-${now.millisecondsSinceEpoch}',
+      subtotalUzs: result.productsTotalUzs,
+      cashUzs: 0,
+      cardUzs: 0,
+      balanceUzs: result.productsTotalUzs,
+      createdAt: now,
+      items: items,
     );
   }
 }
