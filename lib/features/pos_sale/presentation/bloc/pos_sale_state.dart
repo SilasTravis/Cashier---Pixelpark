@@ -32,9 +32,14 @@ class PosSaleState extends Equatable {
   List<Product> get visibleProducts {
     final query = searchQuery.trim().toLowerCase();
     return products.where((p) {
+      final normalizedCategory = p.category.trim().toLowerCase();
       final matchesCategory =
-          selectedCategory == null || p.category == selectedCategory;
-      final matchesQuery = query.isEmpty || p.name.toLowerCase().contains(query);
+          selectedCategory == null ||
+          normalizedCategory == selectedCategory!.trim().toLowerCase();
+      final matchesQuery =
+          query.isEmpty ||
+          p.name.toLowerCase().contains(query) ||
+          normalizedCategory.contains(query);
       return matchesCategory && matchesQuery;
     }).toList();
   }

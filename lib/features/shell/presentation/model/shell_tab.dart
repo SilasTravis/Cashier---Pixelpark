@@ -1,17 +1,21 @@
 import 'package:flutter/widgets.dart';
 import 'package:phosphor_icons/phosphor_icons.dart';
+import '../../../../generated/l10n.dart';
 
 enum ShellTab {
-  posAccount(label: 'Hisob va QR', icon: PhosphorIconsRegular.qrCode),
-  posSale(label: 'Savdo', icon: PhosphorIconsRegular.shoppingCartSimple),
-  salesHistory(
-    label: 'Sotuv tarixi',
-    icon: PhosphorIconsRegular.clockCounterClockwise,
-  ),
-  settings(label: 'Sozlamalar', icon: PhosphorIconsRegular.gearSix);
+  posAccount(icon: PhosphorIconsRegular.qrCode),
+  posSale(icon: PhosphorIconsRegular.shoppingCartSimple),
+  salesHistory(icon: PhosphorIconsRegular.clockCounterClockwise),
+  settings(icon: PhosphorIconsRegular.gearSix);
 
-  const ShellTab({required this.label, required this.icon});
+  const ShellTab({required this.icon});
 
-  final String label;
   final IconData icon;
+
+  String label(AppLocalization l10n) => switch (this) {
+    ShellTab.posAccount => l10n.tabAccount,
+    ShellTab.posSale => l10n.tabSales,
+    ShellTab.salesHistory => l10n.tabHistory,
+    ShellTab.settings => l10n.tabSettings,
+  };
 }

@@ -159,7 +159,10 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     Emitter<PosAccountState> emit,
   ) {
     emit(
-      PosAccountState(recentCustomers: state.recentCustomers, plans: state.plans),
+      PosAccountState(
+        recentCustomers: state.recentCustomers,
+        plans: state.plans,
+      ),
     );
   }
 

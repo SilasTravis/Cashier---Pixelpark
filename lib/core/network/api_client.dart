@@ -11,23 +11,26 @@ import 'token_refresher.dart';
 /// [LocalSource], defaulting to [AppConstants.defaultApiBaseUrl]), auth
 /// header injection, and 401-triggered token refresh + retry.
 Dio buildDio(LocalSource localSource, TokenRefresher tokenRefresher) {
-  final dio = Dio(
-    BaseOptions(
-      baseUrl: localSource.getApiBaseUrl() ?? AppConstants.defaultApiBaseUrl,
-      contentType: 'application/json',
-      sendTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 30),
-      connectTimeout: const Duration(seconds: 30),
-    ),
-  )..interceptors.addAll([
-    AuthInterceptor(localSource),
-    LogInterceptor(
-      request: kDebugMode,
-      responseBody: kDebugMode,
-      error: kDebugMode,
-      requestBody: kDebugMode,
-    ),
-  ]);
+  final dio =
+      Dio(
+          BaseOptions(
+            baseUrl:
+                localSource.getApiBaseUrl() ?? AppConstants.defaultApiBaseUrl,
+            contentType: 'application/json',
+            sendTimeout: const Duration(seconds: 30),
+            receiveTimeout: const Duration(seconds: 30),
+            connectTimeout: const Duration(seconds: 30),
+          ),
+        )
+        ..interceptors.addAll([
+          AuthInterceptor(localSource),
+          LogInterceptor(
+            request: kDebugMode,
+            responseBody: kDebugMode,
+            error: kDebugMode,
+            requestBody: kDebugMode,
+          ),
+        ]);
 
   dio.interceptors.add(
     RetryInterceptor(
@@ -41,7 +44,10 @@ Dio buildDio(LocalSource localSource, TokenRefresher tokenRefresher) {
       },
       forbiddenFunction: () async {},
       logPrint: (message) {
-        if (kDebugMode && message.contains(RegExp('retry|error|fail', caseSensitive: false))) {
+        if (kDebugMode &&
+            message.contains(
+              RegExp('retry|error|fail', caseSensitive: false),
+            )) {
           debugPrint(message);
         }
       },

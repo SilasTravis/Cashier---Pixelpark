@@ -132,7 +132,9 @@ class _OpenShiftPromptState extends State<OpenShiftPrompt> {
                     ),
                     const SizedBox(height: 10),
                     TextButton.icon(
-                      onPressed: state.isLoading ? null : () => _logout(context),
+                      onPressed: state.isLoading
+                          ? null
+                          : () => _logout(context),
                       icon: const Icon(PhosphorIconsRegular.signOut, size: 14),
                       label: const Text('Chiqish'),
                     ),

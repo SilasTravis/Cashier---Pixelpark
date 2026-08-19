@@ -19,7 +19,11 @@ class CashierModel extends Cashier {
 }
 
 class BranchModel extends Branch {
-  const BranchModel({required super.id, required super.slug, required super.name});
+  const BranchModel({
+    required super.id,
+    required super.slug,
+    required super.name,
+  });
 
   factory BranchModel.fromJson(Map<String, dynamic> json) => BranchModel(
     id: json['id'] as String,

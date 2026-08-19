@@ -36,7 +36,10 @@ final ThemeData appTheme = ThemeData(
       side: const BorderSide(color: NocturneColors.neutral800),
     ),
   ),
-  dividerTheme: const DividerThemeData(color: NocturneColors.divider, thickness: 1),
+  dividerTheme: const DividerThemeData(
+    color: NocturneColors.divider,
+    thickness: 1,
+  ),
   inputDecorationTheme: InputDecorationTheme(
     filled: true,
     fillColor: NocturneColors.bg,
@@ -60,7 +63,9 @@ final ThemeData appTheme = ThemeData(
       backgroundColor: NocturneColors.accent.withValues(alpha: 0.12),
       foregroundColor: NocturneColors.accent,
       side: const BorderSide(color: NocturneColors.accent),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+      ),
       textStyle: AppTextStyles.h5,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
     ),
@@ -69,7 +74,9 @@ final ThemeData appTheme = ThemeData(
     style: OutlinedButton.styleFrom(
       foregroundColor: NocturneColors.text.withValues(alpha: 0.85),
       side: const BorderSide(color: NocturneColors.divider),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
     ),
   ),

@@ -11,6 +11,7 @@ class ServerFailure extends Failure {
   ServerFailure({required this.message, this.code, this.statusCode});
 
   final String message;
+
   /// Machine-readable error code (e.g. `SHIFT_NOT_OPEN`), when present.
   final String? code;
   final int? statusCode;

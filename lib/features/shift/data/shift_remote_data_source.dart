@@ -24,10 +24,7 @@ class ShiftRemoteDataSourceImpl implements ShiftRemoteDataSource {
 
   @override
   Future<Shift> closeShift({String? closingNote}) => _request(
-    () => dio.post(
-      '/v1/pos/shifts/close',
-      data: {'closingNote': ?closingNote},
-    ),
+    () => dio.post('/v1/pos/shifts/close', data: {'closingNote': ?closingNote}),
   );
 
   @override

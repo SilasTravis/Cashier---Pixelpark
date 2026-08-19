@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
 import '../../../../core/utils/currency.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../../products/domain/product.dart';
 import '../../../products/presentation/product_icon.dart';
 import '../bloc/pos_sale_bloc.dart';
@@ -30,13 +31,14 @@ class ProductGrid extends StatelessWidget {
             ),
           );
         }
+        final compact = breakpointOfContext(context) == Breakpoint.compact;
         return GridView.builder(
-          padding: const EdgeInsets.all(16),
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 176,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 0.92,
+          padding: EdgeInsets.all(compact ? 4 : 16),
+          gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: compact ? 160 : 176,
+            mainAxisSpacing: compact ? 8 : 12,
+            crossAxisSpacing: compact ? 8 : 12,
+            childAspectRatio: compact ? 1.0 : 0.92,
           ),
           itemCount: state.visibleProducts.length,
           itemBuilder: (context, index) {

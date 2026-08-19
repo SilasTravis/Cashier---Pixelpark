@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:cashier_app/generated/l10n.dart';
 import 'package:cashier_app/features/pos_account/data/pos_account_remote_data_source.dart';
 import 'package:cashier_app/features/pos_account/data/pos_account_repository_impl.dart';
 import 'package:cashier_app/features/pos_account/domain/active_pass.dart';
@@ -78,6 +79,8 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: const [AppLocalization.delegate],
+          supportedLocales: AppLocalization.delegate.supportedLocales,
           home: BlocProvider.value(
             value: bloc,
             child: const Scaffold(body: CustomerDetailPanel()),

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../../../core/error/exceptions.dart';
 import '../../products/domain/product.dart';
+import '../../pos_sale/domain/sale_receipt.dart';
 import '../domain/active_pass.dart';
 import '../domain/customer.dart';
 import '../domain/kids_plan.dart';
@@ -224,9 +225,7 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
       () => dio.get('/v1/pos/customers/$customerId/active-passes'),
     );
     return (response as List)
-        .map(
-          (json) => _activePassFromJson(json as Map<String, dynamic>),
-        )
+        .map((json) => _activePassFromJson(json as Map<String, dynamic>))
         .toList();
   }
 
@@ -300,15 +299,37 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
           .map((json) => _posEntryFailureFromJson(json as Map<String, dynamic>))
           .toList(),
       balance: map['balance'] as int?,
+      productSale: map['productSale'] == null
+          ? null
+          : _saleReceiptFromJson(map['productSale'] as Map<String, dynamic>),
+      productsTotalUzs: (map['productsTotalUzs'] as int?) ?? 0,
     );
   }
+
+  SaleReceipt _saleReceiptFromJson(Map<String, dynamic> json) => SaleReceipt(
+    id: json['id'] as String,
+    subtotalUzs: json['subtotalUzs'] as int,
+    cashUzs: json['cashUzs'] as int,
+    cardUzs: json['cardUzs'] as int,
+    balanceUzs: (json['balanceUzs'] as int?) ?? 0,
+    createdAt: DateTime.parse(json['createdAt'] as String),
+    items: (json['items'] as List)
+        .map(
+          (item) => SaleReceiptItem(
+            productId: item['productId'] as String,
+            nameSnapshot: item['nameSnapshot'] as String,
+            priceSnapshotUzs: item['priceSnapshotUzs'] as int,
+            qty: item['qty'] as int,
+            lineTotalUzs: item['lineTotalUzs'] as int,
+          ),
+        )
+        .toList(),
+  );
 
   /// Absent on older backends — parsed defensively as "no conflicts".
   List<PosEntryConflict> _conflictsFromJson(Map<String, dynamic> map) {
     return ((map['conflicts'] as List?) ?? const [])
-        .map(
-          (json) => _posEntryConflictFromJson(json as Map<String, dynamic>),
-        )
+        .map((json) => _posEntryConflictFromJson(json as Map<String, dynamic>))
         .toList();
   }
 

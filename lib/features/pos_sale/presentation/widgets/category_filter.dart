@@ -4,6 +4,8 @@ import 'package:phosphor_icons/phosphor_icons.dart';
 
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
+import '../../../../core/utils/responsive.dart';
+import '../../../../generated/l10n.dart';
 import '../bloc/pos_sale_bloc.dart';
 
 /// The sale screen's search box (barcode/name) plus the category chip row,
@@ -13,6 +15,12 @@ class CategoryFilter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (breakpointOfContext(context) == Breakpoint.compact) {
+      return const Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [_SearchField(), SizedBox(height: 8), _CategoryChips()],
+      );
+    }
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -49,10 +57,13 @@ class _SearchFieldState extends State<_SearchField> {
         style: AppTextStyles.body.copyWith(fontSize: 13),
         onChanged: (value) =>
             context.read<PosSaleBloc>().add(PosSaleSearchChanged(value)),
-        decoration: const InputDecoration(
+        decoration: InputDecoration(
           isDense: true,
-          hintText: 'Shtrix-kod yoki nomi',
-          prefixIcon: Icon(PhosphorIconsRegular.barcode, size: 16),
+          hintText: AppLocalization.of(context).productSearchHint,
+          prefixIcon: const Icon(
+            PhosphorIconsRegular.magnifyingGlass,
+            size: 16,
+          ),
         ),
       ),
     );
@@ -75,7 +86,7 @@ class _CategoryChips extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             children: [
               _CategoryChip(
-                label: 'Hammasi',
+                label: AppLocalization.of(context).categoryAll,
                 selected: state.selectedCategory == null,
                 onTap: () => context.read<PosSaleBloc>().add(
                   const PosSaleCategorySelected(null),

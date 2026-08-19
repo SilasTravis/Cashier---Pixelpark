@@ -5,6 +5,7 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
 import '../../../../core/utils/responsive.dart';
 import '../model/shell_tab.dart';
+import '../../../../generated/l10n.dart';
 
 /// Matches the design's slim dark nav rail: a compact "Kassa · {cashier}"
 /// kicker up top, the tab list, then shift-open time + close-shift pinned to
@@ -178,7 +179,7 @@ class _NavTile extends StatelessWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      tab.label,
+                      tab.label(AppLocalization.of(context)),
                       style: AppTextStyles.body.copyWith(
                         fontSize: 13,
                         color: selected
@@ -197,6 +198,8 @@ class _NavTile extends StatelessWidget {
         ),
       ),
     );
-    return collapsed ? Tooltip(message: tab.label, child: tile) : tile;
+    return collapsed
+        ? Tooltip(message: tab.label(AppLocalization.of(context)), child: tile)
+        : tile;
   }
 }

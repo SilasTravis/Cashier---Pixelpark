@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:phosphor_icons/phosphor_icons.dart';
 
 import '../../../../core/printing/gate_pass_label_printer.dart';
+import '../../../../core/local_source/local_source.dart';
 import '../../../../core/theme/nocturne_colors.dart';
 import '../../domain/pos_entry.dart';
+import '../../../../injector_container.dart';
 
 /// Fires gate-pass label printing the instant entry is confirmed — no
 /// preview step, no dialog. Any child who couldn't enter (e.g. already
@@ -23,7 +25,7 @@ void printPlanEntryLabels(
           name: childNamesById[entry.childId] ?? '',
           invertName: false,
         ),
-    ]).then((ok) {
+    ], preferredPrinterName: sl<LocalSource>().getQrPrinterName()).then((ok) {
       if (ok) return;
       // A silently swallowed sticker is the worst failure mode a gate can
       // have — tell the cashier so they can re-print or check the printer.

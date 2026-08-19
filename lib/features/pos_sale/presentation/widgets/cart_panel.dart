@@ -6,6 +6,7 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
 import '../../../../core/utils/currency.dart';
 import '../../../../core/widgets/payment_method_selector.dart';
+import '../../../../generated/l10n.dart';
 import '../bloc/pos_sale_bloc.dart';
 import 'receipt_dialog.dart';
 
@@ -30,11 +31,14 @@ class _CartPanelState extends State<CartPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
     return BlocConsumer<PosSaleBloc, PosSaleState>(
       listenWhen: (previous, current) =>
           previous.lastReceipt != current.lastReceipt &&
           current.lastReceipt != null,
       listener: (context, state) async {
+        await printSaleReceiptDirect(context, state.lastReceipt!);
+        if (!context.mounted) return;
         await showReceiptDialog(context, state.lastReceipt!);
         if (context.mounted) {
           context.read<PosSaleBloc>().add(const PosSaleReceiptAcknowledged());
@@ -64,13 +68,11 @@ class _CartPanelState extends State<CartPanel> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Chek', style: AppTextStyles.h5),
+                  Text(l10n.cartTitle, style: AppTextStyles.h5),
                   if (state.cart.isNotEmpty)
                     TextButton(
-                      onPressed: () => context.read<PosSaleBloc>().add(
-                        const PosSaleCartCleared(),
-                      ),
-                      child: const Text('Tozalash'),
+                      onPressed: () => _confirmClear(context),
+                      child: Text(l10n.cartClear),
                     ),
                 ],
               ),
@@ -79,7 +81,7 @@ class _CartPanelState extends State<CartPanel> {
               child: state.cartLines.isEmpty
                   ? Center(
                       child: Text(
-                        'Chek bo\'sh',
+                        l10n.cartEmpty,
                         style: AppTextStyles.muted(AppTextStyles.body),
                       ),
                     )
@@ -138,7 +140,7 @@ class _CartPanelState extends State<CartPanel> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Jami', style: AppTextStyles.h6),
+                      Text(l10n.total, style: AppTextStyles.h6),
                       Text(
                         formatUzs(subtotal),
                         style: AppTextStyles.h5.copyWith(
@@ -194,7 +196,7 @@ class _CartPanelState extends State<CartPanel> {
                               PhosphorIconsRegular.checkCircle,
                               size: 18,
                             ),
-                      label: const Text('To\'lash'),
+                      label: Text(l10n.pay),
                     ),
                   ),
                 ],
@@ -204,6 +206,30 @@ class _CartPanelState extends State<CartPanel> {
         );
       },
     );
+  }
+
+  Future<void> _confirmClear(BuildContext context) async {
+    final l10n = AppLocalization.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.cartClearTitle),
+        content: Text(l10n.cartClearMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(l10n.cartClear),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      context.read<PosSaleBloc>().add(const PosSaleCartCleared());
+    }
   }
 }
 

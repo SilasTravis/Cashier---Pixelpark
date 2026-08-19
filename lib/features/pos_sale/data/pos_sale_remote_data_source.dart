@@ -56,6 +56,7 @@ class PosSaleRemoteDataSourceImpl implements PosSaleRemoteDataSource {
       subtotalUzs: json['subtotalUzs'] as int,
       cashUzs: json['cashUzs'] as int,
       cardUzs: json['cardUzs'] as int,
+      balanceUzs: (json['balanceUzs'] as int?) ?? 0,
       createdAt: DateTime.parse(json['createdAt'] as String),
       items: (json['items'] as List)
           .map((item) => _itemFromJson(item as Map<String, dynamic>))
