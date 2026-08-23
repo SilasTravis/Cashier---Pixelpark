@@ -1,11 +1,3 @@
-// The constructor below assigns public-named parameters (source,
-// supportDirectory, updater, checkInterval) to private fields (_source,
-// _supportDirectory, _updater, _checkInterval). prefer_initializing_formals
-// doesn't apply: `this._source` would make the named parameter's external
-// label `_source`, which callers outside this library can't spell — that
-// would silently change this class's public constructor API.
-// ignore_for_file: prefer_initializing_formals
-
 import 'dart:async';
 import 'dart:io';
 
@@ -27,15 +19,12 @@ import 'windows_updater.dart';
 /// is driven by the Settings UI.
 class UpdateService {
   UpdateService({
-    required ReleaseSource source,
+    required this._source,
     required this.currentVersion,
-    required Future<Directory> Function() supportDirectory,
-    WindowsUpdater updater = const WindowsUpdater(),
-    Duration checkInterval = const Duration(hours: 4),
-  }) : _source = source,
-       _supportDirectory = supportDirectory,
-       _updater = updater,
-       _checkInterval = checkInterval;
+    required this._supportDirectory,
+    this._updater = const WindowsUpdater(),
+    this._checkInterval = const Duration(hours: 4),
+  });
 
   final ReleaseSource _source;
   final Future<Directory> Function() _supportDirectory;
@@ -49,6 +38,7 @@ class UpdateService {
   final ValueNotifier<UpdateRelease?> available = ValueNotifier(null);
 
   Timer? _timer;
+  bool _disposed = false;
 
   Future<UpdateRelease?> check() async {
     final latest = await _source.fetchLatest();
@@ -92,7 +82,13 @@ class UpdateService {
       await zip.delete();
       return staged;
     } catch (_) {
-      await _remove(zip, staged);
+      try {
+        await _remove(zip, staged);
+      } catch (_) {
+        // Best-effort cleanup: a locked file (e.g. antivirus holding a
+        // handle on a just-extracted binary) must never displace the real
+        // failure reason surfaced to the cashier.
+      }
       rethrow;
     }
   }
@@ -109,11 +105,14 @@ class UpdateService {
   }
 
   void startBackgroundChecks() {
+    _timer?.cancel();
     unawaited(_safeCheck());
     _timer = Timer.periodic(_checkInterval, (_) => unawaited(_safeCheck()));
   }
 
   void dispose() {
+    if (_disposed) return;
+    _disposed = true;
     _timer?.cancel();
     available.dispose();
   }
