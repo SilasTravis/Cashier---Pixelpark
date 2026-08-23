@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 
 import 'package:cashier_app/core/update/update_script.dart';
 import 'package:cashier_app/core/update/windows_updater.dart';
@@ -53,25 +54,45 @@ void main() {
   // 3's review of the script itself — this is the task where they are
   // satisfied or silently lost.
 
-  test('returns an absolute script path (Process.start needs one so the '
+  test('returns an absolute script path even when updatesDir is given as a '
+      'relative path (Process.start needs an absolute one so the '
       'self-delete idiom %~f0 resolves against the right file)', () async {
     final updates = Directory('${root.path}/updates')..createSync();
     final staged = Directory('${updates.path}/v1.2.3')..createSync();
     final install = Directory('${root.path}/install')..createSync();
 
+    // Every other fixture in this file builds updatesDir from
+    // Directory.systemTemp, which is always absolute — so `.absolute`
+    // being a no-op there can't prove the production code calls it. Drive
+    // this one with a genuinely relative updatesDir instead, computed
+    // against the process's current directory (never mutated) rather than
+    // hand-written, so it resolves correctly regardless of where the test
+    // runner's cwd happens to be.
+    final relativeUpdates = Directory(
+      p.relative(updates.path, from: Directory.current.path),
+    );
+    expect(p.isAbsolute(relativeUpdates.path), isFalse);
+
     final script = await const WindowsUpdater().writeScript(
-      updatesDir: updates,
+      updatesDir: relativeUpdates,
       staged: staged,
       installDir: install,
       exePath: '${install.path}/cashier_app.exe',
       pid: 99,
     );
 
-    // A path is absolute exactly when resolving it against `.absolute`
-    // is a no-op. If a future edit stopped absolutizing the path, this
-    // would fail even though updatesDir here happens to already be
-    // absolute (it's a temp dir).
-    expect(script.path, equals(script.absolute.path));
+    expect(p.isAbsolute(script.path), isTrue);
+    // Not just "some absolute path" — the same file the relative
+    // updatesDir pointed at.
+    expect(script.existsSync(), isTrue);
+    expect(
+      script.resolveSymbolicLinksSync(),
+      equals(
+        File(
+          '${updates.path}${Platform.pathSeparator}apply_update.bat',
+        ).resolveSymbolicLinksSync(),
+      ),
+    );
   });
 
   test('writes the script text exactly as buildUpdateScript produced it, '
@@ -93,7 +114,7 @@ void main() {
       pid: 99,
       installDir: install.path,
       stagedDir: staged.path,
-      backupDir: '${updates.path}${Platform.pathSeparator}backup',
+      backupDir: backupDirPath(updates),
       exePath: exePath,
     );
 
@@ -109,7 +130,7 @@ void main() {
       final updates = Directory('${root.path}/updates')..createSync();
       final staged = Directory('${updates.path}/v1.2.3')..createSync();
       final install = Directory('${root.path}/install')..createSync();
-      final backupDir = '${updates.path}${Platform.pathSeparator}backup';
+      final backupDir = backupDirPath(updates);
 
       final script = await const WindowsUpdater().writeScript(
         updatesDir: updates,

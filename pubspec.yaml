@@ -44,6 +44,10 @@ dependencies:
   # self-update: unpack the release zip and verify its published SHA-256
   archive: ^4.0.9
   crypto: ^3.0.7
+  # already resolved transitively via Flutter; pinned to the exact version
+  # in pubspec.lock so declaring it explicitly (for path-relativizing in
+  # tests) doesn't move anything else in the dependency graph
+  path: 1.9.1
 
 dev_dependencies:
   flutter_test:

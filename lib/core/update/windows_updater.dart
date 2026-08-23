@@ -2,6 +2,13 @@ import 'dart:io';
 
 import 'update_script.dart';
 
+/// Where the pre-update backup of the install folder lives, given the
+/// updates folder it's derived from. A top-level function (rather than
+/// something private to [WindowsUpdater]) so tests can share the exact same
+/// derivation instead of re-deriving it by hand.
+String backupDirPath(Directory updatesDir) =>
+    '${updatesDir.path}${Platform.pathSeparator}backup';
+
 /// Hands the folder swap off to a detached batch script and quits, because
 /// a running executable can't replace its own files.
 class WindowsUpdater {
@@ -35,7 +42,7 @@ class WindowsUpdater {
         pid: pid,
         installDir: installDir.path,
         stagedDir: staged.path,
-        backupDir: '${updatesDir.path}${Platform.pathSeparator}backup',
+        backupDir: backupDirPath(updatesDir),
         exePath: exePath,
       ),
     );
