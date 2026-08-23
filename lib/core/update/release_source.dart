@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import 'update_exception.dart';
 import 'update_release.dart';
 
 /// Where update packages come from. An interface so [UpdateService] can be
@@ -45,12 +46,27 @@ class GithubReleaseSource implements ReleaseSource {
   @override
   Future<String?> fetchSha256(UpdateRelease release) async {
     final url = release.sha256Url;
+    // No .sha256 asset was published for this release at all — verification
+    // is legitimately skipped, not a failure.
     if (url == null) return null;
+
     final response = await _dio.get<String>(
       url,
       options: Options(responseType: ResponseType.plain),
     );
-    return parseSha256Digest(response.data);
+    final digest = parseSha256Digest(response.data);
+    if (digest == null) {
+      // The asset exists but its body isn't a valid digest — a 404/error
+      // page served with a 200 status, a truncated download, a proxy that
+      // rewrote the content, etc. Never silently fall back to "no digest
+      // published": fail closed so an unverified binary is never installed.
+      throw UpdateException(
+        'Could not read the published checksum for version '
+        '${release.version} at $url — the file did not contain a valid '
+        'SHA-256 digest. Refusing to install an unverified update.',
+      );
+    }
+    return digest;
   }
 
   @override
