@@ -104,5 +104,22 @@
   "minutesCount": "{count} min", "@minutesCount": {"placeholders":{"count":{"type":"int"}}},
   "accruedAmount": "Current charge", "markExited": "Mark as exited", "manualExitTitle": "Lost QR code?",
   "manualExitQuestion": "{child} will be marked as exited now. The visit will close at {amount} and be debited from the parent's balance. Continue?", "@manualExitQuestion": {"placeholders":{"child":{"type":"String"},"amount":{"type":"String"}}},
-  "manualExitSucceeded": "The child was successfully marked as exited"
+  "manualExitSucceeded": "The child was successfully marked as exited",
+  "updateTitle": "Update",
+  "updateCheck": "Check for updates",
+  "updateUpToDate": "You're on the latest version",
+  "updateAvailable": "New version available: {version}",
+  "@updateAvailable": {"placeholders": {"version": {"type": "String"}}},
+  "updateDownload": "Download & install",
+  "updateDownloading": "Downloading…",
+  "updateReady": "Update ready",
+  "updateRestart": "Restart now",
+  "updateConfirmTitle": "Update the app",
+  "updateConfirmMessage": "The app will close and reopen on the new version. Your shift stays open. Continue?",
+  "updateConfirm": "Continue",
+  "updateCancel": "Cancel",
+  "updateFailed": "Update failed",
+  "updateFailedGeneric": "Update failed. Check the internet connection and try again.",
+  "updateManualHint": "To download manually:",
+  "updateWindowsOnly": "Automatic updates work on Windows only"
 }

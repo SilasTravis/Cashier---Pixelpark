@@ -82,7 +82,9 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m26(time) => "Smena ${time} da ochildi";
 
-  static String m27(name) =>
+  static String m27(version) => "Yangi versiya mavjud: ${version}";
+
+  static String m28(name) =>
       "«${name}» allaqachon faol VIP tarifda — qayta to‘lov olinmaydi.";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
@@ -316,8 +318,42 @@ class MessageLookup extends MessageLookupByLibrary {
     "unlimitedFreeEntry": MessageLookupByLibrary.simpleMessage(
       "Bepul — kirish-chiqishga cheklovsiz",
     ),
+    "updateAvailable": m27,
+    "updateCancel": MessageLookupByLibrary.simpleMessage("Bekor qilish"),
+    "updateCheck": MessageLookupByLibrary.simpleMessage(
+      "Yangilanishni tekshirish",
+    ),
+    "updateConfirm": MessageLookupByLibrary.simpleMessage("Davom etish"),
+    "updateConfirmMessage": MessageLookupByLibrary.simpleMessage(
+      "Ilova yopiladi va yangi versiyada qayta ochiladi. Smena ochiq qoladi. Davom etasizmi?",
+    ),
+    "updateConfirmTitle": MessageLookupByLibrary.simpleMessage(
+      "Ilovani yangilash",
+    ),
+    "updateDownload": MessageLookupByLibrary.simpleMessage(
+      "Yuklab olish va o‘rnatish",
+    ),
+    "updateDownloading": MessageLookupByLibrary.simpleMessage("Yuklanmoqda…"),
+    "updateFailed": MessageLookupByLibrary.simpleMessage("Yangilanmadi"),
+    "updateFailedGeneric": MessageLookupByLibrary.simpleMessage(
+      "Yangilanmadi. Internet aloqasini tekshiring va qayta urinib ko‘ring.",
+    ),
+    "updateManualHint": MessageLookupByLibrary.simpleMessage(
+      "Qo‘lda yuklab olish uchun:",
+    ),
+    "updateReady": MessageLookupByLibrary.simpleMessage("Yangilanish tayyor"),
+    "updateRestart": MessageLookupByLibrary.simpleMessage(
+      "Qayta ishga tushirish",
+    ),
+    "updateTitle": MessageLookupByLibrary.simpleMessage("Yangilanish"),
+    "updateUpToDate": MessageLookupByLibrary.simpleMessage(
+      "Eng so‘nggi versiya o‘rnatilgan",
+    ),
+    "updateWindowsOnly": MessageLookupByLibrary.simpleMessage(
+      "Avtomatik yangilash faqat Windows’da ishlaydi",
+    ),
     "version": MessageLookupByLibrary.simpleMessage("Versiya"),
-    "vipAlreadyActive": m27,
+    "vipAlreadyActive": m28,
     "vipChargedImmediately": MessageLookupByLibrary.simpleMessage(
       "VIP tarif puli chop etilganda balansdan darhol yechiladi.",
     ),

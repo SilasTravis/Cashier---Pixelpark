@@ -1448,6 +1448,151 @@ class AppLocalization {
       args: [],
     );
   }
+
+  /// `Update`
+  String get updateTitle {
+    return Intl.message('Update', name: 'updateTitle', desc: '', args: []);
+  }
+
+  /// `Check for updates`
+  String get updateCheck {
+    return Intl.message(
+      'Check for updates',
+      name: 'updateCheck',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `You're on the latest version`
+  String get updateUpToDate {
+    return Intl.message(
+      'You\'re on the latest version',
+      name: 'updateUpToDate',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `New version available: {version}`
+  String updateAvailable(String version) {
+    return Intl.message(
+      'New version available: $version',
+      name: 'updateAvailable',
+      desc: '',
+      args: [version],
+    );
+  }
+
+  /// `Download & install`
+  String get updateDownload {
+    return Intl.message(
+      'Download & install',
+      name: 'updateDownload',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Downloading…`
+  String get updateDownloading {
+    return Intl.message(
+      'Downloading…',
+      name: 'updateDownloading',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Update ready`
+  String get updateReady {
+    return Intl.message(
+      'Update ready',
+      name: 'updateReady',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Restart now`
+  String get updateRestart {
+    return Intl.message(
+      'Restart now',
+      name: 'updateRestart',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Update the app`
+  String get updateConfirmTitle {
+    return Intl.message(
+      'Update the app',
+      name: 'updateConfirmTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The app will close and reopen on the new version. Your shift stays open. Continue?`
+  String get updateConfirmMessage {
+    return Intl.message(
+      'The app will close and reopen on the new version. Your shift stays open. Continue?',
+      name: 'updateConfirmMessage',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Continue`
+  String get updateConfirm {
+    return Intl.message('Continue', name: 'updateConfirm', desc: '', args: []);
+  }
+
+  /// `Cancel`
+  String get updateCancel {
+    return Intl.message('Cancel', name: 'updateCancel', desc: '', args: []);
+  }
+
+  /// `Update failed`
+  String get updateFailed {
+    return Intl.message(
+      'Update failed',
+      name: 'updateFailed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Update failed. Check the internet connection and try again.`
+  String get updateFailedGeneric {
+    return Intl.message(
+      'Update failed. Check the internet connection and try again.',
+      name: 'updateFailedGeneric',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `To download manually:`
+  String get updateManualHint {
+    return Intl.message(
+      'To download manually:',
+      name: 'updateManualHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Automatic updates work on Windows only`
+  String get updateWindowsOnly {
+    return Intl.message(
+      'Automatic updates work on Windows only',
+      name: 'updateWindowsOnly',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalization> {

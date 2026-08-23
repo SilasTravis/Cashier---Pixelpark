@@ -83,7 +83,9 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m26(time) => "Смена открыта в ${time}";
 
-  static String m27(name) =>
+  static String m27(version) => "Доступна новая версия: ${version}";
+
+  static String m28(name) =>
       "«${name}» уже на активном VIP-тарифе — повторная оплата не взимается.";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
@@ -319,8 +321,38 @@ class MessageLookup extends MessageLookupByLibrary {
     "unlimitedFreeEntry": MessageLookupByLibrary.simpleMessage(
       "Бесплатно — вход и выход без ограничений",
     ),
+    "updateAvailable": m27,
+    "updateCancel": MessageLookupByLibrary.simpleMessage("Отмена"),
+    "updateCheck": MessageLookupByLibrary.simpleMessage("Проверить обновления"),
+    "updateConfirm": MessageLookupByLibrary.simpleMessage("Продолжить"),
+    "updateConfirmMessage": MessageLookupByLibrary.simpleMessage(
+      "Приложение закроется и снова откроется на новой версии. Смена останется открытой. Продолжить?",
+    ),
+    "updateConfirmTitle": MessageLookupByLibrary.simpleMessage(
+      "Обновление приложения",
+    ),
+    "updateDownload": MessageLookupByLibrary.simpleMessage(
+      "Скачать и установить",
+    ),
+    "updateDownloading": MessageLookupByLibrary.simpleMessage("Загрузка…"),
+    "updateFailed": MessageLookupByLibrary.simpleMessage("Не удалось обновить"),
+    "updateFailedGeneric": MessageLookupByLibrary.simpleMessage(
+      "Не удалось обновить. Проверьте подключение к интернету и попробуйте снова.",
+    ),
+    "updateManualHint": MessageLookupByLibrary.simpleMessage(
+      "Для ручной загрузки:",
+    ),
+    "updateReady": MessageLookupByLibrary.simpleMessage("Обновление готово"),
+    "updateRestart": MessageLookupByLibrary.simpleMessage("Перезапустить"),
+    "updateTitle": MessageLookupByLibrary.simpleMessage("Обновление"),
+    "updateUpToDate": MessageLookupByLibrary.simpleMessage(
+      "Установлена последняя версия",
+    ),
+    "updateWindowsOnly": MessageLookupByLibrary.simpleMessage(
+      "Автообновление работает только в Windows",
+    ),
     "version": MessageLookupByLibrary.simpleMessage("Версия"),
-    "vipAlreadyActive": m27,
+    "vipAlreadyActive": m28,
     "vipChargedImmediately": MessageLookupByLibrary.simpleMessage(
       "Стоимость VIP-тарифа списывается с баланса сразу при печати.",
     ),

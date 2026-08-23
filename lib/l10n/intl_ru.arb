@@ -109,5 +109,22 @@
   "minutesCount": "{count} мин", "@minutesCount": {"placeholders":{"count":{"type":"int"}}},
   "accruedAmount": "Текущий счёт", "markExited": "Отметить выход", "manualExitTitle": "QR-код потерян?",
   "manualExitQuestion": "Выход ребёнка {child} будет отмечен сейчас. Сессия закроется по текущей сумме {amount}, которая спишется с баланса родителя. Продолжить?", "@manualExitQuestion": {"placeholders":{"child":{"type":"String"},"amount":{"type":"String"}}},
-  "manualExitSucceeded": "Выход ребёнка успешно отмечен"
+  "manualExitSucceeded": "Выход ребёнка успешно отмечен",
+  "updateTitle": "Обновление",
+  "updateCheck": "Проверить обновления",
+  "updateUpToDate": "Установлена последняя версия",
+  "updateAvailable": "Доступна новая версия: {version}",
+  "@updateAvailable": {"placeholders": {"version": {"type": "String"}}},
+  "updateDownload": "Скачать и установить",
+  "updateDownloading": "Загрузка…",
+  "updateReady": "Обновление готово",
+  "updateRestart": "Перезапустить",
+  "updateConfirmTitle": "Обновление приложения",
+  "updateConfirmMessage": "Приложение закроется и снова откроется на новой версии. Смена останется открытой. Продолжить?",
+  "updateConfirm": "Продолжить",
+  "updateCancel": "Отмена",
+  "updateFailed": "Не удалось обновить",
+  "updateFailedGeneric": "Не удалось обновить. Проверьте подключение к интернету и попробуйте снова.",
+  "updateManualHint": "Для ручной загрузки:",
+  "updateWindowsOnly": "Автообновление работает только в Windows"
 }

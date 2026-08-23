@@ -83,7 +83,9 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m26(time) => "Shift opened at ${time}";
 
-  static String m27(name) =>
+  static String m27(version) => "New version available: ${version}";
+
+  static String m28(name) =>
       "«${name}» already has an active VIP tariff — no second charge.";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
@@ -315,8 +317,38 @@ class MessageLookup extends MessageLookupByLibrary {
     "unlimitedFreeEntry": MessageLookupByLibrary.simpleMessage(
       "Free — unrestricted entry and exit",
     ),
+    "updateAvailable": m27,
+    "updateCancel": MessageLookupByLibrary.simpleMessage("Cancel"),
+    "updateCheck": MessageLookupByLibrary.simpleMessage("Check for updates"),
+    "updateConfirm": MessageLookupByLibrary.simpleMessage("Continue"),
+    "updateConfirmMessage": MessageLookupByLibrary.simpleMessage(
+      "The app will close and reopen on the new version. Your shift stays open. Continue?",
+    ),
+    "updateConfirmTitle": MessageLookupByLibrary.simpleMessage(
+      "Update the app",
+    ),
+    "updateDownload": MessageLookupByLibrary.simpleMessage(
+      "Download & install",
+    ),
+    "updateDownloading": MessageLookupByLibrary.simpleMessage("Downloading…"),
+    "updateFailed": MessageLookupByLibrary.simpleMessage("Update failed"),
+    "updateFailedGeneric": MessageLookupByLibrary.simpleMessage(
+      "Update failed. Check the internet connection and try again.",
+    ),
+    "updateManualHint": MessageLookupByLibrary.simpleMessage(
+      "To download manually:",
+    ),
+    "updateReady": MessageLookupByLibrary.simpleMessage("Update ready"),
+    "updateRestart": MessageLookupByLibrary.simpleMessage("Restart now"),
+    "updateTitle": MessageLookupByLibrary.simpleMessage("Update"),
+    "updateUpToDate": MessageLookupByLibrary.simpleMessage(
+      "You\'re on the latest version",
+    ),
+    "updateWindowsOnly": MessageLookupByLibrary.simpleMessage(
+      "Automatic updates work on Windows only",
+    ),
     "version": MessageLookupByLibrary.simpleMessage("Version"),
-    "vipAlreadyActive": m27,
+    "vipAlreadyActive": m28,
     "vipChargedImmediately": MessageLookupByLibrary.simpleMessage(
       "The VIP tariff is debited from the balance immediately when printed.",
     ),

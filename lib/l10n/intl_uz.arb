@@ -191,5 +191,22 @@
   "minutesCount": "{count} daqiqa", "@minutesCount": {"placeholders":{"count":{"type":"int"}}},
   "accruedAmount": "Joriy hisob", "markExited": "Chiqarildi deb belgilash", "manualExitTitle": "QR yo‘qolganmi?",
   "manualExitQuestion": "{child} chiqarildi deb belgilanadi. Hozirgi hisob {amount} bo‘yicha yopilib, ota-ona balansidan yechiladi. Davom etilsinmi?", "@manualExitQuestion": {"placeholders":{"child":{"type":"String"},"amount":{"type":"String"}}},
-  "manualExitSucceeded": "Bola muvaffaqiyatli chiqarildi deb belgilandi"
+  "manualExitSucceeded": "Bola muvaffaqiyatli chiqarildi deb belgilandi",
+  "updateTitle": "Yangilanish",
+  "updateCheck": "Yangilanishni tekshirish",
+  "updateUpToDate": "Eng so‘nggi versiya o‘rnatilgan",
+  "updateAvailable": "Yangi versiya mavjud: {version}",
+  "@updateAvailable": {"placeholders": {"version": {"type": "String"}}},
+  "updateDownload": "Yuklab olish va o‘rnatish",
+  "updateDownloading": "Yuklanmoqda…",
+  "updateReady": "Yangilanish tayyor",
+  "updateRestart": "Qayta ishga tushirish",
+  "updateConfirmTitle": "Ilovani yangilash",
+  "updateConfirmMessage": "Ilova yopiladi va yangi versiyada qayta ochiladi. Smena ochiq qoladi. Davom etasizmi?",
+  "updateConfirm": "Davom etish",
+  "updateCancel": "Bekor qilish",
+  "updateFailed": "Yangilanmadi",
+  "updateFailedGeneric": "Yangilanmadi. Internet aloqasini tekshiring va qayta urinib ko‘ring.",
+  "updateManualHint": "Qo‘lda yuklab olish uchun:",
+  "updateWindowsOnly": "Avtomatik yangilash faqat Windows’da ishlaydi"
 }
