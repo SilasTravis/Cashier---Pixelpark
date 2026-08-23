@@ -1502,6 +1502,7 @@ In `lib/l10n/intl_uz.arb`, replace the final line `  "manualExitSucceeded": "Bol
   "updateConfirm": "Davom etish",
   "updateCancel": "Bekor qilish",
   "updateFailed": "Yangilanmadi",
+  "updateFailedGeneric": "Yangilanmadi. Internet aloqasini tekshiring va qayta urinib ko‘ring.",
   "updateManualHint": "Qo‘lda yuklab olish uchun:",
   "updateWindowsOnly": "Avtomatik yangilash faqat Windows’da ishlaydi"
 ```
@@ -1524,6 +1525,7 @@ In `lib/l10n/intl_ru.arb`, replace its final line `  "manualExitSucceeded": "В�
   "updateConfirm": "Продолжить",
   "updateCancel": "Отмена",
   "updateFailed": "Не удалось обновить",
+  "updateFailedGeneric": "Не удалось обновить. Проверьте подключение к интернету и попробуйте снова.",
   "updateManualHint": "Для ручной загрузки:",
   "updateWindowsOnly": "Автообновление работает только в Windows"
 ```
@@ -1546,6 +1548,7 @@ In `lib/l10n/intl_en.arb`, replace its final line `  "manualExitSucceeded": "The
   "updateConfirm": "Continue",
   "updateCancel": "Cancel",
   "updateFailed": "Update failed",
+  "updateFailedGeneric": "Update failed. Check the internet connection and try again.",
   "updateManualHint": "To download manually:",
   "updateWindowsOnly": "Automatic updates work on Windows only"
 ```
@@ -1668,18 +1671,46 @@ void main() {
     expect(find.text('Restart now'), findsOneWidget);
   });
 
-  testWidgets('failure shows the reason and the manual download URL', (
+  testWidgets('a known failure shows its reason and the manual download URL', (
     tester,
   ) async {
     await _pump(
       tester,
-      const UpdateFailure(
-        'checksum mismatch',
+      const UpdateFailureKnown(
+        'Downloaded file failed its checksum check',
         'https://example.test/releases/tag/v1.2.3',
       ),
     );
 
-    expect(find.textContaining('checksum mismatch'), findsOneWidget);
+    expect(
+      find.textContaining('Downloaded file failed its checksum check'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('https://example.test/releases/tag/v1.2.3'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('an unexpected failure shows localized text, never raw detail', (
+    tester,
+  ) async {
+    // The cubit hands the UI only diagnostics for this branch precisely so a
+    // raw DioException string can never reach a cashier.
+    await _pump(
+      tester,
+      const UpdateFailureUnexpected(
+        "DioException [connection error]: Failed host lookup: 'api.github.com'",
+        'https://example.test/releases/tag/v1.2.3',
+      ),
+    );
+
+    expect(
+      find.text('Update failed. Check the internet connection and try again.'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('DioException'), findsNothing);
+    expect(find.textContaining('host lookup'), findsNothing);
     expect(
       find.text('https://example.test/releases/tag/v1.2.3'),
       findsOneWidget,
@@ -1883,27 +1914,46 @@ class UpdateCard extends StatelessWidget {
           ),
         ];
 
-      case UpdateFailure(:final message, :final releasePageUrl):
-        return [
-          Text(
-            '${l10n.updateFailed}: $message',
-            style: AppTextStyles.body
-                .copyWith(fontSize: 13, color: NocturneColors.danger),
-          ),
-          if (releasePageUrl != null && releasePageUrl.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            _note(l10n.updateManualHint),
-            const SizedBox(height: 4),
-            SelectableText(
-              releasePageUrl,
-              style: AppTextStyles.body
-                  .copyWith(fontSize: 12, color: NocturneColors.accent),
-            ),
-          ],
-          const SizedBox(height: 12),
-          _checkButton(cubit, l10n),
-        ];
+      // Two failure branches, because the cubit deliberately gives the
+      // "unexpected" case no displayable message: a raw DioException string
+      // ("Failed host lookup: 'api.github.com' … uri=…") must never reach a
+      // cashier in an otherwise fully localized app. Its detail is
+      // diagnostics-only; the UI supplies its own localized generic text.
+      case UpdateFailureKnown(:final message, :final releasePageUrl):
+        return _failureBody('${l10n.updateFailed}: $message',
+            releasePageUrl, cubit, l10n);
+
+      case UpdateFailureUnexpected(:final releasePageUrl):
+        return _failureBody(l10n.updateFailedGeneric, releasePageUrl, cubit,
+            l10n);
     }
+  }
+
+  List<Widget> _failureBody(
+    String text,
+    String? releasePageUrl,
+    UpdateCubit cubit,
+    AppLocalization l10n,
+  ) {
+    return [
+      Text(
+        text,
+        style: AppTextStyles.body
+            .copyWith(fontSize: 13, color: NocturneColors.danger),
+      ),
+      if (releasePageUrl != null && releasePageUrl.isNotEmpty) ...[
+        const SizedBox(height: 10),
+        _note(l10n.updateManualHint),
+        const SizedBox(height: 4),
+        SelectableText(
+          releasePageUrl,
+          style: AppTextStyles.body
+              .copyWith(fontSize: 12, color: NocturneColors.accent),
+        ),
+      ],
+      const SizedBox(height: 12),
+      _checkButton(cubit, l10n),
+    ];
   }
 
   Widget _checkButton(UpdateCubit cubit, AppLocalization l10n) => SizedBox(
