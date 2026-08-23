@@ -21,6 +21,7 @@
 - All user-facing strings go through `AppLocalization` with keys in all three ARBs (`intl_uz.arb`, `intl_ru.arb`, `intl_en.arb`). Uzbek is the primary locale.
 - Follow existing test style: **hand-written fakes**, no mocking library (none is in `dev_dependencies`).
 - Verification commands: `flutter analyze` and `flutter test`.
+- **Known-good baseline** (verified 2026-08-23 on `feature/self-update`, rebased onto `github/main` @ `9f84c61`): `flutter test` → **30 tests, all passing**. `flutter analyze` → **4 issues found**, all `info • avoid_print` in the repo-root scratch files `scratch_test_new_svg.dart`, `scratch_test_print.dart`, `scratch_test_rotate_svg.dart`, `scratch_test_rotated_final.dart`. Those four are pre-existing and unrelated — leave them alone. A clean run means those 4 and nothing more.
 - Work happens on branch `feature/self-update`.
 
 ## File Structure
@@ -168,7 +169,7 @@ These are the versions already resolved transitively in `pubspec.lock` (`archive
 - [ ] **Step 7: Resolve and verify nothing broke**
 
 Run: `flutter pub get && flutter analyze && flutter test`
-Expected: `flutter pub get` succeeds and `pubspec.lock` still shows `archive` 4.0.9 and `crypto` 3.0.7, now as `dependency: "direct main"` rather than `transitive`. `flutter analyze` reports "No issues found!" and all tests pass. If `pub get` wants to change either version, stop and reconcile — a downgrade here breaks `pdf`/`printing`.
+Expected: `flutter pub get` succeeds and `pubspec.lock` still shows `archive` 4.0.9 and `crypto` 3.0.7, now as `dependency: "direct main"` rather than `transitive`. `flutter analyze` reports the 4 pre-existing baseline infos and nothing else and all tests pass. If `pub get` wants to change either version, stop and reconcile — a downgrade here breaks `pdf`/`printing`.
 
 - [ ] **Step 8: Commit**
 
@@ -441,7 +442,7 @@ class GithubReleaseSource implements ReleaseSource {
 - [ ] **Step 6: Verify the whole suite and the analyzer**
 
 Run: `flutter analyze && flutter test`
-Expected: "No issues found!" and all tests pass.
+Expected: the 4 pre-existing baseline infos and nothing else and all tests pass.
 
 - [ ] **Step 7: Commit**
 
@@ -1487,10 +1488,10 @@ page URL so the manual fallback is always reachable."
 
 - [ ] **Step 1: Add the localization keys**
 
-In `lib/l10n/intl_uz.arb`, replace the final line `  "noPrintersFound": "Windows’da o‘rnatilgan printer topilmadi"` with:
+In `lib/l10n/intl_uz.arb`, replace the final line `  "manualExitSucceeded": "Bola muvaffaqiyatli chiqarildi deb belgilandi"` with:
 
 ```json
-  "noPrintersFound": "Windows’da o‘rnatilgan printer topilmadi",
+  "manualExitSucceeded": "Bola muvaffaqiyatli chiqarildi deb belgilandi",
   "updateTitle": "Yangilanish",
   "updateCheck": "Yangilanishni tekshirish",
   "updateUpToDate": "Eng so‘nggi versiya o‘rnatilgan",
@@ -1509,10 +1510,10 @@ In `lib/l10n/intl_uz.arb`, replace the final line `  "noPrintersFound": "Windows
   "updateWindowsOnly": "Avtomatik yangilash faqat Windows’da ishlaydi"
 ```
 
-In `lib/l10n/intl_ru.arb`, replace its final line `  "noPrintersFound": "В Windows не найдено установленных принтеров"` with:
+In `lib/l10n/intl_ru.arb`, replace its final line `  "manualExitSucceeded": "Выход ребёнка успешно отмечен"` with:
 
 ```json
-  "noPrintersFound": "В Windows не найдено установленных принтеров",
+  "manualExitSucceeded": "Выход ребёнка успешно отмечен",
   "updateTitle": "Обновление",
   "updateCheck": "Проверить обновления",
   "updateUpToDate": "Установлена последняя версия",
@@ -1531,10 +1532,10 @@ In `lib/l10n/intl_ru.arb`, replace its final line `  "noPrintersFound": "В Wind
   "updateWindowsOnly": "Автообновление работает только в Windows"
 ```
 
-In `lib/l10n/intl_en.arb`, replace its final line `  "noPrintersFound": "No installed Windows printers found"` with:
+In `lib/l10n/intl_en.arb`, replace its final line `  "manualExitSucceeded": "The child was successfully marked as exited"` with:
 
 ```json
-  "noPrintersFound": "No installed Windows printers found",
+  "manualExitSucceeded": "The child was successfully marked as exited",
   "updateTitle": "Update",
   "updateCheck": "Check for updates",
   "updateUpToDate": "You're on the latest version",
@@ -2044,7 +2045,7 @@ and after `await di.init();` add:
 - [ ] **Step 3: Verify the app still compiles**
 
 Run: `flutter analyze`
-Expected: "No issues found!" — this also closes the gap left by Task 7 Step 7.
+Expected: the 4 pre-existing baseline infos and nothing else — this also closes the gap left by Task 7 Step 7.
 
 - [ ] **Step 4: Write the failing badge test**
 
@@ -2269,7 +2270,7 @@ and pass it to the `Sidebar(...)` call, after `onCloseShift`:
 - [ ] **Step 8: Run the tests to verify they pass**
 
 Run: `flutter analyze && flutter test`
-Expected: "No issues found!" and every test passes, including the new badge test and the existing `header_bar_refresh_test.dart`.
+Expected: the 4 pre-existing baseline infos and nothing else and every test passes, including the new badge test and the existing `header_bar_refresh_test.dart`.
 
 If another existing test constructs `Sidebar` directly it will now fail to compile; add `updateAvailable: ValueNotifier<bool>(false)` to that call.
 
