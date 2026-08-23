@@ -30,6 +30,8 @@ import 'features/sales_history/presentation/bloc/sales_history_bloc.dart';
 import 'features/shift/data/shift_remote_data_source.dart';
 import 'features/shift/data/shift_repository_impl.dart';
 import 'features/shift/presentation/bloc/shift_bloc.dart';
+import 'features/visit_history/data/visit_history_repository.dart';
+import 'features/visit_history/presentation/bloc/visit_history_cubit.dart';
 
 final GetIt sl = GetIt.instance;
 
@@ -53,6 +55,14 @@ Future<void> init() async {
   _posSaleFeature();
   _salesHistoryFeature();
   _insideFeature();
+  _visitHistoryFeature();
+}
+
+void _visitHistoryFeature() {
+  sl.registerFactory<VisitHistoryCubit>(() => VisitHistoryCubit(sl()));
+  sl.registerLazySingleton<VisitHistoryRepository>(
+    () => VisitHistoryRepository(sl()),
+  );
 }
 
 void _insideFeature() {

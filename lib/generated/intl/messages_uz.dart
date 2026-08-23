@@ -124,6 +124,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "companionDescription": m5,
     "currentBalanceValue": m6,
     "currentPlanToday": m7,
+    "currentShiftOnly": MessageLookupByLibrary.simpleMessage(
+      "Faqat joriy smena",
+    ),
     "currentlyInside": MessageLookupByLibrary.simpleMessage("Hozir ichkarida"),
     "customerCount": m8,
     "customerDirectorySearchHint": MessageLookupByLibrary.simpleMessage(
@@ -301,6 +304,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "tabInside": MessageLookupByLibrary.simpleMessage("Park ichida"),
     "tabSales": MessageLookupByLibrary.simpleMessage("Savdo"),
     "tabSettings": MessageLookupByLibrary.simpleMessage("Sozlamalar"),
+    "tabVisitHistory": MessageLookupByLibrary.simpleMessage(
+      "Kirdi-chiqdi tarixi",
+    ),
     "tariff": MessageLookupByLibrary.simpleMessage("Tarif"),
     "tariffNotFound": MessageLookupByLibrary.simpleMessage("Tarif topilmadi."),
     "topup": MessageLookupByLibrary.simpleMessage("To‘ldirish"),
@@ -316,5 +322,20 @@ class MessageLookup extends MessageLookupByLibrary {
       "VIP tarif puli chop etilganda balansdan darhol yechiladi.",
     ),
     "vipTariff": MessageLookupByLibrary.simpleMessage("VIP tarif"),
+    "visitEntered": MessageLookupByLibrary.simpleMessage("Kirdi"),
+    "visitEntries": MessageLookupByLibrary.simpleMessage("Kirishlar"),
+    "visitExited": MessageLookupByLibrary.simpleMessage("Chiqdi"),
+    "visitExits": MessageLookupByLibrary.simpleMessage("Chiqishlar"),
+    "visitHistoryEmpty": MessageLookupByLibrary.simpleMessage(
+      "Joriy smenada kirdi-chiqdi mavjud emas",
+    ),
+    "visitHistorySearchHint": MessageLookupByLibrary.simpleMessage(
+      "Bola, ota-ona yoki telefon bo‘yicha qidirish",
+    ),
+    "visitInside": MessageLookupByLibrary.simpleMessage("Ichkarida"),
+    "visitManualExit": MessageLookupByLibrary.simpleMessage(
+      "Qo‘lda chiqarilgan",
+    ),
+    "visitStillInside": MessageLookupByLibrary.simpleMessage("Hali ichkarida"),
   };
 }

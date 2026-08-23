@@ -125,6 +125,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "companionDescription": m5,
     "currentBalanceValue": m6,
     "currentPlanToday": m7,
+    "currentShiftOnly": MessageLookupByLibrary.simpleMessage(
+      "Current shift only",
+    ),
     "currentlyInside": MessageLookupByLibrary.simpleMessage("Currently inside"),
     "customerCount": m8,
     "customerDirectorySearchHint": MessageLookupByLibrary.simpleMessage(
@@ -300,6 +303,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "tabInside": MessageLookupByLibrary.simpleMessage("Inside park"),
     "tabSales": MessageLookupByLibrary.simpleMessage("Sales"),
     "tabSettings": MessageLookupByLibrary.simpleMessage("Settings"),
+    "tabVisitHistory": MessageLookupByLibrary.simpleMessage(
+      "Entry/exit history",
+    ),
     "tariff": MessageLookupByLibrary.simpleMessage("Tariff"),
     "tariffNotFound": MessageLookupByLibrary.simpleMessage("No tariffs found."),
     "topup": MessageLookupByLibrary.simpleMessage("Top up"),
@@ -315,5 +321,18 @@ class MessageLookup extends MessageLookupByLibrary {
       "The VIP tariff is debited from the balance immediately when printed.",
     ),
     "vipTariff": MessageLookupByLibrary.simpleMessage("VIP tariff"),
+    "visitEntered": MessageLookupByLibrary.simpleMessage("Entered"),
+    "visitEntries": MessageLookupByLibrary.simpleMessage("Entries"),
+    "visitExited": MessageLookupByLibrary.simpleMessage("Exited"),
+    "visitExits": MessageLookupByLibrary.simpleMessage("Exits"),
+    "visitHistoryEmpty": MessageLookupByLibrary.simpleMessage(
+      "No entries or exits in the current shift",
+    ),
+    "visitHistorySearchHint": MessageLookupByLibrary.simpleMessage(
+      "Search by child, parent or phone",
+    ),
+    "visitInside": MessageLookupByLibrary.simpleMessage("Inside"),
+    "visitManualExit": MessageLookupByLibrary.simpleMessage("Manually exited"),
+    "visitStillInside": MessageLookupByLibrary.simpleMessage("Still inside"),
   };
 }

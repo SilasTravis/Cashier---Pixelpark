@@ -12,7 +12,7 @@
   "languageRussian": "Russian",
   "tabAccount": "Account & QR",
   "tabSales": "Sales",
-  "tabHistory": "Sales history",
+  "tabHistory": "Sales history", "tabVisitHistory": "Entry/exit history", "visitHistorySearchHint": "Search by child, parent or phone", "currentShiftOnly": "Current shift only", "visitEntries": "Entries", "visitExits": "Exits", "visitStillInside": "Still inside", "visitInside": "Inside", "visitEntered": "Entered", "visitExited": "Exited", "visitManualExit": "Manually exited", "visitHistoryEmpty": "No entries or exits in the current shift",
   "tabSettings": "Settings",
   "cartTitle": "Receipt",
   "cartClear": "Clear",

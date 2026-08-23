@@ -8,6 +8,7 @@ import '../../../pos_account/presentation/pages/pos_account_page.dart';
 import '../../../inside/presentation/pages/inside_page.dart';
 import '../../../pos_sale/presentation/pages/pos_sale_page.dart';
 import '../../../sales_history/presentation/pages/sales_history_page.dart';
+import '../../../visit_history/presentation/pages/visit_history_page.dart';
 import '../../../settings/presentation/pages/settings_page.dart';
 import '../../../shift/presentation/bloc/shift_bloc.dart';
 import '../model/shell_tab.dart';
@@ -110,6 +111,7 @@ class _TabContent extends StatelessWidget {
       ShellTab.posAccount => const PosAccountPage(),
       ShellTab.posSale => const PosSalePage(),
       ShellTab.salesHistory => const SalesHistoryPage(),
+      ShellTab.visitHistory => const VisitHistoryPage(),
       ShellTab.inside => const InsidePage(),
       ShellTab.settings => const SettingsPage(),
     };

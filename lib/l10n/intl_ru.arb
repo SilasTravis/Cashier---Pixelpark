@@ -12,7 +12,7 @@
   "languageRussian": "Русский",
   "tabAccount": "Счёт и QR",
   "tabSales": "Продажи",
-  "tabHistory": "История продаж",
+  "tabHistory": "История продаж", "tabVisitHistory": "История входов", "visitHistorySearchHint": "Поиск по ребенку, родителю или телефону", "currentShiftOnly": "Только текущая смена", "visitEntries": "Входы", "visitExits": "Выходы", "visitStillInside": "Ещё внутри", "visitInside": "Внутри", "visitEntered": "Вошёл", "visitExited": "Вышел", "visitManualExit": "Выведен вручную", "visitHistoryEmpty": "В текущей смене входов и выходов нет",
   "tabSettings": "Настройки",
   "cartTitle": "Чек",
   "cartClear": "Очистить",

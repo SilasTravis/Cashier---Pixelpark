@@ -129,6 +129,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "companionDescription": m5,
     "currentBalanceValue": m6,
     "currentPlanToday": m7,
+    "currentShiftOnly": MessageLookupByLibrary.simpleMessage(
+      "Только текущая смена",
+    ),
     "currentlyInside": MessageLookupByLibrary.simpleMessage("Сейчас внутри"),
     "customerCount": m8,
     "customerDirectorySearchHint": MessageLookupByLibrary.simpleMessage(
@@ -304,6 +307,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "tabInside": MessageLookupByLibrary.simpleMessage("В парке"),
     "tabSales": MessageLookupByLibrary.simpleMessage("Продажи"),
     "tabSettings": MessageLookupByLibrary.simpleMessage("Настройки"),
+    "tabVisitHistory": MessageLookupByLibrary.simpleMessage("История входов"),
     "tariff": MessageLookupByLibrary.simpleMessage("Тариф"),
     "tariffNotFound": MessageLookupByLibrary.simpleMessage(
       "Тарифы не найдены.",
@@ -321,5 +325,18 @@ class MessageLookup extends MessageLookupByLibrary {
       "Стоимость VIP-тарифа списывается с баланса сразу при печати.",
     ),
     "vipTariff": MessageLookupByLibrary.simpleMessage("VIP-тариф"),
+    "visitEntered": MessageLookupByLibrary.simpleMessage("Вошёл"),
+    "visitEntries": MessageLookupByLibrary.simpleMessage("Входы"),
+    "visitExited": MessageLookupByLibrary.simpleMessage("Вышел"),
+    "visitExits": MessageLookupByLibrary.simpleMessage("Выходы"),
+    "visitHistoryEmpty": MessageLookupByLibrary.simpleMessage(
+      "В текущей смене входов и выходов нет",
+    ),
+    "visitHistorySearchHint": MessageLookupByLibrary.simpleMessage(
+      "Поиск по ребенку, родителю или телефону",
+    ),
+    "visitInside": MessageLookupByLibrary.simpleMessage("Внутри"),
+    "visitManualExit": MessageLookupByLibrary.simpleMessage("Выведен вручную"),
+    "visitStillInside": MessageLookupByLibrary.simpleMessage("Ещё внутри"),
   };
 }

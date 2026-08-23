@@ -144,6 +144,91 @@ class AppLocalization {
     );
   }
 
+  /// `Entry/exit history`
+  String get tabVisitHistory {
+    return Intl.message(
+      'Entry/exit history',
+      name: 'tabVisitHistory',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Search by child, parent or phone`
+  String get visitHistorySearchHint {
+    return Intl.message(
+      'Search by child, parent or phone',
+      name: 'visitHistorySearchHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Current shift only`
+  String get currentShiftOnly {
+    return Intl.message(
+      'Current shift only',
+      name: 'currentShiftOnly',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Entries`
+  String get visitEntries {
+    return Intl.message('Entries', name: 'visitEntries', desc: '', args: []);
+  }
+
+  /// `Exits`
+  String get visitExits {
+    return Intl.message('Exits', name: 'visitExits', desc: '', args: []);
+  }
+
+  /// `Still inside`
+  String get visitStillInside {
+    return Intl.message(
+      'Still inside',
+      name: 'visitStillInside',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Inside`
+  String get visitInside {
+    return Intl.message('Inside', name: 'visitInside', desc: '', args: []);
+  }
+
+  /// `Entered`
+  String get visitEntered {
+    return Intl.message('Entered', name: 'visitEntered', desc: '', args: []);
+  }
+
+  /// `Exited`
+  String get visitExited {
+    return Intl.message('Exited', name: 'visitExited', desc: '', args: []);
+  }
+
+  /// `Manually exited`
+  String get visitManualExit {
+    return Intl.message(
+      'Manually exited',
+      name: 'visitManualExit',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No entries or exits in the current shift`
+  String get visitHistoryEmpty {
+    return Intl.message(
+      'No entries or exits in the current shift',
+      name: 'visitHistoryEmpty',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Settings`
   String get tabSettings {
     return Intl.message('Settings', name: 'tabSettings', desc: '', args: []);
