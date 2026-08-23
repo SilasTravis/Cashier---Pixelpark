@@ -37,6 +37,10 @@ class UpdateService {
   /// Non-null while a newer release is known. Drives the sidebar badge.
   final ValueNotifier<UpdateRelease?> available = ValueNotifier(null);
 
+  /// `available` reduced to a boolean, for widgets that only need to know
+  /// whether to show a badge.
+  late final ValueListenable<bool> hasUpdate = _HasUpdate(available);
+
   Timer? _timer;
   bool _disposed = false;
 
@@ -147,5 +151,21 @@ class UpdateService {
   Future<void> _remove(File zip, Directory staged) async {
     if (await zip.exists()) await zip.delete();
     if (await staged.exists()) await staged.delete(recursive: true);
+  }
+}
+
+class _HasUpdate extends ValueNotifier<bool> {
+  _HasUpdate(this._source) : super(_source.value != null) {
+    _source.addListener(_sync);
+  }
+
+  final ValueNotifier<UpdateRelease?> _source;
+
+  void _sync() => value = _source.value != null;
+
+  @override
+  void dispose() {
+    _source.removeListener(_sync);
+    super.dispose();
   }
 }

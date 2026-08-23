@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/local_source/local_source.dart';
 import '../../../../core/theme/nocturne_colors.dart';
+import '../../../../core/update/update_service.dart';
 import '../../../../injector_container.dart';
 import '../../../pos_account/presentation/pages/pos_account_page.dart';
 import '../../../inside/presentation/pages/inside_page.dart';
@@ -80,6 +81,7 @@ class _ShellViewState extends State<_ShellView> {
                       shiftOpenedAt: state.shift?.openedAt,
                       onCloseShift: () =>
                           showCloseShiftDialog(context, state.shift!),
+                      updateAvailable: sl<UpdateService>().hasUpdate,
                     ),
                     Expanded(
                       child: Column(

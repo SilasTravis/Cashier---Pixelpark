@@ -1,12 +1,15 @@
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive_ce/hive.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'core/local_source/local_source.dart';
 import 'core/localization/locale_cubit.dart';
 import 'core/network/api_client.dart';
 import 'core/network/token_refresher.dart';
+import 'core/update/release_source.dart';
+import 'core/update/update_service.dart';
 import 'features/auth/data/datasources/auth_remote_data_source.dart';
 import 'features/auth/data/repositories/auth_repository_impl.dart';
 import 'features/auth/domain/repositories/auth_repository.dart';
@@ -39,6 +42,17 @@ Future<void> init() async {
 
   sl.registerLazySingleton<TokenRefresher>(() => TokenRefresher(sl()));
   sl.registerLazySingleton<Dio>(() => buildDio(sl(), sl()));
+
+  // Read once at startup: the version is fixed for the process lifetime, and
+  // reading it eagerly keeps every consumer synchronous.
+  final packageInfo = await PackageInfo.fromPlatform();
+  sl.registerSingleton<UpdateService>(
+    UpdateService(
+      source: GithubReleaseSource(),
+      currentVersion: packageInfo.version,
+      supportDirectory: getApplicationSupportDirectory,
+    ),
+  );
 
   sl.registerFactory<LocaleCubit>(() => LocaleCubit(sl()));
 
