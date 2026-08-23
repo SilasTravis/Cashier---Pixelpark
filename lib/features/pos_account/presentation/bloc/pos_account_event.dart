@@ -24,10 +24,23 @@ class PosAccountSearchRequested extends PosAccountEvent {
   const PosAccountSearchRequested();
 }
 
+class PosAccountQueryChanged extends PosAccountEvent {
+  const PosAccountQueryChanged(this.query);
+
+  final String query;
+
+  @override
+  List<Object?> get props => [query];
+}
+
 /// Fired once on page load — populates the browsable "latest customers"
 /// list shown before the cashier has typed a phone number.
 class PosAccountRecentCustomersRequested extends PosAccountEvent {
   const PosAccountRecentCustomersRequested();
+}
+
+class PosAccountMoreCustomersRequested extends PosAccountEvent {
+  const PosAccountMoreCustomersRequested();
 }
 
 class PosAccountCustomerSelected extends PosAccountEvent {

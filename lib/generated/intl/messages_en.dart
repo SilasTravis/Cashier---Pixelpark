@@ -93,6 +93,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "accruedDue": m1,
     "add": MessageLookupByLibrary.simpleMessage("Add"),
     "addCustomer": MessageLookupByLibrary.simpleMessage("Add customer"),
+    "allCustomers": MessageLookupByLibrary.simpleMessage("All customers"),
     "amount": MessageLookupByLibrary.simpleMessage("Amount"),
     "appTitle": MessageLookupByLibrary.simpleMessage("Bolajon — kassa"),
     "automaticGodex": MessageLookupByLibrary.simpleMessage("Automatic — Godex"),
@@ -101,6 +102,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "balanceInsufficient": m2,
     "balanceSalesNotIncome": MessageLookupByLibrary.simpleMessage(
       "Balance-funded sales (not income)",
+    ),
+    "birthdayFreeOnlyToday": MessageLookupByLibrary.simpleMessage(
+      "Available only on the birthday",
     ),
     "branch": MessageLookupByLibrary.simpleMessage("Branch"),
     "cancel": MessageLookupByLibrary.simpleMessage("Cancel"),
@@ -123,6 +127,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "currentPlanToday": m7,
     "currentlyInside": MessageLookupByLibrary.simpleMessage("Currently inside"),
     "customerCount": m8,
+    "customerDirectorySearchHint": MessageLookupByLibrary.simpleMessage(
+      "Search by name or the last phone digits",
+    ),
     "downgradeForbidden": MessageLookupByLibrary.simpleMessage(
       "This tariff cannot be downgraded — if the sticker was lost, reprint the current tariff.",
     ),
@@ -265,6 +272,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "saleGoods": MessageLookupByLibrary.simpleMessage("Product sale"),
     "saleTopup": MessageLookupByLibrary.simpleMessage("Account top-up"),
     "save": MessageLookupByLibrary.simpleMessage("Save"),
+    "searchHistory": MessageLookupByLibrary.simpleMessage("Search history"),
     "searchResult": MessageLookupByLibrary.simpleMessage("Search results"),
     "selectForQr": MessageLookupByLibrary.simpleMessage("Select for QR"),
     "selectedCount": m25,

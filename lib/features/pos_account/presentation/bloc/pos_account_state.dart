@@ -3,9 +3,14 @@ part of 'pos_account_bloc.dart';
 class PosAccountState extends Equatable {
   const PosAccountState({
     this.phoneDigits = '',
+    this.searchQuery = '',
     this.isSearching = false,
     this.results = const [],
     this.recentCustomers = const [],
+    this.customerHistory = const [],
+    this.customerPage = 1,
+    this.hasMoreCustomers = true,
+    this.isLoadingMoreCustomers = false,
     this.selectedCustomer,
     this.isBusy = false,
     this.errorMessage,
@@ -24,12 +29,19 @@ class PosAccountState extends Equatable {
   static const defaultCompanionPriceUzs = 10000;
 
   final String phoneDigits;
+  final String searchQuery;
   final bool isSearching;
   final List<Customer> results;
 
   /// Latest customers, shown as a browsable default before the cashier
   /// types anything — capped to 10 in the bloc.
   final List<Customer> recentCustomers;
+
+  /// Customers opened by this cashier during the current app session.
+  final List<Customer> customerHistory;
+  final int customerPage;
+  final bool hasMoreCustomers;
+  final bool isLoadingMoreCustomers;
   final Customer? selectedCustomer;
   final bool isBusy;
   final String? errorMessage;
@@ -65,9 +77,14 @@ class PosAccountState extends Equatable {
 
   PosAccountState copyWith({
     String? phoneDigits,
+    String? searchQuery,
     bool? isSearching,
     List<Customer>? results,
     List<Customer>? recentCustomers,
+    List<Customer>? customerHistory,
+    int? customerPage,
+    bool? hasMoreCustomers,
+    bool? isLoadingMoreCustomers,
     Customer? selectedCustomer,
     bool clearSelected = false,
     bool? isBusy,
@@ -85,9 +102,15 @@ class PosAccountState extends Equatable {
   }) {
     return PosAccountState(
       phoneDigits: phoneDigits ?? this.phoneDigits,
+      searchQuery: searchQuery ?? this.searchQuery,
       isSearching: isSearching ?? this.isSearching,
       results: results ?? this.results,
       recentCustomers: recentCustomers ?? this.recentCustomers,
+      customerHistory: customerHistory ?? this.customerHistory,
+      customerPage: customerPage ?? this.customerPage,
+      hasMoreCustomers: hasMoreCustomers ?? this.hasMoreCustomers,
+      isLoadingMoreCustomers:
+          isLoadingMoreCustomers ?? this.isLoadingMoreCustomers,
       selectedCustomer: clearSelected
           ? null
           : (selectedCustomer ?? this.selectedCustomer),
@@ -111,9 +134,14 @@ class PosAccountState extends Equatable {
   @override
   List<Object?> get props => [
     phoneDigits,
+    searchQuery,
     isSearching,
     results,
     recentCustomers,
+    customerHistory,
+    customerPage,
+    hasMoreCustomers,
+    isLoadingMoreCustomers,
     selectedCustomer,
     isBusy,
     errorMessage,

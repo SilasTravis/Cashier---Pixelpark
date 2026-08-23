@@ -21,7 +21,7 @@ class TopupResult {
 }
 
 abstract class PosAccountRemoteDataSource {
-  Future<List<Customer>> searchCustomers(String phone);
+  Future<List<Customer>> searchCustomers(String query, {int page = 1});
 
   Future<Customer> createCustomer({
     required String phoneNumber,
@@ -93,14 +93,15 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
   final Dio dio;
 
   @override
-  Future<List<Customer>> searchCustomers(String phone) async {
-    // An empty phone means "no filter" (used for the default recent-
-    // customers list) — omit the query param entirely rather than sending
-    // `phone=`, since the backend 400s on an empty value.
+  Future<List<Customer>> searchCustomers(String query, {int page = 1}) async {
     final response = await _request(
       () => dio.get(
         '/v1/pos/customers',
-        queryParameters: phone.isEmpty ? null : {'phone': phone},
+        queryParameters: {
+          if (query.trim().isNotEmpty) 'query': query.trim(),
+          'page': page,
+          'limit': 50,
+        },
       ),
     );
     return (response as List)

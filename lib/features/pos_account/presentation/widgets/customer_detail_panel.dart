@@ -1605,29 +1605,46 @@ class _ChildRow extends StatelessWidget {
                 onFreeReasonChanged(value is FreeReason ? value : null),
             itemBuilder: (context) => [
               for (final reason in FreeReason.values)
-                if (reason != FreeReason.birthday ||
-                    isBirthdayInTashkent(child.birthDate))
-                  PopupMenuItem<Object>(
-                    value: reason,
-                    child: Row(
-                      children: [
-                        Icon(
-                          freeReason == reason
-                              ? PhosphorIconsRegular.checkCircle
-                              : PhosphorIconsRegular.circle,
-                          size: 16,
-                          color: freeReason == reason
-                              ? NocturneColors.accent
-                              : NocturneColors.text,
+                PopupMenuItem<Object>(
+                  value: reason,
+                  enabled:
+                      reason != FreeReason.birthday ||
+                      isBirthdayInTashkent(child.birthDate),
+                  child: Row(
+                    children: [
+                      Icon(
+                        freeReason == reason
+                            ? PhosphorIconsRegular.checkCircle
+                            : PhosphorIconsRegular.circle,
+                        size: 16,
+                        color: freeReason == reason
+                            ? NocturneColors.accent
+                            : NocturneColors.text,
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${_freeReasonLabel(l10n, reason)} (${l10n.free.toLowerCase()})',
+                              style: AppTextStyles.body.copyWith(fontSize: 13),
+                            ),
+                            if (reason == FreeReason.birthday &&
+                                !isBirthdayInTashkent(child.birthDate))
+                              Text(
+                                l10n.birthdayFreeOnlyToday,
+                                style: AppTextStyles.muted(
+                                  AppTextStyles.body.copyWith(fontSize: 11),
+                                ),
+                              ),
+                          ],
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${_freeReasonLabel(l10n, reason)} (${l10n.free.toLowerCase()})',
-                          style: AppTextStyles.body.copyWith(fontSize: 13),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
+                ),
               if (freeReason != null)
                 PopupMenuItem<Object>(
                   value: _clearFreeReason,

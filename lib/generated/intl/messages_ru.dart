@@ -93,6 +93,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "accruedDue": m1,
     "add": MessageLookupByLibrary.simpleMessage("Добавить"),
     "addCustomer": MessageLookupByLibrary.simpleMessage("Добавить клиента"),
+    "allCustomers": MessageLookupByLibrary.simpleMessage("Все клиенты"),
     "amount": MessageLookupByLibrary.simpleMessage("Сумма"),
     "appTitle": MessageLookupByLibrary.simpleMessage("Bolajon — касса"),
     "automaticGodex": MessageLookupByLibrary.simpleMessage(
@@ -105,6 +106,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "balanceInsufficient": m2,
     "balanceSalesNotIncome": MessageLookupByLibrary.simpleMessage(
       "Продажи с баланса (не выручка)",
+    ),
+    "birthdayFreeOnlyToday": MessageLookupByLibrary.simpleMessage(
+      "Доступно только в день рождения",
     ),
     "branch": MessageLookupByLibrary.simpleMessage("Филиал"),
     "cancel": MessageLookupByLibrary.simpleMessage("Отмена"),
@@ -127,6 +131,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "currentPlanToday": m7,
     "currentlyInside": MessageLookupByLibrary.simpleMessage("Сейчас внутри"),
     "customerCount": m8,
+    "customerDirectorySearchHint": MessageLookupByLibrary.simpleMessage(
+      "Поиск по имени или последним цифрам телефона",
+    ),
     "downgradeForbidden": MessageLookupByLibrary.simpleMessage(
       "Переход на более низкий тариф невозможен — если стикер потерян, повторно напечатайте текущий.",
     ),
@@ -267,6 +274,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "saleGoods": MessageLookupByLibrary.simpleMessage("Продажа товара"),
     "saleTopup": MessageLookupByLibrary.simpleMessage("Пополнение счёта"),
     "save": MessageLookupByLibrary.simpleMessage("Сохранить"),
+    "searchHistory": MessageLookupByLibrary.simpleMessage("История поиска"),
     "searchResult": MessageLookupByLibrary.simpleMessage("Результаты поиска"),
     "selectForQr": MessageLookupByLibrary.simpleMessage("Выберите для QR"),
     "selectedCount": m25,

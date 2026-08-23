@@ -92,6 +92,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "accruedDue": m1,
     "add": MessageLookupByLibrary.simpleMessage("Qo‘shish"),
     "addCustomer": MessageLookupByLibrary.simpleMessage("Mijoz qo‘shish"),
+    "allCustomers": MessageLookupByLibrary.simpleMessage("Barcha mijozlar"),
     "amount": MessageLookupByLibrary.simpleMessage("Summa"),
     "appTitle": MessageLookupByLibrary.simpleMessage("Bolajon — kassa"),
     "automaticGodex": MessageLookupByLibrary.simpleMessage("Avtomatik — Godex"),
@@ -100,6 +101,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "balanceInsufficient": m2,
     "balanceSalesNotIncome": MessageLookupByLibrary.simpleMessage(
       "Balansdan savdo (tushum emas)",
+    ),
+    "birthdayFreeOnlyToday": MessageLookupByLibrary.simpleMessage(
+      "Faqat tug‘ilgan kunida tanlanadi",
     ),
     "branch": MessageLookupByLibrary.simpleMessage("Filial"),
     "cancel": MessageLookupByLibrary.simpleMessage("Bekor qilish"),
@@ -122,6 +126,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "currentPlanToday": m7,
     "currentlyInside": MessageLookupByLibrary.simpleMessage("Hozir ichkarida"),
     "customerCount": m8,
+    "customerDirectorySearchHint": MessageLookupByLibrary.simpleMessage(
+      "Ism yoki telefonning oxirgi raqamlari bo‘yicha qidiring",
+    ),
     "downgradeForbidden": MessageLookupByLibrary.simpleMessage(
       "Bu rejadan pasaytirish mumkin emas — stiker yo‘qolgan bo‘lsa, mavjud rejani qayta chop eting.",
     ),
@@ -264,6 +271,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "saleGoods": MessageLookupByLibrary.simpleMessage("Mahsulot savdosi"),
     "saleTopup": MessageLookupByLibrary.simpleMessage("Hisob to‘ldirish"),
     "save": MessageLookupByLibrary.simpleMessage("Saqlash"),
+    "searchHistory": MessageLookupByLibrary.simpleMessage("Qidiruv tarixi"),
     "searchResult": MessageLookupByLibrary.simpleMessage("Qidiruv natijasi"),
     "selectForQr": MessageLookupByLibrary.simpleMessage("QR uchun tanlang"),
     "selectedCount": m25,

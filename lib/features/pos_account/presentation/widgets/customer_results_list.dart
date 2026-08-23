@@ -5,6 +5,7 @@ import 'package:phosphor_icons/phosphor_icons.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
 import '../../../../core/utils/currency.dart';
+import '../../../../core/utils/phone_number.dart';
 import '../../domain/customer.dart';
 import '../bloc/pos_account_bloc.dart';
 import '../../../../generated/l10n.dart';
@@ -13,48 +14,143 @@ import '../../../../generated/l10n.dart';
 /// are typed, a spinner while searching, the match list, or — no matches —
 /// an inline "add customer" row (matching the design's `adding` toggle,
 /// no modal).
-class CustomerResultsList extends StatelessWidget {
+class CustomerResultsList extends StatefulWidget {
   const CustomerResultsList({super.key});
+
+  @override
+  State<CustomerResultsList> createState() => _CustomerResultsListState();
+}
+
+class _CustomerResultsListState extends State<CustomerResultsList> {
+  final _searchController = TextEditingController();
+  bool _showAll = true;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<PosAccountBloc, PosAccountState>(
       builder: (context, state) {
         final l10n = AppLocalization.of(context);
-        if (state.phoneDigits.isEmpty) {
-          return state.recentCustomers.isEmpty
+        final query = state.searchQuery.trim();
+        Widget content;
+        if (query.isEmpty) {
+          final customers = _showAll
+              ? state.recentCustomers
+              : state.customerHistory;
+          content = customers.isEmpty
               ? _CenteredHint(
                   icon: PhosphorIconsRegular.userCircleDashed,
                   text: l10n.findCustomerHint,
                 )
               : _CustomerTileList(
-                  title: l10n.recentCustomers,
-                  subtitle: l10n.customerCount(state.recentCustomers.length),
-                  customers: state.recentCustomers,
+                  title: _showAll ? l10n.allCustomers : l10n.searchHistory,
+                  subtitle: l10n.customerCount(customers.length),
+                  customers: customers,
                 );
-        }
-        if (state.phoneDigits.length < 7) {
-          return _CenteredHint(
+        } else if (query.length < 2) {
+          content = _CenteredHint(
             icon: PhosphorIconsRegular.userCircleDashed,
-            text: l10n.findCustomerHint,
+            text: l10n.customerDirectorySearchHint,
           );
-        }
-        if (state.isSearching) {
-          return const Center(
+        } else if (state.isSearching) {
+          content = const Center(
             child: SizedBox(
               width: 22,
               height: 22,
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
           );
+        } else if (state.results.isEmpty) {
+          content = RegExp(r'^\d{9}$').hasMatch(query)
+              ? const _NotFoundCard()
+              : _CenteredHint(
+                  icon: PhosphorIconsRegular.userCircleDashed,
+                  text: l10n.phoneNotFound,
+                );
+        } else {
+          content = _CustomerTileList(
+            title: l10n.searchResult,
+            subtitle: l10n.customerCount(state.results.length),
+            customers: state.results,
+          );
         }
-        if (state.results.isEmpty) {
-          return const _NotFoundCard();
-        }
-        return _CustomerTileList(
-          title: l10n.searchResult,
-          subtitle: l10n.customerCount(state.results.length),
-          customers: state.results,
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: _searchController,
+              onChanged: (value) => context.read<PosAccountBloc>().add(
+                PosAccountQueryChanged(value),
+              ),
+              decoration: InputDecoration(
+                hintText: l10n.customerDirectorySearchHint,
+                prefixIcon: const Icon(PhosphorIconsRegular.magnifyingGlass),
+                suffixIcon: _searchController.text.isEmpty
+                    ? null
+                    : IconButton(
+                        onPressed: () {
+                          _searchController.clear();
+                          context.read<PosAccountBloc>().add(
+                            const PosAccountQueryChanged(''),
+                          );
+                          setState(() {});
+                        },
+                        icon: const Icon(PhosphorIconsRegular.x),
+                      ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (query.isEmpty)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: SegmentedButton<bool>(
+                  segments: [
+                    ButtonSegment(
+                      value: false,
+                      icon: const Icon(
+                        PhosphorIconsRegular.clockCounterClockwise,
+                      ),
+                      label: Text(l10n.searchHistory),
+                    ),
+                    ButtonSegment(
+                      value: true,
+                      icon: const Icon(PhosphorIconsRegular.users),
+                      label: Text(l10n.allCustomers),
+                    ),
+                  ],
+                  selected: {_showAll},
+                  onSelectionChanged: (value) =>
+                      setState(() => _showAll = value.first),
+                ),
+              ),
+            if (query.isEmpty) const SizedBox(height: 12),
+            Expanded(
+              child: NotificationListener<ScrollNotification>(
+                onNotification: (notification) {
+                  if (_showAll &&
+                      query.isEmpty &&
+                      notification.metrics.extentAfter < 240) {
+                    context.read<PosAccountBloc>().add(
+                      const PosAccountMoreCustomersRequested(),
+                    );
+                  }
+                  return false;
+                },
+                child: content,
+              ),
+            ),
+            if (_showAll && state.isLoadingMoreCustomers)
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: LinearProgressIndicator(minHeight: 2),
+              ),
+          ],
         );
       },
     );
@@ -224,7 +320,7 @@ class _CustomerTile extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    phone,
+                    formatPhoneNumber(phone),
                     style: AppTextStyles.body.copyWith(
                       fontSize: 11,
                       color: NocturneColors.text.withValues(alpha: 0.45),

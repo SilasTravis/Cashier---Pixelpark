@@ -16,8 +16,10 @@ class PosAccountRepository {
 
   final PosAccountRemoteDataSource remote;
 
-  Future<Either<Failure, List<Customer>>> searchCustomers(String phone) =>
-      _call(() => remote.searchCustomers(phone));
+  Future<Either<Failure, List<Customer>>> searchCustomers(
+    String query, {
+    int page = 1,
+  }) => _call(() => remote.searchCustomers(query, page: page));
 
   Future<Either<Failure, Customer>> createCustomer({
     required String phoneNumber,

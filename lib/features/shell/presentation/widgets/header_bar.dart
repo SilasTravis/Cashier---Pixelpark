@@ -20,67 +20,121 @@ class HeaderBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final totals = shift?.totals ?? ShiftTotals.zero;
-    return Container(
-      height: 72,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: const BoxDecoration(
-        color: NocturneColors.bg,
-        border: Border(bottom: BorderSide(color: NocturneColors.divider)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 4,
-            height: 24,
-            decoration: BoxDecoration(
-              color: NocturneColors.accent,
-              borderRadius: BorderRadius.circular(2),
-            ),
+    final l10n = AppLocalization.of(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 760;
+        return Container(
+          height: compact ? 74 : 82,
+          padding: EdgeInsets.symmetric(horizontal: compact ? 14 : 22),
+          decoration: const BoxDecoration(
+            color: NocturneColors.bg,
+            border: Border(bottom: BorderSide(color: NocturneColors.divider)),
           ),
-          const SizedBox(width: 10),
-          Flexible(
-            child: Text(
-              tab.label(AppLocalization.of(context)),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.h4,
-            ),
-          ),
-          const Spacer(),
-          const LanguageSwitcher(),
-          const SizedBox(width: 10),
-          // Totals are aggregated on the BACKEND per fetch — the app never
-          // adds to them locally, so without a re-fetch the number goes
-          // stale after every sale/top-up. Silent refresh: no page spinner.
-          IconButton(
-            tooltip: AppLocalization.of(context).refresh,
-            onPressed: () =>
-                context.read<ShiftBloc>().add(const ShiftRefreshed()),
-            icon: const Icon(
-              PhosphorIconsRegular.arrowsClockwise,
-              size: 16,
-              color: NocturneColors.accent,
-            ),
-          ),
-          const SizedBox(width: 4),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisSize: MainAxisSize.min,
+          child: Row(
             children: [
-              Text(
-                AppLocalization.of(context).shiftRevenue,
-                style: AppTextStyles.kicker.copyWith(
-                  color: NocturneColors.text.withValues(alpha: 0.45),
+              Container(
+                width: 5,
+                height: compact ? 26 : 30,
+                decoration: BoxDecoration(
+                  color: NocturneColors.accent,
+                  borderRadius: BorderRadius.circular(4),
+                  boxShadow: [
+                    BoxShadow(
+                      color: NocturneColors.accent.withValues(alpha: .24),
+                      blurRadius: 12,
+                    ),
+                  ],
                 ),
               ),
-              Text(
-                formatUzs(totals.grandTotalUzs),
-                style: AppTextStyles.h4.copyWith(color: NocturneColors.accent),
+              const SizedBox(width: 12),
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: compact ? 180 : 320),
+                child: Text(
+                  tab.label(l10n),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.h4.copyWith(
+                    fontSize: compact ? 19 : 22,
+                    letterSpacing: -.25,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              const LanguageSwitcher(),
+              const SizedBox(width: 12),
+              Container(
+                height: compact ? 54 : 60,
+                padding: const EdgeInsets.fromLTRB(12, 6, 7, 6),
+                decoration: BoxDecoration(
+                  color: NocturneColors.accent900.withValues(alpha: .72),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: NocturneColors.accent.withValues(alpha: .28),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      PhosphorIconsRegular.wallet,
+                      size: 18,
+                      color: NocturneColors.accent300,
+                    ),
+                    const SizedBox(width: 9),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minWidth: compact ? 108 : 130,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            l10n.shiftRevenue,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.kicker.copyWith(
+                              fontSize: 10,
+                              color: NocturneColors.neutral400,
+                            ),
+                          ),
+                          const SizedBox(height: 1),
+                          Text(
+                            formatUzs(totals.grandTotalUzs),
+                            maxLines: 1,
+                            style: AppTextStyles.h4.copyWith(
+                              color: NocturneColors.accent200,
+                              fontSize: compact ? 17 : 20,
+                              letterSpacing: .15,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    IconButton(
+                      tooltip: l10n.refresh,
+                      visualDensity: VisualDensity.compact,
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        foregroundColor: NocturneColors.accent300,
+                      ),
+                      onPressed: () =>
+                          context.read<ShiftBloc>().add(const ShiftRefreshed()),
+                      icon: const Icon(
+                        PhosphorIconsRegular.arrowsClockwise,
+                        size: 16,
+                        color: NocturneColors.accent,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

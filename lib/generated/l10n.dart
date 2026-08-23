@@ -669,6 +669,36 @@ class AppLocalization {
     );
   }
 
+  /// `Search history`
+  String get searchHistory {
+    return Intl.message(
+      'Search history',
+      name: 'searchHistory',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `All customers`
+  String get allCustomers {
+    return Intl.message(
+      'All customers',
+      name: 'allCustomers',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Search by name or the last phone digits`
+  String get customerDirectorySearchHint {
+    return Intl.message(
+      'Search by name or the last phone digits',
+      name: 'customerDirectorySearchHint',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Search results`
   String get searchResult {
     return Intl.message(
@@ -999,6 +1029,16 @@ class AppLocalization {
     return Intl.message(
       'Birthday',
       name: 'freeReasonBirthday',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Available only on the birthday`
+  String get birthdayFreeOnlyToday {
+    return Intl.message(
+      'Available only on the birthday',
+      name: 'birthdayFreeOnlyToday',
       desc: '',
       args: [],
     );

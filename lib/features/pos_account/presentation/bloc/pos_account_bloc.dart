@@ -22,7 +22,9 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     on<PosAccountDigitPressed>(_onDigitPressed);
     on<PosAccountBackspacePressed>(_onBackspacePressed);
     on<PosAccountSearchRequested>(_onSearchRequested);
+    on<PosAccountQueryChanged>(_onQueryChanged);
     on<PosAccountRecentCustomersRequested>(_onRecentCustomersRequested);
+    on<PosAccountMoreCustomersRequested>(_onMoreCustomersRequested);
     on<PosAccountCustomerSelected>(_onCustomerSelected);
     on<PosAccountSelectionCleared>(_onSelectionCleared);
     on<PosAccountNewCustomerRequested>(_onNewCustomerRequested);
@@ -56,6 +58,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     emit(
       state.copyWith(
         phoneDigits: state.phoneDigits + event.digit,
+        searchQuery: state.phoneDigits + event.digit,
         errorMessage: null,
       ),
     );
@@ -70,6 +73,10 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     emit(
       state.copyWith(
         phoneDigits: state.phoneDigits.substring(
+          0,
+          state.phoneDigits.length - 1,
+        ),
+        searchQuery: state.phoneDigits.substring(
           0,
           state.phoneDigits.length - 1,
         ),
@@ -91,6 +98,23 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     );
   }
 
+  void _onQueryChanged(
+    PosAccountQueryChanged event,
+    Emitter<PosAccountState> emit,
+  ) {
+    _debounce?.cancel();
+    final query = event.query.trimLeft();
+    emit(state.copyWith(searchQuery: query));
+    if (query.trim().length < 2) {
+      emit(state.copyWith(results: const [], isSearching: false));
+      return;
+    }
+    _debounce = Timer(
+      _searchDebounce,
+      () => add(const PosAccountSearchRequested()),
+    );
+  }
+
   @override
   Future<void> close() {
     _debounce?.cancel();
@@ -101,7 +125,8 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     PosAccountSearchRequested event,
     Emitter<PosAccountState> emit,
   ) async {
-    if (state.phoneDigits.length < _minSearchDigits) return;
+    final query = state.searchQuery.trim();
+    if (query.length < 2) return;
     emit(
       state.copyWith(
         isSearching: true,
@@ -111,7 +136,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
         clearSelected: true,
       ),
     );
-    final result = await _repository.searchCustomers(state.phoneDigits);
+    final result = await _repository.searchCustomers(query);
     result.fold(
       (failure) => emit(
         state.copyWith(isSearching: false, errorMessage: _messageOf(failure)),
@@ -132,7 +157,13 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     try {
       final result = await _repository.searchCustomers('');
       result.fold((failure) {}, (customers) {
-        emit(state.copyWith(recentCustomers: customers.take(10).toList()));
+        emit(
+          state.copyWith(
+            recentCustomers: customers,
+            customerPage: 1,
+            hasMoreCustomers: customers.length == 50,
+          ),
+        );
       });
     } catch (_) {
       // Best-effort — an unexpected response shape here must never surface
@@ -140,13 +171,39 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     }
   }
 
+  Future<void> _onMoreCustomersRequested(
+    PosAccountMoreCustomersRequested event,
+    Emitter<PosAccountState> emit,
+  ) async {
+    if (state.isLoadingMoreCustomers || !state.hasMoreCustomers) return;
+    final nextPage = state.customerPage + 1;
+    emit(state.copyWith(isLoadingMoreCustomers: true));
+    final result = await _repository.searchCustomers('', page: nextPage);
+    result.fold(
+      (_) => emit(state.copyWith(isLoadingMoreCustomers: false)),
+      (customers) => emit(
+        state.copyWith(
+          recentCustomers: [...state.recentCustomers, ...customers],
+          customerPage: nextPage,
+          hasMoreCustomers: customers.length == 50,
+          isLoadingMoreCustomers: false,
+        ),
+      ),
+    );
+  }
+
   Future<void> _onCustomerSelected(
     PosAccountCustomerSelected event,
     Emitter<PosAccountState> emit,
   ) async {
+    final history = [
+      event.customer,
+      ...state.customerHistory.where((item) => item.id != event.customer.id),
+    ].take(10).toList();
     emit(
       state.copyWith(
         selectedCustomer: event.customer,
+        customerHistory: history,
         playing: [],
         activePasses: [],
       ),
@@ -162,6 +219,9 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     emit(
       PosAccountState(
         recentCustomers: state.recentCustomers,
+        customerHistory: state.customerHistory,
+        customerPage: state.customerPage,
+        hasMoreCustomers: state.hasMoreCustomers,
         plans: state.plans,
         companionPriceUzs: state.companionPriceUzs,
       ),
