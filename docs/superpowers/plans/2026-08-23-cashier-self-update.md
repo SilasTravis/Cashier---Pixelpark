@@ -18,6 +18,7 @@
 - Never write the updater script into the install folder — that folder gets mirrored over.
 - The apply path is **Windows-only**. The app must still build and run on macOS (the dev machine); guard platform code with `Platform.isWindows`.
 - Background checks **notify only**. They must never download and never restart.
+- **Checksum policy (decided 2026-08-23, fail-closed).** Three distinct cases: (a) the release has **no** `.sha256` asset → verification is skipped and the update proceeds; (b) the asset exists and parses → the digest must match or the update fails; (c) the asset exists but its body is **not** a valid 64-char hex digest (a 404 HTML page, a truncated or tampered file) → the update **fails**; it must never silently downgrade to case (a). This app downloads and executes a Windows binary, so an unreadable checksum blocks the install rather than skipping the check.
 - All user-facing strings go through `AppLocalization` with keys in all three ARBs (`intl_uz.arb`, `intl_ru.arb`, `intl_en.arb`). Uzbek is the primary locale.
 - Follow existing test style: **hand-written fakes**, no mocking library (none is in `dev_dependencies`).
 - Verification commands: `flutter analyze` and `flutter test`.
@@ -814,7 +815,10 @@ Script writing is split from apply() so it can be tested without exit(0)."
 
 **Interfaces:**
 - Consumes: `UpdateRelease`, `ReleaseSource` (Task 2); `isNewerVersion` (Task 1); `WindowsUpdater` (Task 4).
-- Produces: `class UpdateException implements Exception` with `final String message`; `class UpdateService` with:
+- Produces: `class UpdateService` with:
+
+`UpdateException` is **already defined** in `lib/core/update/update_exception.dart` (added during Task 2). Import it — do not redeclare it. It is `const UpdateException(String message)` with `toString() => message`.
+
   - `UpdateService({required ReleaseSource source, required String currentVersion, required Future<Directory> Function() supportDirectory, WindowsUpdater updater = const WindowsUpdater(), Duration checkInterval = const Duration(hours: 4)})`
   - `final ValueNotifier<UpdateRelease?> available`
   - `String get currentVersion`
@@ -1025,18 +1029,10 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 
 import 'release_source.dart';
+import 'update_exception.dart';
 import 'update_release.dart';
 import 'version_compare.dart';
 import 'windows_updater.dart';
-
-class UpdateException implements Exception {
-  const UpdateException(this.message);
-
-  final String message;
-
-  @override
-  String toString() => message;
-}
 
 /// Owns the update lifecycle: is there a newer release, fetch and verify it,
 /// hand it to the platform updater.
