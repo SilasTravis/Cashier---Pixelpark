@@ -46,39 +46,42 @@ class UpdateReadyToRestart extends UpdateState {
   final Directory staged;
 }
 
-/// Distinguishes an [UpdateException] — thrown by the update layer with a
-/// message already written to be shown to a cashier (see
-/// `update_exception.dart`) — from anything else. The most likely
-/// "anything else" is a `DioException` from an offline or blocked POS
-/// machine, whose `toString()` is a multi-line technical dump. [known]
-/// failures are safe to render as [UpdateFailure.message] directly;
-/// [unexpected] failures are not, and the UI is expected to substitute its
-/// own localized generic message instead.
-enum UpdateFailureKind { known, unexpected }
-
-class UpdateFailure extends UpdateState {
-  const UpdateFailure(
-    this.message,
-    this.releasePageUrl, {
-    this.kind = UpdateFailureKind.known,
-    this.debugDetail,
-  });
-
-  /// Human-readable and safe to show as-is when [kind] is
-  /// [UpdateFailureKind.known]. Empty when [kind] is
-  /// [UpdateFailureKind.unexpected] — the UI must not fall back to
-  /// displaying it, and should render its own localized message instead.
-  final String message;
+/// Common supertype for both update-failure shapes, so `state is
+/// UpdateFailure` still works as a general check (e.g. to show a shared
+/// "Retry" button regardless of which kind occurred). It carries no
+/// displayable text itself — see the two subclasses for what each renders.
+///
+/// Sealed on purpose: the next task's card is expected to `switch`
+/// exhaustively over the full [UpdateState] hierarchy, so handling both
+/// [UpdateFailureKnown] and [UpdateFailureUnexpected] is a compile-time
+/// obligation rather than a doc comment a caller can miss.
+sealed class UpdateFailure extends UpdateState {
+  const UpdateFailure(this.releasePageUrl);
 
   /// Shown so an operator can always fall back to a manual download.
   final String? releasePageUrl;
+}
 
-  final UpdateFailureKind kind;
+/// An [UpdateException] was thrown by the update layer. Its [message] is
+/// already written to be shown directly to a cashier (see
+/// `update_exception.dart`) and is safe to render as-is.
+class UpdateFailureKnown extends UpdateFailure {
+  const UpdateFailureKnown(this.message, super.releasePageUrl);
 
-  /// The raw error, for logs or a diagnostic details view — never meant to
-  /// be shown to a cashier directly. Only set when [kind] is
-  /// [UpdateFailureKind.unexpected].
-  final String? debugDetail;
+  final String message;
+}
+
+/// Anything other than an [UpdateException] — most realistically a
+/// `DioException` from an offline or blocked POS machine, whose
+/// `toString()` is a multi-line technical dump. There is deliberately no
+/// displayable message here: the UI must substitute its own localized
+/// generic text instead of rendering [debugDetail].
+class UpdateFailureUnexpected extends UpdateFailure {
+  const UpdateFailureUnexpected(this.debugDetail, super.releasePageUrl);
+
+  /// The raw error, for logs or a diagnostic details view only — never
+  /// meant to be shown to a cashier directly.
+  final String debugDetail;
 }
 
 class UpdateCubit extends Cubit<UpdateState> {
@@ -89,28 +92,29 @@ class UpdateCubit extends Cubit<UpdateState> {
   String get currentVersion => _service.currentVersion;
 
   Future<void> check() async {
-    emit(const UpdateChecking());
+    _emit(const UpdateChecking());
     try {
       final release = await _service.check();
-      emit(release == null ? const UpdateUpToDate() : UpdateAvailable(release));
+      _emit(
+        release == null ? const UpdateUpToDate() : UpdateAvailable(release),
+      );
     } catch (error) {
-      emit(_failureFrom(error, null));
+      _emit(_failureFrom(error, null));
     }
   }
 
   Future<void> download(UpdateRelease release) async {
-    emit(UpdateDownloading(release, 0, release.zipSize));
+    _emit(UpdateDownloading(release, 0, release.zipSize));
     try {
       final staged = await _service.downloadAndStage(
         release,
         onProgress: (received, total) {
-          if (isClosed) return;
-          emit(UpdateDownloading(release, received, total));
+          _emit(UpdateDownloading(release, received, total));
         },
       );
-      emit(UpdateReadyToRestart(release, staged));
+      _emit(UpdateReadyToRestart(release, staged));
     } catch (error) {
-      emit(_failureFrom(error, release.releasePageUrl));
+      _emit(_failureFrom(error, release.releasePageUrl));
     }
   }
 
@@ -121,23 +125,33 @@ class UpdateCubit extends Cubit<UpdateState> {
     try {
       await _service.applyAndRestart(current.staged);
     } catch (error) {
-      emit(_failureFrom(error, current.release.releasePageUrl));
+      _emit(_failureFrom(error, current.release.releasePageUrl));
     }
   }
 
+  /// Every emit in this cubit goes through here instead of calling `emit`
+  /// directly. `bloc`'s `emit` throws a `StateError` once the cubit is
+  /// closed, and `check()`/`download()`/`restart()` all resume after an
+  /// `await` whose surrounding call may have outlived the cubit (e.g. the
+  /// cashier navigated away from Settings while a check or download was
+  /// still in flight). Swallowing that case here — rather than only at the
+  /// download-progress callback — means no code path in this class can
+  /// throw from a post-close emit, including from inside a `catch` block,
+  /// where a second throw would otherwise go uncaught.
+  void _emit(UpdateState state) {
+    if (isClosed) return;
+    emit(state);
+  }
+
   /// [UpdateException] messages are already written for a cashier to read,
-  /// so they pass through untouched. Anything else is reduced to a kind the
-  /// UI can react to, with the raw text kept only for diagnosis — never
-  /// interpolated into the user-facing message.
+  /// so they pass through untouched as [UpdateFailureKnown]. Anything else
+  /// becomes [UpdateFailureUnexpected], with the raw text kept only in
+  /// [UpdateFailureUnexpected.debugDetail] for diagnosis — there is no
+  /// user-facing message field for it to leak into.
   UpdateFailure _failureFrom(Object error, String? releasePageUrl) {
     if (error is UpdateException) {
-      return UpdateFailure(error.message, releasePageUrl);
+      return UpdateFailureKnown(error.message, releasePageUrl);
     }
-    return UpdateFailure(
-      '',
-      releasePageUrl,
-      kind: UpdateFailureKind.unexpected,
-      debugDetail: error.toString(),
-    );
+    return UpdateFailureUnexpected(error.toString(), releasePageUrl);
   }
 }
