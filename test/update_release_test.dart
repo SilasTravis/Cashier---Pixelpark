@@ -74,4 +74,68 @@ void main() {
     expect(release.sha256Url, isNull);
     expect(release.notes, isEmpty);
   });
+
+  test('returns null when the zip asset has no browser_download_url', () {
+    final json = _json(assets: <Map<String, dynamic>>[
+      {
+        'name': 'cashier_app-windows-v1.2.3.zip',
+        'size': 10,
+        // No browser_download_url at all.
+      },
+    ]);
+
+    expect(UpdateRelease.fromGithubJson(json), isNull);
+  });
+
+  test('returns null when the zip asset download url is not a string', () {
+    final json = _json(assets: <Map<String, dynamic>>[
+      {
+        'name': 'cashier_app-windows-v1.2.3.zip',
+        'size': 10,
+        'browser_download_url': 12345,
+      },
+    ]);
+
+    expect(UpdateRelease.fromGithubJson(json), isNull);
+  });
+
+  const validDigest =
+      'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+
+  group('parseSha256Digest', () {
+    test('accepts a bare digest', () {
+      expect(parseSha256Digest(validDigest), validDigest);
+    });
+
+    test('strips a trailing filename in "<digest>  <filename>" form', () {
+      expect(
+        parseSha256Digest('$validDigest  cashier_app-windows-v1.2.3.zip'),
+        validDigest,
+      );
+    });
+
+    test('normalizes uppercase input to lowercase', () {
+      expect(parseSha256Digest(validDigest.toUpperCase()), validDigest);
+    });
+
+    test('trims surrounding whitespace and newlines', () {
+      expect(parseSha256Digest('\n  $validDigest  \n'), validDigest);
+    });
+
+    test('returns null for empty input', () {
+      expect(parseSha256Digest(''), isNull);
+      expect(parseSha256Digest('   '), isNull);
+    });
+
+    test('returns null for null input', () {
+      expect(parseSha256Digest(null), isNull);
+    });
+
+    test('returns null for non-digest content such as an HTML fragment', () {
+      expect(
+        parseSha256Digest('<html><body>404 Not Found</body></html>'),
+        isNull,
+      );
+    });
+  });
 }

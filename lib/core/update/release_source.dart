@@ -50,10 +50,7 @@ class GithubReleaseSource implements ReleaseSource {
       url,
       options: Options(responseType: ResponseType.plain),
     );
-    final body = response.data?.trim();
-    if (body == null || body.isEmpty) return null;
-    // The file may be a bare digest or `<digest>  <filename>`.
-    return body.split(RegExp(r'\s+')).first.toLowerCase();
+    return parseSha256Digest(response.data);
   }
 
   @override
