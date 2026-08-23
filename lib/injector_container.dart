@@ -7,7 +7,6 @@ import 'core/local_source/local_source.dart';
 import 'core/localization/locale_cubit.dart';
 import 'core/network/api_client.dart';
 import 'core/network/token_refresher.dart';
-import 'core/update/update_checker.dart';
 import 'features/auth/data/datasources/auth_remote_data_source.dart';
 import 'features/auth/data/repositories/auth_repository_impl.dart';
 import 'features/auth/domain/repositories/auth_repository.dart';
@@ -41,11 +40,6 @@ Future<void> init() async {
   sl.registerLazySingleton<TokenRefresher>(() => TokenRefresher(sl()));
   sl.registerLazySingleton<Dio>(() => buildDio(sl(), sl()));
 
-  sl.registerLazySingleton<UpdateChecker>(
-    () => UpdateChecker(
-      isSafeToApply: () => sl<LocalSource>().getAccessToken() == null,
-    ),
-  );
   sl.registerFactory<LocaleCubit>(() => LocaleCubit(sl()));
 
   _authFeature();

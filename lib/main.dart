@@ -4,13 +4,11 @@ import 'package:window_manager/window_manager.dart';
 import 'app.dart';
 import 'constants/app_constants.dart';
 import 'core/theme/nocturne_colors.dart';
-import 'core/update/update_checker.dart';
 import 'injector_container.dart' as di;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await di.init();
-  di.sl<UpdateChecker>().start();
 
   await windowManager.ensureInitialized();
   const windowOptions = WindowOptions(
