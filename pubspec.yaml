@@ -58,6 +58,11 @@ dev_dependencies:
   # version in pubspec.lock so declaring it explicitly (for deterministic
   # virtual-clock timer tests) doesn't move anything else in the graph
   fake_async: 1.3.3
+  # already resolved transitively via path_provider; pinned to the exact
+  # version in pubspec.lock so declaring it explicitly (to fake
+  # getApplicationSupportPath() via the platform-interface seam instead of
+  # channel mocking) doesn't move anything else in the graph
+  path_provider_platform_interface: 2.1.3
 
 flutter:
   uses-material-design: true

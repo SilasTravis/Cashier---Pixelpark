@@ -198,7 +198,10 @@ class _NavTile extends StatelessWidget {
                         top: -2,
                         right: -2,
                         child: Container(
-                          key: const Key('settings-update-badge'),
+                          // Keyed per tab (not just for Settings) so tests
+                          // can assert which tile the badge renders on,
+                          // rather than merely that it renders somewhere.
+                          key: Key('nav-update-badge-${tab.name}'),
                           width: 8,
                           height: 8,
                           decoration: const BoxDecoration(

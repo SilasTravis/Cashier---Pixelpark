@@ -5,6 +5,8 @@ import 'package:cashier_app/generated/l10n.dart';
 import 'package:cashier_app/features/shell/presentation/model/shell_tab.dart';
 import 'package:cashier_app/features/shell/presentation/widgets/sidebar.dart';
 
+Key _badgeKey(ShellTab tab) => Key('nav-update-badge-${tab.name}');
+
 Future<void> _pump(WidgetTester tester, ValueNotifier<bool> flag) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -33,15 +35,39 @@ Future<void> _pump(WidgetTester tester, ValueNotifier<bool> flag) async {
 }
 
 void main() {
-  testWidgets('shows no badge until an update is available', (tester) async {
+  testWidgets('the badge appears only on the Settings tile, and clears from it '
+      'when the flag flips back to false', (tester) async {
     final flag = ValueNotifier<bool>(false);
     await _pump(tester, flag);
 
-    expect(find.byKey(const Key('settings-update-badge')), findsNothing);
+    // Nothing badged yet, on any tab.
+    for (final tab in ShellTab.values) {
+      expect(find.byKey(_badgeKey(tab)), findsNothing);
+    }
 
     flag.value = true;
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('settings-update-badge')), findsOneWidget);
+    // Badged on Settings, and only Settings — this is the assertion the
+    // previous version of this test couldn't make: it checked only that
+    // *a* badge existed somewhere, which would still pass if the badge
+    // condition were keyed off the selected tab instead of
+    // ShellTab.settings.
+    for (final tab in ShellTab.values) {
+      final finder = find.byKey(_badgeKey(tab));
+      if (tab == ShellTab.settings) {
+        expect(finder, findsOneWidget);
+      } else {
+        expect(finder, findsNothing);
+      }
+    }
+
+    // The true -> false clearing transition: previously untested.
+    flag.value = false;
+    await tester.pumpAndSettle();
+
+    for (final tab in ShellTab.values) {
+      expect(find.byKey(_badgeKey(tab)), findsNothing);
+    }
   });
 }
