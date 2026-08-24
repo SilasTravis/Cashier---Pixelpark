@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:archive/archive_io.dart';
 import 'package:crypto/crypto.dart';
@@ -64,6 +65,47 @@ class _FakeSource implements ReleaseSource {
   }
 }
 
+/// Overwrites the start of one entry's compressed data, leaving every
+/// header and offset intact.
+///
+/// This is the shape of the real failure C1 describes: `extractFileToDisk`
+/// wraps `writeContent` in `try { … } catch (_) {}`, so an entry it cannot
+/// decode — corrupt data, a disk-full write, an antivirus grabbing the
+/// handle — leaves a zero-length file behind and no exception at all.
+Uint8List _corruptEntryData(List<int> zipBytes, String entryName) {
+  final bytes = Uint8List.fromList(zipBytes);
+  final name = entryName.codeUnits;
+  for (var i = 0; i + 30 + name.length <= bytes.length; i++) {
+    // Local file header signature.
+    if (bytes[i] != 0x50 ||
+        bytes[i + 1] != 0x4b ||
+        bytes[i + 2] != 0x03 ||
+        bytes[i + 3] != 0x04) {
+      continue;
+    }
+    final nameLength = bytes[i + 26] | (bytes[i + 27] << 8);
+    if (nameLength != name.length) continue;
+    var matches = true;
+    for (var k = 0; k < nameLength; k++) {
+      if (bytes[i + 30 + k] != name[k]) {
+        matches = false;
+        break;
+      }
+    }
+    if (!matches) continue;
+
+    final extraLength = bytes[i + 28] | (bytes[i + 29] << 8);
+    final dataStart = i + 30 + nameLength + extraLength;
+    // 0xff opens a deflate block with an invalid type, so the inflater
+    // throws on the very first byte.
+    for (var k = 0; k < 8; k++) {
+      bytes[dataStart + k] = 0xff;
+    }
+    return bytes;
+  }
+  fail('no local file header for "$entryName" in the test zip');
+}
+
 void main() {
   late Directory support;
   late List<int> zipBytes;
@@ -77,7 +119,13 @@ void main() {
     // so the files land at the zip root — exactly like the CI zip.
     final payload = Directory('${support.path}/payload')..createSync();
     File('${payload.path}/cashier_app.exe').writeAsStringSync('binary');
-    File('${payload.path}/flutter_windows.dll').writeAsStringSync('dll');
+    // Long enough to compress: the corruption helper below relies on the
+    // entry being deflated rather than stored.
+    File(
+      '${payload.path}/flutter_windows.dll',
+    ).writeAsStringSync('flutter-windows-' * 200);
+    Directory('${payload.path}/data').createSync();
+    File('${payload.path}/data/app.so').writeAsStringSync('app-so-' * 200);
     final zipPath = '${support.path}/source.zip';
     await ZipFileEncoder().zipDirectory(payload, filename: zipPath);
     zipBytes = File(zipPath).readAsBytesSync();
@@ -169,6 +217,90 @@ void main() {
     await expectLater(
       service.downloadAndStage(_release()),
       throwsA(isA<UpdateException>()),
+    );
+  });
+
+  // --- silently truncated extraction (C1) ---------------------------------
+
+  test('rejects an archive that only extracted part way', () async {
+    // package:archive swallows the write failure, so extraction "succeeds"
+    // with a zero-length flutter_windows.dll. Nothing downstream would
+    // notice: cashier_app.exe is present and the script's guards only ever
+    // look at the executable.
+    final source = _FakeSource(
+      zipBytes: _corruptEntryData(zipBytes, 'flutter_windows.dll'),
+    );
+    final service = serviceWith(source);
+
+    await expectLater(
+      service.downloadAndStage(_release()),
+      throwsA(
+        isA<UpdateException>().having(
+          (e) => e.message,
+          'message',
+          contains('flutter_windows.dll'),
+        ),
+      ),
+    );
+    // A failed download, not a half-staged build waiting to be applied.
+    expect(Directory('${support.path}/updates/v1.2.3').existsSync(), isFalse);
+    expect(File('${support.path}/updates/v1.2.3.zip').existsSync(), isFalse);
+  });
+
+  test('accepts an extraction that matches the archive', () async {
+    final staged = Directory('${support.path}/staged');
+    await extractFileToDisk('${support.path}/source.zip', staged.path);
+
+    await expectLater(
+      verifyExtractedArchive(
+        zipPath: '${support.path}/source.zip',
+        staged: staged,
+      ),
+      completes,
+    );
+  });
+
+  test('catches a file that vanished after extraction', () async {
+    final staged = Directory('${support.path}/staged');
+    await extractFileToDisk('${support.path}/source.zip', staged.path);
+    // e.g. antivirus quarantining one file out of the tree.
+    File('${staged.path}/data/app.so').deleteSync();
+
+    await expectLater(
+      verifyExtractedArchive(
+        zipPath: '${support.path}/source.zip',
+        staged: staged,
+      ),
+      throwsA(
+        isA<UpdateException>().having(
+          (e) => e.message,
+          'message',
+          allOf(contains('app.so'), contains('missing')),
+        ),
+      ),
+    );
+  });
+
+  test('catches a file that landed short', () async {
+    final staged = Directory('${support.path}/staged');
+    await extractFileToDisk('${support.path}/source.zip', staged.path);
+    final dll = File('${staged.path}/flutter_windows.dll');
+    final full = dll.lengthSync();
+    // e.g. the disk filling up part way through the write.
+    dll.writeAsBytesSync(dll.readAsBytesSync().sublist(0, full - 10));
+
+    await expectLater(
+      verifyExtractedArchive(
+        zipPath: '${support.path}/source.zip',
+        staged: staged,
+      ),
+      throwsA(
+        isA<UpdateException>().having(
+          (e) => e.message,
+          'message',
+          contains('flutter_windows.dll'),
+        ),
+      ),
     );
   });
 

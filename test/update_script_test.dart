@@ -10,6 +10,16 @@ const _backup = r'C:\Users\kassa\AppData\Roaming\cashier_app\updates\backup';
 const _exe = r'C:\Cashier\app\cashier_app.exe';
 const _stagedExe =
     r'C:\Users\kassa\AppData\Roaming\cashier_app\updates\v1.2.3\cashier_app.exe';
+// The other two things a Flutter Windows build cannot start without.
+const _stagedDll =
+    r'C:\Users\kassa\AppData\Roaming\cashier_app\updates\v1.2.3\flutter_windows.dll';
+// Directories are tested with a trailing backslash — the canonical
+// `if exist "path\"` directory test in cmd.
+const _stagedData =
+    r'C:\Users\kassa\AppData\Roaming\cashier_app\updates\v1.2.3\data'
+    '\\';
+const _installDll = r'C:\Cashier\app\flutter_windows.dll';
+const _installData = r'C:\Cashier\app\data' '\\';
 
 /// The exact text `buildUpdateScript` must produce for the inputs above.
 /// Written out in full on purpose: this script runs unattended on a POS
@@ -39,9 +49,16 @@ const _goldenLines = <String>[
   r':gone',
   r'rem A staged folder that exists but is empty or half-extracted mirrors',
   r'rem without an error code and would wipe the install, so refuse to start',
-  r'rem unless the new executable is actually there.',
-  r'if not exist "C:\Users\kassa\AppData\Roaming\cashier_app\updates\v1.2.3\cashier_app.exe" (',
-  r'  >>"%LOG%" echo [%DATE% %TIME%] Staged build has no cashier_app.exe - update aborted, nothing changed.',
+  r'rem unless the whole new build is there. The executable alone is not',
+  r'rem enough: package:archive drops a file it cannot write without raising',
+  r'rem anything, and a Flutter build with no flutter_windows.dll or no data',
+  r'rem folder installs cleanly and then fails to launch.',
+  r'set "staged_ok=1"',
+  r'if not exist "C:\Users\kassa\AppData\Roaming\cashier_app\updates\v1.2.3\cashier_app.exe" set "staged_ok="',
+  r'if not exist "C:\Users\kassa\AppData\Roaming\cashier_app\updates\v1.2.3\flutter_windows.dll" set "staged_ok="',
+  r'if not exist "C:\Users\kassa\AppData\Roaming\cashier_app\updates\v1.2.3\data\" set "staged_ok="',
+  r'if not defined staged_ok (',
+  r'  >>"%LOG%" echo [%DATE% %TIME%] Staged build is incomplete - update aborted, nothing changed.',
   r'  start "" "C:\Cashier\app\cashier_app.exe"',
   r'  exit /b 1',
   r')',
@@ -62,14 +79,23 @@ const _goldenLines = <String>[
   r'  goto restore',
   r')',
   r'rem Codes under 8 also cover a mirror that copied nothing, so confirm the',
-  r'rem executable really landed before destroying the way back.',
-  r'if not exist "C:\Cashier\app\cashier_app.exe" (',
-  r'  >>"%LOG%" echo [%DATE% %TIME%] Update left no cashier_app.exe in the install folder - restoring the previous version.',
+  r'rem new build really landed before relaunching.',
+  r'set "install_ok=1"',
+  r'if not exist "C:\Cashier\app\cashier_app.exe" set "install_ok="',
+  r'if not exist "C:\Cashier\app\flutter_windows.dll" set "install_ok="',
+  r'if not exist "C:\Cashier\app\data\" set "install_ok="',
+  r'if not defined install_ok (',
+  r'  >>"%LOG%" echo [%DATE% %TIME%] Update left an incomplete install - restoring the previous version.',
   r'  goto restore',
   r')',
   r'',
   r'start "" "C:\Cashier\app\cashier_app.exe"',
-  r'rmdir /s /q "C:\Users\kassa\AppData\Roaming\cashier_app\updates\backup"',
+  r'rem The backup deliberately survives. start only proves the process was',
+  r'rem created, not that it stayed up, and nobody is watching this till: a',
+  r'rem build that dies on a missing DLL must still have something to roll',
+  r'rem back to. The next update reclaims this folder before taking its own',
+  r'rem backup, so it costs one stale copy on disk and buys a one-folder',
+  r'rem copy back to a working install.',
   r'rmdir /s /q "C:\Users\kassa\AppData\Roaming\cashier_app\updates\v1.2.3"',
   r'(goto) 2>nul & del "%~f0"',
   r'exit /b 0',
@@ -163,25 +189,45 @@ void main() {
     expect(text, contains(r'del "%~f0"'));
   });
 
-  test('deletes the backup and staged copies only after relaunching', () {
+  test('keeps the backup after a successful apply', () {
     final text = script();
-    // Everything from the apply onwards; the first relaunch after it is the
-    // success-path one.
+    // The success path only: from the relaunch to the restore label.
     final tail = text.substring(
       text.indexOf('robocopy "$_staged" "$_install"'),
     );
     final relaunch = tail.indexOf('start "" "$_exe"');
-    final rmBackup = tail.indexOf('rmdir /s /q "$_backup"');
-    final rmStaged = tail.indexOf('rmdir /s /q "$_staged"');
-
     expect(relaunch, greaterThan(-1));
+    final success = tail.substring(relaunch, tail.indexOf(':restore'));
+
     expect(
-      rmBackup,
-      greaterThan(relaunch),
-      reason: 'the backup is the only way back; keep it until the app is up',
+      success,
+      isNot(contains('rmdir /s /q "$_backup"')),
+      reason:
+          'start only proves the process was created, not that it survived. '
+          'A build that dies on a missing DLL leaves an unattended till with '
+          'nothing to roll back to once the backup is gone.',
     );
-    expect(rmStaged, greaterThan(relaunch));
-    expect(tail.indexOf(r'del "%~f0"'), greaterThan(rmStaged));
+    // The staged copy is genuinely spent, so that one still goes.
+    final rmStaged = success.indexOf('rmdir /s /q "$_staged"');
+    expect(rmStaged, greaterThan(-1));
+    expect(success.indexOf(r'del "%~f0"'), greaterThan(rmStaged));
+  });
+
+  test('removes the backup only when reclaiming it for the next update', () {
+    final text = script();
+    final reclaim = text.indexOf('if exist "$_backup" rmdir /s /q "$_backup"');
+    expect(reclaim, greaterThan(-1));
+    expect(
+      reclaim,
+      lessThan(text.indexOf('robocopy "$_install" "$_backup"')),
+      reason: 'a stale backup must go before this run writes its own',
+    );
+    // Keeping the backup costs one folder, not an unbounded pile: the
+    // reclaim above is the only place it is ever deleted.
+    final deletions = RegExp(
+      'rmdir /s /q "${RegExp.escape(_backup)}"',
+    ).allMatches(text);
+    expect(deletions.length, 1);
   });
 
   test(
@@ -205,6 +251,10 @@ void main() {
       r'C:\backup dir',
       r'C:\Program Files\Cashier\cashier_app.exe',
       r'C:\staged dir\cashier_app.exe',
+      r'C:\staged dir\flutter_windows.dll',
+      r'C:\staged dir\data' '\\',
+      r'C:\Program Files\Cashier\flutter_windows.dll',
+      r'C:\Program Files\Cashier\data' '\\',
     };
 
     // Every absolute path anywhere in the script — robocopy source *and*
@@ -256,9 +306,9 @@ void main() {
 
   // --- incomplete staged build --------------------------------------------
 
-  test('refuses to apply when the staged folder has no executable', () {
+  test('refuses to apply unless the whole staged build is present', () {
     final text = script();
-    final guard = text.indexOf('if not exist "$_stagedExe" (');
+    final guard = text.indexOf('set "staged_ok=1"');
     expect(
       guard,
       greaterThan(-1),
@@ -271,23 +321,34 @@ void main() {
     expect(guard, lessThan(text.indexOf('rmdir')));
 
     final block = text.substring(guard, text.indexOf('\r\n)\r\n', guard));
+    // The exe alone is not proof: package:archive silently skips a file it
+    // cannot write, so a tree holding only the exe reaches this point.
+    expect(block, contains('if not exist "$_stagedExe" set "staged_ok="'));
+    expect(block, contains('if not exist "$_stagedDll" set "staged_ok="'));
+    expect(block, contains('if not exist "$_stagedData" set "staged_ok="'));
+    expect(block, contains('if not defined staged_ok ('));
     expect(block, contains('start "" "$_exe"'));
     expect(block, contains('exit /b 1'));
     expect(block, contains(r'>>"%LOG%"'));
   });
 
-  test('treats an apply that left no executable as a failure', () {
+  test('treats an apply that left an incomplete install as a failure', () {
     final text = script();
     final apply = text.indexOf('robocopy "$_staged" "$_install"');
-    final check = text.indexOf('if not exist "$_exe" (', apply);
+    final check = text.indexOf('set "install_ok=1"', apply);
     expect(
       check,
       greaterThan(apply),
       reason: 'robocopy codes below 8 do not prove the new build arrived',
     );
-    // Before any cleanup, and it takes the restore path.
-    expect(check, lessThan(text.indexOf('rmdir /s /q "$_backup"', apply)));
+    // Before the relaunch and any cleanup, and it takes the restore path.
+    expect(check, lessThan(text.indexOf('start "" "$_exe"', apply)));
+    expect(check, lessThan(text.indexOf('rmdir /s /q "$_staged"', apply)));
     final block = text.substring(check, text.indexOf('\r\n)\r\n', check));
+    expect(block, contains('if not exist "$_exe" set "install_ok="'));
+    expect(block, contains('if not exist "$_installDll" set "install_ok="'));
+    expect(block, contains('if not exist "$_installData" set "install_ok="'));
+    expect(block, contains('if not defined install_ok ('));
     expect(block, contains('goto restore'));
     expect(block, isNot(contains('start ""')));
   });

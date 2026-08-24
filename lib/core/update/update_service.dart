@@ -4,12 +4,77 @@ import 'dart:io';
 import 'package:archive/archive_io.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
+import 'package:path/path.dart' as p;
 
 import 'release_source.dart';
 import 'update_exception.dart';
 import 'update_release.dart';
 import 'version_compare.dart';
 import 'windows_updater.dart';
+
+/// Asserts the extracted tree really holds everything [zipPath] says it
+/// does, at the sizes it says.
+///
+/// A top-level function rather than a private method so tests can drive it
+/// against a tree sabotaged by hand, the way antivirus or a full disk would
+/// sabotage it.
+///
+/// `extractFileToDisk` reports success for a tree it only wrote part of:
+/// archive 4.0.9 wraps the per-entry `writeContent` in
+/// `try { … } catch (_) {}` (`lib/src/io/extract_archive_to_disk.dart`), so
+/// a full disk, a locked handle, or one quarantined DLL leaves a short or
+/// empty file and raises nothing. Everything downstream — the executable
+/// check below, and both name checks in the batch script — would then wave
+/// that tree through and `robocopy /MIR` it over a working install.
+///
+/// Checking the archive's own directory against the disk turns that silent
+/// truncation back into an ordinary failed download, which the caller
+/// already knows how to clean up and retry.
+Future<void> verifyExtractedArchive({
+  required String zipPath,
+  required Directory staged,
+}) async {
+  final input = InputFileStream(zipPath);
+  final archive = ZipDecoder().decodeStream(input);
+  final problems = <String>[];
+  final root = p.canonicalize(staged.path);
+
+  try {
+    for (final entry in archive) {
+      // Directories are created by the extractor and carry no content;
+      // symlinks become links, not files, and Windows builds have none.
+      if (!entry.isFile || entry.isSymbolicLink) continue;
+
+      final filePath = p.join(staged.path, p.normalize(entry.name));
+      // The extractor refuses to write outside the output folder, so an
+      // entry that escapes it is legitimately absent rather than lost.
+      if (!p.isWithin(root, p.canonicalize(filePath))) continue;
+
+      final file = File(filePath);
+      if (!await file.exists()) {
+        problems.add('${entry.name} (missing)');
+        continue;
+      }
+      final actual = await file.length();
+      if (actual != entry.size) {
+        problems.add('${entry.name} ($actual of ${entry.size} bytes)');
+      }
+    }
+  } finally {
+    await input.close();
+    await archive.clear();
+  }
+
+  if (problems.isEmpty) return;
+  // Name a few rather than all of them: this text reaches a cashier.
+  final named = problems.take(3).join(', ');
+  final rest = problems.length > 3 ? ' and ${problems.length - 3} more' : '';
+  throw UpdateException(
+    'The update did not unpack completely — ${problems.length} file(s) are '
+    'missing or truncated: $named$rest. The download was discarded; '
+    'please try again.',
+  );
+}
 
 /// Owns the update lifecycle: is there a newer release, fetch and verify it,
 /// hand it to the platform updater.
@@ -74,6 +139,9 @@ class UpdateService {
       await _source.downloadZip(release, zip.path, onProgress: onProgress);
       await _verifyDigest(release, zip);
       await extractFileToDisk(zip.path, staged.path);
+      // Before any check that looks at one named file: extraction can lose
+      // everything *but* the executable and still report success.
+      await verifyExtractedArchive(zipPath: zip.path, staged: staged);
 
       final exe = File(
         '${staged.path}${Platform.pathSeparator}cashier_app.exe',

@@ -13,8 +13,22 @@
 /// 2 = extras purged, 3 = both), so results are tested with `GEQ 8` and
 /// never with `if errorlevel`. And a source folder that exists but is
 /// empty or half-extracted mirrors *successfully* while emptying the
-/// destination, so the executable is checked for by name on both sides of
-/// the apply.
+/// destination, so the build is checked for by name on both sides of the
+/// apply.
+///
+/// Those name checks cover the executable, `flutter_windows.dll` and the
+/// `data\` folder rather than the executable alone. `package:archive`
+/// silently skips any file it fails to write, so a half-extracted staged
+/// folder can hold a perfectly good `cashier_app.exe` and nothing else —
+/// an exe-only check would mirror that over a working install and leave a
+/// till that cannot start.
+///
+/// The backup is deliberately *not* deleted on the success path. `start`
+/// returns as soon as the process is created and never observes whether it
+/// survived, so deleting the backup there would throw away the only way
+/// back from a build that dies on a missing DLL — on a machine with no
+/// operator in front of it. The stale backup is reclaimed at the top of
+/// the next update instead, which bounds the cost at one app-sized folder.
 ///
 /// The script is launched detached (no console), which is why it waits
 /// with `ping` instead of `timeout` and why every diagnostic is appended
@@ -32,6 +46,13 @@ String buildUpdateScript({
   // is fixed, and the exe's name is already implied by exePath.
   final exeName = exePath.split(RegExp(r'[\\/]')).last;
   final stagedExe = '$stagedDir\\$exeName';
+  // The rest of the minimum viable Flutter Windows build. Directories are
+  // tested with a trailing backslash, which is what makes `if exist` in cmd
+  // match a folder rather than a file of the same name.
+  final stagedDll = '$stagedDir\\flutter_windows.dll';
+  final stagedData = '$stagedDir\\data\\';
+  final installedDll = '$installDir\\flutter_windows.dll';
+  final installedData = '$installDir\\data\\';
 
   final script =
       '''
@@ -59,9 +80,16 @@ goto waitloop
 :gone
 rem A staged folder that exists but is empty or half-extracted mirrors
 rem without an error code and would wipe the install, so refuse to start
-rem unless the new executable is actually there.
-if not exist "$stagedExe" (
-  >>"%LOG%" echo [%DATE% %TIME%] Staged build has no $exeName - update aborted, nothing changed.
+rem unless the whole new build is there. The executable alone is not
+rem enough: package:archive drops a file it cannot write without raising
+rem anything, and a Flutter build with no flutter_windows.dll or no data
+rem folder installs cleanly and then fails to launch.
+set "staged_ok=1"
+if not exist "$stagedExe" set "staged_ok="
+if not exist "$stagedDll" set "staged_ok="
+if not exist "$stagedData" set "staged_ok="
+if not defined staged_ok (
+  >>"%LOG%" echo [%DATE% %TIME%] Staged build is incomplete - update aborted, nothing changed.
   start "" "$exePath"
   exit /b 1
 )
@@ -82,14 +110,23 @@ if %rc% GEQ 8 (
   goto restore
 )
 rem Codes under 8 also cover a mirror that copied nothing, so confirm the
-rem executable really landed before destroying the way back.
-if not exist "$exePath" (
-  >>"%LOG%" echo [%DATE% %TIME%] Update left no $exeName in the install folder - restoring the previous version.
+rem new build really landed before relaunching.
+set "install_ok=1"
+if not exist "$exePath" set "install_ok="
+if not exist "$installedDll" set "install_ok="
+if not exist "$installedData" set "install_ok="
+if not defined install_ok (
+  >>"%LOG%" echo [%DATE% %TIME%] Update left an incomplete install - restoring the previous version.
   goto restore
 )
 
 start "" "$exePath"
-rmdir /s /q "$backupDir"
+rem The backup deliberately survives. start only proves the process was
+rem created, not that it stayed up, and nobody is watching this till: a
+rem build that dies on a missing DLL must still have something to roll
+rem back to. The next update reclaims this folder before taking its own
+rem backup, so it costs one stale copy on disk and buys a one-folder
+rem copy back to a working install.
 rmdir /s /q "$stagedDir"
 (goto) 2>nul & del "%~f0"
 exit /b 0
