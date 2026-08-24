@@ -157,4 +157,73 @@ void main() {
       expect(script.path.startsWith(updates.path), isTrue);
     },
   );
+
+  test(
+    'a detached script leaves the wait when the cashier pid is gone',
+    () async {
+      if (!Platform.isWindows) return;
+
+      final updates = Directory('${root.path}/updates')..createSync();
+      final staged = Directory('${updates.path}/v1.2.3')..createSync();
+      // `where.exe` is intentionally used as the fallback relaunch target:
+      // with no arguments it exits immediately and cannot leave a test app
+      // running. The empty staged folder then gives us a durable log marker
+      // immediately after the wait without allowing robocopy to run.
+      final harmlessExe =
+          '${Platform.environment['SystemRoot']}'
+          '${Platform.pathSeparator}System32${Platform.pathSeparator}where.exe';
+      final install = File(harmlessExe).parent;
+      const gonePid = 999999;
+
+      final script = await const WindowsUpdater().writeScript(
+        updatesDir: updates,
+        staged: staged,
+        installDir: install,
+        exePath: harmlessExe,
+        pid: gonePid,
+      );
+
+      await Process.start(
+        'cmd.exe',
+        ['/d', '/c', script.path],
+        mode: ProcessStartMode.detached,
+        // Never give the detached process a cwd inside the fixture: the
+        // test may observe the final log line a few milliseconds before cmd
+        // exits, and Windows will not delete a process's current directory.
+        workingDirectory: Directory.systemTemp.path,
+        environment: {'TEMP': root.path, 'TMP': root.path},
+        includeParentEnvironment: true,
+      );
+
+      final log = File(
+        '${root.path}${Platform.pathSeparator}cashier_update.log',
+      );
+      final deadline = DateTime.now().add(const Duration(seconds: 8));
+      String text = '';
+      while (DateTime.now().isBefore(deadline)) {
+        if (log.existsSync()) {
+          text = log.readAsStringSync();
+          if (text.contains('Staged build is incomplete')) break;
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      }
+
+      expect(text, contains('waiting for PID $gonePid'));
+      expect(
+        text,
+        contains('Staged build is incomplete'),
+        reason:
+            'the detached wait must observe the dead PID and continue; the '
+            'old tasklist | find pipeline stayed here forever',
+      );
+      expect(
+        File(
+          '${root.path}${Platform.pathSeparator}'
+          'cashier_update_wait_$gonePid.txt',
+        ).existsSync(),
+        isFalse,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+    },
+  );
 }

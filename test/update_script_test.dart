@@ -38,12 +38,20 @@ const _goldenLines = <String>[
   r'>>"%LOG%" echo [%DATE% %TIME%] Update script started - waiting for PID 4242 - cashier_app.exe - to exit.',
   '',
   r'set /a tries=0',
+  r'set "WAIT_FILE=%TEMP%\cashier_update_wait_4242.txt"',
   r':waitloop',
-  r'tasklist /FI "PID eq 4242" /FI "IMAGENAME eq cashier_app.exe" /NH | find "4242" >nul',
+  r'tasklist /FI "PID eq 4242" /FI "IMAGENAME eq cashier_app.exe" /NH >"%WAIT_FILE%" 2>nul',
+  r'if errorlevel 1 (',
+  r'  >>"%LOG%" echo [%DATE% %TIME%] Could not inspect Cashier PID 4242 - update aborted, nothing changed.',
+  r'  del /q "%WAIT_FILE%" 2>nul',
+  r'  exit /b 1',
+  r')',
+  r'findstr /I /L /C:"cashier_app.exe" "%WAIT_FILE%" >nul',
   r'if errorlevel 1 goto gone',
   r'set /a tries+=1',
   r'if %tries% GEQ 60 (',
   r'  >>"%LOG%" echo [%DATE% %TIME%] Cashier PID 4242 is still running after 60s - update aborted, nothing changed.',
+  r'  del /q "%WAIT_FILE%" 2>nul',
   r'  exit /b 1',
   r')',
   r'rem ping, not timeout: timeout needs a console handle, and this script is',
@@ -53,6 +61,7 @@ const _goldenLines = <String>[
   r'goto waitloop',
   '',
   r':gone',
+  r'del /q "%WAIT_FILE%" 2>nul',
   r'rem A staged folder that exists but is empty or half-extracted mirrors',
   r'rem without an error code and would wipe the install, so refuse to start',
   r'rem unless the whole new build is there. The executable alone is not',
@@ -158,6 +167,24 @@ void main() {
     final line = wait.split('\r\n').firstWhere((l) => l.contains('tasklist'));
     expect(line, contains('PID eq 4242'));
     expect(line, contains('IMAGENAME eq cashier_app.exe'));
+    expect(line, isNot(contains('|')));
+    expect(
+      wait,
+      contains(r'findstr /I /L /C:"cashier_app.exe" "%WAIT_FILE%" >nul'),
+    );
+  });
+
+  test('the detached wait never uses a pipe that can retain its write end', () {
+    final text = script();
+    final wait = text.substring(
+      text.indexOf(':waitloop'),
+      text.indexOf(':gone'),
+    );
+
+    expect(wait, isNot(contains('| find')));
+    expect(wait, isNot(contains('| findstr')));
+    expect(wait, contains(r'>"%WAIT_FILE%" 2>nul'));
+    expect(wait, contains(r'findstr /I /L'));
   });
 
   test('the console warns the cashier not to close the window', () {

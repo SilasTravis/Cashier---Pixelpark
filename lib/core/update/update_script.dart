@@ -39,10 +39,15 @@
 /// force-skips the wait.
 ///
 /// The wait filters tasklist by IMAGENAME as well as PID. Windows recycles
-/// a freed PID immediately, and the loop's own per-iteration children
-/// (find, ping, conhost) kept landing on the app's just-freed PID — so a
-/// PID-only check saw "still running" forever, a self-sustaining wedge
-/// observed on the first real till.
+/// a freed PID immediately, and the loop's own per-iteration children can
+/// land on the app's just-freed PID, so PID alone is not sufficient.
+///
+/// Deliberately do NOT pipe `tasklist` into `findstr`. A batch launched with
+/// Dart's detached Windows process mode can leave the pipe's write handle
+/// inherited by `cmd.exe`; `find` then never receives EOF even after both the
+/// app and `tasklist` have exited. This happened on a real till and left the
+/// updater forever titled `find "<pid>"`. Writing tasklist's finite output to
+/// a file first gives findstr an ordinary file EOF and removes that deadlock.
 String buildUpdateScript({
   required int pid,
   required String installDir,
@@ -76,12 +81,20 @@ echo The app is updating. Do NOT close this window - it closes itself.
 >>"%LOG%" echo [%DATE% %TIME%] Update script started - waiting for PID $pid - $exeName - to exit.
 
 set /a tries=0
+set "WAIT_FILE=%TEMP%\\cashier_update_wait_$pid.txt"
 :waitloop
-tasklist /FI "PID eq $pid" /FI "IMAGENAME eq $exeName" /NH | find "$pid" >nul
+tasklist /FI "PID eq $pid" /FI "IMAGENAME eq $exeName" /NH >"%WAIT_FILE%" 2>nul
+if errorlevel 1 (
+  >>"%LOG%" echo [%DATE% %TIME%] Could not inspect Cashier PID $pid - update aborted, nothing changed.
+  del /q "%WAIT_FILE%" 2>nul
+  exit /b 1
+)
+findstr /I /L /C:"$exeName" "%WAIT_FILE%" >nul
 if errorlevel 1 goto gone
 set /a tries+=1
 if %tries% GEQ 60 (
   >>"%LOG%" echo [%DATE% %TIME%] Cashier PID $pid is still running after 60s - update aborted, nothing changed.
+  del /q "%WAIT_FILE%" 2>nul
   exit /b 1
 )
 rem ping, not timeout: timeout needs a console handle, and this script is
@@ -91,6 +104,7 @@ ping -n 2 127.0.0.1 >nul
 goto waitloop
 
 :gone
+del /q "%WAIT_FILE%" 2>nul
 rem A staged folder that exists but is empty or half-extracted mirrors
 rem without an error code and would wipe the install, so refuse to start
 rem unless the whole new build is there. The executable alone is not
