@@ -57,9 +57,18 @@ void main() {
   test('returns an absolute script path even when updatesDir is given as a '
       'relative path (Process.start needs an absolute one so the '
       'self-delete idiom %~f0 resolves against the right file)', () async {
-    final updates = Directory('${root.path}/updates')..createSync();
+    // This fixture must live on the SAME DRIVE as the current directory.
+    // On Windows a relative path cannot span drives, so p.relative() falls
+    // back to returning an absolute path — and GitHub's Windows runners put
+    // Directory.systemTemp on C:\ while the checkout sits on D:\, which
+    // made this test fail there while passing on macOS. Creating the root
+    // under Directory.current keeps both on one drive everywhere.
+    final sameDriveRoot = Directory.current.createTempSync('updater_reltest');
+    addTearDown(() => sameDriveRoot.deleteSync(recursive: true));
+
+    final updates = Directory('${sameDriveRoot.path}/updates')..createSync();
     final staged = Directory('${updates.path}/v1.2.3')..createSync();
-    final install = Directory('${root.path}/install')..createSync();
+    final install = Directory('${sameDriveRoot.path}/install')..createSync();
 
     // Every other fixture in this file builds updatesDir from
     // Directory.systemTemp, which is always absolute — so `.absolute`
@@ -71,6 +80,8 @@ void main() {
     final relativeUpdates = Directory(
       p.relative(updates.path, from: Directory.current.path),
     );
+    // Guards the fixture's own premise: if this ever fails, the paths are
+    // on different drives again and the test below proves nothing.
     expect(p.isAbsolute(relativeUpdates.path), isFalse);
 
     final script = await const WindowsUpdater().writeScript(
