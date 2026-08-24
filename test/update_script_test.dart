@@ -19,7 +19,9 @@ const _stagedData =
     r'C:\Users\kassa\AppData\Roaming\cashier_app\updates\v1.2.3\data'
     '\\';
 const _installDll = r'C:\Cashier\app\flutter_windows.dll';
-const _installData = r'C:\Cashier\app\data' '\\';
+const _installData =
+    r'C:\Cashier\app\data'
+    '\\';
 
 /// The exact text `buildUpdateScript` must produce for the inputs above.
 /// Written out in full on purpose: this script runs unattended on a POS
@@ -30,10 +32,14 @@ const _goldenLines = <String>[
   r'rem Never run from inside a folder we are about to mirror over.',
   r'cd /d "%TEMP%"',
   r'set "LOG=%TEMP%\cashier_update.log"',
-  r'',
+  r'title Cashier yangilanishi / Cashier update',
+  r'echo Ilova yangilanmoqda. Bu oynani YOPMANG - u ozi yopiladi.',
+  r'echo The app is updating. Do NOT close this window - it closes itself.',
+  r'>>"%LOG%" echo [%DATE% %TIME%] Update script started - waiting for PID 4242 - cashier_app.exe - to exit.',
+  '',
   r'set /a tries=0',
   r':waitloop',
-  r'tasklist /FI "PID eq 4242" /NH | find "4242" >nul',
+  r'tasklist /FI "PID eq 4242" /FI "IMAGENAME eq cashier_app.exe" /NH | find "4242" >nul',
   r'if errorlevel 1 goto gone',
   r'set /a tries+=1',
   r'if %tries% GEQ 60 (',
@@ -45,7 +51,7 @@ const _goldenLines = <String>[
   r'rem loop would spin through all 60 tries in well under a second.',
   r'ping -n 2 127.0.0.1 >nul',
   r'goto waitloop',
-  r'',
+  '',
   r':gone',
   r'rem A staged folder that exists but is empty or half-extracted mirrors',
   r'rem without an error code and would wipe the install, so refuse to start',
@@ -62,7 +68,7 @@ const _goldenLines = <String>[
   r'  start "" "C:\Cashier\app\cashier_app.exe"',
   r'  exit /b 1',
   r')',
-  r'',
+  '',
   r'if exist "C:\Users\kassa\AppData\Roaming\cashier_app\updates\backup" rmdir /s /q "C:\Users\kassa\AppData\Roaming\cashier_app\updates\backup"',
   r'robocopy "C:\Cashier\app" "C:\Users\kassa\AppData\Roaming\cashier_app\updates\backup" /MIR /R:2 /W:1 /NFL /NDL /NJH /NJS >nul',
   r'set "rc=%ERRORLEVEL%"',
@@ -71,7 +77,8 @@ const _goldenLines = <String>[
   r'  start "" "C:\Cashier\app\cashier_app.exe"',
   r'  exit /b 1',
   r')',
-  r'',
+  '',
+  r'>>"%LOG%" echo [%DATE% %TIME%] Backup taken - applying the new build.',
   r'robocopy "C:\Users\kassa\AppData\Roaming\cashier_app\updates\v1.2.3" "C:\Cashier\app" /MIR /R:2 /W:1 /NFL /NDL /NJH /NJS >nul',
   r'set "rc=%ERRORLEVEL%"',
   r'if %rc% GEQ 8 (',
@@ -88,7 +95,8 @@ const _goldenLines = <String>[
   r'  >>"%LOG%" echo [%DATE% %TIME%] Update left an incomplete install - restoring the previous version.',
   r'  goto restore',
   r')',
-  r'',
+  '',
+  r'>>"%LOG%" echo [%DATE% %TIME%] Update applied - relaunching. Previous version retained at "C:\Users\kassa\AppData\Roaming\cashier_app\updates\backup"',
   r'start "" "C:\Cashier\app\cashier_app.exe"',
   r'rem The backup deliberately survives. start only proves the process was',
   r'rem created, not that it stayed up, and nobody is watching this till: a',
@@ -99,7 +107,7 @@ const _goldenLines = <String>[
   r'rmdir /s /q "C:\Users\kassa\AppData\Roaming\cashier_app\updates\v1.2.3"',
   r'(goto) 2>nul & del "%~f0"',
   r'exit /b 0',
-  r'',
+  '',
   r':restore',
   r'robocopy "C:\Users\kassa\AppData\Roaming\cashier_app\updates\backup" "C:\Cashier\app" /MIR /R:2 /W:1 /NFL /NDL /NJH /NJS >nul',
   r'set "rc=%ERRORLEVEL%"',
@@ -109,7 +117,7 @@ const _goldenLines = <String>[
   r')',
   r'start "" "C:\Cashier\app\cashier_app.exe"',
   r'exit /b 1',
-  r'',
+  '',
 ];
 
 void main() {
@@ -132,6 +140,35 @@ void main() {
 
     expect(waitIndex, greaterThan(-1));
     expect(copyIndex, greaterThan(waitIndex));
+  });
+
+  test('the wait matches the PID only when it still belongs to our exe '
+      '(field bug: Windows recycled the freed PID onto the loop\'s own '
+      'find/ping children, so the wait wedged forever on a real till)', () {
+    final text = script();
+    final wait = text.substring(
+      text.indexOf(':waitloop'),
+      text.indexOf(':gone'),
+    );
+
+    expect(wait, contains('/FI "PID eq 4242"'));
+    expect(wait, contains('/FI "IMAGENAME eq cashier_app.exe"'));
+    // The image filter must be on the same tasklist invocation as the PID
+    // filter, not somewhere else in the script.
+    final line = wait.split('\r\n').firstWhere((l) => l.contains('tasklist'));
+    expect(line, contains('PID eq 4242'));
+    expect(line, contains('IMAGENAME eq cashier_app.exe'));
+  });
+
+  test('the console warns the cashier not to close the window', () {
+    // The field incident: a cashier closed the mystery console mid-wait,
+    // which killed the pipeline and force-skipped the wait. The window is
+    // visible, so it must say what it is and that closing it is dangerous.
+    final text = script();
+    final beforeWait = text.substring(0, text.indexOf(':waitloop'));
+    expect(beforeWait, contains('title '));
+    expect(beforeWait, contains('YOPMANG'));
+    expect(beforeWait, contains('Do NOT close this window'));
   });
 
   test('aborts without copying if the process outlives the timeout', () {
@@ -252,9 +289,11 @@ void main() {
       r'C:\Program Files\Cashier\cashier_app.exe',
       r'C:\staged dir\cashier_app.exe',
       r'C:\staged dir\flutter_windows.dll',
-      r'C:\staged dir\data' '\\',
+      r'C:\staged dir\data'
+          '\\',
       r'C:\Program Files\Cashier\flutter_windows.dll',
-      r'C:\Program Files\Cashier\data' '\\',
+      r'C:\Program Files\Cashier\data'
+          '\\',
     };
 
     // Every absolute path anywhere in the script — robocopy source *and*
@@ -409,9 +448,12 @@ void main() {
     final text = script();
     expect(text, contains(r'set "LOG=%TEMP%\cashier_update.log"'));
 
-    // No diagnostic may go only to a console that closes on exit.
-    for (final line in text.split('\r\n')) {
-      if (line == '@echo off') continue;
+    // No diagnostic may go only to a console that closes on exit. The one
+    // exception is the do-not-close banner above the wait loop, which is
+    // console-facing on purpose: it exists to be read while the window is
+    // open, not after a failure.
+    final waitloop = text.indexOf(':waitloop');
+    for (final line in text.substring(waitloop).split('\r\n')) {
       if (!line.contains('echo ')) continue;
       if (!line.trimLeft().startsWith(r'>>"%LOG%" echo ')) {
         fail('diagnostic not written to the log: $line');

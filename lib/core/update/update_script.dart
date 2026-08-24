@@ -30,10 +30,19 @@
 /// operator in front of it. The stale backup is reclaimed at the top of
 /// the next update instead, which bounds the cost at one app-sized folder.
 ///
-/// The script is launched detached (no console), which is why it waits
-/// with `ping` instead of `timeout` and why every diagnostic is appended
-/// to %TEMP%\cashier_update.log instead of echoed to a console that
-/// nobody will ever see.
+/// The script is launched detached, which is why it waits with `ping`
+/// instead of `timeout` (timeout needs a console *input* handle) and why
+/// every diagnostic is appended to %TEMP%\cashier_update.log. A console
+/// window does appear on real tills, so the script titles it and tells
+/// the cashier not to close it — the first field test proved a cashier
+/// will close a mystery window, which kills the wait pipeline and
+/// force-skips the wait.
+///
+/// The wait filters tasklist by IMAGENAME as well as PID. Windows recycles
+/// a freed PID immediately, and the loop's own per-iteration children
+/// (find, ping, conhost) kept landing on the app's just-freed PID — so a
+/// PID-only check saw "still running" forever, a self-sustaining wedge
+/// observed on the first real till.
 String buildUpdateScript({
   required int pid,
   required String installDir,
@@ -61,10 +70,14 @@ setlocal
 rem Never run from inside a folder we are about to mirror over.
 cd /d "%TEMP%"
 set "LOG=%TEMP%\\cashier_update.log"
+title Cashier yangilanishi / Cashier update
+echo Ilova yangilanmoqda. Bu oynani YOPMANG - u ozi yopiladi.
+echo The app is updating. Do NOT close this window - it closes itself.
+>>"%LOG%" echo [%DATE% %TIME%] Update script started - waiting for PID $pid - $exeName - to exit.
 
 set /a tries=0
 :waitloop
-tasklist /FI "PID eq $pid" /NH | find "$pid" >nul
+tasklist /FI "PID eq $pid" /FI "IMAGENAME eq $exeName" /NH | find "$pid" >nul
 if errorlevel 1 goto gone
 set /a tries+=1
 if %tries% GEQ 60 (
@@ -103,6 +116,7 @@ if %rc% GEQ 8 (
   exit /b 1
 )
 
+>>"%LOG%" echo [%DATE% %TIME%] Backup taken - applying the new build.
 robocopy "$stagedDir" "$installDir" $flags >nul
 set "rc=%ERRORLEVEL%"
 if %rc% GEQ 8 (
@@ -120,6 +134,7 @@ if not defined install_ok (
   goto restore
 )
 
+>>"%LOG%" echo [%DATE% %TIME%] Update applied - relaunching. Previous version retained at "$backupDir"
 start "" "$exePath"
 rem The backup deliberately survives. start only proves the process was
 rem created, not that it stayed up, and nobody is watching this till: a
