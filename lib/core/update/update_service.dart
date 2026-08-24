@@ -109,7 +109,7 @@ class UpdateService {
   Timer? _timer;
   bool _disposed = false;
 
-  /// The download currently running, if any, with the version it is for.
+  /// The download currently running, if any.
   ///
   /// The cubit that calls [downloadAndStage] is destroyed and rebuilt on
   /// every tab switch, so pressing the button, leaving Settings and coming
@@ -119,8 +119,7 @@ class UpdateService {
   /// first still has open, or the two extractions interleave into one
   /// half-written tree. Each caller's digest check passes over its own zip,
   /// so nothing downstream notices.
-  Future<Directory>? _inFlight;
-  String? _inFlightVersion;
+  _Download? _inFlight;
 
   Future<UpdateRelease?> check() async {
     final latest = await _source.fetchLatest();
@@ -144,22 +143,31 @@ class UpdateService {
     // Keyed on the version so a request for a *different* build is never
     // handed the folder of the one already downloading. Two versions at
     // once do not share a path, so they do not race either.
-    if (running != null && _inFlightVersion == release.version) return running;
+    if (running != null && running.version == release.version) {
+      if (onProgress != null) running.listeners.add(onProgress);
+      return running.future;
+    }
 
-    late final Future<Directory> attempt;
-    attempt = _downloadAndStage(release, onProgress: onProgress).whenComplete(
-      () {
-        // Cleared on success and on failure alike, so a retry after a
-        // network drop is not stuck waiting on a future that already blew up.
-        if (identical(_inFlight, attempt)) {
-          _inFlight = null;
-          _inFlightVersion = null;
-        }
-      },
-    );
-    _inFlight = attempt;
-    _inFlightVersion = release.version;
-    return attempt;
+    final download = _Download(release.version);
+    if (onProgress != null) download.listeners.add(onProgress);
+    download.future =
+        _downloadAndStage(
+          release,
+          onProgress: (received, total) {
+            // Copied first: a caller can join while this is running.
+            for (final listener in download.listeners.toList()) {
+              listener(received, total);
+            }
+          },
+        ).whenComplete(() {
+          // Cleared on success and on failure alike, so a retry after a
+          // network drop is not stuck waiting on a future that already
+          // blew up. Guarded because a download for a *different* version
+          // may have taken the slot in the meantime.
+          if (identical(_inFlight, download)) _inFlight = null;
+        });
+    _inFlight = download;
+    return download.future;
   }
 
   Future<Directory> _downloadAndStage(
@@ -263,6 +271,20 @@ class UpdateService {
     if (await zip.exists()) await zip.delete();
     if (await staged.exists()) await staged.delete(recursive: true);
   }
+}
+
+/// One running [UpdateService.downloadAndStage], and the progress callbacks
+/// of every caller sharing it.
+///
+/// Per download rather than per service: two versions may legitimately be
+/// downloading at once, and their callers must not receive each other's
+/// progress.
+class _Download {
+  _Download(this.version);
+
+  final String version;
+  final List<void Function(int received, int total)> listeners = [];
+  late final Future<Directory> future;
 }
 
 class _HasUpdate extends ValueNotifier<bool> {

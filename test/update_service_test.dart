@@ -341,6 +341,54 @@ void main() {
     expect(File('${staged[0].path}/flutter_windows.dll').existsSync(), isTrue);
   });
 
+  test('a joining caller still sees progress', () async {
+    // The join must not leave the second caller's progress bar dead at 0%
+    // while the shared download runs; its cubit is driving a real UI.
+    final source = _FakeSource(zipBytes: zipBytes);
+    final service = serviceWith(source);
+    var firstReceived = 0;
+    var secondReceived = 0;
+
+    final first = service.downloadAndStage(
+      _release(),
+      onProgress: (received, total) => firstReceived = received,
+    );
+    final second = service.downloadAndStage(
+      _release(),
+      onProgress: (received, total) => secondReceived = received,
+    );
+    await Future.wait([first, second]);
+
+    expect(source.downloadCalls, 1);
+    expect(firstReceived, zipBytes.length);
+    expect(secondReceived, zipBytes.length);
+  });
+
+  test('a download for another version keeps its own progress', () async {
+    // Two versions never share a path, so they are allowed to run at once.
+    // What they must not do is feed each other's progress callbacks or
+    // leave them registered after they finish.
+    final source = _FakeSource(zipBytes: zipBytes);
+    final service = serviceWith(source);
+    final firstReports = <int>[];
+    final secondReports = <int>[];
+
+    await Future.wait([
+      service.downloadAndStage(
+        _release(),
+        onProgress: (received, total) => firstReports.add(received),
+      ),
+      service.downloadAndStage(
+        _release(version: '1.2.4'),
+        onProgress: (received, total) => secondReports.add(received),
+      ),
+    ]);
+
+    expect(source.downloadCalls, 2);
+    expect(firstReports, [zipBytes.length]);
+    expect(secondReports, [zipBytes.length]);
+  });
+
   test('a finished download does not suppress the next one', () async {
     final source = _FakeSource(zipBytes: zipBytes);
     final service = serviceWith(source);
