@@ -33,6 +33,12 @@ jobs:
     runs-on: windows-latest
     needs: analyze
     if: github.event_name != 'pull_request'
+    # Serialize per ref: two overlapping main pushes at the same pubspec
+    # version would both read exists=false and both try to publish, and the
+    # loser fails with a 422 for a condition that isn't an error.
+    concurrency:
+      group: release-${{ github.ref }}
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
         with:
@@ -71,9 +77,15 @@ jobs:
         id: tag
         if: github.ref == 'refs/heads/main'
         shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          if git rev-parse "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
-            echo "Tag v${{ steps.version.outputs.version }} already exists - skipping release."
+          # --verify --quiet against refs/tags/ specifically: a bare
+          # `git rev-parse v1.0.0` also resolves branches and remote-tracking
+          # refs, so a branch named v1.0.0 would silently suppress releases
+          # forever while logging that the tag exists.
+          if git rev-parse --verify --quiet "refs/tags/v$VERSION" >/dev/null; then
+            echo "Tag v$VERSION already exists - skipping release."
             echo "Bump version: in pubspec.yaml to publish a new one."
             echo "exists=true" >> "$GITHUB_OUTPUT"
           else
@@ -83,8 +95,14 @@ jobs:
       - name: Package the release zip
         if: github.ref == 'refs/heads/main' && steps.tag.outputs.exists == 'false'
         shell: pwsh
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          $zip = "cashier_app-windows-v${{ steps.version.outputs.version }}.zip"
+          # ${env:VERSION}, not $env:VERSION - a dot is a legal character
+          # in an environment variable name, so "$env:VERSION.zip" risks
+          # being read as the variable "VERSION.zip" (empty) rather than
+          # VERSION followed by a literal ".zip".
+          $zip = "cashier_app-windows-v${env:VERSION}.zip"
           # Wildcard so the exe sits at the zip root, not inside a folder -
           # the updater extracts straight over the install directory.
           Compress-Archive -Path "build/windows/x64/runner/Release/*" -DestinationPath $zip -CompressionLevel Optimal
@@ -102,6 +120,7 @@ jobs:
           else
             git log --pretty='- %s' -n 20 > RELEASE_NOTES.md
           fi
+          [ -s RELEASE_NOTES.md ] || echo "- No changes recorded." > RELEASE_NOTES.md
           cat RELEASE_NOTES.md
 
       - name: Publish the release
@@ -109,10 +128,17 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          v="${{ steps.version.outputs.version }}"
+          v="$VERSION"
+          # --target pins the tag to the commit this run built. Without it
+          # the API tags the default branch's HEAD at call time, so a commit
+          # landing during the ~15min Windows build would get the tag while
+          # the attached zip holds the older build - and the tag-exists check
+          # would then skip that newer commit's release forever.
           gh release create "v$v" \
             "cashier_app-windows-v$v.zip" \
             "cashier_app-windows-v$v.zip.sha256" \
+            --target "$GITHUB_SHA" \
             --title "v$v" \
             --notes-file RELEASE_NOTES.md
