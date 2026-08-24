@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/error/failure.dart';
+import '../../../../core/local_source/local_source.dart';
 import '../../../products/domain/product.dart';
 import '../../data/pos_account_remote_data_source.dart' show CheckoutLine;
 import '../../data/pos_account_repository_impl.dart';
@@ -18,7 +19,8 @@ part 'pos_account_event.dart';
 part 'pos_account_state.dart';
 
 class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
-  PosAccountBloc(this._repository) : super(const PosAccountState()) {
+  PosAccountBloc(this._repository, [this._localSource])
+    : super(const PosAccountState()) {
     on<PosAccountDigitPressed>(_onDigitPressed);
     on<PosAccountBackspacePressed>(_onBackspacePressed);
     on<PosAccountSearchRequested>(_onSearchRequested);
@@ -43,6 +45,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
   }
 
   final PosAccountRepository _repository;
+  final LocalSource? _localSource;
 
   static const _maxPhoneDigits = 9;
   static const _minSearchDigits = 7;
@@ -154,6 +157,11 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     PosAccountRecentCustomersRequested event,
     Emitter<PosAccountState> emit,
   ) async {
+    final cached = _readCustomerHistory();
+    if (cached.isNotEmpty) {
+      emit(state.copyWith(customerHistory: cached));
+      await _refreshCachedHistory(cached, emit);
+    }
     try {
       final result = await _repository.searchCustomers('');
       result.fold((failure) {}, (customers) {
@@ -208,8 +216,121 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
         activePasses: [],
       ),
     );
+    unawaited(_persistCustomerHistory(history));
     add(const PosAccountPlayingRequested());
     add(const PosAccountActivePassesRequested());
+  }
+
+  List<Customer> _readCustomerHistory() {
+    try {
+      return (_localSource?.getCustomerSearchHistory() ?? const [])
+          .map(_customerFromJson)
+          .whereType<Customer>()
+          .take(10)
+          .toList(growable: false);
+    } catch (_) {
+      // A record written by an older app version must never break the page.
+      return const [];
+    }
+  }
+
+  Future<void> _persistCustomerHistory(List<Customer> customers) async {
+    try {
+      await _localSource?.setCustomerSearchHistory(
+        customers.take(10).map(_customerToJson).toList(growable: false),
+      );
+    } catch (_) {
+      // Search remains fully usable if local disk/Hive is unavailable.
+    }
+  }
+
+  Future<void> _refreshCachedHistory(
+    List<Customer> cached,
+    Emitter<PosAccountState> emit,
+  ) async {
+    final refreshedById = <int, Customer>{};
+    await Future.wait(
+      cached.map((snapshot) async {
+        final result = await _repository.searchCustomers(snapshot.phoneNumber);
+        result.fold((_) {}, (customers) {
+          for (final customer in customers) {
+            if (customer.id == snapshot.id) {
+              refreshedById[snapshot.id] = customer;
+              break;
+            }
+          }
+        });
+      }),
+    );
+    if (refreshedById.isEmpty || emit.isDone) return;
+
+    // Preserve any selection made while refresh calls were in flight and
+    // only replace matching snapshots with their fresh server versions.
+    final history = state.customerHistory
+        .map((item) => refreshedById[item.id] ?? item)
+        .toList(growable: false);
+    emit(state.copyWith(customerHistory: history));
+    await _persistCustomerHistory(history);
+  }
+
+  Map<String, dynamic> _customerToJson(Customer customer) => {
+    'id': customer.id,
+    'phoneNumber': customer.phoneNumber,
+    'firstName': customer.firstName,
+    'lastName': customer.lastName,
+    'balance': customer.balance,
+    'children': [
+      for (final child in customer.children)
+        {
+          'id': child.id,
+          'firstName': child.firstName,
+          'lastName': child.lastName,
+          'birthDate': child.birthDate.toIso8601String(),
+        },
+    ],
+  };
+
+  Customer? _customerFromJson(Map<String, dynamic> json) {
+    final id = json['id'];
+    final phone = json['phoneNumber'];
+    final firstName = json['firstName'];
+    final balance = json['balance'];
+    final rawChildren = json['children'];
+    if (id is! int ||
+        phone is! String ||
+        firstName is! String ||
+        balance is! int ||
+        rawChildren is! List) {
+      return null;
+    }
+    final children = <Child>[];
+    for (final raw in rawChildren.whereType<Map>()) {
+      final child = Map<String, dynamic>.from(raw);
+      final childId = child['id'];
+      final childFirstName = child['firstName'];
+      final birthDate = DateTime.tryParse(child['birthDate']?.toString() ?? '');
+      if (childId is! String ||
+          childFirstName is! String ||
+          birthDate == null) {
+        continue;
+      }
+      children.add(
+        Child(
+          id: childId,
+          firstName: childFirstName,
+          lastName: child['lastName'] as String?,
+          birthDate: birthDate,
+        ),
+      );
+    }
+    return Customer(
+      id: id,
+      phoneNumber: phone,
+      firstName: firstName,
+      lastName: json['lastName'] as String?,
+      balance: balance,
+      children: children,
+    );
   }
 
   void _onSelectionCleared(

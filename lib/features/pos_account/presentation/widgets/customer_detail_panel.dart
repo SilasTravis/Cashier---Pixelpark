@@ -1607,9 +1607,6 @@ class _ChildRow extends StatelessWidget {
               for (final reason in FreeReason.values)
                 PopupMenuItem<Object>(
                   value: reason,
-                  enabled:
-                      reason != FreeReason.birthday ||
-                      isBirthdayInTashkent(child.birthDate),
                   child: Row(
                     children: [
                       Icon(
@@ -1631,14 +1628,6 @@ class _ChildRow extends StatelessWidget {
                               '${_freeReasonLabel(l10n, reason)} (${l10n.free.toLowerCase()})',
                               style: AppTextStyles.body.copyWith(fontSize: 13),
                             ),
-                            if (reason == FreeReason.birthday &&
-                                !isBirthdayInTashkent(child.birthDate))
-                              Text(
-                                l10n.birthdayFreeOnlyToday,
-                                style: AppTextStyles.muted(
-                                  AppTextStyles.body.copyWith(fontSize: 11),
-                                ),
-                              ),
                           ],
                         ),
                       ),

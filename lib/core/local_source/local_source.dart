@@ -86,4 +86,33 @@ class LocalSource {
 
   String? getReceiptPrinterName() =>
       box.get(AppKeys.receiptPrinterName) as String?;
+
+  String? _customerSearchHistoryKey() {
+    final cashierId = getCashierId();
+    final branchId = getBranchId();
+    if (cashierId == null || branchId == null) return null;
+    return '${AppKeys.customerSearchHistory}:$cashierId:$branchId';
+  }
+
+  /// JSON-compatible customer snapshots, scoped to the signed-in cashier
+  /// and branch. The feature owns their schema; LocalSource only persists
+  /// the raw maps in the existing Hive box.
+  List<Map<String, dynamic>> getCustomerSearchHistory() {
+    final key = _customerSearchHistoryKey();
+    if (key == null) return const [];
+    final raw = box.get(key);
+    if (raw is! List) return const [];
+    return raw
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList(growable: false);
+  }
+
+  Future<void> setCustomerSearchHistory(
+    List<Map<String, dynamic>> customers,
+  ) async {
+    final key = _customerSearchHistoryKey();
+    if (key == null) return;
+    await box.put(key, customers);
+  }
 }

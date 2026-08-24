@@ -130,7 +130,7 @@ void _productsFeature() {
 }
 
 void _posAccountFeature() {
-  sl.registerFactory<PosAccountBloc>(() => PosAccountBloc(sl()));
+  sl.registerFactory<PosAccountBloc>(() => PosAccountBloc(sl(), sl()));
 
   sl.registerLazySingleton<PosAccountRepository>(
     () => PosAccountRepository(sl()),
