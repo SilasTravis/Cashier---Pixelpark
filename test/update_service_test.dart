@@ -554,5 +554,10 @@ void main() {
         Process.runSync('chmod', ['755', updatesDir.path]);
       }
     },
+    // chmod is POSIX-only, and read-only-directory semantics differ on
+    // Windows anyway. The behaviour under test (a cleanup failure must not
+    // replace the original exception) is platform-independent, so proving
+    // it on POSIX is enough.
+    testOn: '!windows',
   );
 }

@@ -28,6 +28,11 @@ jobs:
           flutter-version: 3.44.8
       - run: flutter pub get
       - run: flutter analyze
+      # The suite is the only thing guarding several invariants that no
+      # static check can see - notably that the release job below still
+      # publishes draft-first, and that the updater's rollback chain holds.
+      # Without this step those tests never run on a PR that breaks them.
+      - run: flutter test
 
   build_windows:
     runs-on: windows-latest
