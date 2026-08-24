@@ -46,12 +46,10 @@ class _FixedResponseAdapter implements HttpClientAdapter {
 class _CapturingAdapter implements HttpClientAdapter {
   _CapturingAdapter(
     this.body, {
-    this.statusCode = 200,
     this.contentType = Headers.textPlainContentType,
   });
 
   final String body;
-  final int statusCode;
   final String contentType;
   final List<RequestOptions> requests = [];
 
@@ -64,7 +62,7 @@ class _CapturingAdapter implements HttpClientAdapter {
     requests.add(options);
     return ResponseBody.fromString(
       body,
-      statusCode,
+      200,
       headers: {
         Headers.contentTypeHeader: [contentType],
       },
