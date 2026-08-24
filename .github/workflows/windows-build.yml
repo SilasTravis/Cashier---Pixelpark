@@ -11,6 +11,9 @@ env:
   # main builds against production; every other ref against stage.
   API_BASE_URL: ${{ github.ref == 'refs/heads/main' && 'https://api.pixelpark.uz/api' || 'https://test.api.pixelpark.uz/api' }}
 
+permissions:
+  contents: write
+
 jobs:
   analyze:
     runs-on: windows-latest
@@ -32,6 +35,10 @@ jobs:
     if: github.event_name != 'pull_request'
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history + tags: the release step needs them to detect an
+          # already-published version and to build notes since the last tag.
+          fetch-depth: 0
       - uses: subosito/flutter-action@v2
         with:
           # Pinned, not "stable": phosphor_flutter 2.1.0 (latest on pub.dev)
@@ -47,3 +54,65 @@ jobs:
           name: cashier_app-windows-${{ github.sha }}
           path: build/windows/x64/runner/Release/
           retention-days: 30
+
+      # ---- Release (main only) ----
+      # The Actions artifact above stays for stage builds; only main
+      # publishes a release the app can download without logging in.
+      - name: Read version from pubspec
+        id: version
+        if: github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          version=$(grep -m1 '^version:' pubspec.yaml | sed 's/^version:[[:space:]]*//' | cut -d'+' -f1 | tr -d '[:space:]')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Pubspec version: $version"
+
+      - name: Check whether this version was already released
+        id: tag
+        if: github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          if git rev-parse "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+            echo "Tag v${{ steps.version.outputs.version }} already exists - skipping release."
+            echo "Bump version: in pubspec.yaml to publish a new one."
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Package the release zip
+        if: github.ref == 'refs/heads/main' && steps.tag.outputs.exists == 'false'
+        shell: pwsh
+        run: |
+          $zip = "cashier_app-windows-v${{ steps.version.outputs.version }}.zip"
+          # Wildcard so the exe sits at the zip root, not inside a folder -
+          # the updater extracts straight over the install directory.
+          Compress-Archive -Path "build/windows/x64/runner/Release/*" -DestinationPath $zip -CompressionLevel Optimal
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
+          Set-Content -Path "$zip.sha256" -Value $hash -NoNewline
+          Write-Host "sha256: $hash"
+
+      - name: Build release notes
+        if: github.ref == 'refs/heads/main' && steps.tag.outputs.exists == 'false'
+        shell: bash
+        run: |
+          prev=$(git describe --tags --abbrev=0 2>/dev/null || true)
+          if [ -n "$prev" ]; then
+            git log --pretty='- %s' "$prev"..HEAD > RELEASE_NOTES.md
+          else
+            git log --pretty='- %s' -n 20 > RELEASE_NOTES.md
+          fi
+          cat RELEASE_NOTES.md
+
+      - name: Publish the release
+        if: github.ref == 'refs/heads/main' && steps.tag.outputs.exists == 'false'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v="${{ steps.version.outputs.version }}"
+          gh release create "v$v" \
+            "cashier_app-windows-v$v.zip" \
+            "cashier_app-windows-v$v.zip.sha256" \
+            --title "v$v" \
+            --notes-file RELEASE_NOTES.md
