@@ -30,13 +30,41 @@ class GithubReleaseSource implements ReleaseSource {
   static const String latestReleaseUrl =
       'https://api.github.com/repos/$repoSlug/releases/latest';
 
+  /// Time to establish the TCP/TLS connection, on every call this class
+  /// makes. On a captive portal or a black-holed connection this is what
+  /// stops `UpdateChecking`/`UpdateDownloading` from spinning forever — the
+  /// previous bare `Dio()` had no limit at all. Generous because a POS may
+  /// be on a slow or congested connection, not just a broken one.
+  static const Duration _connectTimeout = Duration(seconds: 10);
+
+  /// Ceiling for the two small JSON/text calls: the whole response is a few
+  /// KB, so if it hasn't arrived in this long the connection is stalled,
+  /// not just slow.
+  static const Duration _metadataReceiveTimeout = Duration(seconds: 15);
+
+  /// Ceiling for the zip download. Deliberately much longer than
+  /// [_metadataReceiveTimeout] and NOT a cap on the whole transfer: in the
+  /// dio version pinned here (5.11.0), `receiveTimeout` is applied between
+  /// received chunks — `io_adapter.dart` waits this long for the response
+  /// headers, and `response_stream_handler.dart`'s `watchReceiveTimeout()`
+  /// then resets the timer on every `onData` chunk for the rest of the
+  /// stream. So a large but steadily-progressing download on a slow link is
+  /// never killed by this; only a connection that goes silent mid-download
+  /// (the same captive-portal/black-hole failure mode this finding is
+  /// about) trips it.
+  static const Duration _downloadStallTimeout = Duration(seconds: 30);
+
   final Dio _dio;
 
   @override
   Future<UpdateRelease?> fetchLatest() async {
     final response = await _dio.get<Map<String, dynamic>>(
       latestReleaseUrl,
-      options: Options(headers: const {'Accept': 'application/vnd.github+json'}),
+      options: Options(
+        headers: const {'Accept': 'application/vnd.github+json'},
+        connectTimeout: _connectTimeout,
+        receiveTimeout: _metadataReceiveTimeout,
+      ),
     );
     final data = response.data;
     if (data == null) return null;
@@ -52,7 +80,11 @@ class GithubReleaseSource implements ReleaseSource {
 
     final response = await _dio.get<String>(
       url,
-      options: Options(responseType: ResponseType.plain),
+      options: Options(
+        responseType: ResponseType.plain,
+        connectTimeout: _connectTimeout,
+        receiveTimeout: _metadataReceiveTimeout,
+      ),
     );
     final digest = parseSha256Digest(response.data);
     if (digest == null) {
@@ -78,6 +110,10 @@ class GithubReleaseSource implements ReleaseSource {
     await _dio.download(
       release.zipUrl,
       savePath,
+      options: Options(
+        connectTimeout: _connectTimeout,
+        receiveTimeout: _downloadStallTimeout,
+      ),
       onReceiveProgress: (received, total) {
         // GitHub sends Content-Length, but fall back to the asset size from
         // the API when a proxy strips it, so the progress bar stays useful.
