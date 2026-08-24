@@ -121,5 +121,9 @@
   "updateFailed": "Update failed",
   "updateFailedGeneric": "Update failed. Check the internet connection and try again.",
   "updateManualHint": "To download manually:",
-  "updateWindowsOnly": "Automatic updates work on Windows only"
+  "updateWindowsOnly": "Automatic updates work on Windows only",
+  "updateFailureChecksumMismatch": "The downloaded file failed its checksum check",
+  "updateFailureChecksumUnreadable": "Could not read the published checksum — refusing to install an unverified update",
+  "updateFailureExecutableMissing": "The downloaded archive is missing the app program",
+  "updateFailureIncompleteExtraction": "The update did not unpack completely. The download was discarded — please try again"
 }

@@ -1593,6 +1593,46 @@ class AppLocalization {
       args: [],
     );
   }
+
+  /// `The downloaded file failed its checksum check`
+  String get updateFailureChecksumMismatch {
+    return Intl.message(
+      'The downloaded file failed its checksum check',
+      name: 'updateFailureChecksumMismatch',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Could not read the published checksum — refusing to install an unverified update`
+  String get updateFailureChecksumUnreadable {
+    return Intl.message(
+      'Could not read the published checksum — refusing to install an unverified update',
+      name: 'updateFailureChecksumUnreadable',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The downloaded archive is missing the app program`
+  String get updateFailureExecutableMissing {
+    return Intl.message(
+      'The downloaded archive is missing the app program',
+      name: 'updateFailureExecutableMissing',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The update did not unpack completely. The download was discarded — please try again`
+  String get updateFailureIncompleteExtraction {
+    return Intl.message(
+      'The update did not unpack completely. The download was discarded — please try again',
+      name: 'updateFailureIncompleteExtraction',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalization> {

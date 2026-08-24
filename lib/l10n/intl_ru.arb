@@ -126,5 +126,9 @@
   "updateFailed": "Не удалось обновить",
   "updateFailedGeneric": "Не удалось обновить. Проверьте подключение к интернету и попробуйте снова.",
   "updateManualHint": "Для ручной загрузки:",
-  "updateWindowsOnly": "Автообновление работает только в Windows"
+  "updateWindowsOnly": "Автообновление работает только в Windows",
+  "updateFailureChecksumMismatch": "Скачанный файл повреждён — контрольная сумма не совпала",
+  "updateFailureChecksumUnreadable": "Не удалось прочитать опубликованную контрольную сумму — обновление с непроверенным файлом не устанавливается",
+  "updateFailureExecutableMissing": "В скачанном архиве не найдена программа приложения",
+  "updateFailureIncompleteExtraction": "Обновление распаковалось не полностью. Файл был удалён — попробуйте ещё раз"
 }

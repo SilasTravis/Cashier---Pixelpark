@@ -191,6 +191,23 @@ void main() {
         expect(e.message, contains('1.2.3'));
       }
     });
+
+    test(
+      'the UpdateException carries the checksumUnreadable code (I4)',
+      () async {
+        final source = _sourceRespondingWith('not a digest');
+        final release = _releaseWithSha256Url(
+          'https://example.test/v1.2.3.zip.sha256',
+        );
+
+        try {
+          await source.fetchSha256(release);
+          fail('expected UpdateException');
+        } on UpdateException catch (e) {
+          expect(e.code, UpdateFailureCode.checksumUnreadable);
+        }
+      },
+    );
   });
 
   // --- no release published yet (I6) ---------------------------------------

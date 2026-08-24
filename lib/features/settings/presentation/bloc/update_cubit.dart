@@ -62,12 +62,18 @@ sealed class UpdateFailure extends UpdateState {
   final String? releasePageUrl;
 }
 
-/// An [UpdateException] was thrown by the update layer. Its [message] is
-/// already written to be shown directly to a cashier (see
-/// `update_exception.dart`) and is safe to render as-is.
+/// An [UpdateException] was thrown by the update layer. [code] identifies
+/// which of the closed set of [UpdateFailureCode] cases this is, and
+/// `UpdateCard` maps it to a fully localized (Uzbek/Russian/English) ARB
+/// string for the cashier — never [message] directly, which is English and
+/// developer-facing only (see `update_exception.dart`).
 class UpdateFailureKnown extends UpdateFailure {
-  const UpdateFailureKnown(this.message, super.releasePageUrl);
+  const UpdateFailureKnown(this.code, this.message, super.releasePageUrl);
 
+  final UpdateFailureCode code;
+
+  /// Developer-facing English detail — logs/diagnostics only, never
+  /// rendered. See [code] for what the UI should show instead.
   final String message;
 }
 
@@ -143,14 +149,15 @@ class UpdateCubit extends Cubit<UpdateState> {
     emit(state);
   }
 
-  /// [UpdateException] messages are already written for a cashier to read,
-  /// so they pass through untouched as [UpdateFailureKnown]. Anything else
-  /// becomes [UpdateFailureUnexpected], with the raw text kept only in
+  /// An [UpdateException]'s [UpdateException.code] and [UpdateException.message]
+  /// both pass through untouched as [UpdateFailureKnown] — the code for the
+  /// UI to localize, the message for logs only. Anything else becomes
+  /// [UpdateFailureUnexpected], with the raw text kept only in
   /// [UpdateFailureUnexpected.debugDetail] for diagnosis — there is no
   /// user-facing message field for it to leak into.
   UpdateFailure _failureFrom(Object error, String? releasePageUrl) {
     if (error is UpdateException) {
-      return UpdateFailureKnown(error.message, releasePageUrl);
+      return UpdateFailureKnown(error.code, error.message, releasePageUrl);
     }
     return UpdateFailureUnexpected(error.toString(), releasePageUrl);
   }

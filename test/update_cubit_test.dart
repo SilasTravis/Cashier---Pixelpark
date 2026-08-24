@@ -285,6 +285,7 @@ void main() {
 
       final failure = cubit.state as UpdateFailureKnown;
       expect(failure.message, 'Self-update is only supported on Windows');
+      expect(failure.code, UpdateFailureCode.unsupportedPlatform);
       expect(
         failure.releasePageUrl,
         'https://example.test/releases/tag/v1.2.3',

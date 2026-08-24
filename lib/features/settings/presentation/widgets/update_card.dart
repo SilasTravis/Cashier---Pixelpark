@@ -6,6 +6,7 @@ import 'package:phosphor_icons/phosphor_icons.dart';
 
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
+import '../../../../core/update/update_exception.dart';
 import '../../../../generated/l10n.dart';
 import '../bloc/update_cubit.dart';
 
@@ -180,9 +181,17 @@ class UpdateCard extends StatelessWidget {
       // ("Failed host lookup: 'api.github.com' … uri=…") must never reach a
       // cashier in an otherwise fully localized app. Its detail is
       // diagnostics-only; the UI supplies its own localized generic text.
-      case UpdateFailureKnown(:final message, :final releasePageUrl):
+      //
+      // UpdateFailureKnown.message is likewise developer-facing English
+      // only (see update_exception.dart) — `code` is what gets rendered,
+      // mapped to a fully localized ARB string by `_knownFailureText`.
+      case UpdateFailureKnown(
+        :final code,
+        :final message,
+        :final releasePageUrl,
+      ):
         return _failureBody(
-          '${l10n.updateFailed}: $message',
+          '${l10n.updateFailed}: ${_knownFailureText(l10n, code, message)}',
           releasePageUrl,
           cubit,
           l10n,
@@ -195,6 +204,39 @@ class UpdateCard extends StatelessWidget {
           cubit,
           l10n,
         );
+    }
+  }
+
+  /// Maps the closed set of [UpdateFailureCode]s to fully localized,
+  /// cashier-facing text — never [devMessage], which is English and
+  /// developer-facing only. [UpdateFailureCode.unsupportedPlatform] reuses
+  /// [AppLocalization.updateWindowsOnly], the same string already shown as
+  /// the Windows-only note elsewhere on this card, rather than duplicating
+  /// a near-identical ARB entry.
+  ///
+  /// [UpdateFailureCode.other] is the one deliberate exception: no
+  /// production throw site in this codebase should ever reach it (each of
+  /// the five real cases above already has a localized entry), so falling
+  /// back to the raw English [devMessage] here is a safety net for an
+  /// uncategorized case, not a sanctioned display path.
+  String _knownFailureText(
+    AppLocalization l10n,
+    UpdateFailureCode code,
+    String devMessage,
+  ) {
+    switch (code) {
+      case UpdateFailureCode.checksumMismatch:
+        return l10n.updateFailureChecksumMismatch;
+      case UpdateFailureCode.checksumUnreadable:
+        return l10n.updateFailureChecksumUnreadable;
+      case UpdateFailureCode.executableMissing:
+        return l10n.updateFailureExecutableMissing;
+      case UpdateFailureCode.incompleteExtraction:
+        return l10n.updateFailureIncompleteExtraction;
+      case UpdateFailureCode.unsupportedPlatform:
+        return l10n.updateWindowsOnly;
+      case UpdateFailureCode.other:
+        return devMessage;
     }
   }
 

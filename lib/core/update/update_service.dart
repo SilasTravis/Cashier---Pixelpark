@@ -73,6 +73,7 @@ Future<void> verifyExtractedArchive({
     'The update did not unpack completely — ${problems.length} file(s) are '
     'missing or truncated: $named$rest. The download was discarded; '
     'please try again.',
+    UpdateFailureCode.incompleteExtraction,
   );
 }
 
@@ -200,6 +201,7 @@ class UpdateService {
       if (!await exe.exists()) {
         throw const UpdateException(
           'cashier_app.exe not found in the downloaded archive',
+          UpdateFailureCode.executableMissing,
         );
       }
       await zip.delete();
@@ -218,7 +220,10 @@ class UpdateService {
 
   Future<Never> applyAndRestart(Directory staged) async {
     if (!Platform.isWindows) {
-      throw const UpdateException('Self-update is only supported on Windows');
+      throw const UpdateException(
+        'Self-update is only supported on Windows',
+        UpdateFailureCode.unsupportedPlatform,
+      );
     }
     _timer?.cancel();
     return _updater.apply(
@@ -254,7 +259,10 @@ class UpdateService {
     if (expected == null) return;
     final actual = (await sha256.bind(zip.openRead()).first).toString();
     if (actual != expected.toLowerCase()) {
-      throw const UpdateException('Downloaded file failed its checksum check');
+      throw const UpdateException(
+        'Downloaded file failed its checksum check',
+        UpdateFailureCode.checksumMismatch,
+      );
     }
   }
 

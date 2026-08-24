@@ -247,6 +247,72 @@ void main() {
     expect(File('${support.path}/updates/v1.2.3.zip').existsSync(), isFalse);
   });
 
+  // --- UpdateFailureCode (I4) ----------------------------------------------
+  //
+  // Each of these three throw sites in update_service.dart must carry the
+  // matching code so UpdateCard can show fully localized text instead of
+  // the English `message` above.
+
+  test('a mismatched digest carries the checksumMismatch code', () async {
+    final source = _FakeSource(zipBytes: zipBytes, digest: 'deadbeef');
+    final service = serviceWith(source);
+
+    await expectLater(
+      service.downloadAndStage(
+        _release(sha256Url: 'https://example.test/app.zip.sha256'),
+      ),
+      throwsA(
+        isA<UpdateException>().having(
+          (e) => e.code,
+          'code',
+          UpdateFailureCode.checksumMismatch,
+        ),
+      ),
+    );
+  });
+
+  test('a missing executable carries the executableMissing code', () async {
+    final other = Directory('${support.path}/other2')..createSync();
+    File('${other.path}/readme.txt').writeAsStringSync('nope');
+    final otherZip = '${support.path}/other2.zip';
+    await ZipFileEncoder().zipDirectory(other, filename: otherZip);
+
+    final source = _FakeSource(zipBytes: File(otherZip).readAsBytesSync());
+    final service = serviceWith(source);
+
+    await expectLater(
+      service.downloadAndStage(_release()),
+      throwsA(
+        isA<UpdateException>().having(
+          (e) => e.code,
+          'code',
+          UpdateFailureCode.executableMissing,
+        ),
+      ),
+    );
+  });
+
+  test(
+    'a partially-extracted archive carries the incompleteExtraction code',
+    () async {
+      final source = _FakeSource(
+        zipBytes: _corruptEntryData(zipBytes, 'flutter_windows.dll'),
+      );
+      final service = serviceWith(source);
+
+      await expectLater(
+        service.downloadAndStage(_release()),
+        throwsA(
+          isA<UpdateException>().having(
+            (e) => e.code,
+            'code',
+            UpdateFailureCode.incompleteExtraction,
+          ),
+        ),
+      );
+    },
+  );
+
   test('accepts an extraction that matches the archive', () async {
     final staged = Directory('${support.path}/staged');
     await extractFileToDisk('${support.path}/source.zip', staged.path);

@@ -110,6 +110,7 @@ class GithubReleaseSource implements ReleaseSource {
         'Could not read the published checksum for version '
         '${release.version} at $url — the file did not contain a valid '
         'SHA-256 digest. Refusing to install an unverified update.',
+        UpdateFailureCode.checksumUnreadable,
       );
     }
     return digest;

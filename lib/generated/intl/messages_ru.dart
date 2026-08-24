@@ -339,6 +339,18 @@ class MessageLookup extends MessageLookupByLibrary {
     "updateFailedGeneric": MessageLookupByLibrary.simpleMessage(
       "Не удалось обновить. Проверьте подключение к интернету и попробуйте снова.",
     ),
+    "updateFailureChecksumMismatch": MessageLookupByLibrary.simpleMessage(
+      "Скачанный файл повреждён — контрольная сумма не совпала",
+    ),
+    "updateFailureChecksumUnreadable": MessageLookupByLibrary.simpleMessage(
+      "Не удалось прочитать опубликованную контрольную сумму — обновление с непроверенным файлом не устанавливается",
+    ),
+    "updateFailureExecutableMissing": MessageLookupByLibrary.simpleMessage(
+      "В скачанном архиве не найдена программа приложения",
+    ),
+    "updateFailureIncompleteExtraction": MessageLookupByLibrary.simpleMessage(
+      "Обновление распаковалось не полностью. Файл был удалён — попробуйте ещё раз",
+    ),
     "updateManualHint": MessageLookupByLibrary.simpleMessage(
       "Для ручной загрузки:",
     ),

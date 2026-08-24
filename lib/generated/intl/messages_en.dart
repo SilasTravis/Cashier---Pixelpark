@@ -335,6 +335,18 @@ class MessageLookup extends MessageLookupByLibrary {
     "updateFailedGeneric": MessageLookupByLibrary.simpleMessage(
       "Update failed. Check the internet connection and try again.",
     ),
+    "updateFailureChecksumMismatch": MessageLookupByLibrary.simpleMessage(
+      "The downloaded file failed its checksum check",
+    ),
+    "updateFailureChecksumUnreadable": MessageLookupByLibrary.simpleMessage(
+      "Could not read the published checksum — refusing to install an unverified update",
+    ),
+    "updateFailureExecutableMissing": MessageLookupByLibrary.simpleMessage(
+      "The downloaded archive is missing the app program",
+    ),
+    "updateFailureIncompleteExtraction": MessageLookupByLibrary.simpleMessage(
+      "The update did not unpack completely. The download was discarded — please try again",
+    ),
     "updateManualHint": MessageLookupByLibrary.simpleMessage(
       "To download manually:",
     ),

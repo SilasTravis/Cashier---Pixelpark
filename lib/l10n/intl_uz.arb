@@ -208,5 +208,9 @@
   "updateFailed": "Yangilanmadi",
   "updateFailedGeneric": "Yangilanmadi. Internet aloqasini tekshiring va qayta urinib ko‘ring.",
   "updateManualHint": "Qo‘lda yuklab olish uchun:",
-  "updateWindowsOnly": "Avtomatik yangilash faqat Windows’da ishlaydi"
+  "updateWindowsOnly": "Avtomatik yangilash faqat Windows’da ishlaydi",
+  "updateFailureChecksumMismatch": "Yuklab olingan fayl buzilgan chiqdi — tekshiruv summasi mos kelmadi",
+  "updateFailureChecksumUnreadable": "Nashr etilgan tekshiruv summasini o‘qib bo‘lmadi — tasdiqlanmagan yangilanish o‘rnatilmaydi",
+  "updateFailureExecutableMissing": "Yuklab olingan arxivda ilova dasturi topilmadi",
+  "updateFailureIncompleteExtraction": "Yangilanish to‘liq yozilmadi. Yuklangan fayl bekor qilindi — qaytadan urinib ko‘ring"
 }

@@ -338,6 +338,18 @@ class MessageLookup extends MessageLookupByLibrary {
     "updateFailedGeneric": MessageLookupByLibrary.simpleMessage(
       "Yangilanmadi. Internet aloqasini tekshiring va qayta urinib ko‘ring.",
     ),
+    "updateFailureChecksumMismatch": MessageLookupByLibrary.simpleMessage(
+      "Yuklab olingan fayl buzilgan chiqdi — tekshiruv summasi mos kelmadi",
+    ),
+    "updateFailureChecksumUnreadable": MessageLookupByLibrary.simpleMessage(
+      "Nashr etilgan tekshiruv summasini o‘qib bo‘lmadi — tasdiqlanmagan yangilanish o‘rnatilmaydi",
+    ),
+    "updateFailureExecutableMissing": MessageLookupByLibrary.simpleMessage(
+      "Yuklab olingan arxivda ilova dasturi topilmadi",
+    ),
+    "updateFailureIncompleteExtraction": MessageLookupByLibrary.simpleMessage(
+      "Yangilanish to‘liq yozilmadi. Yuklangan fayl bekor qilindi — qaytadan urinib ko‘ring",
+    ),
     "updateManualHint": MessageLookupByLibrary.simpleMessage(
       "Qo‘lda yuklab olish uchun:",
     ),
