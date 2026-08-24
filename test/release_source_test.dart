@@ -75,6 +75,26 @@ class _CapturingAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
+/// Throws a connection-level [DioException] (no HTTP response at all) —
+/// the shape of an offline machine or a blocked host, as opposed to a
+/// server that actually answered with an error status.
+class _ThrowingAdapter implements HttpClientAdapter {
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    throw DioException.connectionError(
+      requestOptions: options,
+      reason: 'Failed host lookup',
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
 UpdateRelease _releaseWithSha256Url(String? url) => UpdateRelease(
   version: '1.2.3',
   notes: '',
@@ -170,6 +190,43 @@ void main() {
       } on UpdateException catch (e) {
         expect(e.message, contains('1.2.3'));
       }
+    });
+  });
+
+  // --- no release published yet (I6) ---------------------------------------
+  //
+  // `/releases/latest` returns 404 on a repo with no releases at all — that
+  // is a legitimate "nothing to update to" state, not a failure. It must be
+  // told apart from a genuine server error and from a connection failure,
+  // both of which still have to surface as errors.
+  group('GithubReleaseSource.fetchLatest', () {
+    test('returns null when the repo has no releases yet (404)', () async {
+      final dio = Dio()
+        ..httpClientAdapter = _FixedResponseAdapter(
+          '{"message":"Not Found"}',
+          statusCode: 404,
+        );
+      final source = GithubReleaseSource(dio: dio);
+
+      expect(await source.fetchLatest(), isNull);
+    });
+
+    test('still throws for a genuine server error (500)', () async {
+      final dio = Dio()
+        ..httpClientAdapter = _FixedResponseAdapter(
+          '{"message":"Internal Server Error"}',
+          statusCode: 500,
+        );
+      final source = GithubReleaseSource(dio: dio);
+
+      expect(() => source.fetchLatest(), throwsA(isA<DioException>()));
+    });
+
+    test('still throws on a connection failure (offline/blocked)', () async {
+      final dio = Dio()..httpClientAdapter = _ThrowingAdapter();
+      final source = GithubReleaseSource(dio: dio);
+
+      expect(() => source.fetchLatest(), throwsA(isA<DioException>()));
     });
   });
 

@@ -58,14 +58,28 @@ class GithubReleaseSource implements ReleaseSource {
 
   @override
   Future<UpdateRelease?> fetchLatest() async {
-    final response = await _dio.get<Map<String, dynamic>>(
-      latestReleaseUrl,
-      options: Options(
-        headers: const {'Accept': 'application/vnd.github+json'},
-        connectTimeout: _connectTimeout,
-        receiveTimeout: _metadataReceiveTimeout,
-      ),
-    );
+    final Response<Map<String, dynamic>> response;
+    try {
+      response = await _dio.get<Map<String, dynamic>>(
+        latestReleaseUrl,
+        options: Options(
+          headers: const {'Accept': 'application/vnd.github+json'},
+          connectTimeout: _connectTimeout,
+          receiveTimeout: _metadataReceiveTimeout,
+        ),
+      );
+    } on DioException catch (e) {
+      // A repo with no releases at all returns 404 from this endpoint —
+      // that's "nothing to update to", not a failure. Only treat it that
+      // way when the server actually answered with a 404: a connection
+      // failure (offline, DNS, a blocked host) carries no response at all
+      // and must still surface as an error rather than be swallowed here.
+      if (e.type == DioExceptionType.badResponse &&
+          e.response?.statusCode == 404) {
+        return null;
+      }
+      rethrow;
+    }
     final data = response.data;
     if (data == null) return null;
     return UpdateRelease.fromGithubJson(data);
