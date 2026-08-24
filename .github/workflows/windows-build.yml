@@ -131,6 +131,30 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           v="$VERSION"
+          # Published in two steps, draft first.
+          #
+          # `gh release create` creates the release and *then* uploads the
+          # assets. A release that is live during that window serves the zip
+          # with no .sha256 next to it, and the app reads a missing .sha256
+          # as "this release was published without one" - verification
+          # skipped, install proceeds. If the second upload then fails
+          # outright, the tag exists, the tag-exists check above suppresses
+          # every retry, and that release stays permanently unverifiable on
+          # every till. /releases/latest excludes drafts, so a draft is
+          # never observed at all.
+          #
+          # A run that dies between the two steps leaves only a draft.
+          # `shell: bash` means `set -e`, so a failed upload never reaches
+          # the publish line.
+          #
+          # Reclaim such a draft first: a draft reserves the tag *name*
+          # without creating the tag, so the tag-exists check cannot see it
+          # and `gh release create` would fail with "already exists" on
+          # every later run. This step only runs when the tag does not
+          # exist, and a published release always has one, so nothing
+          # reachable here can be a real release.
+          gh release delete "v$v" --yes 2>/dev/null || true
+
           # --target pins the tag to the commit this run built. Without it
           # the API tags the default branch's HEAD at call time, so a commit
           # landing during the ~15min Windows build would get the tag while
@@ -141,4 +165,9 @@ jobs:
             "cashier_app-windows-v$v.zip.sha256" \
             --target "$GITHUB_SHA" \
             --title "v$v" \
-            --notes-file RELEASE_NOTES.md
+            --notes-file RELEASE_NOTES.md \
+            --draft
+
+          # Both assets are arguments above, so reaching this line means
+          # both uploads succeeded. Publishing creates the tag at --target.
+          gh release edit "v$v" --draft=false
