@@ -109,6 +109,19 @@ class UpdateService {
   Timer? _timer;
   bool _disposed = false;
 
+  /// The download currently running, if any, with the version it is for.
+  ///
+  /// The cubit that calls [downloadAndStage] is destroyed and rebuilt on
+  /// every tab switch, so pressing the button, leaving Settings and coming
+  /// back to press it again starts a second call while the first is still
+  /// going. Both would write `updates\vX.Y.Z.zip` and extract into
+  /// `updates\vX.Y.Z\`: the second one's clean-up deletes the file the
+  /// first still has open, or the two extractions interleave into one
+  /// half-written tree. Each caller's digest check passes over its own zip,
+  /// so nothing downstream notices.
+  Future<Directory>? _inFlight;
+  String? _inFlightVersion;
+
   Future<UpdateRelease?> check() async {
     final latest = await _source.fetchLatest();
     final newer =
@@ -119,7 +132,37 @@ class UpdateService {
     return newer;
   }
 
+  /// Downloads, verifies and unpacks [release], returning the staged folder.
+  ///
+  /// Deliberately not `async`: the in-flight guard has to be read and written
+  /// in one synchronous step, before the caller gets a chance to call again.
   Future<Directory> downloadAndStage(
+    UpdateRelease release, {
+    void Function(int received, int total)? onProgress,
+  }) {
+    final running = _inFlight;
+    // Keyed on the version so a request for a *different* build is never
+    // handed the folder of the one already downloading. Two versions at
+    // once do not share a path, so they do not race either.
+    if (running != null && _inFlightVersion == release.version) return running;
+
+    late final Future<Directory> attempt;
+    attempt = _downloadAndStage(release, onProgress: onProgress).whenComplete(
+      () {
+        // Cleared on success and on failure alike, so a retry after a
+        // network drop is not stuck waiting on a future that already blew up.
+        if (identical(_inFlight, attempt)) {
+          _inFlight = null;
+          _inFlightVersion = null;
+        }
+      },
+    );
+    _inFlight = attempt;
+    _inFlightVersion = release.version;
+    return attempt;
+  }
+
+  Future<Directory> _downloadAndStage(
     UpdateRelease release, {
     void Function(int received, int total)? onProgress,
   }) async {

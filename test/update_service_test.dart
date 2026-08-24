@@ -321,6 +321,56 @@ void main() {
     expect(source.downloadCalls, 2);
   });
 
+  // --- concurrent downloads (I2) ------------------------------------------
+
+  test('a second download joins the one already running', () async {
+    // The cubit that owns this call is rebuilt on every tab switch, so a
+    // cashier who starts a download, switches tabs and comes back can press
+    // the button again while the first is still running. Two writers on the
+    // same v1.2.3.zip and v1.2.3\ is how a half-extracted tree gets made.
+    final source = _FakeSource(zipBytes: zipBytes);
+    final service = serviceWith(source);
+
+    final first = service.downloadAndStage(_release());
+    final second = service.downloadAndStage(_release());
+    final staged = await Future.wait([first, second]);
+
+    expect(source.downloadCalls, 1);
+    expect(staged[1].path, staged[0].path);
+    expect(File('${staged[0].path}/cashier_app.exe').existsSync(), isTrue);
+    expect(File('${staged[0].path}/flutter_windows.dll').existsSync(), isTrue);
+  });
+
+  test('a finished download does not suppress the next one', () async {
+    final source = _FakeSource(zipBytes: zipBytes);
+    final service = serviceWith(source);
+
+    await service.downloadAndStage(_release());
+    await service.downloadAndStage(_release());
+
+    expect(
+      source.downloadCalls,
+      2,
+      reason: 'the guard must clear once the download it covers is done',
+    );
+  });
+
+  test('a failed download does not wedge the guard shut', () async {
+    final source = _FakeSource(zipBytes: zipBytes)
+      ..failDownloadWith = const UpdateException('network down');
+    final service = serviceWith(source);
+
+    await expectLater(
+      service.downloadAndStage(_release()),
+      throwsA(isA<UpdateException>()),
+    );
+
+    source.failDownloadWith = null;
+    final staged = await service.downloadAndStage(_release());
+    expect(File('${staged.path}/cashier_app.exe').existsSync(), isTrue);
+    expect(source.downloadCalls, 2);
+  });
+
   test('starting background checks twice does not leak a duplicate timer', () {
     fakeAsync((async) {
       final source = _FakeSource(zipBytes: zipBytes, latest: _release());
