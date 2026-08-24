@@ -331,4 +331,68 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Update the app'), findsNothing);
   });
+
+  // --- confirm really calls restart() (Finding 7) -----------------------
+  //
+  // The test above only proves cancelling never restarts. Nothing proved
+  // confirming does — the only irreversible action in this feature. This
+  // captures the cubit UpdateCard is driving so the test can look past the
+  // dialog closing and check what the cubit actually did.
+  //
+  // UpdateService.applyAndRestart isn't overridden here, so on this
+  // non-Windows test runner confirming really does run the production
+  // restart path — see UpdateService.applyAndRestart and the identical
+  // technique in update_cubit_test.dart's "restart failure is presented
+  // the same way as check/download". It throws
+  // UpdateException('Self-update is only supported on Windows',
+  // UpdateFailureCode.unsupportedPlatform) rather than replacing the
+  // process, and landing in that failure state — reachable no other way
+  // from UpdateReadyToRestart — is the proof restart() actually ran.
+  testWidgets(
+    'confirming the restart dialog calls UpdateCubit.restart()',
+    (tester) async {
+      late UpdateCubit cubit;
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: const [
+            AppLocalization.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalization.delegate.supportedLocales,
+          locale: const Locale('en'),
+          home: Scaffold(
+            body: BlocProvider<UpdateCubit>(
+              create: (_) {
+                cubit = _StaticCubit(
+                  UpdateReadyToRestart(_release(), Directory.systemTemp),
+                );
+                return cubit;
+              },
+              child: const UpdateCard(),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Restart now'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+
+      final failure = cubit.state;
+      expect(failure, isA<UpdateFailureKnown>());
+      expect(
+        (failure as UpdateFailureKnown).code,
+        UpdateFailureCode.unsupportedPlatform,
+      );
+      expect(
+        find.text('Update failed: Automatic updates work on Windows only'),
+        findsOneWidget,
+      );
+    },
+    skip: Platform.isWindows,
+  );
 }
