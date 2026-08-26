@@ -89,7 +89,9 @@ class MessageLookup extends MessageLookupByLibrary {
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
+    "accountId": MessageLookupByLibrary.simpleMessage("Hisob ID"),
     "accountNotFoundForPhone": m0,
+    "accountOwner": MessageLookupByLibrary.simpleMessage("Hisob egasi"),
     "accruedAmount": MessageLookupByLibrary.simpleMessage("Joriy hisob"),
     "accruedDue": m1,
     "add": MessageLookupByLibrary.simpleMessage("Qo‘shish"),
@@ -134,6 +136,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "customerDirectorySearchHint": MessageLookupByLibrary.simpleMessage(
       "Ism yoki telefonning oxirgi raqamlari bo‘yicha qidiring",
     ),
+    "date": MessageLookupByLibrary.simpleMessage("Sana"),
     "downgradeForbidden": MessageLookupByLibrary.simpleMessage(
       "Bu rejadan pasaytirish mumkin emas — stiker yo‘qolgan bo‘lsa, mavjud rejani qayta chop eting.",
     ),
@@ -221,6 +224,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "noPrintersFound": MessageLookupByLibrary.simpleMessage(
       "Windows’da o‘rnatilgan printer topilmadi",
     ),
+    "openCustomerProfile": MessageLookupByLibrary.simpleMessage(
+      "User profiliga kirish",
+    ),
     "parentQr": MessageLookupByLibrary.simpleMessage("Ota-ona QR"),
     "pay": MessageLookupByLibrary.simpleMessage("To‘lash"),
     "payFromBalance": MessageLookupByLibrary.simpleMessage("Balansdan yechish"),
@@ -240,6 +246,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "paymentMissing": MessageLookupByLibrary.simpleMessage("Yetmayapti"),
     "paymentSplit": MessageLookupByLibrary.simpleMessage("Aralash"),
     "phoneNotFound": MessageLookupByLibrary.simpleMessage("Bu raqam topilmadi"),
+    "phoneNumber": MessageLookupByLibrary.simpleMessage("Telefon raqami"),
     "planSwitch": MessageLookupByLibrary.simpleMessage("Reja almashtirish"),
     "planSwitchQuestion": m21,
     "planSwitchVipQuestion": m22,
@@ -313,8 +320,12 @@ class MessageLookup extends MessageLookupByLibrary {
     "tariffNotFound": MessageLookupByLibrary.simpleMessage("Tarif topilmadi."),
     "topup": MessageLookupByLibrary.simpleMessage("To‘ldirish"),
     "topupBalance": MessageLookupByLibrary.simpleMessage("Balansni to‘ldirish"),
+    "topupDetails": MessageLookupByLibrary.simpleMessage(
+      "Hisob to‘ldirish tafsilotlari",
+    ),
     "total": MessageLookupByLibrary.simpleMessage("Jami"),
     "totalBill": MessageLookupByLibrary.simpleMessage("Jami hisob"),
+    "transactionId": MessageLookupByLibrary.simpleMessage("Tranzaksiya ID"),
     "unlimitedFreeEntry": MessageLookupByLibrary.simpleMessage(
       "Bepul — kirish-chiqishga cheklovsiz",
     ),
@@ -370,6 +381,12 @@ class MessageLookup extends MessageLookupByLibrary {
       "VIP tarif puli chop etilganda balansdan darhol yechiladi.",
     ),
     "vipTariff": MessageLookupByLibrary.simpleMessage("VIP tarif"),
+    "visitChild": MessageLookupByLibrary.simpleMessage(
+      "Ushbu tashrifdagi bola",
+    ),
+    "visitDetails": MessageLookupByLibrary.simpleMessage(
+      "Kirdi-chiqdi tafsilotlari",
+    ),
     "visitEntered": MessageLookupByLibrary.simpleMessage("Kirdi"),
     "visitEntries": MessageLookupByLibrary.simpleMessage("Kirishlar"),
     "visitExited": MessageLookupByLibrary.simpleMessage("Chiqdi"),

@@ -130,5 +130,14 @@
   "updateFailureChecksumMismatch": "Скачанный файл повреждён — контрольная сумма не совпала",
   "updateFailureChecksumUnreadable": "Не удалось прочитать опубликованную контрольную сумму — обновление с непроверенным файлом не устанавливается",
   "updateFailureExecutableMissing": "В скачанном архиве не найдена программа приложения",
-  "updateFailureIncompleteExtraction": "Обновление распаковалось не полностью. Файл был удалён — попробуйте ещё раз"
+  "updateFailureIncompleteExtraction": "Обновление распаковалось не полностью. Файл был удалён — попробуйте ещё раз",
+  "topupDetails": "Детали пополнения счёта",
+  "accountOwner": "Владелец счёта",
+  "openCustomerProfile": "Открыть профиль клиента",
+  "transactionId": "ID транзакции",
+  "phoneNumber": "Номер телефона",
+  "date": "Дата",
+  "visitDetails": "Детали входа и выхода",
+  "accountId": "ID счёта",
+  "visitChild": "Ребёнок в этом посещении"
 }

@@ -298,6 +298,12 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                 _SummaryStrip(
                   customer: customer,
                   isBusy: state.isBusy,
+                  onRename: (name) => context.read<PosAccountBloc>().add(
+                    PosAccountCustomerNameUpdateRequested(name),
+                  ),
+                  onRefresh: () => context.read<PosAccountBloc>().add(
+                    const PosAccountCustomerRefreshRequested(),
+                  ),
                   onParentQr: () => context.read<PosAccountBloc>().add(
                     const PosAccountParentQrRequested(),
                   ),
@@ -321,6 +327,9 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                               ? _selectedChildIds.remove(id)
                               : _selectedChildIds.add(id),
                         ),
+                        onRenameChild: (id, name) => context
+                            .read<PosAccountBloc>()
+                            .add(PosAccountChildNameUpdateRequested(id, name)),
                         childFreeReasons: _childFreeReasons,
                         onChildFreeReasonChanged: (id, reason) => setState(() {
                           if (reason == null) {
@@ -547,11 +556,156 @@ class _Card extends StatelessWidget {
   }
 }
 
+class _InlineEditableName extends StatefulWidget {
+  const _InlineEditableName({
+    required this.value,
+    required this.style,
+    required this.onSave,
+    this.enabled = true,
+  });
+
+  final String value;
+  final TextStyle style;
+  final ValueChanged<String> onSave;
+  final bool enabled;
+
+  @override
+  State<_InlineEditableName> createState() => _InlineEditableNameState();
+}
+
+class _InlineEditableNameState extends State<_InlineEditableName> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+  bool _editing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value);
+    _focusNode = FocusNode();
+  }
+
+  @override
+  void didUpdateWidget(covariant _InlineEditableName oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_editing && oldWidget.value != widget.value) {
+      _controller.text = widget.value;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _start() {
+    if (!widget.enabled) return;
+    setState(() => _editing = true);
+    _controller.text = widget.value;
+    _controller.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: _controller.text.length,
+    );
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _focusNode.requestFocus(),
+    );
+  }
+
+  void _cancel() {
+    _controller.text = widget.value;
+    setState(() => _editing = false);
+  }
+
+  void _save() {
+    final value = _controller.text.trim().replaceAll(RegExp(r'\s+'), ' ');
+    if (value.isEmpty) return;
+    setState(() => _editing = false);
+    if (value != widget.value.trim()) widget.onSave(value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
+    if (!_editing) {
+      return Tooltip(
+        message: l10n.fullName,
+        child: InkWell(
+          onTap: _start,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 3),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Text(
+                    widget.value,
+                    style: widget.style,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (widget.enabled) ...[
+                  const SizedBox(width: 6),
+                  Icon(
+                    PhosphorIconsRegular.pencilSimple,
+                    size: 14,
+                    color: NocturneColors.text.withValues(alpha: 0.45),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    return SizedBox(
+      height: 38,
+      child: TextField(
+        controller: _controller,
+        focusNode: _focusNode,
+        autofocus: true,
+        maxLength: 150,
+        textInputAction: TextInputAction.done,
+        style: widget.style,
+        onSubmitted: (_) => _save(),
+        inputFormatters: [FilteringTextInputFormatter.deny(RegExp(r'[\r\n]'))],
+        decoration: InputDecoration(
+          counterText: '',
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 10,
+            vertical: 8,
+          ),
+          suffixIconConstraints: const BoxConstraints(minWidth: 68),
+          suffixIcon: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                tooltip: l10n.cancel,
+                onPressed: _cancel,
+                icon: const Icon(PhosphorIconsRegular.x, size: 16),
+              ),
+              IconButton(
+                tooltip: l10n.save,
+                onPressed: _save,
+                icon: const Icon(PhosphorIconsRegular.check, size: 16),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _SummaryStrip extends StatelessWidget {
   const _SummaryStrip({
     required this.customer,
     required this.isBusy,
     required this.onParentQr,
+    required this.onRename,
+    required this.onRefresh,
     required this.onBack,
   });
 
@@ -561,6 +715,8 @@ class _SummaryStrip extends StatelessWidget {
   /// Prints the customer's free parent QR — the ruleless both-direction
   /// day sticker for the accompanying adult.
   final VoidCallback onParentQr;
+  final ValueChanged<String> onRename;
+  final VoidCallback onRefresh;
   final VoidCallback onBack;
 
   String _initials(String value) {
@@ -615,10 +771,11 @@ class _SummaryStrip extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  displayName,
+                _InlineEditableName(
+                  value: displayName,
+                  enabled: !isBusy && customer.fullName.isNotEmpty,
                   style: AppTextStyles.h4,
-                  overflow: TextOverflow.ellipsis,
+                  onSave: onRename,
                 ),
                 Text(
                   customer.phoneNumber,
@@ -631,6 +788,22 @@ class _SummaryStrip extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
+          SizedBox(
+            width: 38,
+            height: 38,
+            child: IconButton(
+              tooltip: l10n.refresh,
+              onPressed: isBusy ? null : onRefresh,
+              icon: isBusy
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(PhosphorIconsRegular.arrowsClockwise, size: 18),
+            ),
+          ),
+          const SizedBox(width: 8),
           OutlinedButton.icon(
             onPressed: isBusy ? null : onParentQr,
             icon: const Icon(PhosphorIconsRegular.qrCode, size: 16),
@@ -669,6 +842,7 @@ class _ChildrenCard extends StatelessWidget {
     required this.activePasses,
     required this.selectedChildIds,
     required this.onToggleChild,
+    required this.onRenameChild,
     required this.childFreeReasons,
     required this.onChildFreeReasonChanged,
     required this.addingChild,
@@ -694,6 +868,7 @@ class _ChildrenCard extends StatelessWidget {
   final List<ActivePass> activePasses;
   final Set<String> selectedChildIds;
   final ValueChanged<String> onToggleChild;
+  final void Function(String childId, String fullName) onRenameChild;
 
   /// Optional per-child free-entry reason picked from the row's 3-dots menu
   /// — null reason in the callback clears the child's pick.
@@ -751,6 +926,7 @@ class _ChildrenCard extends StatelessWidget {
                 activePass: passByChildId[child.id],
                 selected: selectedChildIds.contains(child.id),
                 onToggle: () => onToggleChild(child.id),
+                onRename: (name) => onRenameChild(child.id, name),
                 freeReason: childFreeReasons[child.id],
                 onFreeReasonChanged: (reason) =>
                     onChildFreeReasonChanged(child.id, reason),
@@ -1494,6 +1670,7 @@ class _ChildRow extends StatelessWidget {
     required this.activePass,
     required this.selected,
     required this.onToggle,
+    required this.onRename,
     required this.freeReason,
     required this.onFreeReasonChanged,
   });
@@ -1506,6 +1683,7 @@ class _ChildRow extends StatelessWidget {
   final ActivePass? activePass;
   final bool selected;
   final VoidCallback onToggle;
+  final ValueChanged<String> onRename;
 
   /// This checkout's free-entry pick for the child, or null (bills
   /// normally). Chosen from the 3-dots menu; null in the callback clears.
@@ -1527,9 +1705,10 @@ class _ChildRow extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              child.fullName,
+            child: _InlineEditableName(
+              value: child.fullName,
               style: AppTextStyles.body.copyWith(fontSize: 14),
+              onSave: onRename,
             ),
           ),
           if (freeReason != null) ...[

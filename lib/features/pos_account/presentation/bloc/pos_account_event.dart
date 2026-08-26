@@ -56,6 +56,10 @@ class PosAccountSelectionCleared extends PosAccountEvent {
   const PosAccountSelectionCleared();
 }
 
+class PosAccountCustomerRefreshRequested extends PosAccountEvent {
+  const PosAccountCustomerRefreshRequested();
+}
+
 class PosAccountNewCustomerRequested extends PosAccountEvent {
   const PosAccountNewCustomerRequested(this.fullName);
 
@@ -80,6 +84,21 @@ class PosAccountChildAddRequested extends PosAccountEvent {
 
   @override
   List<Object?> get props => [firstName, lastName, birthDate];
+}
+
+class PosAccountCustomerNameUpdateRequested extends PosAccountEvent {
+  const PosAccountCustomerNameUpdateRequested(this.fullName);
+  final String fullName;
+  @override
+  List<Object?> get props => [fullName];
+}
+
+class PosAccountChildNameUpdateRequested extends PosAccountEvent {
+  const PosAccountChildNameUpdateRequested(this.childId, this.fullName);
+  final String childId;
+  final String fullName;
+  @override
+  List<Object?> get props => [childId, fullName];
 }
 
 class PosAccountTopupRequested extends PosAccountEvent {

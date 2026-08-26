@@ -19,6 +19,7 @@ import '../widgets/open_shift_dialog.dart';
 import '../widgets/sidebar.dart';
 import '../widgets/title_bar.dart';
 import '../../../../generated/l10n.dart';
+import '../../../pos_account/domain/customer.dart';
 
 class ShellPage extends StatelessWidget {
   const ShellPage({super.key});
@@ -41,6 +42,7 @@ class _ShellView extends StatefulWidget {
 
 class _ShellViewState extends State<_ShellView> {
   ShellTab _tab = ShellTab.posAccount;
+  Customer? _initialCustomer;
   bool? _sidebarCollapsed;
 
   @override
@@ -76,7 +78,10 @@ class _ShellViewState extends State<_ShellView> {
                       onToggle: () =>
                           setState(() => _sidebarCollapsed = !sidebarCollapsed),
                       selected: _tab,
-                      onSelect: (tab) => setState(() => _tab = tab),
+                      onSelect: (tab) => setState(() {
+                        _tab = tab;
+                        if (tab == ShellTab.posAccount) _initialCustomer = null;
+                      }),
                       cashierName: sl<LocalSource>().getCashierFullName() ?? '',
                       shiftOpenedAt: state.shift?.openedAt,
                       onCloseShift: () =>
@@ -87,7 +92,16 @@ class _ShellViewState extends State<_ShellView> {
                       child: Column(
                         children: [
                           HeaderBar(tab: _tab, shift: state.shift),
-                          Expanded(child: _TabContent(tab: _tab)),
+                          Expanded(
+                            child: _TabContent(
+                              tab: _tab,
+                              initialCustomer: _initialCustomer,
+                              onOpenCustomer: (customer) => setState(() {
+                                _initialCustomer = customer;
+                                _tab = ShellTab.posAccount;
+                              }),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -103,17 +117,26 @@ class _ShellViewState extends State<_ShellView> {
 }
 
 class _TabContent extends StatelessWidget {
-  const _TabContent({required this.tab});
+  const _TabContent({
+    required this.tab,
+    required this.initialCustomer,
+    required this.onOpenCustomer,
+  });
 
   final ShellTab tab;
+  final Customer? initialCustomer;
+  final ValueChanged<Customer> onOpenCustomer;
 
   @override
   Widget build(BuildContext context) {
     return switch (tab) {
-      ShellTab.posAccount => const PosAccountPage(),
+      ShellTab.posAccount => PosAccountPage(
+        key: ValueKey(initialCustomer?.id),
+        initialCustomer: initialCustomer,
+      ),
       ShellTab.posSale => const PosSalePage(),
-      ShellTab.salesHistory => const SalesHistoryPage(),
-      ShellTab.visitHistory => const VisitHistoryPage(),
+      ShellTab.salesHistory => SalesHistoryPage(onOpenCustomer: onOpenCustomer),
+      ShellTab.visitHistory => VisitHistoryPage(onOpenCustomer: onOpenCustomer),
       ShellTab.inside => const InsidePage(),
       ShellTab.settings => const SettingsPage(),
     };

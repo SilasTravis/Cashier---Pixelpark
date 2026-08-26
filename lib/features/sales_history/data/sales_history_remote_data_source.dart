@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../../../core/error/exceptions.dart';
 import '../domain/sale_history.dart';
+import '../../pos_account/domain/customer.dart';
 
 class SalesHistoryRemoteDataSource {
   SalesHistoryRemoteDataSource(this.dio);
@@ -81,6 +82,9 @@ class SalesHistoryRemoteDataSource {
     cardUzs: json['cardUzs'] as int,
     balanceUzs: json['balanceUzs'] as int,
     createdAt: DateTime.parse(json['createdAt'] as String).toLocal(),
+    customer: json['customer'] == null
+        ? null
+        : _customer(Map<String, dynamic>.from(json['customer'] as Map)),
     items: (json['items'] as List).map((raw) {
       final item = Map<String, dynamic>.from(raw as Map);
       return SaleHistoryItem(
@@ -88,6 +92,23 @@ class SalesHistoryRemoteDataSource {
         priceUzs: item['priceSnapshotUzs'] as int,
         qty: item['qty'] as int,
         totalUzs: item['lineTotalUzs'] as int,
+      );
+    }).toList(),
+  );
+
+  Customer _customer(Map<String, dynamic> json) => Customer(
+    id: json['id'] as int,
+    phoneNumber: json['phoneNumber'] as String,
+    firstName: json['firstName'] as String,
+    lastName: json['lastName'] as String?,
+    balance: json['balance'] as int,
+    children: (json['children'] as List).map((raw) {
+      final child = Map<String, dynamic>.from(raw as Map);
+      return Child(
+        id: child['id'] as String,
+        firstName: child['firstName'] as String,
+        lastName: child['lastName'] as String?,
+        birthDate: DateTime.parse(child['birthDate'] as String),
       );
     }).toList(),
   );

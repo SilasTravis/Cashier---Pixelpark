@@ -29,8 +29,11 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     on<PosAccountMoreCustomersRequested>(_onMoreCustomersRequested);
     on<PosAccountCustomerSelected>(_onCustomerSelected);
     on<PosAccountSelectionCleared>(_onSelectionCleared);
+    on<PosAccountCustomerRefreshRequested>(_onCustomerRefreshRequested);
     on<PosAccountNewCustomerRequested>(_onNewCustomerRequested);
     on<PosAccountChildAddRequested>(_onChildAddRequested);
+    on<PosAccountCustomerNameUpdateRequested>(_onCustomerNameUpdateRequested);
+    on<PosAccountChildNameUpdateRequested>(_onChildNameUpdateRequested);
     on<PosAccountTopupRequested>(_onTopupRequested);
     on<PosAccountParentQrRequested>(_onParentQrRequested);
     on<PosAccountParentQrAcknowledged>(_onParentQrAcknowledged);
@@ -349,6 +352,37 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     );
   }
 
+  Future<void> _onCustomerRefreshRequested(
+    PosAccountCustomerRefreshRequested event,
+    Emitter<PosAccountState> emit,
+  ) async {
+    final current = state.selectedCustomer;
+    if (current == null || state.isBusy) return;
+    emit(state.copyWith(isBusy: true, errorMessage: null));
+    final result = await _repository.searchCustomers(current.phoneNumber);
+    await result.fold(
+      (failure) async => emit(
+        state.copyWith(isBusy: false, errorMessage: _messageOf(failure)),
+      ),
+      (customers) async {
+        Customer? refreshed;
+        for (final customer in customers) {
+          if (customer.id == current.id) {
+            refreshed = customer;
+            break;
+          }
+        }
+        if (refreshed == null) {
+          emit(state.copyWith(isBusy: false));
+          return;
+        }
+        await _replaceCustomer(refreshed, emit);
+        add(const PosAccountPlayingRequested());
+        add(const PosAccountActivePassesRequested());
+      },
+    );
+  }
+
   Future<void> _onNewCustomerRequested(
     PosAccountNewCustomerRequested event,
     Emitter<PosAccountState> emit,
@@ -403,6 +437,74 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
         ),
       ),
     );
+  }
+
+  Future<void> _onCustomerNameUpdateRequested(
+    PosAccountCustomerNameUpdateRequested event,
+    Emitter<PosAccountState> emit,
+  ) async {
+    final current = state.selectedCustomer;
+    if (current == null || event.fullName.trim().isEmpty) return;
+    emit(state.copyWith(isBusy: true, errorMessage: null));
+    final result = await _repository.updateCustomerName(
+      customerId: current.id,
+      fullName: event.fullName,
+    );
+    await result.fold(
+      (failure) async => emit(
+        state.copyWith(isBusy: false, errorMessage: _messageOf(failure)),
+      ),
+      (updated) async => _replaceCustomer(updated, emit),
+    );
+  }
+
+  Future<void> _onChildNameUpdateRequested(
+    PosAccountChildNameUpdateRequested event,
+    Emitter<PosAccountState> emit,
+  ) async {
+    final current = state.selectedCustomer;
+    if (current == null || event.fullName.trim().isEmpty) return;
+    emit(state.copyWith(isBusy: true, errorMessage: null));
+    final result = await _repository.updateChildName(
+      customerId: current.id,
+      childId: event.childId,
+      fullName: event.fullName,
+    );
+    await result.fold(
+      (failure) async => emit(
+        state.copyWith(isBusy: false, errorMessage: _messageOf(failure)),
+      ),
+      (child) async {
+        final updated = current.copyWith(
+          children: [
+            for (final item in current.children)
+              if (item.id == child.id) child else item,
+          ],
+        );
+        await _replaceCustomer(updated, emit);
+      },
+    );
+  }
+
+  Future<void> _replaceCustomer(
+    Customer updated,
+    Emitter<PosAccountState> emit,
+  ) async {
+    List<Customer> replace(List<Customer> values) => [
+      for (final item in values)
+        if (item.id == updated.id) updated else item,
+    ];
+    final history = replace(state.customerHistory);
+    emit(
+      state.copyWith(
+        isBusy: false,
+        selectedCustomer: updated,
+        results: replace(state.results),
+        recentCustomers: replace(state.recentCustomers),
+        customerHistory: history,
+      ),
+    );
+    await _persistCustomerHistory(history);
   }
 
   Future<void> _onTopupRequested(

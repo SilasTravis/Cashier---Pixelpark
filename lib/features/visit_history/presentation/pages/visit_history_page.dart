@@ -13,19 +13,25 @@ import '../../../../generated/l10n.dart';
 import '../../../../injector_container.dart';
 import '../../domain/shift_visit.dart';
 import '../bloc/visit_history_cubit.dart';
+import '../../../pos_account/data/pos_account_repository_impl.dart';
+import '../../../pos_account/domain/customer.dart';
 
 class VisitHistoryPage extends StatelessWidget {
-  const VisitHistoryPage({super.key});
+  const VisitHistoryPage({super.key, required this.onOpenCustomer});
+
+  final ValueChanged<Customer> onOpenCustomer;
 
   @override
   Widget build(BuildContext context) => BlocProvider(
     create: (_) => sl<VisitHistoryCubit>()..load(),
-    child: const _VisitHistoryView(),
+    child: _VisitHistoryView(onOpenCustomer: onOpenCustomer),
   );
 }
 
 class _VisitHistoryView extends StatefulWidget {
-  const _VisitHistoryView();
+  const _VisitHistoryView({required this.onOpenCustomer});
+
+  final ValueChanged<Customer> onOpenCustomer;
 
   @override
   State<_VisitHistoryView> createState() => _VisitHistoryViewState();
@@ -151,7 +157,10 @@ class _VisitHistoryViewState extends State<_VisitHistoryView> {
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                     itemCount: state.items.length,
                     separatorBuilder: (_, _) => const SizedBox(height: 8),
-                    itemBuilder: (_, index) => _VisitRow(state.items[index]),
+                    itemBuilder: (_, index) => _VisitRow(
+                      state.items[index],
+                      onOpenCustomer: widget.onOpenCustomer,
+                    ),
                   ),
           ),
           if (state.total > VisitHistoryState.pageSize)
@@ -230,93 +239,272 @@ class _Summary extends StatelessWidget {
 }
 
 class _VisitRow extends StatelessWidget {
-  const _VisitRow(this.visit);
+  const _VisitRow(this.visit, {required this.onOpenCustomer});
   final ShiftVisit visit;
+  final ValueChanged<Customer> onOpenCustomer;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalization.of(context);
     final time = DateFormat('HH:mm');
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: NocturneColors.surface,
+    return Material(
+      color: NocturneColors.surface,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: NocturneColors.divider),
+        side: const BorderSide(color: NocturneColors.divider),
       ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: NocturneColors.accent900,
-            child: Text(visit.childName.characters.first.toUpperCase()),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => _showDetails(context),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: NocturneColors.accent900,
+                child: Text(visit.childName.characters.first.toUpperCase()),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(visit.childName, style: AppTextStyles.h5),
+                    Text(
+                      '${visit.parentName} · ${formatPhoneNumber(visit.parentPhone)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.muted(AppTextStyles.body),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: _TimeFact(
+                  l10n.visitEntered,
+                  time.format(visit.enteredAt),
+                  PhosphorIconsRegular.signIn,
+                ),
+              ),
+              Expanded(
+                child: _TimeFact(
+                  l10n.visitExited,
+                  visit.exitedAt == null ? '—' : time.format(visit.exitedAt!),
+                  PhosphorIconsRegular.signOut,
+                ),
+              ),
+              Expanded(
+                child: _TimeFact(
+                  l10n.elapsedTime,
+                  visit.minutes == null
+                      ? l10n.visitStillInside
+                      : l10n.minutesCount(visit.minutes!),
+                  PhosphorIconsRegular.timer,
+                ),
+              ),
+              SizedBox(
+                width: 120,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      formatUzs(visit.amountUzs),
+                      style: AppTextStyles.h5.copyWith(
+                        color: NocturneColors.accent300,
+                      ),
+                    ),
+                    Text(
+                      visit.forceClosed
+                          ? l10n.visitManualExit
+                          : visit.exitedAt == null
+                          ? l10n.visitInside
+                          : l10n.visitExited,
+                      style: AppTextStyles.muted(
+                        AppTextStyles.body.copyWith(fontSize: 11),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Icon(PhosphorIconsRegular.caretRight, size: 16),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            flex: 2,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(visit.childName, style: AppTextStyles.h5),
-                Text(
-                  '${visit.parentName} · ${formatPhoneNumber(visit.parentPhone)}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.muted(AppTextStyles.body),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showDetails(BuildContext context) async {
+    final l10n = AppLocalization.of(context);
+    final customer = await _loadCustomer(context);
+    if (!context.mounted) return;
+    final openProfile = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(
+              PhosphorIconsRegular.arrowsLeftRight,
+              color: NocturneColors.accent,
+            ),
+            const SizedBox(width: 10),
+            Text(l10n.visitDetails),
+          ],
+        ),
+        content: SizedBox(
+          width: 480,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _VisitDetailRow(
+                label: l10n.accountOwner,
+                value: customer?.fullName.isNotEmpty == true
+                    ? customer!.fullName
+                    : visit.parentName,
+              ),
+              _VisitDetailRow(
+                label: l10n.phoneNumber,
+                value: formatPhoneNumber(
+                  customer?.phoneNumber ?? visit.parentPhone,
+                ),
+              ),
+              if (customer != null) ...[
+                _VisitDetailRow(
+                  label: l10n.accountId,
+                  value: '#${customer.id}',
+                ),
+                _VisitDetailRow(
+                  label: l10n.balance,
+                  value: formatUzs(customer.balance),
+                  emphasized: true,
+                ),
+                _VisitDetailRow(
+                  label: l10n.children,
+                  value: customer.children.isEmpty
+                      ? l10n.noChildren
+                      : customer.children
+                            .map((child) => child.fullName)
+                            .join(', '),
                 ),
               ],
-            ),
+              _VisitDetailRow(label: l10n.visitChild, value: visit.childName),
+              const Divider(height: 24),
+              _VisitDetailRow(
+                label: l10n.visitEntered,
+                value: DateFormat(
+                  'dd.MM.yyyy HH:mm:ss',
+                ).format(visit.enteredAt),
+              ),
+              _VisitDetailRow(
+                label: l10n.visitExited,
+                value: visit.exitedAt == null
+                    ? l10n.visitStillInside
+                    : DateFormat('dd.MM.yyyy HH:mm:ss').format(visit.exitedAt!),
+              ),
+              _VisitDetailRow(
+                label: l10n.elapsedTime,
+                value: visit.minutes == null
+                    ? l10n.visitStillInside
+                    : l10n.minutesCount(visit.minutes!),
+              ),
+              _VisitDetailRow(
+                label: l10n.total,
+                value: formatUzs(visit.amountUzs),
+                emphasized: true,
+              ),
+            ],
           ),
-          Expanded(
-            child: _TimeFact(
-              l10n.visitEntered,
-              time.format(visit.enteredAt),
-              PhosphorIconsRegular.signIn,
-            ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(l10n.close),
           ),
-          Expanded(
-            child: _TimeFact(
-              l10n.visitExited,
-              visit.exitedAt == null ? '—' : time.format(visit.exitedAt!),
-              PhosphorIconsRegular.signOut,
-            ),
-          ),
-          Expanded(
-            child: _TimeFact(
-              l10n.elapsedTime,
-              visit.minutes == null
-                  ? l10n.visitStillInside
-                  : l10n.minutesCount(visit.minutes!),
-              PhosphorIconsRegular.timer,
-            ),
-          ),
-          SizedBox(
-            width: 120,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  formatUzs(visit.amountUzs),
-                  style: AppTextStyles.h5.copyWith(
-                    color: NocturneColors.accent300,
-                  ),
-                ),
-                Text(
-                  visit.forceClosed
-                      ? l10n.visitManualExit
-                      : visit.exitedAt == null
-                      ? l10n.visitInside
-                      : l10n.visitExited,
-                  style: AppTextStyles.muted(
-                    AppTextStyles.body.copyWith(fontSize: 11),
-                  ),
-                ),
-              ],
-            ),
+          FilledButton.icon(
+            onPressed: customer == null
+                ? null
+                : () => Navigator.pop(dialogContext, true),
+            icon: const Icon(PhosphorIconsRegular.userCircle, size: 18),
+            label: Text(l10n.openCustomerProfile),
           ),
         ],
       ),
     );
+    if (openProfile != true || !context.mounted) return;
+    onOpenCustomer(customer!);
   }
+
+  Future<Customer?> _loadCustomer(BuildContext context) async {
+    final navigator = Navigator.of(context);
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+    final result = await sl<PosAccountRepository>().searchCustomers(
+      visit.parentPhone,
+    );
+    if (navigator.canPop()) navigator.pop();
+    if (!context.mounted) return null;
+    Customer? customer;
+    result.fold((_) {}, (customers) {
+      for (final item in customers) {
+        if (_digits(item.phoneNumber) == _digits(visit.parentPhone)) {
+          customer = item;
+          break;
+        }
+      }
+    });
+    if (customer == null && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalization.of(
+              context,
+            ).accountNotFoundForPhone(visit.parentPhone),
+          ),
+        ),
+      );
+    }
+    return customer;
+  }
+
+  String _digits(String value) => value.replaceAll(RegExp(r'\D'), '');
+}
+
+class _VisitDetailRow extends StatelessWidget {
+  const _VisitDetailRow({
+    required this.label,
+    required this.value,
+    this.emphasized = false,
+  });
+  final String label;
+  final String value;
+  final bool emphasized;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 6),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(label, style: AppTextStyles.muted(AppTextStyles.body)),
+        ),
+        const SizedBox(width: 16),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: emphasized
+                ? AppTextStyles.h5.copyWith(color: NocturneColors.accent)
+                : AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _TimeFact extends StatelessWidget {

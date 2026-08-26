@@ -1633,6 +1633,86 @@ class AppLocalization {
       args: [],
     );
   }
+
+  /// `Account top-up details`
+  String get topupDetails {
+    return Intl.message(
+      'Account top-up details',
+      name: 'topupDetails',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Account owner`
+  String get accountOwner {
+    return Intl.message(
+      'Account owner',
+      name: 'accountOwner',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Open customer profile`
+  String get openCustomerProfile {
+    return Intl.message(
+      'Open customer profile',
+      name: 'openCustomerProfile',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Transaction ID`
+  String get transactionId {
+    return Intl.message(
+      'Transaction ID',
+      name: 'transactionId',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Phone number`
+  String get phoneNumber {
+    return Intl.message(
+      'Phone number',
+      name: 'phoneNumber',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Date`
+  String get date {
+    return Intl.message('Date', name: 'date', desc: '', args: []);
+  }
+
+  /// `Entry and exit details`
+  String get visitDetails {
+    return Intl.message(
+      'Entry and exit details',
+      name: 'visitDetails',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Account ID`
+  String get accountId {
+    return Intl.message('Account ID', name: 'accountId', desc: '', args: []);
+  }
+
+  /// `Child in this visit`
+  String get visitChild {
+    return Intl.message(
+      'Child in this visit',
+      name: 'visitChild',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalization> {

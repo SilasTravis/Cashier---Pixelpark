@@ -90,7 +90,9 @@ class MessageLookup extends MessageLookupByLibrary {
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
+    "accountId": MessageLookupByLibrary.simpleMessage("Account ID"),
     "accountNotFoundForPhone": m0,
+    "accountOwner": MessageLookupByLibrary.simpleMessage("Account owner"),
     "accruedAmount": MessageLookupByLibrary.simpleMessage("Current charge"),
     "accruedDue": m1,
     "add": MessageLookupByLibrary.simpleMessage("Add"),
@@ -135,6 +137,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "customerDirectorySearchHint": MessageLookupByLibrary.simpleMessage(
       "Search by name or the last phone digits",
     ),
+    "date": MessageLookupByLibrary.simpleMessage("Date"),
     "downgradeForbidden": MessageLookupByLibrary.simpleMessage(
       "This tariff cannot be downgraded — if the sticker was lost, reprint the current tariff.",
     ),
@@ -220,6 +223,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "noPrintersFound": MessageLookupByLibrary.simpleMessage(
       "No installed Windows printers found",
     ),
+    "openCustomerProfile": MessageLookupByLibrary.simpleMessage(
+      "Open customer profile",
+    ),
     "parentQr": MessageLookupByLibrary.simpleMessage("Parent QR"),
     "pay": MessageLookupByLibrary.simpleMessage("Pay"),
     "payFromBalance": MessageLookupByLibrary.simpleMessage("Pay from balance"),
@@ -241,6 +247,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "paymentMissing": MessageLookupByLibrary.simpleMessage("Amount remaining"),
     "paymentSplit": MessageLookupByLibrary.simpleMessage("Split"),
     "phoneNotFound": MessageLookupByLibrary.simpleMessage("Number not found"),
+    "phoneNumber": MessageLookupByLibrary.simpleMessage("Phone number"),
     "planSwitch": MessageLookupByLibrary.simpleMessage("Switch tariff"),
     "planSwitchQuestion": m21,
     "planSwitchVipQuestion": m22,
@@ -312,8 +319,12 @@ class MessageLookup extends MessageLookupByLibrary {
     "tariffNotFound": MessageLookupByLibrary.simpleMessage("No tariffs found."),
     "topup": MessageLookupByLibrary.simpleMessage("Top up"),
     "topupBalance": MessageLookupByLibrary.simpleMessage("Top up balance"),
+    "topupDetails": MessageLookupByLibrary.simpleMessage(
+      "Account top-up details",
+    ),
     "total": MessageLookupByLibrary.simpleMessage("Total"),
     "totalBill": MessageLookupByLibrary.simpleMessage("Total bill"),
+    "transactionId": MessageLookupByLibrary.simpleMessage("Transaction ID"),
     "unlimitedFreeEntry": MessageLookupByLibrary.simpleMessage(
       "Free — unrestricted entry and exit",
     ),
@@ -365,6 +376,10 @@ class MessageLookup extends MessageLookupByLibrary {
       "The VIP tariff is debited from the balance immediately when printed.",
     ),
     "vipTariff": MessageLookupByLibrary.simpleMessage("VIP tariff"),
+    "visitChild": MessageLookupByLibrary.simpleMessage("Child in this visit"),
+    "visitDetails": MessageLookupByLibrary.simpleMessage(
+      "Entry and exit details",
+    ),
     "visitEntered": MessageLookupByLibrary.simpleMessage("Entered"),
     "visitEntries": MessageLookupByLibrary.simpleMessage("Entries"),
     "visitExited": MessageLookupByLibrary.simpleMessage("Exited"),

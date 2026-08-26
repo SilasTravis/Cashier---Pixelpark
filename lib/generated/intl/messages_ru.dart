@@ -90,7 +90,9 @@ class MessageLookup extends MessageLookupByLibrary {
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
+    "accountId": MessageLookupByLibrary.simpleMessage("ID счёта"),
     "accountNotFoundForPhone": m0,
+    "accountOwner": MessageLookupByLibrary.simpleMessage("Владелец счёта"),
     "accruedAmount": MessageLookupByLibrary.simpleMessage("Текущий счёт"),
     "accruedDue": m1,
     "add": MessageLookupByLibrary.simpleMessage("Добавить"),
@@ -139,6 +141,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "customerDirectorySearchHint": MessageLookupByLibrary.simpleMessage(
       "Поиск по имени или последним цифрам телефона",
     ),
+    "date": MessageLookupByLibrary.simpleMessage("Дата"),
     "downgradeForbidden": MessageLookupByLibrary.simpleMessage(
       "Переход на более низкий тариф невозможен — если стикер потерян, повторно напечатайте текущий.",
     ),
@@ -222,6 +225,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "noPrintersFound": MessageLookupByLibrary.simpleMessage(
       "В Windows не найдено установленных принтеров",
     ),
+    "openCustomerProfile": MessageLookupByLibrary.simpleMessage(
+      "Открыть профиль клиента",
+    ),
     "parentQr": MessageLookupByLibrary.simpleMessage("QR родителя"),
     "pay": MessageLookupByLibrary.simpleMessage("Оплатить"),
     "payFromBalance": MessageLookupByLibrary.simpleMessage("Списать с баланса"),
@@ -245,6 +251,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "paymentSplit": MessageLookupByLibrary.simpleMessage("Смешанная"),
     "phoneNotFound": MessageLookupByLibrary.simpleMessage("Номер не найден"),
+    "phoneNumber": MessageLookupByLibrary.simpleMessage("Номер телефона"),
     "planSwitch": MessageLookupByLibrary.simpleMessage("Смена тарифа"),
     "planSwitchQuestion": m21,
     "planSwitchVipQuestion": m22,
@@ -316,8 +323,12 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "topup": MessageLookupByLibrary.simpleMessage("Пополнить"),
     "topupBalance": MessageLookupByLibrary.simpleMessage("Пополнить баланс"),
+    "topupDetails": MessageLookupByLibrary.simpleMessage(
+      "Детали пополнения счёта",
+    ),
     "total": MessageLookupByLibrary.simpleMessage("Итого"),
     "totalBill": MessageLookupByLibrary.simpleMessage("Общий счёт"),
+    "transactionId": MessageLookupByLibrary.simpleMessage("ID транзакции"),
     "unlimitedFreeEntry": MessageLookupByLibrary.simpleMessage(
       "Бесплатно — вход и выход без ограничений",
     ),
@@ -369,6 +380,12 @@ class MessageLookup extends MessageLookupByLibrary {
       "Стоимость VIP-тарифа списывается с баланса сразу при печати.",
     ),
     "vipTariff": MessageLookupByLibrary.simpleMessage("VIP-тариф"),
+    "visitChild": MessageLookupByLibrary.simpleMessage(
+      "Ребёнок в этом посещении",
+    ),
+    "visitDetails": MessageLookupByLibrary.simpleMessage(
+      "Детали входа и выхода",
+    ),
     "visitEntered": MessageLookupByLibrary.simpleMessage("Вошёл"),
     "visitEntries": MessageLookupByLibrary.simpleMessage("Входы"),
     "visitExited": MessageLookupByLibrary.simpleMessage("Вышел"),

@@ -42,6 +42,25 @@ class PosAccountRepository {
     ),
   );
 
+  Future<Either<Failure, Customer>> updateCustomerName({
+    required int customerId,
+    required String fullName,
+  }) => _call(
+    () => remote.updateCustomerName(customerId: customerId, fullName: fullName),
+  );
+
+  Future<Either<Failure, Child>> updateChildName({
+    required int customerId,
+    required String childId,
+    required String fullName,
+  }) => _call(
+    () => remote.updateChildName(
+      customerId: customerId,
+      childId: childId,
+      fullName: fullName,
+    ),
+  );
+
   Future<Either<Failure, TopupResult>> topup({
     required int customerId,
     required int amountUzs,

@@ -11,19 +11,24 @@ import '../../../../core/utils/responsive.dart';
 import '../../../../injector_container.dart';
 import '../../../../generated/l10n.dart';
 import '../../domain/sale_history.dart';
+import '../../../pos_account/domain/customer.dart';
 import '../bloc/sales_history_bloc.dart';
 
 class SalesHistoryPage extends StatelessWidget {
-  const SalesHistoryPage({super.key});
+  const SalesHistoryPage({super.key, required this.onOpenCustomer});
+
+  final ValueChanged<Customer> onOpenCustomer;
   @override
   Widget build(BuildContext context) => BlocProvider(
     create: (_) => sl<SalesHistoryBloc>()..add(const SalesHistoryStarted()),
-    child: const _SalesHistoryView(),
+    child: _SalesHistoryView(onOpenCustomer: onOpenCustomer),
   );
 }
 
 class _SalesHistoryView extends StatelessWidget {
-  const _SalesHistoryView();
+  const _SalesHistoryView({required this.onOpenCustomer});
+
+  final ValueChanged<Customer> onOpenCustomer;
   @override
   Widget build(BuildContext context) {
     final compact = breakpointOfContext(context) == Breakpoint.compact;
@@ -178,8 +183,10 @@ class _SalesHistoryView extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                     itemCount: state.items.length,
                     separatorBuilder: (_, _) => const SizedBox(height: 8),
-                    itemBuilder: (_, index) =>
-                        _SaleCard(sale: state.items[index]),
+                    itemBuilder: (_, index) => _SaleCard(
+                      sale: state.items[index],
+                      onOpenCustomer: onOpenCustomer,
+                    ),
                   ),
           ),
           if (state.total > SalesHistoryState.pageSize)
@@ -284,74 +291,223 @@ class _SummaryCard extends StatelessWidget {
 }
 
 class _SaleCard extends StatelessWidget {
-  const _SaleCard({required this.sale});
+  const _SaleCard({required this.sale, required this.onOpenCustomer});
   final SaleHistoryEntry sale;
+  final ValueChanged<Customer> onOpenCustomer;
+
   @override
-  Widget build(BuildContext context) => ExpansionTile(
-    backgroundColor: NocturneColors.surface,
-    collapsedBackgroundColor: NocturneColors.surface,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(10),
-      side: const BorderSide(color: NocturneColors.divider),
-    ),
-    collapsedShape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(10),
-      side: const BorderSide(color: NocturneColors.divider),
-    ),
-    title: Text(
-      _saleTypeLabel(AppLocalization.of(context), sale.type),
-      style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
-    ),
-    subtitle: Text(
-      '${DateFormat('dd.MM.yyyy HH:mm').format(sale.createdAt)}  ·  #${formatReceiptId(sale.id)}',
-      style: AppTextStyles.muted(AppTextStyles.body).copyWith(fontSize: 11),
-    ),
-    trailing: sale.balanceUzs > 0 && sale.cashUzs == 0 && sale.cardUzs == 0
-        ? Chip(
-            visualDensity: VisualDensity.compact,
-            label: Text(
-              AppLocalization.of(
-                context,
-              ).paymentBalanceValue(formatUzs(sale.balanceUzs)),
+  Widget build(BuildContext context) {
+    if (sale.type == 'ACCOUNT_TOPUP') {
+      return Material(
+        color: NocturneColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: const BorderSide(color: NocturneColors.divider),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 8,
+          ),
+          onTap: () => _showTopupDetails(context),
+          title: Text(
+            _saleTypeLabel(AppLocalization.of(context), sale.type),
+            style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+          ),
+          subtitle: Text(
+            '${DateFormat('dd.MM.yyyy HH:mm').format(sale.createdAt)}  ·  #${formatReceiptId(sale.id)}'
+            '${sale.customer == null ? '' : '\n${sale.customer!.fullName}  ·  ${sale.customer!.phoneNumber}'}',
+            style: AppTextStyles.muted(
+              AppTextStyles.body,
+            ).copyWith(fontSize: 11),
+          ),
+          isThreeLine: sale.customer != null,
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                formatUzs(sale.totalUzs),
+                style: AppTextStyles.h6.copyWith(color: NocturneColors.accent),
+              ),
+              const SizedBox(width: 10),
+              const Icon(PhosphorIconsRegular.caretRight, size: 16),
+            ],
+          ),
+        ),
+      );
+    }
+    return ExpansionTile(
+      backgroundColor: NocturneColors.surface,
+      collapsedBackgroundColor: NocturneColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: const BorderSide(color: NocturneColors.divider),
+      ),
+      collapsedShape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: const BorderSide(color: NocturneColors.divider),
+      ),
+      title: Text(
+        _saleTypeLabel(AppLocalization.of(context), sale.type),
+        style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+      ),
+      subtitle: Text(
+        '${DateFormat('dd.MM.yyyy HH:mm').format(sale.createdAt)}  ·  #${formatReceiptId(sale.id)}',
+        style: AppTextStyles.muted(AppTextStyles.body).copyWith(fontSize: 11),
+      ),
+      trailing: sale.balanceUzs > 0 && sale.cashUzs == 0 && sale.cardUzs == 0
+          ? Chip(
+              visualDensity: VisualDensity.compact,
+              label: Text(
+                AppLocalization.of(
+                  context,
+                ).paymentBalanceValue(formatUzs(sale.balanceUzs)),
+              ),
+            )
+          : Text(
+              formatUzs(sale.totalUzs),
+              style: AppTextStyles.h6.copyWith(color: NocturneColors.accent),
             ),
-          )
-        : Text(
-            formatUzs(sale.totalUzs),
-            style: AppTextStyles.h6.copyWith(color: NocturneColors.accent),
+      children: [
+        if (sale.items.isNotEmpty)
+          for (final item in sale.items)
+            ListTile(
+              dense: true,
+              title: Text(item.name),
+              subtitle: Text('${item.qty} × ${formatUzs(item.priceUzs)}'),
+              trailing: Text(formatUzs(item.totalUzs)),
+            ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
+          child: Row(
+            children: [
+              if (sale.cashUzs > 0)
+                Text(
+                  AppLocalization.of(
+                    context,
+                  ).paymentCashValue(formatUzs(sale.cashUzs)),
+                ),
+              if (sale.cashUzs > 0 && sale.cardUzs > 0) const Text('  ·  '),
+              if (sale.cardUzs > 0)
+                Text(
+                  AppLocalization.of(
+                    context,
+                  ).paymentCardValue(formatUzs(sale.cardUzs)),
+                ),
+              if (sale.balanceUzs > 0)
+                Text(
+                  '  ·  ${AppLocalization.of(context).paymentBalanceValue(formatUzs(sale.balanceUzs))}',
+                ),
+            ],
           ),
-    children: [
-      if (sale.items.isNotEmpty)
-        for (final item in sale.items)
-          ListTile(
-            dense: true,
-            title: Text(item.name),
-            subtitle: Text('${item.qty} × ${formatUzs(item.priceUzs)}'),
-            trailing: Text(formatUzs(item.totalUzs)),
-          ),
-      Padding(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
-        child: Row(
+        ),
+      ],
+    );
+  }
+
+  Future<void> _showTopupDetails(BuildContext context) async {
+    final l10n = AppLocalization.of(context);
+    final customer = sale.customer;
+    final openProfile = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Row(
           children: [
-            if (sale.cashUzs > 0)
-              Text(
-                AppLocalization.of(
-                  context,
-                ).paymentCashValue(formatUzs(sale.cashUzs)),
-              ),
-            if (sale.cashUzs > 0 && sale.cardUzs > 0) const Text('  ·  '),
-            if (sale.cardUzs > 0)
-              Text(
-                AppLocalization.of(
-                  context,
-                ).paymentCardValue(formatUzs(sale.cardUzs)),
-              ),
-            if (sale.balanceUzs > 0)
-              Text(
-                '  ·  ${AppLocalization.of(context).paymentBalanceValue(formatUzs(sale.balanceUzs))}',
-              ),
+            const Icon(
+              PhosphorIconsRegular.wallet,
+              color: NocturneColors.accent,
+            ),
+            const SizedBox(width: 10),
+            Text(l10n.topupDetails),
           ],
         ),
+        content: SizedBox(
+          width: 470,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (customer != null) ...[
+                _DetailRow(label: l10n.accountOwner, value: customer.fullName),
+                _DetailRow(
+                  label: l10n.phoneNumber,
+                  value: customer.phoneNumber,
+                ),
+                _DetailRow(
+                  label: l10n.balance,
+                  value: formatUzs(customer.balance),
+                ),
+                const Divider(height: 24),
+              ],
+              _DetailRow(
+                label: l10n.total,
+                value: formatUzs(sale.totalUzs),
+                emphasized: true,
+              ),
+              _DetailRow(
+                label: l10n.paymentCash,
+                value: formatUzs(sale.cashUzs),
+              ),
+              _DetailRow(
+                label: l10n.paymentCard,
+                value: formatUzs(sale.cardUzs),
+              ),
+              _DetailRow(
+                label: l10n.date,
+                value: DateFormat('dd.MM.yyyy HH:mm:ss').format(sale.createdAt),
+              ),
+              _DetailRow(
+                label: l10n.transactionId,
+                value: '#${formatReceiptId(sale.id)}',
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(l10n.close),
+          ),
+          FilledButton.icon(
+            onPressed: customer == null
+                ? null
+                : () => Navigator.pop(dialogContext, true),
+            icon: const Icon(PhosphorIconsRegular.userCircle, size: 18),
+            label: Text(l10n.openCustomerProfile),
+          ),
+        ],
       ),
-    ],
+    );
+    if (openProfile == true && customer != null) onOpenCustomer(customer);
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({
+    required this.label,
+    required this.value,
+    this.emphasized = false,
+  });
+  final String label;
+  final String value;
+  final bool emphasized;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 6),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(label, style: AppTextStyles.muted(AppTextStyles.body)),
+        ),
+        const SizedBox(width: 16),
+        Text(
+          value,
+          style: emphasized
+              ? AppTextStyles.h5.copyWith(color: NocturneColors.accent)
+              : AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+        ),
+      ],
+    ),
   );
 }

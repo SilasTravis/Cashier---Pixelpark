@@ -125,5 +125,14 @@
   "updateFailureChecksumMismatch": "The downloaded file failed its checksum check",
   "updateFailureChecksumUnreadable": "Could not read the published checksum — refusing to install an unverified update",
   "updateFailureExecutableMissing": "The downloaded archive is missing the app program",
-  "updateFailureIncompleteExtraction": "The update did not unpack completely. The download was discarded — please try again"
+  "updateFailureIncompleteExtraction": "The update did not unpack completely. The download was discarded — please try again",
+  "topupDetails": "Account top-up details",
+  "accountOwner": "Account owner",
+  "openCustomerProfile": "Open customer profile",
+  "transactionId": "Transaction ID",
+  "phoneNumber": "Phone number",
+  "date": "Date",
+  "visitDetails": "Entry and exit details",
+  "accountId": "Account ID",
+  "visitChild": "Child in this visit"
 }
