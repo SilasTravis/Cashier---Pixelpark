@@ -8,12 +8,15 @@ import '../bloc/pos_account_bloc.dart';
 import '../widgets/customer_detail_panel.dart';
 import '../widgets/customer_results_list.dart';
 import '../widgets/phone_keypad.dart';
+import '../../domain/customer.dart';
 
 /// Search uses a keypad + results layout. Once a customer is selected the
 /// search UI leaves the screen and the account workspace gets the full width;
 /// the detail header's back button returns to search.
 class PosAccountPage extends StatelessWidget {
-  const PosAccountPage({super.key});
+  const PosAccountPage({super.key, this.initialCustomer});
+
+  final Customer? initialCustomer;
 
   static const _keypadPanel = ResponsivePanel(
     compact: 220,
@@ -24,11 +27,17 @@ class PosAccountPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => sl<PosAccountBloc>()
-        ..add(const PosAccountRecentCustomersRequested())
-        ..add(const PosAccountPlansRequested())
-        ..add(const PosAccountProductsRequested())
-        ..add(const PosAccountConfigRequested()),
+      create: (_) {
+        final bloc = sl<PosAccountBloc>()
+          ..add(const PosAccountRecentCustomersRequested())
+          ..add(const PosAccountPlansRequested())
+          ..add(const PosAccountProductsRequested())
+          ..add(const PosAccountConfigRequested());
+        if (initialCustomer != null) {
+          bloc.add(PosAccountCustomerSelected(initialCustomer!));
+        }
+        return bloc;
+      },
       child: Padding(
         padding: breakpointOfContext(context) == Breakpoint.compact
             ? const EdgeInsets.fromLTRB(12, 12, 12, 14)

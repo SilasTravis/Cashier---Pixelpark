@@ -144,6 +144,91 @@ class AppLocalization {
     );
   }
 
+  /// `Entry/exit history`
+  String get tabVisitHistory {
+    return Intl.message(
+      'Entry/exit history',
+      name: 'tabVisitHistory',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Search by child, parent or phone`
+  String get visitHistorySearchHint {
+    return Intl.message(
+      'Search by child, parent or phone',
+      name: 'visitHistorySearchHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Current shift only`
+  String get currentShiftOnly {
+    return Intl.message(
+      'Current shift only',
+      name: 'currentShiftOnly',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Entries`
+  String get visitEntries {
+    return Intl.message('Entries', name: 'visitEntries', desc: '', args: []);
+  }
+
+  /// `Exits`
+  String get visitExits {
+    return Intl.message('Exits', name: 'visitExits', desc: '', args: []);
+  }
+
+  /// `Still inside`
+  String get visitStillInside {
+    return Intl.message(
+      'Still inside',
+      name: 'visitStillInside',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Inside`
+  String get visitInside {
+    return Intl.message('Inside', name: 'visitInside', desc: '', args: []);
+  }
+
+  /// `Entered`
+  String get visitEntered {
+    return Intl.message('Entered', name: 'visitEntered', desc: '', args: []);
+  }
+
+  /// `Exited`
+  String get visitExited {
+    return Intl.message('Exited', name: 'visitExited', desc: '', args: []);
+  }
+
+  /// `Manually exited`
+  String get visitManualExit {
+    return Intl.message(
+      'Manually exited',
+      name: 'visitManualExit',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No entries or exits in the current shift`
+  String get visitHistoryEmpty {
+    return Intl.message(
+      'No entries or exits in the current shift',
+      name: 'visitHistoryEmpty',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Settings`
   String get tabSettings {
     return Intl.message('Settings', name: 'tabSettings', desc: '', args: []);
@@ -1359,6 +1444,271 @@ class AppLocalization {
     return Intl.message(
       'The child was successfully marked as exited',
       name: 'manualExitSucceeded',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Update`
+  String get updateTitle {
+    return Intl.message('Update', name: 'updateTitle', desc: '', args: []);
+  }
+
+  /// `Check for updates`
+  String get updateCheck {
+    return Intl.message(
+      'Check for updates',
+      name: 'updateCheck',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `You're on the latest version`
+  String get updateUpToDate {
+    return Intl.message(
+      'You\'re on the latest version',
+      name: 'updateUpToDate',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `New version available: {version}`
+  String updateAvailable(String version) {
+    return Intl.message(
+      'New version available: $version',
+      name: 'updateAvailable',
+      desc: '',
+      args: [version],
+    );
+  }
+
+  /// `Download & install`
+  String get updateDownload {
+    return Intl.message(
+      'Download & install',
+      name: 'updateDownload',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Downloading…`
+  String get updateDownloading {
+    return Intl.message(
+      'Downloading…',
+      name: 'updateDownloading',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Update ready`
+  String get updateReady {
+    return Intl.message(
+      'Update ready',
+      name: 'updateReady',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Restart now`
+  String get updateRestart {
+    return Intl.message(
+      'Restart now',
+      name: 'updateRestart',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Update the app`
+  String get updateConfirmTitle {
+    return Intl.message(
+      'Update the app',
+      name: 'updateConfirmTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The app will close and reopen on the new version. Your shift stays open. Continue?`
+  String get updateConfirmMessage {
+    return Intl.message(
+      'The app will close and reopen on the new version. Your shift stays open. Continue?',
+      name: 'updateConfirmMessage',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Continue`
+  String get updateConfirm {
+    return Intl.message('Continue', name: 'updateConfirm', desc: '', args: []);
+  }
+
+  /// `Cancel`
+  String get updateCancel {
+    return Intl.message('Cancel', name: 'updateCancel', desc: '', args: []);
+  }
+
+  /// `Update failed`
+  String get updateFailed {
+    return Intl.message(
+      'Update failed',
+      name: 'updateFailed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Update failed. Check the internet connection and try again.`
+  String get updateFailedGeneric {
+    return Intl.message(
+      'Update failed. Check the internet connection and try again.',
+      name: 'updateFailedGeneric',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `To download manually:`
+  String get updateManualHint {
+    return Intl.message(
+      'To download manually:',
+      name: 'updateManualHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Automatic updates work on Windows only`
+  String get updateWindowsOnly {
+    return Intl.message(
+      'Automatic updates work on Windows only',
+      name: 'updateWindowsOnly',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The downloaded file failed its checksum check`
+  String get updateFailureChecksumMismatch {
+    return Intl.message(
+      'The downloaded file failed its checksum check',
+      name: 'updateFailureChecksumMismatch',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Could not read the published checksum — refusing to install an unverified update`
+  String get updateFailureChecksumUnreadable {
+    return Intl.message(
+      'Could not read the published checksum — refusing to install an unverified update',
+      name: 'updateFailureChecksumUnreadable',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The downloaded archive is missing the app program`
+  String get updateFailureExecutableMissing {
+    return Intl.message(
+      'The downloaded archive is missing the app program',
+      name: 'updateFailureExecutableMissing',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The update did not unpack completely. The download was discarded — please try again`
+  String get updateFailureIncompleteExtraction {
+    return Intl.message(
+      'The update did not unpack completely. The download was discarded — please try again',
+      name: 'updateFailureIncompleteExtraction',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Account top-up details`
+  String get topupDetails {
+    return Intl.message(
+      'Account top-up details',
+      name: 'topupDetails',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Account owner`
+  String get accountOwner {
+    return Intl.message(
+      'Account owner',
+      name: 'accountOwner',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Open customer profile`
+  String get openCustomerProfile {
+    return Intl.message(
+      'Open customer profile',
+      name: 'openCustomerProfile',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Transaction ID`
+  String get transactionId {
+    return Intl.message(
+      'Transaction ID',
+      name: 'transactionId',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Phone number`
+  String get phoneNumber {
+    return Intl.message(
+      'Phone number',
+      name: 'phoneNumber',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Date`
+  String get date {
+    return Intl.message('Date', name: 'date', desc: '', args: []);
+  }
+
+  /// `Entry and exit details`
+  String get visitDetails {
+    return Intl.message(
+      'Entry and exit details',
+      name: 'visitDetails',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Account ID`
+  String get accountId {
+    return Intl.message('Account ID', name: 'accountId', desc: '', args: []);
+  }
+
+  /// `Child in this visit`
+  String get visitChild {
+    return Intl.message(
+      'Child in this visit',
+      name: 'visitChild',
       desc: '',
       args: [],
     );

@@ -82,12 +82,16 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m26(time) => "Smena ${time} da ochildi";
 
-  static String m27(name) =>
+  static String m27(version) => "Yangi versiya mavjud: ${version}";
+
+  static String m28(name) =>
       "«${name}» allaqachon faol VIP tarifda — qayta to‘lov olinmaydi.";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
+    "accountId": MessageLookupByLibrary.simpleMessage("Hisob ID"),
     "accountNotFoundForPhone": m0,
+    "accountOwner": MessageLookupByLibrary.simpleMessage("Hisob egasi"),
     "accruedAmount": MessageLookupByLibrary.simpleMessage("Joriy hisob"),
     "accruedDue": m1,
     "add": MessageLookupByLibrary.simpleMessage("Qo‘shish"),
@@ -124,11 +128,15 @@ class MessageLookup extends MessageLookupByLibrary {
     "companionDescription": m5,
     "currentBalanceValue": m6,
     "currentPlanToday": m7,
+    "currentShiftOnly": MessageLookupByLibrary.simpleMessage(
+      "Faqat joriy smena",
+    ),
     "currentlyInside": MessageLookupByLibrary.simpleMessage("Hozir ichkarida"),
     "customerCount": m8,
     "customerDirectorySearchHint": MessageLookupByLibrary.simpleMessage(
       "Ism yoki telefonning oxirgi raqamlari bo‘yicha qidiring",
     ),
+    "date": MessageLookupByLibrary.simpleMessage("Sana"),
     "downgradeForbidden": MessageLookupByLibrary.simpleMessage(
       "Bu rejadan pasaytirish mumkin emas — stiker yo‘qolgan bo‘lsa, mavjud rejani qayta chop eting.",
     ),
@@ -216,6 +224,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "noPrintersFound": MessageLookupByLibrary.simpleMessage(
       "Windows’da o‘rnatilgan printer topilmadi",
     ),
+    "openCustomerProfile": MessageLookupByLibrary.simpleMessage(
+      "User profiliga kirish",
+    ),
     "parentQr": MessageLookupByLibrary.simpleMessage("Ota-ona QR"),
     "pay": MessageLookupByLibrary.simpleMessage("To‘lash"),
     "payFromBalance": MessageLookupByLibrary.simpleMessage("Balansdan yechish"),
@@ -235,6 +246,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "paymentMissing": MessageLookupByLibrary.simpleMessage("Yetmayapti"),
     "paymentSplit": MessageLookupByLibrary.simpleMessage("Aralash"),
     "phoneNotFound": MessageLookupByLibrary.simpleMessage("Bu raqam topilmadi"),
+    "phoneNumber": MessageLookupByLibrary.simpleMessage("Telefon raqami"),
     "planSwitch": MessageLookupByLibrary.simpleMessage("Reja almashtirish"),
     "planSwitchQuestion": m21,
     "planSwitchVipQuestion": m22,
@@ -301,20 +313,94 @@ class MessageLookup extends MessageLookupByLibrary {
     "tabInside": MessageLookupByLibrary.simpleMessage("Park ichida"),
     "tabSales": MessageLookupByLibrary.simpleMessage("Savdo"),
     "tabSettings": MessageLookupByLibrary.simpleMessage("Sozlamalar"),
+    "tabVisitHistory": MessageLookupByLibrary.simpleMessage(
+      "Kirdi-chiqdi tarixi",
+    ),
     "tariff": MessageLookupByLibrary.simpleMessage("Tarif"),
     "tariffNotFound": MessageLookupByLibrary.simpleMessage("Tarif topilmadi."),
     "topup": MessageLookupByLibrary.simpleMessage("To‘ldirish"),
     "topupBalance": MessageLookupByLibrary.simpleMessage("Balansni to‘ldirish"),
+    "topupDetails": MessageLookupByLibrary.simpleMessage(
+      "Hisob to‘ldirish tafsilotlari",
+    ),
     "total": MessageLookupByLibrary.simpleMessage("Jami"),
     "totalBill": MessageLookupByLibrary.simpleMessage("Jami hisob"),
+    "transactionId": MessageLookupByLibrary.simpleMessage("Tranzaksiya ID"),
     "unlimitedFreeEntry": MessageLookupByLibrary.simpleMessage(
       "Bepul — kirish-chiqishga cheklovsiz",
     ),
+    "updateAvailable": m27,
+    "updateCancel": MessageLookupByLibrary.simpleMessage("Bekor qilish"),
+    "updateCheck": MessageLookupByLibrary.simpleMessage(
+      "Yangilanishni tekshirish",
+    ),
+    "updateConfirm": MessageLookupByLibrary.simpleMessage("Davom etish"),
+    "updateConfirmMessage": MessageLookupByLibrary.simpleMessage(
+      "Ilova yopiladi va yangi versiyada qayta ochiladi. Smena ochiq qoladi. Davom etasizmi?",
+    ),
+    "updateConfirmTitle": MessageLookupByLibrary.simpleMessage(
+      "Ilovani yangilash",
+    ),
+    "updateDownload": MessageLookupByLibrary.simpleMessage(
+      "Yuklab olish va o‘rnatish",
+    ),
+    "updateDownloading": MessageLookupByLibrary.simpleMessage("Yuklanmoqda…"),
+    "updateFailed": MessageLookupByLibrary.simpleMessage("Yangilanmadi"),
+    "updateFailedGeneric": MessageLookupByLibrary.simpleMessage(
+      "Yangilanmadi. Internet aloqasini tekshiring va qayta urinib ko‘ring.",
+    ),
+    "updateFailureChecksumMismatch": MessageLookupByLibrary.simpleMessage(
+      "Yuklab olingan fayl buzilgan chiqdi — tekshiruv summasi mos kelmadi",
+    ),
+    "updateFailureChecksumUnreadable": MessageLookupByLibrary.simpleMessage(
+      "Nashr etilgan tekshiruv summasini o‘qib bo‘lmadi — tasdiqlanmagan yangilanish o‘rnatilmaydi",
+    ),
+    "updateFailureExecutableMissing": MessageLookupByLibrary.simpleMessage(
+      "Yuklab olingan arxivda ilova dasturi topilmadi",
+    ),
+    "updateFailureIncompleteExtraction": MessageLookupByLibrary.simpleMessage(
+      "Yangilanish to‘liq yozilmadi. Yuklangan fayl bekor qilindi — qaytadan urinib ko‘ring",
+    ),
+    "updateManualHint": MessageLookupByLibrary.simpleMessage(
+      "Qo‘lda yuklab olish uchun:",
+    ),
+    "updateReady": MessageLookupByLibrary.simpleMessage("Yangilanish tayyor"),
+    "updateRestart": MessageLookupByLibrary.simpleMessage(
+      "Qayta ishga tushirish",
+    ),
+    "updateTitle": MessageLookupByLibrary.simpleMessage("Yangilanish"),
+    "updateUpToDate": MessageLookupByLibrary.simpleMessage(
+      "Eng so‘nggi versiya o‘rnatilgan",
+    ),
+    "updateWindowsOnly": MessageLookupByLibrary.simpleMessage(
+      "Avtomatik yangilash faqat Windows’da ishlaydi",
+    ),
     "version": MessageLookupByLibrary.simpleMessage("Versiya"),
-    "vipAlreadyActive": m27,
+    "vipAlreadyActive": m28,
     "vipChargedImmediately": MessageLookupByLibrary.simpleMessage(
       "VIP tarif puli chop etilganda balansdan darhol yechiladi.",
     ),
     "vipTariff": MessageLookupByLibrary.simpleMessage("VIP tarif"),
+    "visitChild": MessageLookupByLibrary.simpleMessage(
+      "Ushbu tashrifdagi bola",
+    ),
+    "visitDetails": MessageLookupByLibrary.simpleMessage(
+      "Kirdi-chiqdi tafsilotlari",
+    ),
+    "visitEntered": MessageLookupByLibrary.simpleMessage("Kirdi"),
+    "visitEntries": MessageLookupByLibrary.simpleMessage("Kirishlar"),
+    "visitExited": MessageLookupByLibrary.simpleMessage("Chiqdi"),
+    "visitExits": MessageLookupByLibrary.simpleMessage("Chiqishlar"),
+    "visitHistoryEmpty": MessageLookupByLibrary.simpleMessage(
+      "Joriy smenada kirdi-chiqdi mavjud emas",
+    ),
+    "visitHistorySearchHint": MessageLookupByLibrary.simpleMessage(
+      "Bola, ota-ona yoki telefon bo‘yicha qidirish",
+    ),
+    "visitInside": MessageLookupByLibrary.simpleMessage("Ichkarida"),
+    "visitManualExit": MessageLookupByLibrary.simpleMessage(
+      "Qo‘lda chiqarilgan",
+    ),
+    "visitStillInside": MessageLookupByLibrary.simpleMessage("Hali ichkarida"),
   };
 }

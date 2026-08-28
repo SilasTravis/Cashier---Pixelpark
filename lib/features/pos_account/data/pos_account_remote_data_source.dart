@@ -35,6 +35,17 @@ abstract class PosAccountRemoteDataSource {
     required String birthDate,
   });
 
+  Future<Customer> updateCustomerName({
+    required int customerId,
+    required String fullName,
+  }) => throw UnsupportedError('Customer name update is not implemented');
+
+  Future<Child> updateChildName({
+    required int customerId,
+    required String childId,
+    required String fullName,
+  }) => throw UnsupportedError('Child name update is not implemented');
+
   Future<TopupResult> topup({
     required int customerId,
     required int amountUzs,
@@ -138,6 +149,35 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
           if (lastName != null && lastName.isNotEmpty) 'lastName': lastName,
           'birthDate': birthDate,
         },
+      ),
+    );
+    return _childFromJson(response as Map<String, dynamic>);
+  }
+
+  @override
+  Future<Customer> updateCustomerName({
+    required int customerId,
+    required String fullName,
+  }) async {
+    final response = await _request(
+      () => dio.patch(
+        '/v1/pos/customers/$customerId',
+        data: {'fullName': fullName.trim()},
+      ),
+    );
+    return _customerFromJson(response as Map<String, dynamic>);
+  }
+
+  @override
+  Future<Child> updateChildName({
+    required int customerId,
+    required String childId,
+    required String fullName,
+  }) async {
+    final response = await _request(
+      () => dio.patch(
+        '/v1/pos/customers/$customerId/children/$childId',
+        data: {'fullName': fullName.trim()},
       ),
     );
     return _childFromJson(response as Map<String, dynamic>);

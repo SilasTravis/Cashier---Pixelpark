@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../pos_account/domain/customer.dart';
 
 enum SaleHistoryPeriod { today, sevenDays, thirtyDays, year }
 
@@ -45,6 +46,7 @@ class SaleHistoryEntry extends Equatable {
     required this.balanceUzs,
     required this.createdAt,
     required this.items,
+    this.customer,
   });
 
   final String id;
@@ -55,6 +57,7 @@ class SaleHistoryEntry extends Equatable {
   final int balanceUzs;
   final DateTime createdAt;
   final List<SaleHistoryItem> items;
+  final Customer? customer;
 
   String get typeLabel => switch (type) {
     'GOODS_CHECKOUT' => 'Mahsulot savdosi',
@@ -73,6 +76,7 @@ class SaleHistoryEntry extends Equatable {
     balanceUzs,
     createdAt,
     items,
+    customer,
   ];
 }
 

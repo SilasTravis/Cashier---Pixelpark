@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:phosphor_icons/phosphor_icons.dart';
 
@@ -20,6 +21,7 @@ class Sidebar extends StatelessWidget {
     required this.cashierName,
     required this.shiftOpenedAt,
     required this.onCloseShift,
+    required this.updateAvailable,
   });
 
   final ShellTab selected;
@@ -29,6 +31,10 @@ class Sidebar extends StatelessWidget {
   final String cashierName;
   final DateTime? shiftOpenedAt;
   final VoidCallback? onCloseShift;
+
+  /// True while a background check has found a newer release. Drives the dot
+  /// on the Settings tab so nobody has to remember to look.
+  final ValueListenable<bool> updateAvailable;
 
   static const _width = ResponsivePanel(compact: 156, standard: 200, wide: 220);
   static const double _collapsedWidth = 68;
@@ -84,11 +90,15 @@ class Sidebar extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           for (final tab in ShellTab.values)
-            _NavTile(
-              tab: tab,
-              selected: tab == selected,
-              collapsed: collapsed,
-              onTap: () => onSelect(tab),
+            ValueListenableBuilder<bool>(
+              valueListenable: updateAvailable,
+              builder: (context, hasUpdate, _) => _NavTile(
+                tab: tab,
+                selected: tab == selected,
+                collapsed: collapsed,
+                badge: hasUpdate && tab == ShellTab.settings,
+                onTap: () => onSelect(tab),
+              ),
             ),
           const Spacer(),
           Padding(
@@ -142,12 +152,14 @@ class _NavTile extends StatelessWidget {
     required this.selected,
     required this.collapsed,
     required this.onTap,
+    this.badge = false,
   });
 
   final ShellTab tab;
   final bool selected;
   final bool collapsed;
   final VoidCallback onTap;
+  final bool badge;
 
   @override
   Widget build(BuildContext context) {
@@ -171,12 +183,34 @@ class _NavTile extends StatelessWidget {
                   ? MainAxisAlignment.center
                   : MainAxisAlignment.start,
               children: [
-                Icon(
-                  tab.icon,
-                  size: 18,
-                  color: selected
-                      ? NocturneColors.accent
-                      : NocturneColors.neutral500,
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Icon(
+                      tab.icon,
+                      size: 18,
+                      color: selected
+                          ? NocturneColors.accent
+                          : NocturneColors.neutral500,
+                    ),
+                    if (badge)
+                      Positioned(
+                        top: -2,
+                        right: -2,
+                        child: Container(
+                          // Keyed per tab (not just for Settings) so tests
+                          // can assert which tile the badge renders on,
+                          // rather than merely that it renders somewhere.
+                          key: Key('nav-update-badge-${tab.name}'),
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: NocturneColors.accent,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 if (!collapsed) ...[
                   const SizedBox(width: 10),

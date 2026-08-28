@@ -23,10 +23,3 @@ enum FreeReason {
     return null;
   }
 }
-
-bool isBirthdayInTashkent(DateTime birthDate, {DateTime? now}) {
-  final tashkent = (now ?? DateTime.now()).toUtc().add(
-    const Duration(hours: 5),
-  );
-  return birthDate.month == tashkent.month && birthDate.day == tashkent.day;
-}

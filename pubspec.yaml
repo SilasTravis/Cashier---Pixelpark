@@ -2,7 +2,7 @@ name: cashier_app
 description: "Bolajon kassa terminali — Flutter Windows desktop POS."
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.5+6
 
 environment:
   sdk: ^3.12.2
@@ -38,15 +38,31 @@ dependencies:
   phosphor_icons: ^3.0.1
   # frameless window + custom title bar
   window_manager: ^0.4.3
-  # app version for the background update checker
+  # app version, compared against the latest GitHub release tag
   package_info_plus: ^10.2.1
   uuid: ^4.6.0
+  # self-update: unpack the release zip and verify its published SHA-256
+  archive: ^4.0.9
+  crypto: ^3.0.7
+  # already resolved transitively via Flutter; pinned to the exact version
+  # in pubspec.lock so declaring it explicitly (for path-relativizing in
+  # tests) doesn't move anything else in the dependency graph
+  path: 1.9.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
   intl_utils: ^2.8.7
+  # already resolved transitively via flutter_test; pinned to the exact
+  # version in pubspec.lock so declaring it explicitly (for deterministic
+  # virtual-clock timer tests) doesn't move anything else in the graph
+  fake_async: 1.3.3
+  # already resolved transitively via path_provider; pinned to the exact
+  # version in pubspec.lock so declaring it explicitly (to fake
+  # getApplicationSupportPath() via the platform-interface seam instead of
+  # channel mocking) doesn't move anything else in the graph
+  path_provider_platform_interface: 2.1.3
 
 flutter:
   uses-material-design: true

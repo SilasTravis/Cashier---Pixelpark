@@ -204,6 +204,22 @@ void main() {
   });
 
   group('panel', () {
+    testWidgets('cashier can select birthday regardless of stored date', (
+      tester,
+    ) async {
+      await _pumpPanel(tester);
+
+      await tester.tap(find.byTooltip('Bepul kirish sabablari'));
+      await tester.pumpAndSettle();
+
+      final birthday = find.text('Tug‘ilgan kun (bepul)');
+      expect(birthday, findsOneWidget);
+      await tester.tap(birthday);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Bepul · Tug‘ilgan kun'), findsOneWidget);
+    });
+
     testWidgets('a free reason from the 3-dots menu zeroes the VIP charge', (
       tester,
     ) async {

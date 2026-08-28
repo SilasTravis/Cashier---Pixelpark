@@ -1,13 +1,15 @@
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive_ce/hive.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'core/local_source/local_source.dart';
 import 'core/localization/locale_cubit.dart';
 import 'core/network/api_client.dart';
 import 'core/network/token_refresher.dart';
-import 'core/update/update_checker.dart';
+import 'core/update/release_source.dart';
+import 'core/update/update_service.dart';
 import 'features/auth/data/datasources/auth_remote_data_source.dart';
 import 'features/auth/data/repositories/auth_repository_impl.dart';
 import 'features/auth/domain/repositories/auth_repository.dart';
@@ -30,6 +32,8 @@ import 'features/sales_history/presentation/bloc/sales_history_bloc.dart';
 import 'features/shift/data/shift_remote_data_source.dart';
 import 'features/shift/data/shift_repository_impl.dart';
 import 'features/shift/presentation/bloc/shift_bloc.dart';
+import 'features/visit_history/data/visit_history_repository.dart';
+import 'features/visit_history/presentation/bloc/visit_history_cubit.dart';
 
 final GetIt sl = GetIt.instance;
 
@@ -39,11 +43,17 @@ Future<void> init() async {
   sl.registerLazySingleton<TokenRefresher>(() => TokenRefresher(sl()));
   sl.registerLazySingleton<Dio>(() => buildDio(sl(), sl()));
 
-  sl.registerLazySingleton<UpdateChecker>(
-    () => UpdateChecker(
-      isSafeToApply: () => sl<LocalSource>().getAccessToken() == null,
+  // Read once at startup: the version is fixed for the process lifetime, and
+  // reading it eagerly keeps every consumer synchronous.
+  final packageInfo = await PackageInfo.fromPlatform();
+  sl.registerSingleton<UpdateService>(
+    UpdateService(
+      source: GithubReleaseSource(),
+      currentVersion: packageInfo.version,
+      supportDirectory: getApplicationSupportDirectory,
     ),
   );
+
   sl.registerFactory<LocaleCubit>(() => LocaleCubit(sl()));
 
   _authFeature();
@@ -53,6 +63,14 @@ Future<void> init() async {
   _posSaleFeature();
   _salesHistoryFeature();
   _insideFeature();
+  _visitHistoryFeature();
+}
+
+void _visitHistoryFeature() {
+  sl.registerFactory<VisitHistoryCubit>(() => VisitHistoryCubit(sl()));
+  sl.registerLazySingleton<VisitHistoryRepository>(
+    () => VisitHistoryRepository(sl()),
+  );
 }
 
 void _insideFeature() {
@@ -112,7 +130,7 @@ void _productsFeature() {
 }
 
 void _posAccountFeature() {
-  sl.registerFactory<PosAccountBloc>(() => PosAccountBloc(sl()));
+  sl.registerFactory<PosAccountBloc>(() => PosAccountBloc(sl(), sl()));
 
   sl.registerLazySingleton<PosAccountRepository>(
     () => PosAccountRepository(sl()),

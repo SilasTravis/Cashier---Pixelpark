@@ -83,12 +83,16 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m26(time) => "Shift opened at ${time}";
 
-  static String m27(name) =>
+  static String m27(version) => "New version available: ${version}";
+
+  static String m28(name) =>
       "«${name}» already has an active VIP tariff — no second charge.";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
+    "accountId": MessageLookupByLibrary.simpleMessage("Account ID"),
     "accountNotFoundForPhone": m0,
+    "accountOwner": MessageLookupByLibrary.simpleMessage("Account owner"),
     "accruedAmount": MessageLookupByLibrary.simpleMessage("Current charge"),
     "accruedDue": m1,
     "add": MessageLookupByLibrary.simpleMessage("Add"),
@@ -125,11 +129,15 @@ class MessageLookup extends MessageLookupByLibrary {
     "companionDescription": m5,
     "currentBalanceValue": m6,
     "currentPlanToday": m7,
+    "currentShiftOnly": MessageLookupByLibrary.simpleMessage(
+      "Current shift only",
+    ),
     "currentlyInside": MessageLookupByLibrary.simpleMessage("Currently inside"),
     "customerCount": m8,
     "customerDirectorySearchHint": MessageLookupByLibrary.simpleMessage(
       "Search by name or the last phone digits",
     ),
+    "date": MessageLookupByLibrary.simpleMessage("Date"),
     "downgradeForbidden": MessageLookupByLibrary.simpleMessage(
       "This tariff cannot be downgraded — if the sticker was lost, reprint the current tariff.",
     ),
@@ -215,6 +223,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "noPrintersFound": MessageLookupByLibrary.simpleMessage(
       "No installed Windows printers found",
     ),
+    "openCustomerProfile": MessageLookupByLibrary.simpleMessage(
+      "Open customer profile",
+    ),
     "parentQr": MessageLookupByLibrary.simpleMessage("Parent QR"),
     "pay": MessageLookupByLibrary.simpleMessage("Pay"),
     "payFromBalance": MessageLookupByLibrary.simpleMessage("Pay from balance"),
@@ -236,6 +247,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "paymentMissing": MessageLookupByLibrary.simpleMessage("Amount remaining"),
     "paymentSplit": MessageLookupByLibrary.simpleMessage("Split"),
     "phoneNotFound": MessageLookupByLibrary.simpleMessage("Number not found"),
+    "phoneNumber": MessageLookupByLibrary.simpleMessage("Phone number"),
     "planSwitch": MessageLookupByLibrary.simpleMessage("Switch tariff"),
     "planSwitchQuestion": m21,
     "planSwitchVipQuestion": m22,
@@ -300,20 +312,86 @@ class MessageLookup extends MessageLookupByLibrary {
     "tabInside": MessageLookupByLibrary.simpleMessage("Inside park"),
     "tabSales": MessageLookupByLibrary.simpleMessage("Sales"),
     "tabSettings": MessageLookupByLibrary.simpleMessage("Settings"),
+    "tabVisitHistory": MessageLookupByLibrary.simpleMessage(
+      "Entry/exit history",
+    ),
     "tariff": MessageLookupByLibrary.simpleMessage("Tariff"),
     "tariffNotFound": MessageLookupByLibrary.simpleMessage("No tariffs found."),
     "topup": MessageLookupByLibrary.simpleMessage("Top up"),
     "topupBalance": MessageLookupByLibrary.simpleMessage("Top up balance"),
+    "topupDetails": MessageLookupByLibrary.simpleMessage(
+      "Account top-up details",
+    ),
     "total": MessageLookupByLibrary.simpleMessage("Total"),
     "totalBill": MessageLookupByLibrary.simpleMessage("Total bill"),
+    "transactionId": MessageLookupByLibrary.simpleMessage("Transaction ID"),
     "unlimitedFreeEntry": MessageLookupByLibrary.simpleMessage(
       "Free — unrestricted entry and exit",
     ),
+    "updateAvailable": m27,
+    "updateCancel": MessageLookupByLibrary.simpleMessage("Cancel"),
+    "updateCheck": MessageLookupByLibrary.simpleMessage("Check for updates"),
+    "updateConfirm": MessageLookupByLibrary.simpleMessage("Continue"),
+    "updateConfirmMessage": MessageLookupByLibrary.simpleMessage(
+      "The app will close and reopen on the new version. Your shift stays open. Continue?",
+    ),
+    "updateConfirmTitle": MessageLookupByLibrary.simpleMessage(
+      "Update the app",
+    ),
+    "updateDownload": MessageLookupByLibrary.simpleMessage(
+      "Download & install",
+    ),
+    "updateDownloading": MessageLookupByLibrary.simpleMessage("Downloading…"),
+    "updateFailed": MessageLookupByLibrary.simpleMessage("Update failed"),
+    "updateFailedGeneric": MessageLookupByLibrary.simpleMessage(
+      "Update failed. Check the internet connection and try again.",
+    ),
+    "updateFailureChecksumMismatch": MessageLookupByLibrary.simpleMessage(
+      "The downloaded file failed its checksum check",
+    ),
+    "updateFailureChecksumUnreadable": MessageLookupByLibrary.simpleMessage(
+      "Could not read the published checksum — refusing to install an unverified update",
+    ),
+    "updateFailureExecutableMissing": MessageLookupByLibrary.simpleMessage(
+      "The downloaded archive is missing the app program",
+    ),
+    "updateFailureIncompleteExtraction": MessageLookupByLibrary.simpleMessage(
+      "The update did not unpack completely. The download was discarded — please try again",
+    ),
+    "updateManualHint": MessageLookupByLibrary.simpleMessage(
+      "To download manually:",
+    ),
+    "updateReady": MessageLookupByLibrary.simpleMessage("Update ready"),
+    "updateRestart": MessageLookupByLibrary.simpleMessage("Restart now"),
+    "updateTitle": MessageLookupByLibrary.simpleMessage("Update"),
+    "updateUpToDate": MessageLookupByLibrary.simpleMessage(
+      "You\'re on the latest version",
+    ),
+    "updateWindowsOnly": MessageLookupByLibrary.simpleMessage(
+      "Automatic updates work on Windows only",
+    ),
     "version": MessageLookupByLibrary.simpleMessage("Version"),
-    "vipAlreadyActive": m27,
+    "vipAlreadyActive": m28,
     "vipChargedImmediately": MessageLookupByLibrary.simpleMessage(
       "The VIP tariff is debited from the balance immediately when printed.",
     ),
     "vipTariff": MessageLookupByLibrary.simpleMessage("VIP tariff"),
+    "visitChild": MessageLookupByLibrary.simpleMessage("Child in this visit"),
+    "visitDetails": MessageLookupByLibrary.simpleMessage(
+      "Entry and exit details",
+    ),
+    "visitEntered": MessageLookupByLibrary.simpleMessage("Entered"),
+    "visitEntries": MessageLookupByLibrary.simpleMessage("Entries"),
+    "visitExited": MessageLookupByLibrary.simpleMessage("Exited"),
+    "visitExits": MessageLookupByLibrary.simpleMessage("Exits"),
+    "visitHistoryEmpty": MessageLookupByLibrary.simpleMessage(
+      "No entries or exits in the current shift",
+    ),
+    "visitHistorySearchHint": MessageLookupByLibrary.simpleMessage(
+      "Search by child, parent or phone",
+    ),
+    "visitInside": MessageLookupByLibrary.simpleMessage("Inside"),
+    "visitManualExit": MessageLookupByLibrary.simpleMessage("Manually exited"),
+    "visitStillInside": MessageLookupByLibrary.simpleMessage("Still inside"),
   };
 }

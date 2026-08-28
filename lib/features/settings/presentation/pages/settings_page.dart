@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:phosphor_icons/phosphor_icons.dart';
 import 'package:printing/printing.dart';
@@ -6,11 +7,14 @@ import 'package:printing/printing.dart';
 import '../../../../core/local_source/local_source.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
+import '../../../../core/update/update_service.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../injector_container.dart';
 import '../../../../router/app_navigator.dart';
 import '../../../../generated/l10n.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
+import '../bloc/update_cubit.dart';
+import '../widgets/update_card.dart';
 
 /// The design's sidebar has no logout affordance (just a bare "Kassa 2 ·
 /// Zaira" label) — this app needs one, so it lives here instead: cashier +
@@ -99,6 +103,11 @@ class SettingsPage extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               const _PrinterSettingsCard(),
+              const SizedBox(height: 16),
+              BlocProvider<UpdateCubit>(
+                create: (_) => UpdateCubit(sl<UpdateService>()),
+                child: const UpdateCard(),
+              ),
               const SizedBox(height: 16),
               SizedBox(
                 height: 48,

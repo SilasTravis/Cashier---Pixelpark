@@ -83,12 +83,16 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m26(time) => "Смена открыта в ${time}";
 
-  static String m27(name) =>
+  static String m27(version) => "Доступна новая версия: ${version}";
+
+  static String m28(name) =>
       "«${name}» уже на активном VIP-тарифе — повторная оплата не взимается.";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
+    "accountId": MessageLookupByLibrary.simpleMessage("ID счёта"),
     "accountNotFoundForPhone": m0,
+    "accountOwner": MessageLookupByLibrary.simpleMessage("Владелец счёта"),
     "accruedAmount": MessageLookupByLibrary.simpleMessage("Текущий счёт"),
     "accruedDue": m1,
     "add": MessageLookupByLibrary.simpleMessage("Добавить"),
@@ -129,11 +133,15 @@ class MessageLookup extends MessageLookupByLibrary {
     "companionDescription": m5,
     "currentBalanceValue": m6,
     "currentPlanToday": m7,
+    "currentShiftOnly": MessageLookupByLibrary.simpleMessage(
+      "Только текущая смена",
+    ),
     "currentlyInside": MessageLookupByLibrary.simpleMessage("Сейчас внутри"),
     "customerCount": m8,
     "customerDirectorySearchHint": MessageLookupByLibrary.simpleMessage(
       "Поиск по имени или последним цифрам телефона",
     ),
+    "date": MessageLookupByLibrary.simpleMessage("Дата"),
     "downgradeForbidden": MessageLookupByLibrary.simpleMessage(
       "Переход на более низкий тариф невозможен — если стикер потерян, повторно напечатайте текущий.",
     ),
@@ -217,6 +225,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "noPrintersFound": MessageLookupByLibrary.simpleMessage(
       "В Windows не найдено установленных принтеров",
     ),
+    "openCustomerProfile": MessageLookupByLibrary.simpleMessage(
+      "Открыть профиль клиента",
+    ),
     "parentQr": MessageLookupByLibrary.simpleMessage("QR родителя"),
     "pay": MessageLookupByLibrary.simpleMessage("Оплатить"),
     "payFromBalance": MessageLookupByLibrary.simpleMessage("Списать с баланса"),
@@ -240,6 +251,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "paymentSplit": MessageLookupByLibrary.simpleMessage("Смешанная"),
     "phoneNotFound": MessageLookupByLibrary.simpleMessage("Номер не найден"),
+    "phoneNumber": MessageLookupByLibrary.simpleMessage("Номер телефона"),
     "planSwitch": MessageLookupByLibrary.simpleMessage("Смена тарифа"),
     "planSwitchQuestion": m21,
     "planSwitchVipQuestion": m22,
@@ -304,22 +316,88 @@ class MessageLookup extends MessageLookupByLibrary {
     "tabInside": MessageLookupByLibrary.simpleMessage("В парке"),
     "tabSales": MessageLookupByLibrary.simpleMessage("Продажи"),
     "tabSettings": MessageLookupByLibrary.simpleMessage("Настройки"),
+    "tabVisitHistory": MessageLookupByLibrary.simpleMessage("История входов"),
     "tariff": MessageLookupByLibrary.simpleMessage("Тариф"),
     "tariffNotFound": MessageLookupByLibrary.simpleMessage(
       "Тарифы не найдены.",
     ),
     "topup": MessageLookupByLibrary.simpleMessage("Пополнить"),
     "topupBalance": MessageLookupByLibrary.simpleMessage("Пополнить баланс"),
+    "topupDetails": MessageLookupByLibrary.simpleMessage(
+      "Детали пополнения счёта",
+    ),
     "total": MessageLookupByLibrary.simpleMessage("Итого"),
     "totalBill": MessageLookupByLibrary.simpleMessage("Общий счёт"),
+    "transactionId": MessageLookupByLibrary.simpleMessage("ID транзакции"),
     "unlimitedFreeEntry": MessageLookupByLibrary.simpleMessage(
       "Бесплатно — вход и выход без ограничений",
     ),
+    "updateAvailable": m27,
+    "updateCancel": MessageLookupByLibrary.simpleMessage("Отмена"),
+    "updateCheck": MessageLookupByLibrary.simpleMessage("Проверить обновления"),
+    "updateConfirm": MessageLookupByLibrary.simpleMessage("Продолжить"),
+    "updateConfirmMessage": MessageLookupByLibrary.simpleMessage(
+      "Приложение закроется и снова откроется на новой версии. Смена останется открытой. Продолжить?",
+    ),
+    "updateConfirmTitle": MessageLookupByLibrary.simpleMessage(
+      "Обновление приложения",
+    ),
+    "updateDownload": MessageLookupByLibrary.simpleMessage(
+      "Скачать и установить",
+    ),
+    "updateDownloading": MessageLookupByLibrary.simpleMessage("Загрузка…"),
+    "updateFailed": MessageLookupByLibrary.simpleMessage("Не удалось обновить"),
+    "updateFailedGeneric": MessageLookupByLibrary.simpleMessage(
+      "Не удалось обновить. Проверьте подключение к интернету и попробуйте снова.",
+    ),
+    "updateFailureChecksumMismatch": MessageLookupByLibrary.simpleMessage(
+      "Скачанный файл повреждён — контрольная сумма не совпала",
+    ),
+    "updateFailureChecksumUnreadable": MessageLookupByLibrary.simpleMessage(
+      "Не удалось прочитать опубликованную контрольную сумму — обновление с непроверенным файлом не устанавливается",
+    ),
+    "updateFailureExecutableMissing": MessageLookupByLibrary.simpleMessage(
+      "В скачанном архиве не найдена программа приложения",
+    ),
+    "updateFailureIncompleteExtraction": MessageLookupByLibrary.simpleMessage(
+      "Обновление распаковалось не полностью. Файл был удалён — попробуйте ещё раз",
+    ),
+    "updateManualHint": MessageLookupByLibrary.simpleMessage(
+      "Для ручной загрузки:",
+    ),
+    "updateReady": MessageLookupByLibrary.simpleMessage("Обновление готово"),
+    "updateRestart": MessageLookupByLibrary.simpleMessage("Перезапустить"),
+    "updateTitle": MessageLookupByLibrary.simpleMessage("Обновление"),
+    "updateUpToDate": MessageLookupByLibrary.simpleMessage(
+      "Установлена последняя версия",
+    ),
+    "updateWindowsOnly": MessageLookupByLibrary.simpleMessage(
+      "Автообновление работает только в Windows",
+    ),
     "version": MessageLookupByLibrary.simpleMessage("Версия"),
-    "vipAlreadyActive": m27,
+    "vipAlreadyActive": m28,
     "vipChargedImmediately": MessageLookupByLibrary.simpleMessage(
       "Стоимость VIP-тарифа списывается с баланса сразу при печати.",
     ),
     "vipTariff": MessageLookupByLibrary.simpleMessage("VIP-тариф"),
+    "visitChild": MessageLookupByLibrary.simpleMessage(
+      "Ребёнок в этом посещении",
+    ),
+    "visitDetails": MessageLookupByLibrary.simpleMessage(
+      "Детали входа и выхода",
+    ),
+    "visitEntered": MessageLookupByLibrary.simpleMessage("Вошёл"),
+    "visitEntries": MessageLookupByLibrary.simpleMessage("Входы"),
+    "visitExited": MessageLookupByLibrary.simpleMessage("Вышел"),
+    "visitExits": MessageLookupByLibrary.simpleMessage("Выходы"),
+    "visitHistoryEmpty": MessageLookupByLibrary.simpleMessage(
+      "В текущей смене входов и выходов нет",
+    ),
+    "visitHistorySearchHint": MessageLookupByLibrary.simpleMessage(
+      "Поиск по ребенку, родителю или телефону",
+    ),
+    "visitInside": MessageLookupByLibrary.simpleMessage("Внутри"),
+    "visitManualExit": MessageLookupByLibrary.simpleMessage("Выведен вручную"),
+    "visitStillInside": MessageLookupByLibrary.simpleMessage("Ещё внутри"),
   };
 }

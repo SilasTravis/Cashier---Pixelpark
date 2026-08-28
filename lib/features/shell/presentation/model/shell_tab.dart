@@ -6,6 +6,7 @@ enum ShellTab {
   posAccount(icon: PhosphorIconsRegular.qrCode),
   posSale(icon: PhosphorIconsRegular.shoppingCartSimple),
   salesHistory(icon: PhosphorIconsRegular.clockCounterClockwise),
+  visitHistory(icon: PhosphorIconsRegular.arrowsLeftRight),
   inside(icon: PhosphorIconsRegular.personSimpleRun),
   settings(icon: PhosphorIconsRegular.gearSix);
 
@@ -17,6 +18,7 @@ enum ShellTab {
     ShellTab.posAccount => l10n.tabAccount,
     ShellTab.posSale => l10n.tabSales,
     ShellTab.salesHistory => l10n.tabHistory,
+    ShellTab.visitHistory => l10n.tabVisitHistory,
     ShellTab.inside => l10n.tabInside,
     ShellTab.settings => l10n.tabSettings,
   };
