@@ -1,5 +1,7 @@
 part of 'sales_history_bloc.dart';
 
+enum SaleRefundSubmissionStatus { initial, submitting, success, failure }
+
 class SalesHistoryState extends Equatable {
   const SalesHistoryState({
     this.isLoading = false,
@@ -13,6 +15,10 @@ class SalesHistoryState extends Equatable {
     this.from,
     this.to,
     this.error,
+    this.refundStatus = SaleRefundSubmissionStatus.initial,
+    this.refundingSaleId,
+    this.refundError,
+    this.lastRefundedSaleId,
   });
   static const pageSize = 100;
   final bool isLoading;
@@ -26,6 +32,10 @@ class SalesHistoryState extends Equatable {
   final DateTime? from;
   final DateTime? to;
   final String? error;
+  final SaleRefundSubmissionStatus refundStatus;
+  final String? refundingSaleId;
+  final String? refundError;
+  final String? lastRefundedSaleId;
   int get pageCount => total == 0 ? 1 : (total / pageSize).ceil();
 
   SalesHistoryState copyWith({
@@ -44,6 +54,13 @@ class SalesHistoryState extends Equatable {
     bool clearDates = false,
     String? error,
     bool clearError = false,
+    SaleRefundSubmissionStatus? refundStatus,
+    String? refundingSaleId,
+    bool clearRefundingSale = false,
+    String? refundError,
+    bool clearRefundError = false,
+    String? lastRefundedSaleId,
+    bool clearLastRefundedSale = false,
   }) => SalesHistoryState(
     isLoading: isLoading ?? this.isLoading,
     period: clearPeriod ? null : (period ?? this.period),
@@ -58,6 +75,14 @@ class SalesHistoryState extends Equatable {
     from: clearDates ? null : (from ?? this.from),
     to: clearDates ? null : (to ?? this.to),
     error: clearError ? null : (error ?? this.error),
+    refundStatus: refundStatus ?? this.refundStatus,
+    refundingSaleId: clearRefundingSale
+        ? null
+        : (refundingSaleId ?? this.refundingSaleId),
+    refundError: clearRefundError ? null : (refundError ?? this.refundError),
+    lastRefundedSaleId: clearLastRefundedSale
+        ? null
+        : (lastRefundedSaleId ?? this.lastRefundedSaleId),
   );
 
   @override
@@ -73,5 +98,9 @@ class SalesHistoryState extends Equatable {
     from,
     to,
     error,
+    refundStatus,
+    refundingSaleId,
+    refundError,
+    lastRefundedSaleId,
   ];
 }

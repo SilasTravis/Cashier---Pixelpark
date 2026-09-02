@@ -78,13 +78,20 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m24(value) => "${value} / kun";
 
-  static String m25(count) => "tanlangan: ${count}";
+  static String m25(date, name) => "${date} · ${name}";
 
-  static String m26(time) => "Smena ${time} da ochildi";
+  static String m26(amount, method) =>
+      "${amount} ${method} orqali qaytariladi. Bu amal audit tarixida saqlanadi va o‘chirib bo‘lmaydi.";
 
-  static String m27(version) => "Yangi versiya mavjud: ${version}";
+  static String m27(amount) => "${amount} muvaffaqiyatli qaytarildi";
 
-  static String m28(name) =>
+  static String m28(count) => "tanlangan: ${count}";
+
+  static String m29(time) => "Smena ${time} da ochildi";
+
+  static String m30(version) => "Yangi versiya mavjud: ${version}";
+
+  static String m31(name) =>
       "«${name}» allaqachon faol VIP tarifda — qayta to‘lov olinmaydi.";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
@@ -277,6 +284,41 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "recentCustomers": MessageLookupByLibrary.simpleMessage("So‘nggi mijozlar"),
     "refresh": MessageLookupByLibrary.simpleMessage("Yangilash"),
+    "refundAction": MessageLookupByLibrary.simpleMessage("Qaytarish"),
+    "refundAlreadyAmount": MessageLookupByLibrary.simpleMessage("Qaytarilgan"),
+    "refundAmount": MessageLookupByLibrary.simpleMessage(
+      "Qaytariladigan summa",
+    ),
+    "refundAuditBy": m25,
+    "refundCardWarning": MessageLookupByLibrary.simpleMessage(
+      "Karta orqali qaytarish terminalda ham alohida bajarilishi kerak. Ilovadagi amal terminal tranzaksiyasini avtomatik bekor qilmaydi.",
+    ),
+    "refundConfirmMessage": m26,
+    "refundConfirmTitle": MessageLookupByLibrary.simpleMessage(
+      "Qaytarishni tasdiqlang",
+    ),
+    "refundFullBadge": MessageLookupByLibrary.simpleMessage(
+      "To‘liq qaytarilgan",
+    ),
+    "refundHistory": MessageLookupByLibrary.simpleMessage("Qaytarish tarixi"),
+    "refundMax": MessageLookupByLibrary.simpleMessage("Hammasini tanlash"),
+    "refundMethod": MessageLookupByLibrary.simpleMessage("Qaytarish usuli"),
+    "refundOriginalAmount": MessageLookupByLibrary.simpleMessage("Asl to‘lov"),
+    "refundPartialBadge": MessageLookupByLibrary.simpleMessage(
+      "Qisman qaytarilgan",
+    ),
+    "refundReason": MessageLookupByLibrary.simpleMessage("Qaytarish sababi"),
+    "refundReasonHint": MessageLookupByLibrary.simpleMessage(
+      "Masalan: mahsulot qaytarildi yoki buyurtma xato kiritildi",
+    ),
+    "refundReasonValidation": MessageLookupByLibrary.simpleMessage(
+      "Sabab kamida 5 ta belgidan iborat bo‘lishi kerak",
+    ),
+    "refundRemainingAmount": MessageLookupByLibrary.simpleMessage(
+      "Qolgan summa",
+    ),
+    "refundSuccess": m27,
+    "refundTitle": MessageLookupByLibrary.simpleMessage("To‘lovdan qaytarish"),
     "reprint": MessageLookupByLibrary.simpleMessage("Qayta chop etish"),
     "saleGatePass": MessageLookupByLibrary.simpleMessage("Kirish chiptasi"),
     "saleGeneric": MessageLookupByLibrary.simpleMessage("Sotuv"),
@@ -286,11 +328,11 @@ class MessageLookup extends MessageLookupByLibrary {
     "searchHistory": MessageLookupByLibrary.simpleMessage("Qidiruv tarixi"),
     "searchResult": MessageLookupByLibrary.simpleMessage("Qidiruv natijasi"),
     "selectForQr": MessageLookupByLibrary.simpleMessage("QR uchun tanlang"),
-    "selectedCount": m25,
+    "selectedCount": m28,
     "shiftClose": MessageLookupByLibrary.simpleMessage("Smenani yopish"),
     "shiftClosed": MessageLookupByLibrary.simpleMessage("Smena yopildi"),
     "shiftOpen": MessageLookupByLibrary.simpleMessage("Smenani ochish"),
-    "shiftOpenedAt": m26,
+    "shiftOpenedAt": m29,
     "shiftOpeningCash": MessageLookupByLibrary.simpleMessage(
       "Boshlang‘ich naqd (so‘m)",
     ),
@@ -329,7 +371,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "unlimitedFreeEntry": MessageLookupByLibrary.simpleMessage(
       "Bepul — kirish-chiqishga cheklovsiz",
     ),
-    "updateAvailable": m27,
+    "updateAvailable": m30,
     "updateCancel": MessageLookupByLibrary.simpleMessage("Bekor qilish"),
     "updateCheck": MessageLookupByLibrary.simpleMessage(
       "Yangilanishni tekshirish",
@@ -376,7 +418,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Avtomatik yangilash faqat Windows’da ishlaydi",
     ),
     "version": MessageLookupByLibrary.simpleMessage("Versiya"),
-    "vipAlreadyActive": m28,
+    "vipAlreadyActive": m31,
     "vipChargedImmediately": MessageLookupByLibrary.simpleMessage(
       "VIP tarif puli chop etilganda balansdan darhol yechiladi.",
     ),

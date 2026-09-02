@@ -69,32 +69,93 @@ class SalesHistoryRemoteDataSource {
     }
   }
 
+  Future<SaleHistoryEntry> refund({
+    required String saleId,
+    required int amountUzs,
+    required SaleRefundMethod method,
+    required String reason,
+    required String requestId,
+  }) async {
+    try {
+      final response = await dio.post(
+        '/v1/pos/sales/$saleId/refunds',
+        data: {
+          'amountUzs': amountUzs,
+          'method': method.apiValue,
+          'reason': reason,
+          'requestId': requestId,
+        },
+      );
+      return _sale(Map<String, dynamic>.from(response.data as Map));
+    } on DioException catch (error) {
+      throw ServerException.fromJson(error.response?.data);
+    }
+  }
+
   String _date(DateTime value) =>
       '${value.year.toString().padLeft(4, '0')}-'
       '${value.month.toString().padLeft(2, '0')}-'
       '${value.day.toString().padLeft(2, '0')}';
 
-  SaleHistoryEntry _sale(Map<String, dynamic> json) => SaleHistoryEntry(
-    id: json['id'] as String,
-    type: json['type'] as String,
-    totalUzs: json['subtotalUzs'] as int,
-    cashUzs: json['cashUzs'] as int,
-    cardUzs: json['cardUzs'] as int,
-    balanceUzs: json['balanceUzs'] as int,
-    createdAt: DateTime.parse(json['createdAt'] as String).toLocal(),
-    customer: json['customer'] == null
-        ? null
-        : _customer(Map<String, dynamic>.from(json['customer'] as Map)),
-    items: (json['items'] as List).map((raw) {
-      final item = Map<String, dynamic>.from(raw as Map);
-      return SaleHistoryItem(
-        name: item['nameSnapshot'] as String,
-        priceUzs: item['priceSnapshotUzs'] as int,
-        qty: item['qty'] as int,
-        totalUzs: item['lineTotalUzs'] as int,
-      );
-    }).toList(),
-  );
+  SaleHistoryEntry _sale(Map<String, dynamic> json) {
+    final subtotalUzs = _int(json['subtotalUzs']);
+    final cashUzs = _int(json['cashUzs']);
+    final cardUzs = _int(json['cardUzs']);
+    final refundedUzs = _int(json['refundedUzs']);
+    return SaleHistoryEntry(
+      id: json['id'] as String,
+      type: json['type'] as String,
+      totalUzs: subtotalUzs,
+      cashUzs: cashUzs,
+      cardUzs: cardUzs,
+      balanceUzs: _int(json['balanceUzs']),
+      refundedUzs: refundedUzs,
+      refundedCashUzs: _int(json['refundedCashUzs']),
+      refundedCardUzs: _int(json['refundedCardUzs']),
+      netUzs: _int(json['netUzs'], fallback: subtotalUzs - refundedUzs),
+      refundableUzs: _int(
+        json['refundableUzs'],
+        fallback: subtotalUzs - refundedUzs,
+      ),
+      refundableCashUzs: _int(json['refundableCashUzs'], fallback: cashUzs),
+      refundableCardUzs: _int(json['refundableCardUzs'], fallback: cardUzs),
+      canRefund: json['canRefund'] == true,
+      createdAt: DateTime.parse(json['createdAt'] as String).toLocal(),
+      customer: json['customer'] == null
+          ? null
+          : _customer(Map<String, dynamic>.from(json['customer'] as Map)),
+      items: ((json['items'] as List?) ?? const []).map((raw) {
+        final item = Map<String, dynamic>.from(raw as Map);
+        return SaleHistoryItem(
+          name: item['nameSnapshot'] as String,
+          priceUzs: _int(item['priceSnapshotUzs']),
+          qty: _int(item['qty']),
+          totalUzs: _int(item['lineTotalUzs']),
+        );
+      }).toList(),
+      refunds: ((json['refunds'] as List?) ?? const []).map((raw) {
+        final refund = Map<String, dynamic>.from(raw as Map);
+        return SaleHistoryRefund(
+          id: refund['id'] as String,
+          amountUzs: _int(refund['amountUzs']),
+          method: refund['method'] == 'card'
+              ? SaleRefundMethod.card
+              : SaleRefundMethod.cash,
+          reason: refund['reason'] as String,
+          refundedByType: refund['refundedByType'] as String,
+          refundedByName: refund['refundedByName'] as String,
+          createdAt: DateTime.parse(refund['createdAt'] as String).toLocal(),
+        );
+      }).toList(),
+    );
+  }
+
+  int _int(Object? value, {int fallback = 0}) => switch (value) {
+    int number => number,
+    num number => number.toInt(),
+    String text => int.tryParse(text) ?? fallback,
+    _ => fallback,
+  };
 
   Customer _customer(Map<String, dynamic> json) => Customer(
     id: json['id'] as int,

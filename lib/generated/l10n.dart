@@ -1713,6 +1713,186 @@ class AppLocalization {
       args: [],
     );
   }
+
+  /// `Refund`
+  String get refundAction {
+    return Intl.message('Refund', name: 'refundAction', desc: '', args: []);
+  }
+
+  /// `Refund payment`
+  String get refundTitle {
+    return Intl.message(
+      'Refund payment',
+      name: 'refundTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Original payment`
+  String get refundOriginalAmount {
+    return Intl.message(
+      'Original payment',
+      name: 'refundOriginalAmount',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Refunded`
+  String get refundAlreadyAmount {
+    return Intl.message(
+      'Refunded',
+      name: 'refundAlreadyAmount',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Remaining amount`
+  String get refundRemainingAmount {
+    return Intl.message(
+      'Remaining amount',
+      name: 'refundRemainingAmount',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Refund method`
+  String get refundMethod {
+    return Intl.message(
+      'Refund method',
+      name: 'refundMethod',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Amount to refund`
+  String get refundAmount {
+    return Intl.message(
+      'Amount to refund',
+      name: 'refundAmount',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Select all`
+  String get refundMax {
+    return Intl.message('Select all', name: 'refundMax', desc: '', args: []);
+  }
+
+  /// `Refund reason`
+  String get refundReason {
+    return Intl.message(
+      'Refund reason',
+      name: 'refundReason',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `For example: returned item or incorrect order`
+  String get refundReasonHint {
+    return Intl.message(
+      'For example: returned item or incorrect order',
+      name: 'refundReasonHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The reason must contain at least 5 characters`
+  String get refundReasonValidation {
+    return Intl.message(
+      'The reason must contain at least 5 characters',
+      name: 'refundReasonValidation',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `A card refund must also be completed on the payment terminal. This action does not automatically reverse the terminal transaction.`
+  String get refundCardWarning {
+    return Intl.message(
+      'A card refund must also be completed on the payment terminal. This action does not automatically reverse the terminal transaction.',
+      name: 'refundCardWarning',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Confirm refund`
+  String get refundConfirmTitle {
+    return Intl.message(
+      'Confirm refund',
+      name: 'refundConfirmTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{amount} will be refunded via {method}. This action is permanently stored in the audit history.`
+  String refundConfirmMessage(String amount, String method) {
+    return Intl.message(
+      '$amount will be refunded via $method. This action is permanently stored in the audit history.',
+      name: 'refundConfirmMessage',
+      desc: '',
+      args: [amount, method],
+    );
+  }
+
+  /// `{amount} was refunded successfully`
+  String refundSuccess(String amount) {
+    return Intl.message(
+      '$amount was refunded successfully',
+      name: 'refundSuccess',
+      desc: '',
+      args: [amount],
+    );
+  }
+
+  /// `Partially refunded`
+  String get refundPartialBadge {
+    return Intl.message(
+      'Partially refunded',
+      name: 'refundPartialBadge',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Fully refunded`
+  String get refundFullBadge {
+    return Intl.message(
+      'Fully refunded',
+      name: 'refundFullBadge',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Refund history`
+  String get refundHistory {
+    return Intl.message(
+      'Refund history',
+      name: 'refundHistory',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{date} · {name}`
+  String refundAuditBy(String date, String name) {
+    return Intl.message(
+      '$date · $name',
+      name: 'refundAuditBy',
+      desc: '',
+      args: [date, name],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalization> {

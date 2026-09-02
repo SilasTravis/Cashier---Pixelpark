@@ -38,3 +38,22 @@ class SalesHistoryDateRangeChanged extends SalesHistoryEvent {
   @override
   List<Object?> get props => [from, to];
 }
+
+class SalesHistoryRefundRequested extends SalesHistoryEvent {
+  const SalesHistoryRefundRequested({
+    required this.saleId,
+    required this.amountUzs,
+    required this.method,
+    required this.reason,
+    required this.requestId,
+  });
+
+  final String saleId;
+  final int amountUzs;
+  final SaleRefundMethod method;
+  final String reason;
+  final String requestId;
+
+  @override
+  List<Object?> get props => [saleId, amountUzs, method, reason, requestId];
+}

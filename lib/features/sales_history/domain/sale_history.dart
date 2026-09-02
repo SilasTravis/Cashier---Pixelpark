@@ -3,6 +3,12 @@ import '../../pos_account/domain/customer.dart';
 
 enum SaleHistoryPeriod { today, sevenDays, thirtyDays, year }
 
+enum SaleRefundMethod { cash, card }
+
+extension SaleRefundMethodApi on SaleRefundMethod {
+  String get apiValue => name;
+}
+
 extension SaleHistoryPeriodApi on SaleHistoryPeriod {
   String get apiValue => switch (this) {
     SaleHistoryPeriod.today => 'today',
@@ -44,8 +50,17 @@ class SaleHistoryEntry extends Equatable {
     required this.cashUzs,
     required this.cardUzs,
     required this.balanceUzs,
+    required this.refundedUzs,
+    required this.refundedCashUzs,
+    required this.refundedCardUzs,
+    required this.netUzs,
+    required this.refundableUzs,
+    required this.refundableCashUzs,
+    required this.refundableCardUzs,
+    required this.canRefund,
     required this.createdAt,
     required this.items,
+    required this.refunds,
     this.customer,
   });
 
@@ -55,9 +70,26 @@ class SaleHistoryEntry extends Equatable {
   final int cashUzs;
   final int cardUzs;
   final int balanceUzs;
+  final int refundedUzs;
+  final int refundedCashUzs;
+  final int refundedCardUzs;
+  final int netUzs;
+  final int refundableUzs;
+  final int refundableCashUzs;
+  final int refundableCardUzs;
+  final bool canRefund;
   final DateTime createdAt;
   final List<SaleHistoryItem> items;
+  final List<SaleHistoryRefund> refunds;
   final Customer? customer;
+
+  bool get hasRefunds => refundedUzs > 0;
+  bool get isFullyRefunded => refundableUzs == 0 && hasRefunds;
+
+  int refundableFor(SaleRefundMethod method) => switch (method) {
+    SaleRefundMethod.cash => refundableCashUzs,
+    SaleRefundMethod.card => refundableCardUzs,
+  };
 
   String get typeLabel => switch (type) {
     'GOODS_CHECKOUT' => 'Mahsulot savdosi',
@@ -74,9 +106,49 @@ class SaleHistoryEntry extends Equatable {
     cashUzs,
     cardUzs,
     balanceUzs,
+    refundedUzs,
+    refundedCashUzs,
+    refundedCardUzs,
+    netUzs,
+    refundableUzs,
+    refundableCashUzs,
+    refundableCardUzs,
+    canRefund,
     createdAt,
     items,
+    refunds,
     customer,
+  ];
+}
+
+class SaleHistoryRefund extends Equatable {
+  const SaleHistoryRefund({
+    required this.id,
+    required this.amountUzs,
+    required this.method,
+    required this.reason,
+    required this.refundedByType,
+    required this.refundedByName,
+    required this.createdAt,
+  });
+
+  final String id;
+  final int amountUzs;
+  final SaleRefundMethod method;
+  final String reason;
+  final String refundedByType;
+  final String refundedByName;
+  final DateTime createdAt;
+
+  @override
+  List<Object?> get props => [
+    id,
+    amountUzs,
+    method,
+    reason,
+    refundedByType,
+    refundedByName,
+    createdAt,
   ];
 }
 

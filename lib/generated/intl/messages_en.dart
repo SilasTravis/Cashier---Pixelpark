@@ -79,13 +79,20 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m24(value) => "${value} / day";
 
-  static String m25(count) => "selected: ${count}";
+  static String m25(date, name) => "${date} · ${name}";
 
-  static String m26(time) => "Shift opened at ${time}";
+  static String m26(amount, method) =>
+      "${amount} will be refunded via ${method}. This action is permanently stored in the audit history.";
 
-  static String m27(version) => "New version available: ${version}";
+  static String m27(amount) => "${amount} was refunded successfully";
 
-  static String m28(name) =>
+  static String m28(count) => "selected: ${count}";
+
+  static String m29(time) => "Shift opened at ${time}";
+
+  static String m30(version) => "New version available: ${version}";
+
+  static String m31(name) =>
       "«${name}» already has an active VIP tariff — no second charge.";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
@@ -278,6 +285,39 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "recentCustomers": MessageLookupByLibrary.simpleMessage("Recent customers"),
     "refresh": MessageLookupByLibrary.simpleMessage("Refresh"),
+    "refundAction": MessageLookupByLibrary.simpleMessage("Refund"),
+    "refundAlreadyAmount": MessageLookupByLibrary.simpleMessage("Refunded"),
+    "refundAmount": MessageLookupByLibrary.simpleMessage("Amount to refund"),
+    "refundAuditBy": m25,
+    "refundCardWarning": MessageLookupByLibrary.simpleMessage(
+      "A card refund must also be completed on the payment terminal. This action does not automatically reverse the terminal transaction.",
+    ),
+    "refundConfirmMessage": m26,
+    "refundConfirmTitle": MessageLookupByLibrary.simpleMessage(
+      "Confirm refund",
+    ),
+    "refundFullBadge": MessageLookupByLibrary.simpleMessage("Fully refunded"),
+    "refundHistory": MessageLookupByLibrary.simpleMessage("Refund history"),
+    "refundMax": MessageLookupByLibrary.simpleMessage("Select all"),
+    "refundMethod": MessageLookupByLibrary.simpleMessage("Refund method"),
+    "refundOriginalAmount": MessageLookupByLibrary.simpleMessage(
+      "Original payment",
+    ),
+    "refundPartialBadge": MessageLookupByLibrary.simpleMessage(
+      "Partially refunded",
+    ),
+    "refundReason": MessageLookupByLibrary.simpleMessage("Refund reason"),
+    "refundReasonHint": MessageLookupByLibrary.simpleMessage(
+      "For example: returned item or incorrect order",
+    ),
+    "refundReasonValidation": MessageLookupByLibrary.simpleMessage(
+      "The reason must contain at least 5 characters",
+    ),
+    "refundRemainingAmount": MessageLookupByLibrary.simpleMessage(
+      "Remaining amount",
+    ),
+    "refundSuccess": m27,
+    "refundTitle": MessageLookupByLibrary.simpleMessage("Refund payment"),
     "reprint": MessageLookupByLibrary.simpleMessage("Reprint"),
     "saleGatePass": MessageLookupByLibrary.simpleMessage("Entry ticket"),
     "saleGeneric": MessageLookupByLibrary.simpleMessage("Sale"),
@@ -287,11 +327,11 @@ class MessageLookup extends MessageLookupByLibrary {
     "searchHistory": MessageLookupByLibrary.simpleMessage("Search history"),
     "searchResult": MessageLookupByLibrary.simpleMessage("Search results"),
     "selectForQr": MessageLookupByLibrary.simpleMessage("Select for QR"),
-    "selectedCount": m25,
+    "selectedCount": m28,
     "shiftClose": MessageLookupByLibrary.simpleMessage("Close shift"),
     "shiftClosed": MessageLookupByLibrary.simpleMessage("Shift closed"),
     "shiftOpen": MessageLookupByLibrary.simpleMessage("Open shift"),
-    "shiftOpenedAt": m26,
+    "shiftOpenedAt": m29,
     "shiftOpeningCash": MessageLookupByLibrary.simpleMessage(
       "Opening cash (UZS)",
     ),
@@ -328,7 +368,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "unlimitedFreeEntry": MessageLookupByLibrary.simpleMessage(
       "Free — unrestricted entry and exit",
     ),
-    "updateAvailable": m27,
+    "updateAvailable": m30,
     "updateCancel": MessageLookupByLibrary.simpleMessage("Cancel"),
     "updateCheck": MessageLookupByLibrary.simpleMessage("Check for updates"),
     "updateConfirm": MessageLookupByLibrary.simpleMessage("Continue"),
@@ -371,7 +411,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Automatic updates work on Windows only",
     ),
     "version": MessageLookupByLibrary.simpleMessage("Version"),
-    "vipAlreadyActive": m28,
+    "vipAlreadyActive": m31,
     "vipChargedImmediately": MessageLookupByLibrary.simpleMessage(
       "The VIP tariff is debited from the balance immediately when printed.",
     ),

@@ -13,6 +13,7 @@ import '../../../../generated/l10n.dart';
 import '../../domain/sale_history.dart';
 import '../../../pos_account/domain/customer.dart';
 import '../bloc/sales_history_bloc.dart';
+import '../widgets/refund_sale_dialog.dart';
 
 class SalesHistoryPage extends StatelessWidget {
   const SalesHistoryPage({super.key, required this.onOpenCustomer});
@@ -186,6 +187,7 @@ class _SalesHistoryView extends StatelessWidget {
                     itemBuilder: (_, index) => _SaleCard(
                       sale: state.items[index],
                       onOpenCustomer: onOpenCustomer,
+                      refundEnabled: state.selectedProductId == null,
                     ),
                   ),
           ),
@@ -291,9 +293,14 @@ class _SummaryCard extends StatelessWidget {
 }
 
 class _SaleCard extends StatelessWidget {
-  const _SaleCard({required this.sale, required this.onOpenCustomer});
+  const _SaleCard({
+    required this.sale,
+    required this.onOpenCustomer,
+    required this.refundEnabled,
+  });
   final SaleHistoryEntry sale;
   final ValueChanged<Customer> onOpenCustomer;
+  final bool refundEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -348,9 +355,19 @@ class _SaleCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         side: const BorderSide(color: NocturneColors.divider),
       ),
-      title: Text(
-        _saleTypeLabel(AppLocalization.of(context), sale.type),
-        style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+      title: Row(
+        children: [
+          Flexible(
+            child: Text(
+              _saleTypeLabel(AppLocalization.of(context), sale.type),
+              style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+            ),
+          ),
+          if (sale.hasRefunds) ...[
+            const SizedBox(width: 8),
+            _RefundStatusBadge(sale: sale),
+          ],
+        ],
       ),
       subtitle: Text(
         '${DateFormat('dd.MM.yyyy HH:mm').format(sale.createdAt)}  ·  #${formatReceiptId(sale.id)}',
@@ -365,9 +382,25 @@ class _SaleCard extends StatelessWidget {
                 ).paymentBalanceValue(formatUzs(sale.balanceUzs)),
               ),
             )
-          : Text(
-              formatUzs(sale.totalUzs),
-              style: AppTextStyles.h6.copyWith(color: NocturneColors.accent),
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  formatUzs(sale.netUzs),
+                  style: AppTextStyles.h6.copyWith(
+                    color: NocturneColors.accent,
+                  ),
+                ),
+                if (sale.hasRefunds)
+                  Text(
+                    formatUzs(sale.totalUzs),
+                    style: AppTextStyles.muted(AppTextStyles.body).copyWith(
+                      fontSize: 10,
+                      decoration: TextDecoration.lineThrough,
+                    ),
+                  ),
+              ],
             ),
       children: [
         if (sale.items.isNotEmpty)
@@ -380,7 +413,9 @@ class _SaleCard extends StatelessWidget {
             ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
-          child: Row(
+          child: Wrap(
+            spacing: 10,
+            runSpacing: 6,
             children: [
               if (sale.cashUzs > 0)
                 Text(
@@ -388,7 +423,6 @@ class _SaleCard extends StatelessWidget {
                     context,
                   ).paymentCashValue(formatUzs(sale.cashUzs)),
                 ),
-              if (sale.cashUzs > 0 && sale.cardUzs > 0) const Text('  ·  '),
               if (sale.cardUzs > 0)
                 Text(
                   AppLocalization.of(
@@ -397,12 +431,88 @@ class _SaleCard extends StatelessWidget {
                 ),
               if (sale.balanceUzs > 0)
                 Text(
-                  '  ·  ${AppLocalization.of(context).paymentBalanceValue(formatUzs(sale.balanceUzs))}',
+                  AppLocalization.of(
+                    context,
+                  ).paymentBalanceValue(formatUzs(sale.balanceUzs)),
+                ),
+            ],
+          ),
+        ),
+        if (sale.refunds.isNotEmpty) ...[
+          const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+            child: Row(
+              children: [
+                const Icon(
+                  PhosphorIconsRegular.clockCounterClockwise,
+                  size: 17,
+                  color: NocturneColors.accent,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  AppLocalization.of(context).refundHistory,
+                  style: AppTextStyles.body.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          for (final refund in sale.refunds) _RefundAuditRow(refund: refund),
+        ],
+        const Divider(height: 1),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+          child: Row(
+            children: [
+              Expanded(
+                child: Wrap(
+                  spacing: 14,
+                  runSpacing: 4,
+                  children: [
+                    Text(
+                      '${AppLocalization.of(context).refundRemainingAmount}: ${formatUzs(sale.refundableUzs)}',
+                      style: AppTextStyles.body.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (sale.refundedUzs > 0)
+                      Text(
+                        '${AppLocalization.of(context).refundAlreadyAmount}: ${formatUzs(sale.refundedUzs)}',
+                        style: AppTextStyles.muted(AppTextStyles.body),
+                      ),
+                  ],
+                ),
+              ),
+              if (refundEnabled && sale.canRefund && sale.refundableUzs > 0)
+                FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: NocturneColors.danger,
+                  ),
+                  onPressed: () => _openRefund(context),
+                  icon: const Icon(
+                    PhosphorIconsRegular.arrowUDownLeft,
+                    size: 17,
+                  ),
+                  label: Text(AppLocalization.of(context).refundAction),
                 ),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  Future<void> _openRefund(BuildContext context) async {
+    final amount = await showSaleRefundDialog(context, sale);
+    if (amount == null || !context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          AppLocalization.of(context).refundSuccess(formatUzs(amount)),
+        ),
+      ),
     );
   }
 
@@ -479,6 +589,118 @@ class _SaleCard extends StatelessWidget {
       ),
     );
     if (openProfile == true && customer != null) onOpenCustomer(customer);
+  }
+}
+
+class _RefundStatusBadge extends StatelessWidget {
+  const _RefundStatusBadge({required this.sale});
+
+  final SaleHistoryEntry sale;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    decoration: BoxDecoration(
+      color: NocturneColors.accent900,
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: NocturneColors.accent700),
+    ),
+    child: Text(
+      sale.isFullyRefunded
+          ? AppLocalization.of(context).refundFullBadge
+          : AppLocalization.of(context).refundPartialBadge,
+      style: AppTextStyles.body.copyWith(
+        fontSize: 10,
+        color: NocturneColors.accent200,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+  );
+}
+
+class _RefundAuditRow extends StatelessWidget {
+  const _RefundAuditRow({required this.refund});
+
+  final SaleHistoryRefund refund;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
+    final method = refund.method == SaleRefundMethod.cash
+        ? l10n.paymentCash
+        : l10n.paymentCard;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: NocturneColors.neutral900,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: NocturneColors.divider),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: NocturneColors.accent900,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                PhosphorIconsRegular.arrowUDownLeft,
+                size: 17,
+                color: NocturneColors.accent300,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    refund.reason,
+                    style: AppTextStyles.body.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    l10n.refundAuditBy(
+                      DateFormat('dd.MM.yyyy HH:mm').format(refund.createdAt),
+                      refund.refundedByName,
+                    ),
+                    style: AppTextStyles.muted(
+                      AppTextStyles.body,
+                    ).copyWith(fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '−${formatUzs(refund.amountUzs)}',
+                  style: AppTextStyles.body.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  method,
+                  style: AppTextStyles.muted(
+                    AppTextStyles.body,
+                  ).copyWith(fontSize: 11),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

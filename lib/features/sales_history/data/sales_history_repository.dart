@@ -30,6 +30,20 @@ class SalesHistoryRepository {
     );
   }
 
+  Future<SaleHistoryEntry> refund({
+    required String saleId,
+    required int amountUzs,
+    required SaleRefundMethod method,
+    required String reason,
+    required String requestId,
+  }) => remote.refund(
+    saleId: saleId,
+    amountUzs: amountUzs,
+    method: method,
+    reason: reason,
+    requestId: requestId,
+  );
+
   String errorMessage(Object error) => switch (error) {
     ServerException(:final message) => message,
     _ => "Sotuv tarixini yuklab bo‘lmadi",

@@ -79,13 +79,20 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m24(value) => "${value} / день";
 
-  static String m25(count) => "выбрано: ${count}";
+  static String m25(date, name) => "${date} · ${name}";
 
-  static String m26(time) => "Смена открыта в ${time}";
+  static String m26(amount, method) =>
+      "${amount} будет возвращено способом «${method}». Действие навсегда сохранится в истории аудита.";
 
-  static String m27(version) => "Доступна новая версия: ${version}";
+  static String m27(amount) => "Успешно возвращено ${amount}";
 
-  static String m28(name) =>
+  static String m28(count) => "выбрано: ${count}";
+
+  static String m29(time) => "Смена открыта в ${time}";
+
+  static String m30(version) => "Доступна новая версия: ${version}";
+
+  static String m31(name) =>
       "«${name}» уже на активном VIP-тарифе — повторная оплата не взимается.";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
@@ -280,6 +287,37 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "recentCustomers": MessageLookupByLibrary.simpleMessage("Недавние клиенты"),
     "refresh": MessageLookupByLibrary.simpleMessage("Обновить"),
+    "refundAction": MessageLookupByLibrary.simpleMessage("Возврат"),
+    "refundAlreadyAmount": MessageLookupByLibrary.simpleMessage("Возвращено"),
+    "refundAmount": MessageLookupByLibrary.simpleMessage("Сумма возврата"),
+    "refundAuditBy": m25,
+    "refundCardWarning": MessageLookupByLibrary.simpleMessage(
+      "Возврат на карту также нужно отдельно выполнить на платёжном терминале. Это действие не отменяет транзакцию терминала автоматически.",
+    ),
+    "refundConfirmMessage": m26,
+    "refundConfirmTitle": MessageLookupByLibrary.simpleMessage(
+      "Подтвердите возврат",
+    ),
+    "refundFullBadge": MessageLookupByLibrary.simpleMessage("Полный возврат"),
+    "refundHistory": MessageLookupByLibrary.simpleMessage("История возвратов"),
+    "refundMax": MessageLookupByLibrary.simpleMessage("Выбрать всю сумму"),
+    "refundMethod": MessageLookupByLibrary.simpleMessage("Способ возврата"),
+    "refundOriginalAmount": MessageLookupByLibrary.simpleMessage(
+      "Исходный платёж",
+    ),
+    "refundPartialBadge": MessageLookupByLibrary.simpleMessage(
+      "Частичный возврат",
+    ),
+    "refundReason": MessageLookupByLibrary.simpleMessage("Причина возврата"),
+    "refundReasonHint": MessageLookupByLibrary.simpleMessage(
+      "Например: возврат товара или ошибка в заказе",
+    ),
+    "refundReasonValidation": MessageLookupByLibrary.simpleMessage(
+      "Причина должна содержать не менее 5 символов",
+    ),
+    "refundRemainingAmount": MessageLookupByLibrary.simpleMessage("Остаток"),
+    "refundSuccess": m27,
+    "refundTitle": MessageLookupByLibrary.simpleMessage("Возврат платежа"),
     "reprint": MessageLookupByLibrary.simpleMessage("Повторная печать"),
     "saleGatePass": MessageLookupByLibrary.simpleMessage("Входной билет"),
     "saleGeneric": MessageLookupByLibrary.simpleMessage("Продажа"),
@@ -289,11 +327,11 @@ class MessageLookup extends MessageLookupByLibrary {
     "searchHistory": MessageLookupByLibrary.simpleMessage("История поиска"),
     "searchResult": MessageLookupByLibrary.simpleMessage("Результаты поиска"),
     "selectForQr": MessageLookupByLibrary.simpleMessage("Выберите для QR"),
-    "selectedCount": m25,
+    "selectedCount": m28,
     "shiftClose": MessageLookupByLibrary.simpleMessage("Закрыть смену"),
     "shiftClosed": MessageLookupByLibrary.simpleMessage("Смена закрыта"),
     "shiftOpen": MessageLookupByLibrary.simpleMessage("Открыть смену"),
-    "shiftOpenedAt": m26,
+    "shiftOpenedAt": m29,
     "shiftOpeningCash": MessageLookupByLibrary.simpleMessage(
       "Начальные наличные (сум)",
     ),
@@ -332,7 +370,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "unlimitedFreeEntry": MessageLookupByLibrary.simpleMessage(
       "Бесплатно — вход и выход без ограничений",
     ),
-    "updateAvailable": m27,
+    "updateAvailable": m30,
     "updateCancel": MessageLookupByLibrary.simpleMessage("Отмена"),
     "updateCheck": MessageLookupByLibrary.simpleMessage("Проверить обновления"),
     "updateConfirm": MessageLookupByLibrary.simpleMessage("Продолжить"),
@@ -375,7 +413,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Автообновление работает только в Windows",
     ),
     "version": MessageLookupByLibrary.simpleMessage("Версия"),
-    "vipAlreadyActive": m28,
+    "vipAlreadyActive": m31,
     "vipChargedImmediately": MessageLookupByLibrary.simpleMessage(
       "Стоимость VIP-тарифа списывается с баланса сразу при печати.",
     ),

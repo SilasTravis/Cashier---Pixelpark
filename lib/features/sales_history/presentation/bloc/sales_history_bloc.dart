@@ -17,6 +17,7 @@ class SalesHistoryBloc extends Bloc<SalesHistoryEvent, SalesHistoryState> {
     on<SalesHistoryPageChanged>(_changePage);
     on<SalesHistoryProductChanged>(_changeProduct);
     on<SalesHistoryDateRangeChanged>(_changeDateRange);
+    on<SalesHistoryRefundRequested>(_refundSale);
   }
   final SalesHistoryRepository repository;
   final ProductsRepository productsRepository;
@@ -113,6 +114,60 @@ class SalesHistoryBloc extends Bloc<SalesHistoryEvent, SalesHistoryState> {
     } catch (error) {
       emit(
         state.copyWith(isLoading: false, error: repository.errorMessage(error)),
+      );
+    }
+  }
+
+  Future<void> _refundSale(
+    SalesHistoryRefundRequested event,
+    Emitter<SalesHistoryState> emit,
+  ) async {
+    if (state.refundStatus == SaleRefundSubmissionStatus.submitting) return;
+    emit(
+      state.copyWith(
+        refundStatus: SaleRefundSubmissionStatus.submitting,
+        refundingSaleId: event.saleId,
+        clearRefundError: true,
+        clearLastRefundedSale: true,
+      ),
+    );
+    try {
+      final updated = await repository.refund(
+        saleId: event.saleId,
+        amountUzs: event.amountUzs,
+        method: event.method,
+        reason: event.reason,
+        requestId: event.requestId,
+      );
+      emit(
+        state.copyWith(
+          refundStatus: SaleRefundSubmissionStatus.success,
+          clearRefundingSale: true,
+          lastRefundedSaleId: event.saleId,
+          items: [
+            for (final item in state.items)
+              if (item.id == event.saleId) updated else item,
+          ],
+          summary: SalesHistorySummary(
+            count: state.summary.count,
+            totalUzs: state.summary.totalUzs - event.amountUzs,
+            cashUzs:
+                state.summary.cashUzs -
+                (event.method == SaleRefundMethod.cash ? event.amountUzs : 0),
+            cardUzs:
+                state.summary.cardUzs -
+                (event.method == SaleRefundMethod.card ? event.amountUzs : 0),
+            balanceUzs: state.summary.balanceUzs,
+          ),
+        ),
+      );
+    } catch (error) {
+      emit(
+        state.copyWith(
+          refundStatus: SaleRefundSubmissionStatus.failure,
+          clearRefundingSale: true,
+          refundError: repository.errorMessage(error),
+        ),
       );
     }
   }
