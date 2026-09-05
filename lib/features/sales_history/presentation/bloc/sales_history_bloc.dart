@@ -138,7 +138,13 @@ class SalesHistoryBloc extends Bloc<SalesHistoryEvent, SalesHistoryState> {
         method: event.method,
         reason: event.reason,
         requestId: event.requestId,
+        gatePassIds: event.gatePassIds,
       );
+      // Money returned to a stored balance never leaves the drawer, so it
+      // must not shrink the shift's cash/card takings.
+      final drawerRefund = event.method == SaleRefundMethod.balance
+          ? 0
+          : event.amountUzs;
       emit(
         state.copyWith(
           refundStatus: SaleRefundSubmissionStatus.success,
@@ -157,7 +163,12 @@ class SalesHistoryBloc extends Bloc<SalesHistoryEvent, SalesHistoryState> {
             cardUzs:
                 state.summary.cardUzs -
                 (event.method == SaleRefundMethod.card ? event.amountUzs : 0),
-            balanceUzs: state.summary.balanceUzs,
+            balanceUzs:
+                state.summary.balanceUzs -
+                (event.method == SaleRefundMethod.balance
+                    ? event.amountUzs
+                    : 0),
+            refundedUzs: state.summary.refundedUzs + drawerRefund,
           ),
         ),
       );

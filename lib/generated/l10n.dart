@@ -1893,6 +1893,91 @@ class AppLocalization {
       args: [date, name],
     );
   }
+
+  /// `To balance`
+  String get refundBalanceMethod {
+    return Intl.message(
+      'To balance',
+      name: 'refundBalanceMethod',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Customer balance: {balance}`
+  String refundCustomerBalance(Object balance) {
+    return Intl.message(
+      'Customer balance: $balance',
+      name: 'refundCustomerBalance',
+      desc: '',
+      args: [balance],
+    );
+  }
+
+  /// `Reversing a top-up takes the money back off the balance, so you cannot return more than it still holds.`
+  String get refundBalanceLimitNote {
+    return Intl.message(
+      'Reversing a top-up takes the money back off the balance, so you cannot return more than it still holds.',
+      name: 'refundBalanceLimitNote',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Select the passes being handed back`
+  String get refundSelectPasses {
+    return Intl.message(
+      'Select the passes being handed back',
+      name: 'refundSelectPasses',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Used`
+  String get refundPassUsed {
+    return Intl.message('Used', name: 'refundPassUsed', desc: '', args: []);
+  }
+
+  /// `Voided`
+  String get refundPassVoided {
+    return Intl.message('Voided', name: 'refundPassVoided', desc: '', args: []);
+  }
+
+  /// `No refundable passes remain on this receipt`
+  String get refundNoRefundablePasses {
+    return Intl.message(
+      'No refundable passes remain on this receipt',
+      name: 'refundNoRefundablePasses',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Selected passes total`
+  String get refundSelectedPassesTotal {
+    return Intl.message(
+      'Selected passes total',
+      name: 'refundSelectedPassesTotal',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Select at least one pass`
+  String get refundSelectPassesValidation {
+    return Intl.message(
+      'Select at least one pass',
+      name: 'refundSelectPassesValidation',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Refunded`
+  String get refundedTotal {
+    return Intl.message('Refunded', name: 'refundedTotal', desc: '', args: []);
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalization> {

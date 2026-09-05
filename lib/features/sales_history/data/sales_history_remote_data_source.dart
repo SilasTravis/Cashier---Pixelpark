@@ -58,11 +58,12 @@ class SalesHistoryRemoteDataSource {
       );
       final json = Map<String, dynamic>.from(response.data as Map);
       return SalesHistorySummary(
-        count: json['salesCount'] as int,
-        totalUzs: json['subtotalUzs'] as int,
-        cashUzs: json['cashUzs'] as int,
-        cardUzs: json['cardUzs'] as int,
-        balanceUzs: json['balanceUzs'] as int,
+        count: _int(json['salesCount']),
+        totalUzs: _int(json['subtotalUzs']),
+        cashUzs: _int(json['cashUzs']),
+        cardUzs: _int(json['cardUzs']),
+        balanceUzs: _int(json['balanceUzs']),
+        refundedUzs: _int(json['refundedUzs']),
       );
     } on DioException catch (error) {
       throw ServerException.fromJson(error.response?.data);
@@ -75,6 +76,7 @@ class SalesHistoryRemoteDataSource {
     required SaleRefundMethod method,
     required String reason,
     required String requestId,
+    List<String> gatePassIds = const [],
   }) async {
     try {
       final response = await dio.post(
@@ -84,6 +86,7 @@ class SalesHistoryRemoteDataSource {
           'method': method.apiValue,
           'reason': reason,
           'requestId': requestId,
+          if (gatePassIds.isNotEmpty) 'gatePassIds': gatePassIds,
         },
       );
       return _sale(Map<String, dynamic>.from(response.data as Map));
@@ -112,6 +115,7 @@ class SalesHistoryRemoteDataSource {
       refundedUzs: refundedUzs,
       refundedCashUzs: _int(json['refundedCashUzs']),
       refundedCardUzs: _int(json['refundedCardUzs']),
+      refundedBalanceUzs: _int(json['refundedBalanceUzs']),
       netUzs: _int(json['netUzs'], fallback: subtotalUzs - refundedUzs),
       refundableUzs: _int(
         json['refundableUzs'],
@@ -119,6 +123,7 @@ class SalesHistoryRemoteDataSource {
       ),
       refundableCashUzs: _int(json['refundableCashUzs'], fallback: cashUzs),
       refundableCardUzs: _int(json['refundableCardUzs'], fallback: cardUzs),
+      refundableBalanceUzs: _int(json['refundableBalanceUzs']),
       canRefund: json['canRefund'] == true,
       createdAt: DateTime.parse(json['createdAt'] as String).toLocal(),
       customer: json['customer'] == null
@@ -133,14 +138,27 @@ class SalesHistoryRemoteDataSource {
           totalUzs: _int(item['lineTotalUzs']),
         );
       }).toList(),
+      passes: ((json['passes'] as List?) ?? const []).map((raw) {
+        final pass = Map<String, dynamic>.from(raw as Map);
+        final enteredAt = pass['enteredAt'] as String?;
+        return SaleGatePass(
+          id: pass['id'] as String,
+          childId: pass['childId'] as String,
+          code: pass['code'] as String,
+          planLabel: pass['planLabel'] as String,
+          priceUzs: _int(pass['priceUzs']),
+          refundable: pass['refundable'] == true,
+          enteredAt: enteredAt == null
+              ? null
+              : DateTime.parse(enteredAt).toLocal(),
+        );
+      }).toList(),
       refunds: ((json['refunds'] as List?) ?? const []).map((raw) {
         final refund = Map<String, dynamic>.from(raw as Map);
         return SaleHistoryRefund(
           id: refund['id'] as String,
           amountUzs: _int(refund['amountUzs']),
-          method: refund['method'] == 'card'
-              ? SaleRefundMethod.card
-              : SaleRefundMethod.cash,
+          method: _refundMethod(refund['method']),
           reason: refund['reason'] as String,
           refundedByType: refund['refundedByType'] as String,
           refundedByName: refund['refundedByName'] as String,
@@ -149,6 +167,12 @@ class SalesHistoryRemoteDataSource {
       }).toList(),
     );
   }
+
+  SaleRefundMethod _refundMethod(Object? value) => switch (value) {
+    'card' => SaleRefundMethod.card,
+    'balance' => SaleRefundMethod.balance,
+    _ => SaleRefundMethod.cash,
+  };
 
   int _int(Object? value, {int fallback = 0}) => switch (value) {
     int number => number,

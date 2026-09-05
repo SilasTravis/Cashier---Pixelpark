@@ -243,5 +243,16 @@
   "refundFullBadge": "To‘liq qaytarilgan",
   "refundHistory": "Qaytarish tarixi",
   "refundAuditBy": "{date} · {name}",
-  "@refundAuditBy": {"placeholders":{"date":{"type":"String"},"name":{"type":"String"}}}
+  "@refundAuditBy": {"placeholders":{"date":{"type":"String"},"name":{"type":"String"}}},
+  "refundBalanceMethod": "Balansga",
+  "refundCustomerBalance": "Mijoz balansi: {balance}",
+  "@refundCustomerBalance": {"placeholders":{"balance":{"type":"String"}}},
+  "refundBalanceLimitNote": "To‘ldirishni qaytarish puli balansdan yechiladi, shuning uchun balansda qolgan summadan ortiq qaytarib bo‘lmaydi.",
+  "refundSelectPasses": "Qaytarilayotgan chiptalarni tanlang",
+  "refundPassUsed": "Ishlatilgan",
+  "refundPassVoided": "Bekor qilingan",
+  "refundNoRefundablePasses": "Bu chekda qaytariladigan chipta qolmagan",
+  "refundSelectedPassesTotal": "Tanlangan chiptalar summasi",
+  "refundSelectPassesValidation": "Kamida bitta chipta tanlang",
+  "refundedTotal": "Qaytarilgan"
 }

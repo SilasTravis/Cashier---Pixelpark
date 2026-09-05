@@ -46,6 +46,13 @@ Future<void> showCloseShiftDialog(BuildContext context, Shift shift) {
                     label: l10n.balanceSalesNotIncome,
                     value: _uzs(shift.totals.balanceSalesUzs),
                   ),
+                  // Cash and card above are already net of this; showing it
+                  // explains the gap when the cashier counts the drawer.
+                  if (shift.totals.refundedUzs > 0)
+                    _SummaryRow(
+                      label: l10n.refundedTotal,
+                      value: '−${_uzs(shift.totals.refundedUzs)}',
+                    ),
                   const Divider(height: 20),
                   _SummaryRow(
                     label: l10n.shiftTotalIncome,

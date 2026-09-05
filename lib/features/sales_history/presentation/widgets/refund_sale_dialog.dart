@@ -36,16 +36,35 @@ class _RefundSaleDialogState extends State<_RefundSaleDialog> {
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
   final _reasonController = TextEditingController();
+  final _selectedPassIds = <String>{};
   late SaleRefundMethod _method;
   int? _submittedAmount;
 
   @override
   void initState() {
     super.initState();
-    _method = widget.sale.refundableCashUzs > 0
-        ? SaleRefundMethod.cash
-        : SaleRefundMethod.card;
+    _method = _availableMethods.first;
   }
+
+  /// Only the methods this receipt actually took money through. A top-up or a
+  /// gate pass has no balance portion; a balance-paid checkout has no cash or
+  /// card portion.
+  List<SaleRefundMethod> get _availableMethods {
+    final available = [
+      for (final method in SaleRefundMethod.values)
+        if (widget.sale.refundableFor(method) > 0) method,
+    ];
+    return available.isEmpty ? [SaleRefundMethod.cash] : available;
+  }
+
+  /// Gate-pass money maps one-to-one onto printed stickers, so the amount is
+  /// derived from the selection instead of being typed in freely.
+  bool get _picksPasses =>
+      widget.sale.isGatePass && widget.sale.passes.isNotEmpty;
+
+  int get _selectedPassTotal => widget.sale.passes
+      .where((pass) => _selectedPassIds.contains(pass.id))
+      .fold(0, (sum, pass) => sum + pass.priceUzs);
 
   @override
   void dispose() {
@@ -54,8 +73,9 @@ class _RefundSaleDialogState extends State<_RefundSaleDialog> {
     super.dispose();
   }
 
-  int get _limit => widget.sale.refundableFor(_method);
-  int? get _amount => int.tryParse(_amountController.text);
+  int get _limit => widget.sale.refundCeilingFor(_method);
+  int? get _amount =>
+      _picksPasses ? _selectedPassTotal : int.tryParse(_amountController.text);
 
   @override
   Widget build(BuildContext context) {
@@ -140,26 +160,13 @@ class _RefundSaleDialogState extends State<_RefundSaleDialog> {
                     const SizedBox(height: 8),
                     SegmentedButton<SaleRefundMethod>(
                       segments: [
-                        if (widget.sale.refundableCashUzs > 0)
+                        for (final method in _availableMethods)
                           ButtonSegment(
-                            value: SaleRefundMethod.cash,
-                            icon: const Icon(
-                              PhosphorIconsRegular.money,
-                              size: 18,
-                            ),
+                            value: method,
+                            icon: Icon(_methodIcon(method), size: 18),
                             label: Text(
-                              '${l10n.paymentCash} · ${formatUzs(widget.sale.refundableCashUzs)}',
-                            ),
-                          ),
-                        if (widget.sale.refundableCardUzs > 0)
-                          ButtonSegment(
-                            value: SaleRefundMethod.card,
-                            icon: const Icon(
-                              PhosphorIconsRegular.creditCard,
-                              size: 18,
-                            ),
-                            label: Text(
-                              '${l10n.paymentCard} · ${formatUzs(widget.sale.refundableCardUzs)}',
+                              '${_methodLabel(l10n, method)} · '
+                              '${formatUzs(widget.sale.refundableFor(method))}',
                             ),
                           ),
                       ],
@@ -171,34 +178,66 @@ class _RefundSaleDialogState extends State<_RefundSaleDialog> {
                               _amountController.clear();
                             }),
                     ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _amountController,
-                      enabled: !submitting,
-                      autofocus: true,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      decoration: InputDecoration(
-                        labelText: l10n.refundAmount,
-                        suffixText: "so'm",
-                        helperText: '1 — ${formatUzs(_limit)}',
-                        suffixIcon: TextButton(
-                          onPressed: submitting
-                              ? null
-                              : () => setState(
-                                  () => _amountController.text = '$_limit',
-                                ),
-                          child: Text(l10n.refundMax),
-                        ),
+                    if (widget.sale.isTopup &&
+                        widget.sale.customer != null) ...[
+                      const SizedBox(height: 10),
+                      _NoteBanner(
+                        icon: PhosphorIconsRegular.wallet,
+                        text:
+                            '${l10n.refundCustomerBalance(formatUzs(widget.sale.customer!.balance))}'
+                            '\n${l10n.refundBalanceLimitNote}',
                       ),
-                      validator: (value) {
-                        final amount = int.tryParse(value ?? '');
-                        if (amount == null || amount < 1 || amount > _limit) {
-                          return '1 — ${formatUzs(_limit)}';
-                        }
-                        return null;
-                      },
-                    ),
+                    ],
+                    const SizedBox(height: 16),
+                    if (_picksPasses) ...[
+                      _PassPicker(
+                        passes: widget.sale.passes,
+                        selected: _selectedPassIds,
+                        enabled: !submitting,
+                        onToggle: (id) => setState(() {
+                          if (!_selectedPassIds.remove(id)) {
+                            _selectedPassIds.add(id);
+                          }
+                        }),
+                      ),
+                      const SizedBox(height: 14),
+                      _AmountSummary(
+                        label: l10n.refundSelectedPassesTotal,
+                        value: _selectedPassTotal,
+                        emphasized: true,
+                      ),
+                      const SizedBox(height: 14),
+                    ],
+                    if (!_picksPasses)
+                      TextFormField(
+                        controller: _amountController,
+                        enabled: !submitting,
+                        autofocus: true,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        decoration: InputDecoration(
+                          labelText: l10n.refundAmount,
+                          suffixText: "so'm",
+                          helperText: '1 — ${formatUzs(_limit)}',
+                          suffixIcon: TextButton(
+                            onPressed: submitting
+                                ? null
+                                : () => setState(
+                                    () => _amountController.text = '$_limit',
+                                  ),
+                            child: Text(l10n.refundMax),
+                          ),
+                        ),
+                        validator: (value) {
+                          final amount = int.tryParse(value ?? '');
+                          if (amount == null || amount < 1 || amount > _limit) {
+                            return '1 — ${formatUzs(_limit)}';
+                          }
+                          return null;
+                        },
+                      ),
                     const SizedBox(height: 14),
                     TextFormField(
                       controller: _reasonController,
@@ -217,33 +256,9 @@ class _RefundSaleDialogState extends State<_RefundSaleDialog> {
                     ),
                     if (_method == SaleRefundMethod.card) ...[
                       const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: NocturneColors.accent900,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: NocturneColors.accent700),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Icon(
-                              PhosphorIconsRegular.warning,
-                              size: 19,
-                              color: NocturneColors.accent300,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                l10n.refundCardWarning,
-                                style: AppTextStyles.body.copyWith(
-                                  fontSize: 12,
-                                  color: NocturneColors.neutral200,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                      _NoteBanner(
+                        icon: PhosphorIconsRegular.warning,
+                        text: l10n.refundCardWarning,
                       ),
                     ],
                     if (state.refundStatus ==
@@ -285,12 +300,17 @@ class _RefundSaleDialogState extends State<_RefundSaleDialog> {
   }
 
   Future<void> _confirmAndSubmit() async {
-    if (!_formKey.currentState!.validate()) return;
-    final amount = _amount!;
     final l10n = AppLocalization.of(context);
-    final methodLabel = _method == SaleRefundMethod.cash
-        ? l10n.paymentCash.toLowerCase()
-        : l10n.paymentCard.toLowerCase();
+    if (!_formKey.currentState!.validate()) return;
+    if (_picksPasses && _selectedPassIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.refundSelectPassesValidation)),
+      );
+      return;
+    }
+    final amount = _amount ?? 0;
+    if (amount < 1) return;
+    final methodLabel = _methodLabel(l10n, _method).toLowerCase();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (confirmationContext) => AlertDialog(
@@ -322,9 +342,127 @@ class _RefundSaleDialogState extends State<_RefundSaleDialog> {
         method: _method,
         reason: _reasonController.text.trim(),
         requestId: const Uuid().v4(),
+        gatePassIds: _picksPasses ? _selectedPassIds.toList() : const [],
       ),
     );
   }
+
+  IconData _methodIcon(SaleRefundMethod method) => switch (method) {
+    SaleRefundMethod.cash => PhosphorIconsRegular.money,
+    SaleRefundMethod.card => PhosphorIconsRegular.creditCard,
+    SaleRefundMethod.balance => PhosphorIconsRegular.wallet,
+  };
+
+  String _methodLabel(AppLocalization l10n, SaleRefundMethod method) =>
+      switch (method) {
+        SaleRefundMethod.cash => l10n.paymentCash,
+        SaleRefundMethod.card => l10n.paymentCard,
+        SaleRefundMethod.balance => l10n.refundBalanceMethod,
+      };
+}
+
+/// Checklist of the stickers this receipt printed. A pass the child already
+/// walked in on, or one an earlier refund voided, is shown but cannot be
+/// picked — the server refuses it either way.
+class _PassPicker extends StatelessWidget {
+  const _PassPicker({
+    required this.passes,
+    required this.selected,
+    required this.enabled,
+    required this.onToggle,
+  });
+
+  final List<SaleGatePass> passes;
+  final Set<String> selected;
+  final bool enabled;
+  final void Function(String passId) onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
+    final anyRefundable = passes.any((pass) => pass.refundable);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          l10n.refundSelectPasses,
+          style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        if (!anyRefundable)
+          _NoteBanner(
+            icon: PhosphorIconsRegular.warning,
+            text: l10n.refundNoRefundablePasses,
+          )
+        else
+          Container(
+            decoration: BoxDecoration(
+              color: NocturneColors.neutral900,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: NocturneColors.divider),
+            ),
+            child: Column(
+              children: [
+                for (final pass in passes)
+                  CheckboxListTile(
+                    dense: true,
+                    value: selected.contains(pass.id),
+                    onChanged: enabled && pass.refundable
+                        ? (_) => onToggle(pass.id)
+                        : null,
+                    title: Text(
+                      '${pass.planLabel} · ${formatUzs(pass.priceUzs)}',
+                      style: AppTextStyles.body,
+                    ),
+                    subtitle: Text(
+                      pass.refundable
+                          ? pass.code
+                          : '${pass.code} · '
+                                '${pass.enteredAt != null ? l10n.refundPassUsed : l10n.refundPassVoided}',
+                      style: AppTextStyles.muted(
+                        AppTextStyles.body,
+                      ).copyWith(fontSize: 11),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _NoteBanner extends StatelessWidget {
+  const _NoteBanner({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: NocturneColors.accent900,
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: NocturneColors.accent700),
+    ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 19, color: NocturneColors.accent300),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: AppTextStyles.body.copyWith(
+              fontSize: 12,
+              color: NocturneColors.neutral200,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _AmountSummary extends StatelessWidget {

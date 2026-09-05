@@ -3,7 +3,10 @@ import '../../pos_account/domain/customer.dart';
 
 enum SaleHistoryPeriod { today, sevenDays, thirtyDays, year }
 
-enum SaleRefundMethod { cash, card }
+/// How the money goes back. [cash] and [card] hand it over at the desk;
+/// [balance] credits the customer's stored balance again, for a sale that was
+/// paid from it in the first place.
+enum SaleRefundMethod { cash, card, balance }
 
 extension SaleRefundMethodApi on SaleRefundMethod {
   String get apiValue => name;
@@ -23,6 +26,39 @@ extension SaleHistoryPeriodApi on SaleHistoryPeriod {
     SaleHistoryPeriod.thirtyDays => '30 kun',
     SaleHistoryPeriod.year => 'Bu yil',
   };
+}
+
+/// One entrance sticker printed by a gate-pass sale, with whether it can
+/// still be handed back — a pass the child already walked in on cannot.
+class SaleGatePass extends Equatable {
+  const SaleGatePass({
+    required this.id,
+    required this.childId,
+    required this.code,
+    required this.planLabel,
+    required this.priceUzs,
+    required this.refundable,
+    this.enteredAt,
+  });
+
+  final String id;
+  final String childId;
+  final String code;
+  final String planLabel;
+  final int priceUzs;
+  final bool refundable;
+  final DateTime? enteredAt;
+
+  @override
+  List<Object?> get props => [
+    id,
+    childId,
+    code,
+    planLabel,
+    priceUzs,
+    refundable,
+    enteredAt,
+  ];
 }
 
 class SaleHistoryItem extends Equatable {
@@ -53,14 +89,17 @@ class SaleHistoryEntry extends Equatable {
     required this.refundedUzs,
     required this.refundedCashUzs,
     required this.refundedCardUzs,
+    required this.refundedBalanceUzs,
     required this.netUzs,
     required this.refundableUzs,
     required this.refundableCashUzs,
     required this.refundableCardUzs,
+    required this.refundableBalanceUzs,
     required this.canRefund,
     required this.createdAt,
     required this.items,
     required this.refunds,
+    required this.passes,
     this.customer,
   });
 
@@ -73,23 +112,43 @@ class SaleHistoryEntry extends Equatable {
   final int refundedUzs;
   final int refundedCashUzs;
   final int refundedCardUzs;
+  final int refundedBalanceUzs;
   final int netUzs;
   final int refundableUzs;
   final int refundableCashUzs;
   final int refundableCardUzs;
+  final int refundableBalanceUzs;
   final bool canRefund;
   final DateTime createdAt;
   final List<SaleHistoryItem> items;
   final List<SaleHistoryRefund> refunds;
+  final List<SaleGatePass> passes;
   final Customer? customer;
 
   bool get hasRefunds => refundedUzs > 0;
   bool get isFullyRefunded => refundableUzs == 0 && hasRefunds;
+  bool get isTopup => type == 'ACCOUNT_TOPUP';
+  bool get isGatePass => type == 'GATE_PASS';
+
+  /// Stickers this receipt can still take back.
+  List<SaleGatePass> get refundablePasses =>
+      passes.where((pass) => pass.refundable).toList();
 
   int refundableFor(SaleRefundMethod method) => switch (method) {
     SaleRefundMethod.cash => refundableCashUzs,
     SaleRefundMethod.card => refundableCardUzs,
+    SaleRefundMethod.balance => refundableBalanceUzs,
   };
+
+  /// Reversing a top-up takes the money back off the balance, so it can never
+  /// return more than the balance still holds.
+  int refundCeilingFor(SaleRefundMethod method) {
+    final byMethod = refundableFor(method);
+    if (!isTopup) return byMethod;
+    final balance = customer?.balance;
+    if (balance == null) return byMethod;
+    return balance < byMethod ? (balance < 0 ? 0 : balance) : byMethod;
+  }
 
   String get typeLabel => switch (type) {
     'GOODS_CHECKOUT' => 'Mahsulot savdosi',
@@ -109,14 +168,17 @@ class SaleHistoryEntry extends Equatable {
     refundedUzs,
     refundedCashUzs,
     refundedCardUzs,
+    refundedBalanceUzs,
     netUzs,
     refundableUzs,
     refundableCashUzs,
     refundableCardUzs,
+    refundableBalanceUzs,
     canRefund,
     createdAt,
     items,
     refunds,
+    passes,
     customer,
   ];
 }
@@ -159,6 +221,7 @@ class SalesHistorySummary extends Equatable {
     required this.cashUzs,
     required this.cardUzs,
     required this.balanceUzs,
+    required this.refundedUzs,
   });
 
   static const zero = SalesHistorySummary(
@@ -167,6 +230,7 @@ class SalesHistorySummary extends Equatable {
     cashUzs: 0,
     cardUzs: 0,
     balanceUzs: 0,
+    refundedUzs: 0,
   );
 
   final int count;
@@ -175,8 +239,19 @@ class SalesHistorySummary extends Equatable {
   final int cardUzs;
   final int balanceUzs;
 
+  /// Physical money handed back over the period. The cash and card figures
+  /// above are already net of it; this is shown so the drop is explained.
+  final int refundedUzs;
+
   @override
-  List<Object?> get props => [count, totalUzs, cashUzs, cardUzs, balanceUzs];
+  List<Object?> get props => [
+    count,
+    totalUzs,
+    cashUzs,
+    cardUzs,
+    balanceUzs,
+    refundedUzs,
+  ];
 }
 
 class SalesHistoryPageData {

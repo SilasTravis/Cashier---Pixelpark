@@ -158,6 +158,12 @@ class _SalesHistoryView extends StatelessWidget {
                       label: AppLocalization.of(context).paymentBalance,
                       value: formatUzs(state.summary.balanceUzs),
                     ),
+                    if (state.summary.refundedUzs > 0)
+                      _SummaryCard(
+                        label: AppLocalization.of(context).refundedTotal,
+                        value: '−${formatUzs(state.summary.refundedUzs)}',
+                        tone: NocturneColors.danger,
+                      ),
                   ],
                 ),
               ],
@@ -262,9 +268,12 @@ String _saleTypeLabel(AppLocalization l10n, String type) => switch (type) {
 };
 
 class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({required this.label, required this.value});
+  const _SummaryCard({required this.label, required this.value, this.tone});
   final String label;
   final String value;
+
+  /// Colours the figure when it needs to read as money leaving, not arriving.
+  final Color? tone;
   @override
   Widget build(BuildContext context) => Expanded(
     child: Container(
@@ -285,7 +294,12 @@ class _SummaryCard extends StatelessWidget {
             ).copyWith(fontSize: 11),
           ),
           const SizedBox(height: 4),
-          Text(value, style: AppTextStyles.h6),
+          Text(
+            value,
+            style: tone == null
+                ? AppTextStyles.h6
+                : AppTextStyles.h6.copyWith(color: tone),
+          ),
         ],
       ),
     ),
@@ -333,8 +347,12 @@ class _SaleCard extends StatelessWidget {
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (sale.hasRefunds) ...[
+                _RefundStatusBadge(sale: sale),
+                const SizedBox(width: 10),
+              ],
               Text(
-                formatUzs(sale.totalUzs),
+                formatUzs(sale.hasRefunds ? sale.netUzs : sale.totalUzs),
                 style: AppTextStyles.h6.copyWith(color: NocturneColors.accent),
               ),
               const SizedBox(width: 10),
@@ -485,7 +503,7 @@ class _SaleCard extends StatelessWidget {
                   ],
                 ),
               ),
-              if (refundEnabled && sale.canRefund && sale.refundableUzs > 0)
+              if (_canRefundNow)
                 FilledButton.icon(
                   style: FilledButton.styleFrom(
                     backgroundColor: NocturneColors.danger,
@@ -516,10 +534,13 @@ class _SaleCard extends StatelessWidget {
     );
   }
 
+  bool get _canRefundNow =>
+      refundEnabled && sale.canRefund && sale.refundableUzs > 0;
+
   Future<void> _showTopupDetails(BuildContext context) async {
     final l10n = AppLocalization.of(context);
     final customer = sale.customer;
-    final openProfile = await showDialog<bool>(
+    final action = await showDialog<_TopupDetailAction>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Row(
@@ -562,6 +583,16 @@ class _SaleCard extends StatelessWidget {
                 label: l10n.paymentCard,
                 value: formatUzs(sale.cardUzs),
               ),
+              if (sale.hasRefunds) ...[
+                _DetailRow(
+                  label: l10n.refundedTotal,
+                  value: formatUzs(sale.refundedUzs),
+                ),
+                _DetailRow(
+                  label: l10n.refundRemainingAmount,
+                  value: formatUzs(sale.refundableUzs),
+                ),
+              ],
               _DetailRow(
                 label: l10n.date,
                 value: DateFormat('dd.MM.yyyy HH:mm:ss').format(sale.createdAt),
@@ -575,22 +606,44 @@ class _SaleCard extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
+            onPressed: () => Navigator.pop(dialogContext, null),
             child: Text(l10n.close),
           ),
+          if (_canRefundNow)
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: NocturneColors.danger,
+              ),
+              onPressed: () =>
+                  Navigator.pop(dialogContext, _TopupDetailAction.refund),
+              icon: const Icon(PhosphorIconsRegular.arrowUDownLeft, size: 18),
+              label: Text(l10n.refundAction),
+            ),
           FilledButton.icon(
             onPressed: customer == null
                 ? null
-                : () => Navigator.pop(dialogContext, true),
+                : () =>
+                      Navigator.pop(dialogContext, _TopupDetailAction.profile),
             icon: const Icon(PhosphorIconsRegular.userCircle, size: 18),
             label: Text(l10n.openCustomerProfile),
           ),
         ],
       ),
     );
-    if (openProfile == true && customer != null) onOpenCustomer(customer);
+    if (!context.mounted) return;
+    switch (action) {
+      case _TopupDetailAction.refund:
+        await _openRefund(context);
+      case _TopupDetailAction.profile:
+        if (customer != null) onOpenCustomer(customer);
+      case null:
+        break;
+    }
   }
 }
+
+/// What the cashier chose to do from a top-up receipt's detail dialog.
+enum _TopupDetailAction { refund, profile }
 
 class _RefundStatusBadge extends StatelessWidget {
   const _RefundStatusBadge({required this.sale});

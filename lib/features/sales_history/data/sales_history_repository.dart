@@ -36,12 +36,14 @@ class SalesHistoryRepository {
     required SaleRefundMethod method,
     required String reason,
     required String requestId,
+    List<String> gatePassIds = const [],
   }) => remote.refund(
     saleId: saleId,
     amountUzs: amountUzs,
     method: method,
     reason: reason,
     requestId: requestId,
+    gatePassIds: gatePassIds,
   );
 
   String errorMessage(Object error) => switch (error) {

@@ -8,14 +8,22 @@ class ShiftTotals extends Equatable {
     required this.cardUzs,
     required this.topupUzs,
     required this.balanceSalesUzs,
+    this.refundedUzs = 0,
   });
 
   final int salesCount;
+
+  /// Gross takings before refunds. [cashUzs] and [cardUzs] are already net of
+  /// [refundedUzs]; keeping the gross lets the cash-up screen show the drop.
   final int subtotalUzs;
   final int cashUzs;
   final int cardUzs;
   final int topupUzs;
   final int balanceSalesUzs;
+
+  /// Physical money handed back during the shift. Money credited to a stored
+  /// balance is not counted — it never left the drawer.
+  final int refundedUzs;
 
   /// Money physically collected by this cashier in the current shift.
   /// Account-funded sales are reported separately and never added here.
@@ -38,6 +46,7 @@ class ShiftTotals extends Equatable {
     cardUzs,
     topupUzs,
     balanceSalesUzs,
+    refundedUzs,
   ];
 }
 

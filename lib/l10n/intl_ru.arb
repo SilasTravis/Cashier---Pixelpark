@@ -161,5 +161,15 @@
   "refundFullBadge": "Полный возврат",
   "refundHistory": "История возвратов",
   "refundAuditBy": "{date} · {name}",
-  "@refundAuditBy": {"placeholders":{"date":{"type":"String"},"name":{"type":"String"}}}
+  "@refundAuditBy": {"placeholders":{"date":{"type":"String"},"name":{"type":"String"}}},
+  "refundBalanceMethod": "На баланс",
+  "refundCustomerBalance": "Баланс клиента: {balance}",
+  "refundBalanceLimitNote": "Возврат пополнения списывается с баланса, поэтому вернуть больше, чем на нём осталось, нельзя.",
+  "refundSelectPasses": "Выберите возвращаемые пропуска",
+  "refundPassUsed": "Использован",
+  "refundPassVoided": "Аннулирован",
+  "refundNoRefundablePasses": "В этом чеке не осталось пропусков для возврата",
+  "refundSelectedPassesTotal": "Сумма выбранных пропусков",
+  "refundSelectPassesValidation": "Выберите хотя бы один пропуск",
+  "refundedTotal": "Возвращено"
 }

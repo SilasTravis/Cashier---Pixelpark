@@ -156,5 +156,15 @@
   "refundFullBadge": "Fully refunded",
   "refundHistory": "Refund history",
   "refundAuditBy": "{date} · {name}",
-  "@refundAuditBy": {"placeholders":{"date":{"type":"String"},"name":{"type":"String"}}}
+  "@refundAuditBy": {"placeholders":{"date":{"type":"String"},"name":{"type":"String"}}},
+  "refundBalanceMethod": "To balance",
+  "refundCustomerBalance": "Customer balance: {balance}",
+  "refundBalanceLimitNote": "Reversing a top-up takes the money back off the balance, so you cannot return more than it still holds.",
+  "refundSelectPasses": "Select the passes being handed back",
+  "refundPassUsed": "Used",
+  "refundPassVoided": "Voided",
+  "refundNoRefundablePasses": "No refundable passes remain on this receipt",
+  "refundSelectedPassesTotal": "Selected passes total",
+  "refundSelectPassesValidation": "Select at least one pass",
+  "refundedTotal": "Refunded"
 }
