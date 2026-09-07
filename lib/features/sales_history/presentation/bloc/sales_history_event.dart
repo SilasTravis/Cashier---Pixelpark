@@ -98,3 +98,26 @@ class SalesHistoryPaymentCorrectionRequested extends SalesHistoryEvent {
     requestId,
   ];
 }
+
+/// Applies an edit worked out by [planSaleEdit]: the column move first, then
+/// the amount handed back. Carrying both in one event keeps the two writes
+/// behind a single confirmation and a single reason.
+class SalesHistoryEditRequested extends SalesHistoryEvent {
+  const SalesHistoryEditRequested({
+    required this.saleId,
+    required this.plan,
+    required this.reason,
+  });
+
+  final String saleId;
+  final SaleEditPlan plan;
+  final String reason;
+
+  @override
+  List<Object?> get props => [
+    saleId,
+    plan.correctionUzs,
+    plan.refundUzs,
+    reason,
+  ];
+}

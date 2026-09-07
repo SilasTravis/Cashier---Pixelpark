@@ -3,6 +3,7 @@ import 'package:cashier_app/features/products/data/products_repository_impl.dart
 import 'package:cashier_app/features/products/domain/product.dart';
 import 'package:cashier_app/features/sales_history/data/sales_history_remote_data_source.dart';
 import 'package:cashier_app/features/sales_history/data/sales_history_repository.dart';
+import 'package:cashier_app/features/sales_history/domain/sale_edit_plan.dart';
 import 'package:cashier_app/features/sales_history/domain/sale_history.dart';
 import 'package:cashier_app/features/pos_account/domain/customer.dart';
 import 'package:cashier_app/features/sales_history/presentation/bloc/sales_history_bloc.dart';
@@ -45,6 +46,7 @@ class _FakeSalesRemote extends SalesHistoryRemoteDataSource {
   List<String> lastGatePassIds = const [];
   SalePaymentMoveMethod? lastFrom;
   SalePaymentMoveMethod? lastTo;
+  final calls = <String>[];
 
   @override
   Future<SalesHistoryPageData> list({
@@ -82,6 +84,7 @@ class _FakeSalesRemote extends SalesHistoryRemoteDataSource {
   }) async {
     lastFrom = fromMethod;
     lastTo = toMethod;
+    calls.add('correct:$amountUzs');
     return _sale();
   }
 
@@ -96,6 +99,7 @@ class _FakeSalesRemote extends SalesHistoryRemoteDataSource {
   }) async {
     lastMethod = method;
     lastGatePassIds = gatePassIds;
+    calls.add('refund:$amountUzs');
     return _sale(
       refundedUzs: amountUzs,
       netUzs: 100000 - amountUzs,
@@ -220,6 +224,7 @@ void main() {
   );
 
   _correctionTests();
+  _editTests();
 
   test('a top-up refund is capped by what the balance still holds', () {
     final spent = _topupSale(balance: 40000);
@@ -227,6 +232,85 @@ void main() {
 
     expect(spent.refundCeilingFor(SaleRefundMethod.cash), 40000);
     expect(untouched.refundCeilingFor(SaleRefundMethod.cash), 100000);
+  });
+}
+
+void _editTests() {
+  test(
+    'an edit runs the column move first, then hands back the difference',
+    () async {
+      final remote = _FakeSalesRemote();
+      final bloc = SalesHistoryBloc(
+        SalesHistoryRepository(remote),
+        ProductsRepository(_FakeProductsRemote()),
+      );
+      addTearDown(bloc.close);
+
+      bloc.add(const SalesHistoryStarted());
+      await bloc.stream.firstWhere(
+        (state) => !state.isLoading && state.items.isNotEmpty,
+      );
+
+      // The fixture is 100 000 in cash; say it should have been 70 000 on card.
+      final plan = planSaleEdit(
+        sale: _sale(),
+        targetTotalUzs: 70000,
+        targetMethod: SalePaymentMoveMethod.card,
+      );
+      expect(plan.correctionUzs, 100000);
+      expect(plan.refundUzs, 30000);
+
+      bloc.add(
+        SalesHistoryEditRequested(
+          saleId: 'sale-1',
+          plan: plan,
+          reason: 'Summa va usul xato kiritilgan',
+        ),
+      );
+      await bloc.stream.firstWhere(
+        (state) => state.actionStatus == SaleActionStatus.success,
+      );
+
+      expect(remote.calls, ['correct:100000', 'refund:30000']);
+      expect(remote.lastFrom, SalePaymentMoveMethod.cash);
+      expect(remote.lastTo, SalePaymentMoveMethod.card);
+      expect(remote.lastMethod, SaleRefundMethod.card);
+    },
+  );
+
+  test('an amount-only edit skips the column move', () async {
+    final remote = _FakeSalesRemote();
+    final bloc = SalesHistoryBloc(
+      SalesHistoryRepository(remote),
+      ProductsRepository(_FakeProductsRemote()),
+    );
+    addTearDown(bloc.close);
+
+    bloc.add(const SalesHistoryStarted());
+    await bloc.stream.firstWhere(
+      (state) => !state.isLoading && state.items.isNotEmpty,
+    );
+
+    final plan = planSaleEdit(
+      sale: _sale(),
+      targetTotalUzs: 60000,
+      targetMethod: SalePaymentMoveMethod.cash,
+    );
+
+    bloc.add(
+      SalesHistoryEditRequested(
+        saleId: 'sale-1',
+        plan: plan,
+        reason: 'Summa xato kiritilgan',
+      ),
+    );
+    final done = await bloc.stream.firstWhere(
+      (state) => state.actionStatus == SaleActionStatus.success,
+    );
+
+    expect(remote.calls, ['refund:40000']);
+    expect(done.summary.totalUzs, 60000);
+    expect(done.summary.refundedUzs, 40000);
   });
 }
 

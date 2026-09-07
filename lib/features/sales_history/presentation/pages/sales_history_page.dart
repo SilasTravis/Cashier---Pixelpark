@@ -14,6 +14,7 @@ import '../../domain/sale_history.dart';
 import '../../../pos_account/domain/customer.dart';
 import '../bloc/sales_history_bloc.dart';
 import '../widgets/correct_payment_dialog.dart';
+import '../widgets/edit_sale_dialog.dart';
 import '../widgets/refund_sale_dialog.dart';
 
 class SalesHistoryPage extends StatelessWidget {
@@ -528,6 +529,15 @@ class _SaleCard extends StatelessWidget {
                   ],
                 ),
               ),
+              if (_canEditNow)
+                FilledButton.icon(
+                  onPressed: () => _openEdit(context),
+                  icon: const Icon(PhosphorIconsRegular.pencilSimple, size: 17),
+                  label: Text(AppLocalization.of(context).editSaleAction),
+                ),
+              // Kept alongside Edit: the editor lands the whole receipt on one
+              // method, so a genuinely mixed payment that was split wrong is
+              // re-dialled here instead.
               if (_canCorrectPaymentNow)
                 OutlinedButton.icon(
                   onPressed: () => _openCorrectPayment(context),
@@ -572,6 +582,22 @@ class _SaleCard extends StatelessWidget {
       refundEnabled && sale.canRefund && sale.refundableUzs > 0;
 
   bool get _canCorrectPaymentNow => refundEnabled && sale.canCorrectPayment;
+
+  /// Editing needs at least one of the two operations to be open, and only
+  /// makes sense on a receipt that took physical money.
+  bool get _canEditNow =>
+      refundEnabled &&
+      sale.balanceUzs == 0 &&
+      sale.cashUzs + sale.cardUzs > 0 &&
+      (sale.canRefund || sale.canCorrectPayment);
+
+  Future<void> _openEdit(BuildContext context) async {
+    final edited = await showEditSaleDialog(context, sale);
+    if (edited != true || !context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppLocalization.of(context).editSaleSuccess)),
+    );
+  }
 
   Future<void> _openCorrectPayment(BuildContext context) async {
     final corrected = await showCorrectPaymentDialog(context, sale);
@@ -655,14 +681,12 @@ class _SaleCard extends StatelessWidget {
             onPressed: () => Navigator.pop(dialogContext, null),
             child: Text(l10n.close),
           ),
-          if (_canCorrectPaymentNow)
+          if (_canEditNow)
             OutlinedButton.icon(
-              onPressed: () => Navigator.pop(
-                dialogContext,
-                _TopupDetailAction.correctPayment,
-              ),
-              icon: const Icon(PhosphorIconsRegular.arrowsLeftRight, size: 18),
-              label: Text(l10n.correctPaymentAction),
+              onPressed: () =>
+                  Navigator.pop(dialogContext, _TopupDetailAction.edit),
+              icon: const Icon(PhosphorIconsRegular.pencilSimple, size: 18),
+              label: Text(l10n.editSaleAction),
             ),
           if (_canRefundNow)
             FilledButton.icon(
@@ -687,8 +711,8 @@ class _SaleCard extends StatelessWidget {
     );
     if (!context.mounted) return;
     switch (action) {
-      case _TopupDetailAction.correctPayment:
-        await _openCorrectPayment(context);
+      case _TopupDetailAction.edit:
+        await _openEdit(context);
       case _TopupDetailAction.refund:
         await _openRefund(context);
       case _TopupDetailAction.profile:
@@ -700,7 +724,7 @@ class _SaleCard extends StatelessWidget {
 }
 
 /// What the cashier chose to do from a top-up receipt's detail dialog.
-enum _TopupDetailAction { correctPayment, refund, profile }
+enum _TopupDetailAction { edit, refund, profile }
 
 class _RefundStatusBadge extends StatelessWidget {
   const _RefundStatusBadge({required this.sale});

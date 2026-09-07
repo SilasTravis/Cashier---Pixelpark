@@ -537,5 +537,56 @@
       }
     }
   },
-  "correctPaymentUnavailable": "Qaytarilgan chekda to‘lov usulini to‘g‘irlab bo‘lmaydi"
+  "correctPaymentUnavailable": "Qaytarilgan chekda to‘lov usulini to‘g‘irlab bo‘lmaydi",
+  "editSaleAction": "Tahrirlash",
+  "editSaleTitle": "Chekni tahrirlash",
+  "editSaleHint": "To‘g‘ri summa va to‘g‘ri to‘lov usulini kiriting. Tizim nima qilish kerakligini o‘zi hisoblaydi: usul o‘zgarsa ustunlar ko‘chiriladi, summa kamaysa ayirmasi qaytariladi.",
+  "editSaleCurrent": "Hozir: {cash} naqd + {card} karta",
+  "@editSaleCurrent": {
+    "placeholders": {
+      "cash": {
+        "type": "String"
+      },
+      "card": {
+        "type": "String"
+      }
+    }
+  },
+  "editSaleTotal": "To‘g‘ri summa",
+  "editSaleMethod": "To‘g‘ri to‘lov usuli",
+  "editSaleReason": "Tahrirlash sababi",
+  "editSaleReasonHint": "Masalan: summa xato kiritilgan, pul naqd olingan",
+  "editSalePlanTitle": "Bajariladigan amallar",
+  "editSalePlanCorrection": "{amount} — {from} dan {to} ga ko‘chiriladi",
+  "@editSalePlanCorrection": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
+  "editSalePlanRefund": "{amount} — {method} orqali mijozga qaytariladi",
+  "@editSalePlanRefund": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "method": {
+        "type": "String"
+      }
+    }
+  },
+  "editSalePlanNoop": "Hech narsa o‘zgarmaydi — chek allaqachon shunday",
+  "editSaleBlockedIncrease": "Summani oshirib bo‘lmaydi. Qo‘shimcha pul olingan bo‘lsa, alohida yangi to‘lov qiling.",
+  "editSaleBlockedMethod": "Bu chekdan pul qaytarilgan, shuning uchun to‘lov usulini o‘zgartirib bo‘lmaydi. Faqat summani kamaytirish mumkin.",
+  "editSaleBlockedBalance": "Mijoz balansida yetarli mablag‘ yo‘q — bu summani qaytarib bo‘lmaydi.",
+  "editSaleBlockedNotEditable": "Bu chekni bu yerda tahrirlab bo‘lmaydi.",
+  "editSaleSuccess": "Chek tahrirlandi",
+  "editSalePartialFailure": "Amal to‘liq bajarilmadi. Chekni qayta oching va tahrirlashni takrorlang — faqat qolgan qismi bajariladi."
 }

@@ -1,9 +1,11 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../products/data/products_repository_impl.dart';
 import '../../../products/domain/product.dart';
 import '../../data/sales_history_repository.dart';
+import '../../domain/sale_edit_plan.dart';
 import '../../domain/sale_history.dart';
 
 part 'sales_history_event.dart';
@@ -19,6 +21,7 @@ class SalesHistoryBloc extends Bloc<SalesHistoryEvent, SalesHistoryState> {
     on<SalesHistoryDateRangeChanged>(_changeDateRange);
     on<SalesHistoryRefundRequested>(_refundSale);
     on<SalesHistoryPaymentCorrectionRequested>(_correctSalePayment);
+    on<SalesHistoryEditRequested>(_editSale);
   }
   final SalesHistoryRepository repository;
   final ProductsRepository productsRepository;
@@ -227,6 +230,85 @@ class SalesHistoryBloc extends Bloc<SalesHistoryEvent, SalesHistoryState> {
             cardUzs: state.summary.cardUzs + (toCash ? -delta : delta),
             balanceUzs: state.summary.balanceUzs,
             refundedUzs: state.summary.refundedUzs,
+          ),
+        ),
+      );
+    } catch (error) {
+      emit(
+        state.copyWith(
+          actionStatus: SaleActionStatus.failure,
+          clearActingSale: true,
+          actionError: repository.errorMessage(error),
+        ),
+      );
+    }
+  }
+
+  /// Runs the column move and then the refund, in that order because the
+  /// server refuses to shift columns underneath a refund.
+  ///
+  /// If the second write fails, the first one STAYS — and that is deliberate:
+  /// re-planning against the receipt's new state derives only what is still
+  /// missing, so a retry finishes the edit instead of doubling it. The error
+  /// surfaces so the cashier knows the drawer has not been touched yet.
+  Future<void> _editSale(
+    SalesHistoryEditRequested event,
+    Emitter<SalesHistoryState> emit,
+  ) async {
+    if (state.actionStatus == SaleActionStatus.submitting) return;
+    final plan = event.plan;
+    emit(
+      state.copyWith(
+        actionStatus: SaleActionStatus.submitting,
+        actingSaleId: event.saleId,
+        clearActionError: true,
+        clearLastActedSale: true,
+      ),
+    );
+    try {
+      SaleHistoryEntry? updated;
+      if (plan.needsCorrection) {
+        updated = await repository.correctPayment(
+          saleId: event.saleId,
+          fromMethod: plan.correctionFrom!,
+          toMethod: plan.targetMethod,
+          amountUzs: plan.correctionUzs,
+          reason: event.reason,
+          requestId: const Uuid().v4(),
+        );
+      }
+      if (plan.needsRefund) {
+        updated = await repository.refund(
+          saleId: event.saleId,
+          amountUzs: plan.refundUzs,
+          method: plan.refundMethod,
+          reason: event.reason,
+          requestId: const Uuid().v4(),
+        );
+      }
+      if (updated == null) return;
+
+      final toCash = plan.targetMethod == SalePaymentMoveMethod.cash;
+      final moved = plan.correctionUzs;
+      final handedBack = plan.refundUzs;
+      emit(
+        state.copyWith(
+          actionStatus: SaleActionStatus.success,
+          clearActingSale: true,
+          lastActedSaleId: event.saleId,
+          items: [
+            for (final item in state.items)
+              if (item.id == event.saleId) updated else item,
+          ],
+          summary: SalesHistorySummary(
+            count: state.summary.count,
+            totalUzs: state.summary.totalUzs - handedBack,
+            cashUzs:
+                state.summary.cashUzs + (toCash ? moved - handedBack : -moved),
+            cardUzs:
+                state.summary.cardUzs + (toCash ? -moved : moved - handedBack),
+            balanceUzs: state.summary.balanceUzs,
+            refundedUzs: state.summary.refundedUzs + handedBack,
           ),
         ),
       );

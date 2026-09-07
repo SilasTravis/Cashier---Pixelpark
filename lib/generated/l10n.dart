@@ -2128,6 +2128,181 @@ class AppLocalization {
       args: [],
     );
   }
+
+  /// `Edit`
+  String get editSaleAction {
+    return Intl.message('Edit', name: 'editSaleAction', desc: '', args: []);
+  }
+
+  /// `Edit receipt`
+  String get editSaleTitle {
+    return Intl.message(
+      'Edit receipt',
+      name: 'editSaleTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Enter the correct total and the correct payment method. The steps are worked out for you: a changed method moves the columns, a lower total hands back the difference.`
+  String get editSaleHint {
+    return Intl.message(
+      'Enter the correct total and the correct payment method. The steps are worked out for you: a changed method moves the columns, a lower total hands back the difference.',
+      name: 'editSaleHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Now: {cash} cash + {card} card`
+  String editSaleCurrent(Object cash, Object card) {
+    return Intl.message(
+      'Now: $cash cash + $card card',
+      name: 'editSaleCurrent',
+      desc: '',
+      args: [cash, card],
+    );
+  }
+
+  /// `Correct total`
+  String get editSaleTotal {
+    return Intl.message(
+      'Correct total',
+      name: 'editSaleTotal',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Correct payment method`
+  String get editSaleMethod {
+    return Intl.message(
+      'Correct payment method',
+      name: 'editSaleMethod',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Reason for the edit`
+  String get editSaleReason {
+    return Intl.message(
+      'Reason for the edit',
+      name: 'editSaleReason',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `For example: wrong amount typed, money taken in cash`
+  String get editSaleReasonHint {
+    return Intl.message(
+      'For example: wrong amount typed, money taken in cash',
+      name: 'editSaleReasonHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `What will happen`
+  String get editSalePlanTitle {
+    return Intl.message(
+      'What will happen',
+      name: 'editSalePlanTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{amount} moves from {from} to {to}`
+  String editSalePlanCorrection(Object amount, Object from, Object to) {
+    return Intl.message(
+      '$amount moves from $from to $to',
+      name: 'editSalePlanCorrection',
+      desc: '',
+      args: [amount, from, to],
+    );
+  }
+
+  /// `{amount} is handed back to the customer in {method}`
+  String editSalePlanRefund(Object amount, Object method) {
+    return Intl.message(
+      '$amount is handed back to the customer in $method',
+      name: 'editSalePlanRefund',
+      desc: '',
+      args: [amount, method],
+    );
+  }
+
+  /// `Nothing changes — the receipt already says this`
+  String get editSalePlanNoop {
+    return Intl.message(
+      'Nothing changes — the receipt already says this',
+      name: 'editSalePlanNoop',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The total cannot go up. If more money was taken, ring it up as its own payment.`
+  String get editSaleBlockedIncrease {
+    return Intl.message(
+      'The total cannot go up. If more money was taken, ring it up as its own payment.',
+      name: 'editSaleBlockedIncrease',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Money has been handed back on this receipt, so the payment method can no longer change. Only the total can come down.`
+  String get editSaleBlockedMethod {
+    return Intl.message(
+      'Money has been handed back on this receipt, so the payment method can no longer change. Only the total can come down.',
+      name: 'editSaleBlockedMethod',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The customer's balance no longer holds that much — it cannot be returned.`
+  String get editSaleBlockedBalance {
+    return Intl.message(
+      'The customer\'s balance no longer holds that much — it cannot be returned.',
+      name: 'editSaleBlockedBalance',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `This receipt cannot be edited here.`
+  String get editSaleBlockedNotEditable {
+    return Intl.message(
+      'This receipt cannot be edited here.',
+      name: 'editSaleBlockedNotEditable',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Receipt edited`
+  String get editSaleSuccess {
+    return Intl.message(
+      'Receipt edited',
+      name: 'editSaleSuccess',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The edit did not finish. Reopen the receipt and edit again — only what is still missing will run.`
+  String get editSalePartialFailure {
+    return Intl.message(
+      'The edit did not finish. Reopen the receipt and edit again — only what is still missing will run.',
+      name: 'editSalePartialFailure',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalization> {
