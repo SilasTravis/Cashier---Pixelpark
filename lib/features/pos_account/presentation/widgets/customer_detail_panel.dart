@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:phosphor_icons/phosphor_icons.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../../core/printing/gate_pass_label_printer.dart';
 import '../../../../core/local_source/local_source.dart';
@@ -19,6 +20,7 @@ import '../../domain/free_reason.dart';
 import '../../domain/kids_plan.dart';
 import '../../domain/playing_child.dart';
 import '../../domain/pos_entry.dart';
+import 'confirm_topup_dialog.dart';
 import '../bloc/pos_account_bloc.dart';
 import 'plan_conflict_dialog.dart';
 import 'plan_entry_printing.dart';
@@ -96,6 +98,35 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
     _payCashController.dispose();
     _payCardController.dispose();
     super.dispose();
+  }
+
+  /// Confirms before crediting, then mints the idempotency key for that one
+  /// confirmed top-up. The key is what makes a retried request — a lost
+  /// response, a flaky link — record one top-up instead of two.
+  Future<void> _confirmAndTopup(
+    BuildContext context, {
+    required Customer customer,
+    required int amountUzs,
+    required PaymentSplit split,
+    required PaymentMethod method,
+  }) async {
+    final confirmed = await showConfirmTopupDialog(
+      context,
+      customer: customer,
+      amountUzs: amountUzs,
+      cashUzs: split.cashUzs,
+      cardUzs: split.cardUzs,
+      method: method,
+    );
+    if (confirmed != true || !context.mounted) return;
+    context.read<PosAccountBloc>().add(
+      PosAccountTopupRequested(
+        amountUzs: amountUzs,
+        cashUzs: split.cashUzs,
+        cardUzs: split.cardUzs,
+        requestId: const Uuid().v4(),
+      ),
+    );
   }
 
   void _resetFor(Customer? customer) {
@@ -462,12 +493,12 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                         amount: topupAmount,
                         canTopup: canTopup,
                         isBusy: state.isBusy,
-                        onTopup: () => context.read<PosAccountBloc>().add(
-                          PosAccountTopupRequested(
-                            amountUzs: topupAmount,
-                            cashUzs: topupSplit.cashUzs,
-                            cardUzs: topupSplit.cardUzs,
-                          ),
+                        onTopup: () => _confirmAndTopup(
+                          context,
+                          customer: customer,
+                          amountUzs: topupAmount,
+                          split: topupSplit,
+                          method: _topupMethod,
                         ),
                       ),
                     ),

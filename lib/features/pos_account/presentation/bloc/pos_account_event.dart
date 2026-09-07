@@ -106,14 +106,19 @@ class PosAccountTopupRequested extends PosAccountEvent {
     required this.amountUzs,
     required this.cashUzs,
     required this.cardUzs,
+    required this.requestId,
   });
 
   final int amountUzs;
   final int cashUzs;
   final int cardUzs;
 
+  /// Minted once per confirmed top-up, so the server records ONE even if the
+  /// request is delivered twice — a retry after a lost response, say.
+  final String requestId;
+
   @override
-  List<Object?> get props => [amountUzs, cashUzs, cardUzs];
+  List<Object?> get props => [amountUzs, cashUzs, cardUzs, requestId];
 }
 
 /// Fired once on page load, alongside [PosAccountRecentCustomersRequested]

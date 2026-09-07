@@ -474,6 +474,21 @@ class MessageLookup extends MessageLookupByLibrary {
     "tariffNotFound": MessageLookupByLibrary.simpleMessage("Tarif topilmadi."),
     "topup": MessageLookupByLibrary.simpleMessage("To‘ldirish"),
     "topupBalance": MessageLookupByLibrary.simpleMessage("Balansni to‘ldirish"),
+    "topupConfirmAction": MessageLookupByLibrary.simpleMessage("To‘ldirish"),
+    "topupConfirmAmount": MessageLookupByLibrary.simpleMessage(
+      "To‘ldirish summasi",
+    ),
+    "topupConfirmCustomer": MessageLookupByLibrary.simpleMessage("Mijoz"),
+    "topupConfirmMethod": MessageLookupByLibrary.simpleMessage("To‘lov usuli"),
+    "topupConfirmNewBalance": MessageLookupByLibrary.simpleMessage(
+      "Yangi balans",
+    ),
+    "topupConfirmTitle": MessageLookupByLibrary.simpleMessage(
+      "To‘ldirishni tasdiqlang",
+    ),
+    "topupConfirmWarning": MessageLookupByLibrary.simpleMessage(
+      "Tasdiqlagandan keyin summa mijoz balansiga qo‘shiladi. Xato bo‘lsa, chekni “Tahrirlash” orqali to‘g‘irlash mumkin.",
+    ),
     "topupDetails": MessageLookupByLibrary.simpleMessage(
       "Hisob to‘ldirish tafsilotlari",
     ),

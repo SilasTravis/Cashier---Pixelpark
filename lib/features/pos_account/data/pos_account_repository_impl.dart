@@ -66,12 +66,14 @@ class PosAccountRepository {
     required int amountUzs,
     required int cashUzs,
     required int cardUzs,
+    required String requestId,
   }) => _call(
     () => remote.topup(
       customerId: customerId,
       amountUzs: amountUzs,
       cashUzs: cashUzs,
       cardUzs: cardUzs,
+      requestId: requestId,
     ),
   );
 

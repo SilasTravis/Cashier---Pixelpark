@@ -46,11 +46,14 @@ abstract class PosAccountRemoteDataSource {
     required String fullName,
   }) => throw UnsupportedError('Child name update is not implemented');
 
+  /// [requestId] keys the top-up server-side: delivering the same request
+  /// twice records ONE, so a retry after a lost response cannot charge again.
   Future<TopupResult> topup({
     required int customerId,
     required int amountUzs,
     required int cashUzs,
     required int cardUzs,
+    required String requestId,
   });
 
   Future<List<KidsPlan>> listPlans();
@@ -189,11 +192,17 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
     required int amountUzs,
     required int cashUzs,
     required int cardUzs,
+    required String requestId,
   }) async {
     final response = await _request(
       () => dio.post(
         '/v1/pos/customers/$customerId/topup',
-        data: {'amountUzs': amountUzs, 'cashUzs': cashUzs, 'cardUzs': cardUzs},
+        data: {
+          'amountUzs': amountUzs,
+          'cashUzs': cashUzs,
+          'cardUzs': cardUzs,
+          'requestId': requestId,
+        },
       ),
     );
     final map = response as Map<String, dynamic>;

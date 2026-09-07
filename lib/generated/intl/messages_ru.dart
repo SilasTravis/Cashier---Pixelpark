@@ -481,6 +481,21 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "topup": MessageLookupByLibrary.simpleMessage("Пополнить"),
     "topupBalance": MessageLookupByLibrary.simpleMessage("Пополнить баланс"),
+    "topupConfirmAction": MessageLookupByLibrary.simpleMessage("Пополнить"),
+    "topupConfirmAmount": MessageLookupByLibrary.simpleMessage(
+      "Сумма пополнения",
+    ),
+    "topupConfirmCustomer": MessageLookupByLibrary.simpleMessage("Клиент"),
+    "topupConfirmMethod": MessageLookupByLibrary.simpleMessage("Способ оплаты"),
+    "topupConfirmNewBalance": MessageLookupByLibrary.simpleMessage(
+      "Новый баланс",
+    ),
+    "topupConfirmTitle": MessageLookupByLibrary.simpleMessage(
+      "Подтвердите пополнение",
+    ),
+    "topupConfirmWarning": MessageLookupByLibrary.simpleMessage(
+      "После подтверждения сумма зачислится на баланс клиента. Если она неверна, чек можно исправить через «Редактировать».",
+    ),
     "topupDetails": MessageLookupByLibrary.simpleMessage(
       "Детали пополнения счёта",
     ),

@@ -588,5 +588,12 @@
   "editSaleBlockedBalance": "Mijoz balansida yetarli mablag‘ yo‘q — bu summani qaytarib bo‘lmaydi.",
   "editSaleBlockedNotEditable": "Bu chekni bu yerda tahrirlab bo‘lmaydi.",
   "editSaleSuccess": "Chek tahrirlandi",
-  "editSalePartialFailure": "Amal to‘liq bajarilmadi. Chekni qayta oching va tahrirlashni takrorlang — faqat qolgan qismi bajariladi."
+  "editSalePartialFailure": "Amal to‘liq bajarilmadi. Chekni qayta oching va tahrirlashni takrorlang — faqat qolgan qismi bajariladi.",
+  "topupConfirmTitle": "To‘ldirishni tasdiqlang",
+  "topupConfirmCustomer": "Mijoz",
+  "topupConfirmAmount": "To‘ldirish summasi",
+  "topupConfirmNewBalance": "Yangi balans",
+  "topupConfirmAction": "To‘ldirish",
+  "topupConfirmWarning": "Tasdiqlagandan keyin summa mijoz balansiga qo‘shiladi. Xato bo‘lsa, chekni “Tahrirlash” orqali to‘g‘irlash mumkin.",
+  "topupConfirmMethod": "To‘lov usuli"
 }

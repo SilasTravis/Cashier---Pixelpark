@@ -2303,6 +2303,76 @@ class AppLocalization {
       args: [],
     );
   }
+
+  /// `Confirm the top-up`
+  String get topupConfirmTitle {
+    return Intl.message(
+      'Confirm the top-up',
+      name: 'topupConfirmTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Customer`
+  String get topupConfirmCustomer {
+    return Intl.message(
+      'Customer',
+      name: 'topupConfirmCustomer',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Top-up amount`
+  String get topupConfirmAmount {
+    return Intl.message(
+      'Top-up amount',
+      name: 'topupConfirmAmount',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `New balance`
+  String get topupConfirmNewBalance {
+    return Intl.message(
+      'New balance',
+      name: 'topupConfirmNewBalance',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Top up`
+  String get topupConfirmAction {
+    return Intl.message(
+      'Top up',
+      name: 'topupConfirmAction',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Once confirmed the amount is credited to the customer's balance. If it is wrong, the receipt can be put right with Edit.`
+  String get topupConfirmWarning {
+    return Intl.message(
+      'Once confirmed the amount is credited to the customer\'s balance. If it is wrong, the receipt can be put right with Edit.',
+      name: 'topupConfirmWarning',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Payment method`
+  String get topupConfirmMethod {
+    return Intl.message(
+      'Payment method',
+      name: 'topupConfirmMethod',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalization> {

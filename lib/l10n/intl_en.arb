@@ -512,5 +512,12 @@
   "editSaleBlockedBalance": "The customer's balance no longer holds that much — it cannot be returned.",
   "editSaleBlockedNotEditable": "This receipt cannot be edited here.",
   "editSaleSuccess": "Receipt edited",
-  "editSalePartialFailure": "The edit did not finish. Reopen the receipt and edit again — only what is still missing will run."
+  "editSalePartialFailure": "The edit did not finish. Reopen the receipt and edit again — only what is still missing will run.",
+  "topupConfirmTitle": "Confirm the top-up",
+  "topupConfirmCustomer": "Customer",
+  "topupConfirmAmount": "Top-up amount",
+  "topupConfirmNewBalance": "New balance",
+  "topupConfirmAction": "Top up",
+  "topupConfirmWarning": "Once confirmed the amount is credited to the customer's balance. If it is wrong, the receipt can be put right with Edit.",
+  "topupConfirmMethod": "Payment method"
 }

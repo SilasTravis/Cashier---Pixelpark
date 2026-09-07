@@ -473,6 +473,21 @@ class MessageLookup extends MessageLookupByLibrary {
     "tariffNotFound": MessageLookupByLibrary.simpleMessage("No tariffs found."),
     "topup": MessageLookupByLibrary.simpleMessage("Top up"),
     "topupBalance": MessageLookupByLibrary.simpleMessage("Top up balance"),
+    "topupConfirmAction": MessageLookupByLibrary.simpleMessage("Top up"),
+    "topupConfirmAmount": MessageLookupByLibrary.simpleMessage("Top-up amount"),
+    "topupConfirmCustomer": MessageLookupByLibrary.simpleMessage("Customer"),
+    "topupConfirmMethod": MessageLookupByLibrary.simpleMessage(
+      "Payment method",
+    ),
+    "topupConfirmNewBalance": MessageLookupByLibrary.simpleMessage(
+      "New balance",
+    ),
+    "topupConfirmTitle": MessageLookupByLibrary.simpleMessage(
+      "Confirm the top-up",
+    ),
+    "topupConfirmWarning": MessageLookupByLibrary.simpleMessage(
+      "Once confirmed the amount is credited to the customer\'s balance. If it is wrong, the receipt can be put right with Edit.",
+    ),
     "topupDetails": MessageLookupByLibrary.simpleMessage(
       "Account top-up details",
     ),

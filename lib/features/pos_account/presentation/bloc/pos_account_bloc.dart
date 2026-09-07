@@ -356,6 +356,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     PosAccountCustomerRefreshRequested event,
     Emitter<PosAccountState> emit,
   ) async {
+    if (state.isBusy) return;
     final current = state.selectedCustomer;
     if (current == null || state.isBusy) return;
     emit(state.copyWith(isBusy: true, errorMessage: null));
@@ -387,6 +388,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     PosAccountNewCustomerRequested event,
     Emitter<PosAccountState> emit,
   ) async {
+    if (state.isBusy) return;
     emit(state.copyWith(isBusy: true, errorMessage: null));
     final result = await _repository.createCustomer(
       // Existing customers are stored as `+998XXXXXXXXX` — sending the bare
@@ -415,6 +417,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     PosAccountChildAddRequested event,
     Emitter<PosAccountState> emit,
   ) async {
+    if (state.isBusy) return;
     final customer = state.selectedCustomer;
     if (customer == null) return;
     emit(state.copyWith(isBusy: true, errorMessage: null));
@@ -443,6 +446,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     PosAccountCustomerNameUpdateRequested event,
     Emitter<PosAccountState> emit,
   ) async {
+    if (state.isBusy) return;
     final current = state.selectedCustomer;
     if (current == null || event.fullName.trim().isEmpty) return;
     emit(state.copyWith(isBusy: true, errorMessage: null));
@@ -462,6 +466,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     PosAccountChildNameUpdateRequested event,
     Emitter<PosAccountState> emit,
   ) async {
+    if (state.isBusy) return;
     final current = state.selectedCustomer;
     if (current == null || event.fullName.trim().isEmpty) return;
     emit(state.copyWith(isBusy: true, errorMessage: null));
@@ -511,6 +516,11 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     PosAccountTopupRequested event,
     Emitter<PosAccountState> emit,
   ) async {
+    // Two taps in one frame both reached the repository, so a
+    // balance top-up went through several times. The button is
+    // disabled by `isBusy`, but only from the NEXT rebuild — the
+    // guard has to live here, where the state is already set.
+    if (state.isBusy) return;
     final customer = state.selectedCustomer;
     if (customer == null) return;
     emit(state.copyWith(isBusy: true, errorMessage: null));
@@ -519,6 +529,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
       amountUzs: event.amountUzs,
       cashUzs: event.cashUzs,
       cardUzs: event.cardUzs,
+      requestId: event.requestId,
     );
     result.fold(
       (failure) => emit(
@@ -537,6 +548,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     PosAccountParentQrRequested event,
     Emitter<PosAccountState> emit,
   ) async {
+    if (state.isBusy) return;
     final customer = state.selectedCustomer;
     if (customer == null) return;
     emit(state.copyWith(isBusy: true, errorMessage: null));
@@ -573,6 +585,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     PosAccountPlanEntryRequested event,
     Emitter<PosAccountState> emit,
   ) async {
+    if (state.isBusy) return;
     final customer = state.selectedCustomer;
     if (customer == null) return;
     emit(state.copyWith(isBusy: true, errorMessage: null));
@@ -653,6 +666,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     PosAccountCheckoutRequested event,
     Emitter<PosAccountState> emit,
   ) async {
+    if (state.isBusy) return;
     final customer = state.selectedCustomer;
     if (customer == null) return;
     emit(state.copyWith(isBusy: true, errorMessage: null));
