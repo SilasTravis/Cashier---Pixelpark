@@ -68,3 +68,33 @@ class SalesHistoryRefundRequested extends SalesHistoryEvent {
     gatePassIds,
   ];
 }
+
+/// Fixes a receipt rung up under the wrong payment method — the money was
+/// taken as cash but recorded as card, or the reverse.
+class SalesHistoryPaymentCorrectionRequested extends SalesHistoryEvent {
+  const SalesHistoryPaymentCorrectionRequested({
+    required this.saleId,
+    required this.fromMethod,
+    required this.toMethod,
+    required this.amountUzs,
+    required this.reason,
+    required this.requestId,
+  });
+
+  final String saleId;
+  final SalePaymentMoveMethod fromMethod;
+  final SalePaymentMoveMethod toMethod;
+  final int amountUzs;
+  final String reason;
+  final String requestId;
+
+  @override
+  List<Object?> get props => [
+    saleId,
+    fromMethod,
+    toMethod,
+    amountUzs,
+    reason,
+    requestId,
+  ];
+}

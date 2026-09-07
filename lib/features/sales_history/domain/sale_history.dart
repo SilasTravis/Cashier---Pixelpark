@@ -28,6 +28,47 @@ extension SaleHistoryPeriodApi on SaleHistoryPeriod {
   };
 }
 
+/// Which physical column a payment sits in. Stored balance is not physical
+/// money, so it is never a side of a method correction.
+enum SalePaymentMoveMethod { cash, card }
+
+extension SalePaymentMoveMethodApi on SalePaymentMoveMethod {
+  String get apiValue => name;
+}
+
+/// One recorded fix of a mis-rung payment method: the money was taken as cash
+/// but the receipt said card, or the other way round. The total never moved.
+class SalePaymentCorrection extends Equatable {
+  const SalePaymentCorrection({
+    required this.id,
+    required this.fromMethod,
+    required this.toMethod,
+    required this.amountUzs,
+    required this.reason,
+    required this.correctedByName,
+    required this.createdAt,
+  });
+
+  final String id;
+  final SalePaymentMoveMethod fromMethod;
+  final SalePaymentMoveMethod toMethod;
+  final int amountUzs;
+  final String reason;
+  final String correctedByName;
+  final DateTime createdAt;
+
+  @override
+  List<Object?> get props => [
+    id,
+    fromMethod,
+    toMethod,
+    amountUzs,
+    reason,
+    correctedByName,
+    createdAt,
+  ];
+}
+
 /// One entrance sticker printed by a gate-pass sale, with whether it can
 /// still be handed back — a pass the child already walked in on cannot.
 class SaleGatePass extends Equatable {
@@ -96,10 +137,12 @@ class SaleHistoryEntry extends Equatable {
     required this.refundableCardUzs,
     required this.refundableBalanceUzs,
     required this.canRefund,
+    required this.canCorrectPayment,
     required this.createdAt,
     required this.items,
     required this.refunds,
     required this.passes,
+    required this.paymentCorrections,
     this.customer,
   });
 
@@ -119,13 +162,26 @@ class SaleHistoryEntry extends Equatable {
   final int refundableCardUzs;
   final int refundableBalanceUzs;
   final bool canRefund;
+
+  /// Whether the cash/card split of this receipt can still be corrected.
+  final bool canCorrectPayment;
   final DateTime createdAt;
   final List<SaleHistoryItem> items;
   final List<SaleHistoryRefund> refunds;
   final List<SaleGatePass> passes;
+  final List<SalePaymentCorrection> paymentCorrections;
   final Customer? customer;
 
   bool get hasRefunds => refundedUzs > 0;
+  bool get hasPaymentCorrections => paymentCorrections.isNotEmpty;
+
+  /// How much of this receipt still sits in one physical column, and so could
+  /// be moved to the other one.
+  int movableFor(SalePaymentMoveMethod method) => switch (method) {
+    SalePaymentMoveMethod.cash => cashUzs,
+    SalePaymentMoveMethod.card => cardUzs,
+  };
+
   bool get isFullyRefunded => refundableUzs == 0 && hasRefunds;
   bool get isTopup => type == 'ACCOUNT_TOPUP';
   bool get isGatePass => type == 'GATE_PASS';
@@ -175,10 +231,12 @@ class SaleHistoryEntry extends Equatable {
     refundableCardUzs,
     refundableBalanceUzs,
     canRefund,
+    canCorrectPayment,
     createdAt,
     items,
     refunds,
     passes,
+    paymentCorrections,
     customer,
   ];
 }

@@ -1978,6 +1978,156 @@ class AppLocalization {
   String get refundedTotal {
     return Intl.message('Refunded', name: 'refundedTotal', desc: '', args: []);
   }
+
+  /// `Correct payment method`
+  String get correctPaymentAction {
+    return Intl.message(
+      'Correct payment method',
+      name: 'correctPaymentAction',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Correct payment method`
+  String get correctPaymentTitle {
+    return Intl.message(
+      'Correct payment method',
+      name: 'correctPaymentTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The receipt total does not change. Only which column the money sits in — cash or card — is corrected, so the shift cash-up matches the drawer.`
+  String get correctPaymentHint {
+    return Intl.message(
+      'The receipt total does not change. Only which column the money sits in — cash or card — is corrected, so the shift cash-up matches the drawer.',
+      name: 'correctPaymentHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Recorded wrongly as`
+  String get correctPaymentFrom {
+    return Intl.message(
+      'Recorded wrongly as',
+      name: 'correctPaymentFrom',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Correct method`
+  String get correctPaymentTo {
+    return Intl.message(
+      'Correct method',
+      name: 'correctPaymentTo',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Amount to move`
+  String get correctPaymentAmount {
+    return Intl.message(
+      'Amount to move',
+      name: 'correctPaymentAmount',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Reason for the correction`
+  String get correctPaymentReason {
+    return Intl.message(
+      'Reason for the correction',
+      name: 'correctPaymentReason',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `For example: money taken in cash, rung up as card`
+  String get correctPaymentReasonHint {
+    return Intl.message(
+      'For example: money taken in cash, rung up as card',
+      name: 'correctPaymentReasonHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Result: cash {cash}, card {card}`
+  String correctPaymentResult(Object cash, Object card) {
+    return Intl.message(
+      'Result: cash $cash, card $card',
+      name: 'correctPaymentResult',
+      desc: '',
+      args: [cash, card],
+    );
+  }
+
+  /// `Confirm the correction`
+  String get correctPaymentConfirmTitle {
+    return Intl.message(
+      'Confirm the correction',
+      name: 'correctPaymentConfirmTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{amount} moves from {from} to {to}. The change is kept in the audit history.`
+  String correctPaymentConfirmMessage(Object amount, Object from, Object to) {
+    return Intl.message(
+      '$amount moves from $from to $to. The change is kept in the audit history.',
+      name: 'correctPaymentConfirmMessage',
+      desc: '',
+      args: [amount, from, to],
+    );
+  }
+
+  /// `Payment method corrected`
+  String get correctPaymentSuccess {
+    return Intl.message(
+      'Payment method corrected',
+      name: 'correctPaymentSuccess',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Payment method corrections`
+  String get correctPaymentHistory {
+    return Intl.message(
+      'Payment method corrections',
+      name: 'correctPaymentHistory',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{amount}: {from} → {to}`
+  String correctPaymentAudit(Object amount, Object from, Object to) {
+    return Intl.message(
+      '$amount: $from → $to',
+      name: 'correctPaymentAudit',
+      desc: '',
+      args: [amount, from, to],
+    );
+  }
+
+  /// `A receipt with a refund cannot have its payment method corrected`
+  String get correctPaymentUnavailable {
+    return Intl.message(
+      'A receipt with a refund cannot have its payment method corrected',
+      name: 'correctPaymentUnavailable',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalization> {

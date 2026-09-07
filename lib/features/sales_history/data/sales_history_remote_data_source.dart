@@ -70,6 +70,33 @@ class SalesHistoryRemoteDataSource {
     }
   }
 
+  /// Moves an amount between the cash and card columns of one receipt, for a
+  /// payment that was rung up under the wrong method. Nothing is handed back.
+  Future<SaleHistoryEntry> correctPayment({
+    required String saleId,
+    required SalePaymentMoveMethod fromMethod,
+    required SalePaymentMoveMethod toMethod,
+    required int amountUzs,
+    required String reason,
+    required String requestId,
+  }) async {
+    try {
+      final response = await dio.post(
+        '/v1/pos/sales/$saleId/payment-corrections',
+        data: {
+          'fromMethod': fromMethod.apiValue,
+          'toMethod': toMethod.apiValue,
+          'amountUzs': amountUzs,
+          'reason': reason,
+          'requestId': requestId,
+        },
+      );
+      return _sale(Map<String, dynamic>.from(response.data as Map));
+    } on DioException catch (error) {
+      throw ServerException.fromJson(error.response?.data);
+    }
+  }
+
   Future<SaleHistoryEntry> refund({
     required String saleId,
     required int amountUzs,
@@ -125,6 +152,7 @@ class SalesHistoryRemoteDataSource {
       refundableCardUzs: _int(json['refundableCardUzs'], fallback: cardUzs),
       refundableBalanceUzs: _int(json['refundableBalanceUzs']),
       canRefund: json['canRefund'] == true,
+      canCorrectPayment: json['canCorrectPayment'] == true,
       createdAt: DateTime.parse(json['createdAt'] as String).toLocal(),
       customer: json['customer'] == null
           ? null
@@ -153,6 +181,20 @@ class SalesHistoryRemoteDataSource {
               : DateTime.parse(enteredAt).toLocal(),
         );
       }).toList(),
+      paymentCorrections: ((json['paymentCorrections'] as List?) ?? const [])
+          .map((raw) {
+            final row = Map<String, dynamic>.from(raw as Map);
+            return SalePaymentCorrection(
+              id: row['id'] as String,
+              fromMethod: _moveMethod(row['fromMethod']),
+              toMethod: _moveMethod(row['toMethod']),
+              amountUzs: _int(row['amountUzs']),
+              reason: row['reason'] as String,
+              correctedByName: row['correctedByName'] as String,
+              createdAt: DateTime.parse(row['createdAt'] as String).toLocal(),
+            );
+          })
+          .toList(),
       refunds: ((json['refunds'] as List?) ?? const []).map((raw) {
         final refund = Map<String, dynamic>.from(raw as Map);
         return SaleHistoryRefund(
@@ -167,6 +209,11 @@ class SalesHistoryRemoteDataSource {
       }).toList(),
     );
   }
+
+  SalePaymentMoveMethod _moveMethod(Object? value) => switch (value) {
+    'card' => SalePaymentMoveMethod.card,
+    _ => SalePaymentMoveMethod.cash,
+  };
 
   SaleRefundMethod _refundMethod(Object? value) => switch (value) {
     'card' => SaleRefundMethod.card,

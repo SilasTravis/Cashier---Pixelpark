@@ -82,18 +82,18 @@ class _RefundSaleDialogState extends State<_RefundSaleDialog> {
     final l10n = AppLocalization.of(context);
     return BlocConsumer<SalesHistoryBloc, SalesHistoryState>(
       listenWhen: (previous, current) =>
-          previous.refundStatus != current.refundStatus ||
-          previous.lastRefundedSaleId != current.lastRefundedSaleId,
+          previous.actionStatus != current.actionStatus ||
+          previous.lastActedSaleId != current.lastActedSaleId,
       listener: (context, state) {
-        if (state.refundStatus == SaleRefundSubmissionStatus.success &&
-            state.lastRefundedSaleId == widget.sale.id) {
+        if (state.actionStatus == SaleActionStatus.success &&
+            state.lastActedSaleId == widget.sale.id) {
           Navigator.of(context).pop(_submittedAmount);
         }
       },
       builder: (context, state) {
         final submitting =
-            state.refundStatus == SaleRefundSubmissionStatus.submitting &&
-            state.refundingSaleId == widget.sale.id;
+            state.actionStatus == SaleActionStatus.submitting &&
+            state.actingSaleId == widget.sale.id;
         return AlertDialog(
           titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
           contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
@@ -261,12 +261,11 @@ class _RefundSaleDialogState extends State<_RefundSaleDialog> {
                         text: l10n.refundCardWarning,
                       ),
                     ],
-                    if (state.refundStatus ==
-                            SaleRefundSubmissionStatus.failure &&
-                        state.refundError != null) ...[
+                    if (state.actionStatus == SaleActionStatus.failure &&
+                        state.actionError != null) ...[
                       const SizedBox(height: 12),
                       Text(
-                        state.refundError!,
+                        state.actionError!,
                         style: const TextStyle(color: NocturneColors.danger),
                       ),
                     ],

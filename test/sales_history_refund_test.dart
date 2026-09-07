@@ -30,10 +30,12 @@ SaleHistoryEntry _sale({
   refundableCardUzs: 0,
   refundableBalanceUzs: 0,
   canRefund: refundableUzs > 0,
+  canCorrectPayment: true,
   createdAt: DateTime(2026, 8, 31, 10),
   items: const [],
   refunds: const [],
   passes: const [],
+  paymentCorrections: const [],
 );
 
 class _FakeSalesRemote extends SalesHistoryRemoteDataSource {
@@ -41,6 +43,8 @@ class _FakeSalesRemote extends SalesHistoryRemoteDataSource {
 
   SaleRefundMethod? lastMethod;
   List<String> lastGatePassIds = const [];
+  SalePaymentMoveMethod? lastFrom;
+  SalePaymentMoveMethod? lastTo;
 
   @override
   Future<SalesHistoryPageData> list({
@@ -66,6 +70,20 @@ class _FakeSalesRemote extends SalesHistoryRemoteDataSource {
     balanceUzs: 0,
     refundedUzs: 0,
   );
+
+  @override
+  Future<SaleHistoryEntry> correctPayment({
+    required String saleId,
+    required SalePaymentMoveMethod fromMethod,
+    required SalePaymentMoveMethod toMethod,
+    required int amountUzs,
+    required String reason,
+    required String requestId,
+  }) async {
+    lastFrom = fromMethod;
+    lastTo = toMethod;
+    return _sale();
+  }
 
   @override
   Future<SaleHistoryEntry> refund({
@@ -116,7 +134,7 @@ void main() {
         ),
       );
       final success = await bloc.stream.firstWhere(
-        (state) => state.refundStatus == SaleRefundSubmissionStatus.success,
+        (state) => state.actionStatus == SaleActionStatus.success,
       );
 
       expect(success.items.single.refundedUzs, 30000);
@@ -161,7 +179,7 @@ void main() {
         ),
       );
       await bloc.stream.firstWhere(
-        (state) => state.refundStatus == SaleRefundSubmissionStatus.success,
+        (state) => state.actionStatus == SaleActionStatus.success,
       );
 
       expect(remote.lastGatePassIds, ['pass-1', 'pass-2']);
@@ -192,7 +210,7 @@ void main() {
         ),
       );
       final success = await bloc.stream.firstWhere(
-        (state) => state.refundStatus == SaleRefundSubmissionStatus.success,
+        (state) => state.actionStatus == SaleActionStatus.success,
       );
 
       expect(success.summary.cashUzs, 100000);
@@ -201,12 +219,92 @@ void main() {
     },
   );
 
+  _correctionTests();
+
   test('a top-up refund is capped by what the balance still holds', () {
     final spent = _topupSale(balance: 40000);
     final untouched = _topupSale(balance: 100000);
 
     expect(spent.refundCeilingFor(SaleRefundMethod.cash), 40000);
     expect(untouched.refundCeilingFor(SaleRefundMethod.cash), 100000);
+  });
+}
+
+void _correctionTests() {
+  test(
+    'a mis-rung method moves the takings between columns, total unchanged',
+    () async {
+      final bloc = SalesHistoryBloc(
+        SalesHistoryRepository(_FakeSalesRemote()),
+        ProductsRepository(_FakeProductsRemote()),
+      );
+      addTearDown(bloc.close);
+
+      bloc.add(const SalesHistoryStarted());
+      final loaded = await bloc.stream.firstWhere(
+        (state) => !state.isLoading && state.items.isNotEmpty,
+      );
+      final totalBefore = loaded.summary.totalUzs;
+
+      bloc.add(
+        const SalesHistoryPaymentCorrectionRequested(
+          saleId: 'sale-1',
+          fromMethod: SalePaymentMoveMethod.card,
+          toMethod: SalePaymentMoveMethod.cash,
+          amountUzs: 30000,
+          reason: 'Naqd olingan, karta deb belgilangan',
+          requestId: 'request-4',
+        ),
+      );
+      final done = await bloc.stream.firstWhere(
+        (state) => state.actionStatus == SaleActionStatus.success,
+      );
+
+      // 100 000 cash / 0 card to start, so 30 000 moved onto cash and off card.
+      expect(done.summary.cashUzs, 130000);
+      expect(done.summary.cardUzs, -30000);
+      expect(done.summary.totalUzs, totalBefore);
+      expect(done.summary.refundedUzs, 0);
+    },
+  );
+
+  test('the chosen direction reaches the server', () async {
+    final remote = _FakeSalesRemote();
+    final bloc = SalesHistoryBloc(
+      SalesHistoryRepository(remote),
+      ProductsRepository(_FakeProductsRemote()),
+    );
+    addTearDown(bloc.close);
+
+    bloc.add(const SalesHistoryStarted());
+    await bloc.stream.firstWhere(
+      (state) => !state.isLoading && state.items.isNotEmpty,
+    );
+
+    bloc.add(
+      const SalesHistoryPaymentCorrectionRequested(
+        saleId: 'sale-1',
+        fromMethod: SalePaymentMoveMethod.cash,
+        toMethod: SalePaymentMoveMethod.card,
+        amountUzs: 10000,
+        reason: 'Karta bilan tolangan',
+        requestId: 'request-5',
+      ),
+    );
+    await bloc.stream.firstWhere(
+      (state) => state.actionStatus == SaleActionStatus.success,
+    );
+
+    expect(remote.lastFrom, SalePaymentMoveMethod.cash);
+    expect(remote.lastTo, SalePaymentMoveMethod.card);
+  });
+
+  test('sale reports what each column still holds', () {
+    final sale = _sale();
+
+    expect(sale.movableFor(SalePaymentMoveMethod.cash), 100000);
+    expect(sale.movableFor(SalePaymentMoveMethod.card), 0);
+    expect(sale.hasPaymentCorrections, isFalse);
   });
 }
 
@@ -227,10 +325,12 @@ SaleHistoryEntry _topupSale({required int balance}) => SaleHistoryEntry(
   refundableCardUzs: 0,
   refundableBalanceUzs: 0,
   canRefund: true,
+  canCorrectPayment: true,
   createdAt: DateTime(2026, 8, 31, 10),
   items: const [],
   refunds: const [],
   passes: const [],
+  paymentCorrections: const [],
   customer: Customer(
     id: 42,
     phoneNumber: '+998900000000',

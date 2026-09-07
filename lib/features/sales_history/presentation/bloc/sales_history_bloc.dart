@@ -18,6 +18,7 @@ class SalesHistoryBloc extends Bloc<SalesHistoryEvent, SalesHistoryState> {
     on<SalesHistoryProductChanged>(_changeProduct);
     on<SalesHistoryDateRangeChanged>(_changeDateRange);
     on<SalesHistoryRefundRequested>(_refundSale);
+    on<SalesHistoryPaymentCorrectionRequested>(_correctSalePayment);
   }
   final SalesHistoryRepository repository;
   final ProductsRepository productsRepository;
@@ -122,13 +123,13 @@ class SalesHistoryBloc extends Bloc<SalesHistoryEvent, SalesHistoryState> {
     SalesHistoryRefundRequested event,
     Emitter<SalesHistoryState> emit,
   ) async {
-    if (state.refundStatus == SaleRefundSubmissionStatus.submitting) return;
+    if (state.actionStatus == SaleActionStatus.submitting) return;
     emit(
       state.copyWith(
-        refundStatus: SaleRefundSubmissionStatus.submitting,
-        refundingSaleId: event.saleId,
-        clearRefundError: true,
-        clearLastRefundedSale: true,
+        actionStatus: SaleActionStatus.submitting,
+        actingSaleId: event.saleId,
+        clearActionError: true,
+        clearLastActedSale: true,
       ),
     );
     try {
@@ -147,9 +148,9 @@ class SalesHistoryBloc extends Bloc<SalesHistoryEvent, SalesHistoryState> {
           : event.amountUzs;
       emit(
         state.copyWith(
-          refundStatus: SaleRefundSubmissionStatus.success,
-          clearRefundingSale: true,
-          lastRefundedSaleId: event.saleId,
+          actionStatus: SaleActionStatus.success,
+          clearActingSale: true,
+          lastActedSaleId: event.saleId,
           items: [
             for (final item in state.items)
               if (item.id == event.saleId) updated else item,
@@ -175,9 +176,66 @@ class SalesHistoryBloc extends Bloc<SalesHistoryEvent, SalesHistoryState> {
     } catch (error) {
       emit(
         state.copyWith(
-          refundStatus: SaleRefundSubmissionStatus.failure,
-          clearRefundingSale: true,
-          refundError: repository.errorMessage(error),
+          actionStatus: SaleActionStatus.failure,
+          clearActingSale: true,
+          actionError: repository.errorMessage(error),
+        ),
+      );
+    }
+  }
+
+  /// A mis-rung method moves money between the two physical columns of one
+  /// receipt. The takings do not change, so the period summary keeps its
+  /// totals and only the cash/card split shifts.
+  Future<void> _correctSalePayment(
+    SalesHistoryPaymentCorrectionRequested event,
+    Emitter<SalesHistoryState> emit,
+  ) async {
+    if (state.actionStatus == SaleActionStatus.submitting) return;
+    emit(
+      state.copyWith(
+        actionStatus: SaleActionStatus.submitting,
+        actingSaleId: event.saleId,
+        clearActionError: true,
+        clearLastActedSale: true,
+      ),
+    );
+    try {
+      final updated = await repository.correctPayment(
+        saleId: event.saleId,
+        fromMethod: event.fromMethod,
+        toMethod: event.toMethod,
+        amountUzs: event.amountUzs,
+        reason: event.reason,
+        requestId: event.requestId,
+      );
+      final toCash = event.toMethod == SalePaymentMoveMethod.cash;
+      final delta = event.amountUzs;
+      emit(
+        state.copyWith(
+          actionStatus: SaleActionStatus.success,
+          clearActingSale: true,
+          lastActedSaleId: event.saleId,
+          items: [
+            for (final item in state.items)
+              if (item.id == event.saleId) updated else item,
+          ],
+          summary: SalesHistorySummary(
+            count: state.summary.count,
+            totalUzs: state.summary.totalUzs,
+            cashUzs: state.summary.cashUzs + (toCash ? delta : -delta),
+            cardUzs: state.summary.cardUzs + (toCash ? -delta : delta),
+            balanceUzs: state.summary.balanceUzs,
+            refundedUzs: state.summary.refundedUzs,
+          ),
+        ),
+      );
+    } catch (error) {
+      emit(
+        state.copyWith(
+          actionStatus: SaleActionStatus.failure,
+          clearActingSale: true,
+          actionError: repository.errorMessage(error),
         ),
       );
     }

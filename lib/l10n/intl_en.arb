@@ -12,7 +12,18 @@
   "languageRussian": "Russian",
   "tabAccount": "Account & QR",
   "tabSales": "Sales",
-  "tabHistory": "Sales history", "tabVisitHistory": "Entry/exit history", "visitHistorySearchHint": "Search by child, parent or phone", "currentShiftOnly": "Current shift only", "visitEntries": "Entries", "visitExits": "Exits", "visitStillInside": "Still inside", "visitInside": "Inside", "visitEntered": "Entered", "visitExited": "Exited", "visitManualExit": "Manually exited", "visitHistoryEmpty": "No entries or exits in the current shift",
+  "tabHistory": "Sales history",
+  "tabVisitHistory": "Entry/exit history",
+  "visitHistorySearchHint": "Search by child, parent or phone",
+  "currentShiftOnly": "Current shift only",
+  "visitEntries": "Entries",
+  "visitExits": "Exits",
+  "visitStillInside": "Still inside",
+  "visitInside": "Inside",
+  "visitEntered": "Entered",
+  "visitExited": "Exited",
+  "visitManualExit": "Manually exited",
+  "visitHistoryEmpty": "No entries or exits in the current shift",
   "tabSettings": "Settings",
   "cartTitle": "Receipt",
   "cartClear": "Clear",
@@ -47,7 +58,13 @@
   "historyEmpty": "No sales in this period",
   "historySales": "Sales",
   "historyCount": "{count}",
-  "@historyCount": {"placeholders": {"count": {"type": "int"}}},
+  "@historyCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "historyChoosePeriod": "Choose sales period",
   "historyChoose": "Select",
   "saleGoods": "Product sale",
@@ -55,61 +72,333 @@
   "saleTopup": "Account top-up",
   "saleGeneric": "Sale",
   "paymentCashValue": "Cash: {value}",
-  "@paymentCashValue": {"placeholders": {"value": {"type": "String"}}},
+  "@paymentCashValue": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "paymentCardValue": "Card: {value}",
-  "@paymentCardValue": {"placeholders": {"value": {"type": "String"}}},
+  "@paymentCardValue": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "paymentBalance": "Balance-funded sales",
   "paymentBalanceValue": "Balance: {value}",
-  "@paymentBalanceValue": {"placeholders": {"value": {"type": "String"}}},
+  "@paymentBalanceValue": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "branch": "Branch",
   "version": "Version",
-  "logout": "Log out"
-  ,"printerSettings": "Printers",
+  "logout": "Log out",
+  "printerSettings": "Printers",
   "qrPrinter": "QR and label printer",
   "receiptPrinter": "Product receipt printer",
   "automaticGodex": "Automatic — Godex",
   "automaticSewoo": "Automatic — SLK",
   "noPrintersFound": "No installed Windows printers found",
-  "cashDesk": "Cash desk", "cashDeskCashier": "Cash desk · {name}", "@cashDeskCashier": {"placeholders":{"name":{"type":"String"}}},
-  "menuOpen": "Open menu", "menuClose": "Close menu", "shiftClose": "Close shift", "shiftOpenedAt": "Shift opened at {time}", "@shiftOpenedAt": {"placeholders":{"time":{"type":"String"}}},
-  "shiftStart": "Start shift", "shiftStartHint": "Enter the opening cash amount in the register", "shiftOpeningCash": "Opening cash (UZS)", "shiftOpen": "Open shift", "shiftClosed": "Shift closed",
-  "receiptCount": "Receipt count", "balanceSalesNotIncome": "Balance-funded sales (not income)", "shiftTotalIncome": "Total shift income",
-  "findCustomerHint": "Enter a phone number to find a customer", "recentCustomers": "Recent customers", "searchHistory": "Search history", "allCustomers": "All customers", "customerDirectorySearchHint": "Search by name or the last phone digits", "searchResult": "Search results",
-  "customerCount": "{count} customers", "@customerCount": {"placeholders":{"count":{"type":"int"}}}, "childCount": "{count} children", "@childCount": {"placeholders":{"count":{"type":"int"}}},
-  "phoneNotFound": "Number not found", "accountNotFoundForPhone": "No account exists for +998 {phone}.", "@accountNotFoundForPhone": {"placeholders":{"phone":{"type":"String"}}},
-  "addCustomer": "Add customer", "fullName": "Full name", "save": "Save", "parentQr": "Parent QR", "balance": "Balance", "children": "Children",
-  "selectedCount": "selected: {count}", "@selectedCount": {"placeholders":{"count":{"type":"int"}}}, "noChildren": "no children", "selectForQr": "Select for QR", "quickAdd": "Quick add", "childName": "Child name", "add": "Add",
-  "tariff": "Tariff", "tariffNotFound": "No tariffs found.", "products": "Products", "companionDescription": "{price} each — unrestricted like parent QR", "@companionDescription": {"placeholders":{"price":{"type":"String"}}},
-  "vipAlreadyActive": "«{name}» already has an active VIP tariff — no second charge.", "@vipAlreadyActive": {"placeholders":{"name":{"type":"String"}}}, "vipTariff": "VIP tariff", "vipChargedImmediately": "The VIP tariff is debited from the balance immediately when printed.",
-  "payFromBalance": "Pay from balance", "currentBalanceValue": "Current balance: {value}", "@currentBalanceValue": {"placeholders":{"value":{"type":"String"}}}, "balanceInsufficient": "Insufficient balance — at least {value} must be paid.", "@balanceInsufficient": {"placeholders":{"value":{"type":"String"}}},
-  "paymentAmount": "Payment amount", "paymentMinimumHint": "At least {value} — excess remains on the balance", "@paymentMinimumHint": {"placeholders":{"value":{"type":"String"}}},
-  "printParentQr": "Also print parent QR", "unlimitedFreeEntry": "Free — unrestricted entry and exit", "currentlyInside": "Currently inside",
-  "enteredAtMinutes": "{plan} · entered {time} · {minutes} min", "@enteredAtMinutes": {"placeholders":{"plan":{"type":"String"},"time":{"type":"String"},"minutes":{"type":"int"}}},
-  "totalBill": "Total bill", "exitBalanceInsufficient": "Insufficient balance — top up at least {value} to exit.", "@exitBalanceInsufficient": {"placeholders":{"value":{"type":"String"}}},
-  "free": "Free", "freeEntryReasons": "Free-entry reasons", "freeReasonDisabled": "Disability", "freeReasonAile": "AILE", "freeReasonSubscription": "Subscription", "freeReasonBirthday": "Birthday", "birthdayFreeOnlyToday": "Available only on the birthday",
-  "topupBalance": "Top up balance", "amount": "Amount", "newBalance": "New balance", "topup": "Top up", "stickerPrintFailed": "Sticker was not printed — check the printer",
-  "entryFailed": "Failed to enter: {message}", "@entryFailed": {"placeholders":{"message":{"type":"String"}}}, "planSwitch": "Switch tariff",
-  "planSwitchQuestion": "Switch to the «{plan}» tariff? The old sticker will be cancelled and a new QR printed.", "@planSwitchQuestion": {"placeholders":{"plan":{"type":"String"}}},
-  "planSwitchVipQuestion": "Switch to the «{plan}» tariff? The {plan} price ({price}) will be debited immediately. The old sticker will be cancelled and a new QR printed.", "@planSwitchVipQuestion": {"placeholders":{"plan":{"type":"String"},"price":{"type":"String"}}},
-  "currentPlanToday": "«{child}» is on the «{plan}» tariff today{inside}.", "@currentPlanToday": {"placeholders":{"child":{"type":"String"},"plan":{"type":"String"},"inside":{"type":"String"}}}, "insideSuffix": " (currently inside)",
-  "downgradeForbidden": "This tariff cannot be downgraded — if the sticker was lost, reprint the current tariff.", "accruedDue": "{value} will be debited for time already played.", "@accruedDue": {"placeholders":{"value":{"type":"String"}}},
-  "reprint": "Reprint", "switchAndPrint": "Switch and print"
-  ,"keypadHint": "Enter a number to see results on the right. Select a customer to open details.", "productNotFound": "Product not found",
-  "noPaymentNow": "Nothing is due now — played time will be debited from the balance at exit.", "paymentAndPrint": "Pay and print", "enter": "Enter", "enterCount": "Enter ({count})", "@enterCount": {"placeholders":{"count":{"type":"int"}}}
-  ,"pricePerDay": "{value} / day", "@pricePerDay": {"placeholders":{"value":{"type":"String"}}}, "priceFromPerMinute": "from {value} / min", "@priceFromPerMinute": {"placeholders":{"value":{"type":"String"}}},
-  "tabInside": "Inside park", "insideSearchHint": "Search by child, parent or phone",
-  "insideCount": "Inside: {count}", "@insideCount": {"placeholders":{"count":{"type":"int"}}},
-  "insideEmpty": "There are no children inside the park", "insideSearchEmpty": "No child matches your search",
-  "enteredAt": "Entered at", "elapsedTime": "Elapsed",
-  "minutesCount": "{count} min", "@minutesCount": {"placeholders":{"count":{"type":"int"}}},
-  "accruedAmount": "Current charge", "markExited": "Mark as exited", "manualExitTitle": "Lost QR code?",
-  "manualExitQuestion": "{child} will be marked as exited now. The visit will close at {amount} and be debited from the parent's balance. Continue?", "@manualExitQuestion": {"placeholders":{"child":{"type":"String"},"amount":{"type":"String"}}},
+  "cashDesk": "Cash desk",
+  "cashDeskCashier": "Cash desk · {name}",
+  "@cashDeskCashier": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "menuOpen": "Open menu",
+  "menuClose": "Close menu",
+  "shiftClose": "Close shift",
+  "shiftOpenedAt": "Shift opened at {time}",
+  "@shiftOpenedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "shiftStart": "Start shift",
+  "shiftStartHint": "Enter the opening cash amount in the register",
+  "shiftOpeningCash": "Opening cash (UZS)",
+  "shiftOpen": "Open shift",
+  "shiftClosed": "Shift closed",
+  "receiptCount": "Receipt count",
+  "balanceSalesNotIncome": "Balance-funded sales (not income)",
+  "shiftTotalIncome": "Total shift income",
+  "findCustomerHint": "Enter a phone number to find a customer",
+  "recentCustomers": "Recent customers",
+  "searchHistory": "Search history",
+  "allCustomers": "All customers",
+  "customerDirectorySearchHint": "Search by name or the last phone digits",
+  "searchResult": "Search results",
+  "customerCount": "{count} customers",
+  "@customerCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "childCount": "{count} children",
+  "@childCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "phoneNotFound": "Number not found",
+  "accountNotFoundForPhone": "No account exists for +998 {phone}.",
+  "@accountNotFoundForPhone": {
+    "placeholders": {
+      "phone": {
+        "type": "String"
+      }
+    }
+  },
+  "addCustomer": "Add customer",
+  "fullName": "Full name",
+  "save": "Save",
+  "parentQr": "Parent QR",
+  "balance": "Balance",
+  "children": "Children",
+  "selectedCount": "selected: {count}",
+  "@selectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noChildren": "no children",
+  "selectForQr": "Select for QR",
+  "quickAdd": "Quick add",
+  "childName": "Child name",
+  "add": "Add",
+  "tariff": "Tariff",
+  "tariffNotFound": "No tariffs found.",
+  "products": "Products",
+  "companionDescription": "{price} each — unrestricted like parent QR",
+  "@companionDescription": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "vipAlreadyActive": "«{name}» already has an active VIP tariff — no second charge.",
+  "@vipAlreadyActive": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "vipTariff": "VIP tariff",
+  "vipChargedImmediately": "The VIP tariff is debited from the balance immediately when printed.",
+  "payFromBalance": "Pay from balance",
+  "currentBalanceValue": "Current balance: {value}",
+  "@currentBalanceValue": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "balanceInsufficient": "Insufficient balance — at least {value} must be paid.",
+  "@balanceInsufficient": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentAmount": "Payment amount",
+  "paymentMinimumHint": "At least {value} — excess remains on the balance",
+  "@paymentMinimumHint": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "printParentQr": "Also print parent QR",
+  "unlimitedFreeEntry": "Free — unrestricted entry and exit",
+  "currentlyInside": "Currently inside",
+  "enteredAtMinutes": "{plan} · entered {time} · {minutes} min",
+  "@enteredAtMinutes": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "totalBill": "Total bill",
+  "exitBalanceInsufficient": "Insufficient balance — top up at least {value} to exit.",
+  "@exitBalanceInsufficient": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "free": "Free",
+  "freeEntryReasons": "Free-entry reasons",
+  "freeReasonDisabled": "Disability",
+  "freeReasonAile": "AILE",
+  "freeReasonSubscription": "Subscription",
+  "freeReasonBirthday": "Birthday",
+  "birthdayFreeOnlyToday": "Available only on the birthday",
+  "topupBalance": "Top up balance",
+  "amount": "Amount",
+  "newBalance": "New balance",
+  "topup": "Top up",
+  "stickerPrintFailed": "Sticker was not printed — check the printer",
+  "entryFailed": "Failed to enter: {message}",
+  "@entryFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "planSwitch": "Switch tariff",
+  "planSwitchQuestion": "Switch to the «{plan}» tariff? The old sticker will be cancelled and a new QR printed.",
+  "@planSwitchQuestion": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
+  "planSwitchVipQuestion": "Switch to the «{plan}» tariff? The {plan} price ({price}) will be debited immediately. The old sticker will be cancelled and a new QR printed.",
+  "@planSwitchVipQuestion": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "currentPlanToday": "«{child}» is on the «{plan}» tariff today{inside}.",
+  "@currentPlanToday": {
+    "placeholders": {
+      "child": {
+        "type": "String"
+      },
+      "plan": {
+        "type": "String"
+      },
+      "inside": {
+        "type": "String"
+      }
+    }
+  },
+  "insideSuffix": " (currently inside)",
+  "downgradeForbidden": "This tariff cannot be downgraded — if the sticker was lost, reprint the current tariff.",
+  "accruedDue": "{value} will be debited for time already played.",
+  "@accruedDue": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "reprint": "Reprint",
+  "switchAndPrint": "Switch and print",
+  "keypadHint": "Enter a number to see results on the right. Select a customer to open details.",
+  "productNotFound": "Product not found",
+  "noPaymentNow": "Nothing is due now — played time will be debited from the balance at exit.",
+  "paymentAndPrint": "Pay and print",
+  "enter": "Enter",
+  "enterCount": "Enter ({count})",
+  "@enterCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pricePerDay": "{value} / day",
+  "@pricePerDay": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "priceFromPerMinute": "from {value} / min",
+  "@priceFromPerMinute": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "tabInside": "Inside park",
+  "insideSearchHint": "Search by child, parent or phone",
+  "insideCount": "Inside: {count}",
+  "@insideCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "insideEmpty": "There are no children inside the park",
+  "insideSearchEmpty": "No child matches your search",
+  "enteredAt": "Entered at",
+  "elapsedTime": "Elapsed",
+  "minutesCount": "{count} min",
+  "@minutesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "accruedAmount": "Current charge",
+  "markExited": "Mark as exited",
+  "manualExitTitle": "Lost QR code?",
+  "manualExitQuestion": "{child} will be marked as exited now. The visit will close at {amount} and be debited from the parent's balance. Continue?",
+  "@manualExitQuestion": {
+    "placeholders": {
+      "child": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "manualExitSucceeded": "The child was successfully marked as exited",
   "updateTitle": "Update",
   "updateCheck": "Check for updates",
   "updateUpToDate": "You're on the latest version",
   "updateAvailable": "New version available: {version}",
-  "@updateAvailable": {"placeholders": {"version": {"type": "String"}}},
+  "@updateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
   "updateDownload": "Download & install",
   "updateDownloading": "Downloading…",
   "updateReady": "Update ready",
@@ -149,14 +438,38 @@
   "refundCardWarning": "A card refund must also be completed on the payment terminal. This action does not automatically reverse the terminal transaction.",
   "refundConfirmTitle": "Confirm refund",
   "refundConfirmMessage": "{amount} will be refunded via {method}. This action is permanently stored in the audit history.",
-  "@refundConfirmMessage": {"placeholders":{"amount":{"type":"String"},"method":{"type":"String"}}},
+  "@refundConfirmMessage": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "method": {
+        "type": "String"
+      }
+    }
+  },
   "refundSuccess": "{amount} was refunded successfully",
-  "@refundSuccess": {"placeholders":{"amount":{"type":"String"}}},
+  "@refundSuccess": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "refundPartialBadge": "Partially refunded",
   "refundFullBadge": "Fully refunded",
   "refundHistory": "Refund history",
   "refundAuditBy": "{date} · {name}",
-  "@refundAuditBy": {"placeholders":{"date":{"type":"String"},"name":{"type":"String"}}},
+  "@refundAuditBy": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "refundBalanceMethod": "To balance",
   "refundCustomerBalance": "Customer balance: {balance}",
   "refundBalanceLimitNote": "Reversing a top-up takes the money back off the balance, so you cannot return more than it still holds.",
@@ -166,5 +479,20 @@
   "refundNoRefundablePasses": "No refundable passes remain on this receipt",
   "refundSelectedPassesTotal": "Selected passes total",
   "refundSelectPassesValidation": "Select at least one pass",
-  "refundedTotal": "Refunded"
+  "refundedTotal": "Refunded",
+  "correctPaymentAction": "Correct payment method",
+  "correctPaymentTitle": "Correct payment method",
+  "correctPaymentHint": "The receipt total does not change. Only which column the money sits in — cash or card — is corrected, so the shift cash-up matches the drawer.",
+  "correctPaymentFrom": "Recorded wrongly as",
+  "correctPaymentTo": "Correct method",
+  "correctPaymentAmount": "Amount to move",
+  "correctPaymentReason": "Reason for the correction",
+  "correctPaymentReasonHint": "For example: money taken in cash, rung up as card",
+  "correctPaymentResult": "Result: cash {cash}, card {card}",
+  "correctPaymentConfirmTitle": "Confirm the correction",
+  "correctPaymentConfirmMessage": "{amount} moves from {from} to {to}. The change is kept in the audit history.",
+  "correctPaymentSuccess": "Payment method corrected",
+  "correctPaymentHistory": "Payment method corrections",
+  "correctPaymentAudit": "{amount}: {from} → {to}",
+  "correctPaymentUnavailable": "A receipt with a refund cannot have its payment method corrected"
 }

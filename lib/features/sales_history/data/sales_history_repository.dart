@@ -46,6 +46,22 @@ class SalesHistoryRepository {
     gatePassIds: gatePassIds,
   );
 
+  Future<SaleHistoryEntry> correctPayment({
+    required String saleId,
+    required SalePaymentMoveMethod fromMethod,
+    required SalePaymentMoveMethod toMethod,
+    required int amountUzs,
+    required String reason,
+    required String requestId,
+  }) => remote.correctPayment(
+    saleId: saleId,
+    fromMethod: fromMethod,
+    toMethod: toMethod,
+    amountUzs: amountUzs,
+    reason: reason,
+    requestId: requestId,
+  );
+
   String errorMessage(Object error) => switch (error) {
     ServerException(:final message) => message,
     _ => "Sotuv tarixini yuklab bo‘lmadi",

@@ -58,7 +58,13 @@
   "historyEmpty": "Bu davrda sotuvlar yo‘q",
   "historySales": "Sotuvlar",
   "historyCount": "{count} ta",
-  "@historyCount": {"placeholders": {"count": {"type": "int"}}},
+  "@historyCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "historyChoosePeriod": "Sotuv davrini tanlang",
   "historyChoose": "Tanlash",
   "saleGoods": "Mahsulot savdosi",
@@ -66,16 +72,34 @@
   "saleTopup": "Hisob to‘ldirish",
   "saleGeneric": "Sotuv",
   "paymentCashValue": "Naqd: {value}",
-  "@paymentCashValue": {"placeholders": {"value": {"type": "String"}}},
+  "@paymentCashValue": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "paymentCardValue": "Karta: {value}",
-  "@paymentCardValue": {"placeholders": {"value": {"type": "String"}}},
+  "@paymentCardValue": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "paymentBalance": "Balansdan savdo",
   "paymentBalanceValue": "Balans: {value}",
-  "@paymentBalanceValue": {"placeholders": {"value": {"type": "String"}}},
+  "@paymentBalanceValue": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "branch": "Filial",
   "version": "Versiya",
-  "logout": "Chiqish"
-  ,"printerSettings": "Printerlar",
+  "logout": "Chiqish",
+  "printerSettings": "Printerlar",
   "qrPrinter": "QR va stiker printeri",
   "receiptPrinter": "Mahsulot cheki printeri",
   "automaticGodex": "Avtomatik — Godex",
@@ -83,12 +107,24 @@
   "noPrintersFound": "Windows’da o‘rnatilgan printer topilmadi",
   "cashDesk": "Kassa",
   "cashDeskCashier": "Kassa · {name}",
-  "@cashDeskCashier": {"placeholders": {"name": {"type": "String"}}},
+  "@cashDeskCashier": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "menuOpen": "Menyuni ochish",
   "menuClose": "Menyuni yopish",
   "shiftClose": "Smenani yopish",
   "shiftOpenedAt": "Smena {time} da ochildi",
-  "@shiftOpenedAt": {"placeholders": {"time": {"type": "String"}}},
+  "@shiftOpenedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "shiftStart": "Smenani boshlash",
   "shiftStartHint": "Ishni boshlash uchun kassadagi boshlang‘ich naqd summani kiriting",
   "shiftOpeningCash": "Boshlang‘ich naqd (so‘m)",
@@ -104,12 +140,30 @@
   "customerDirectorySearchHint": "Ism yoki telefonning oxirgi raqamlari bo‘yicha qidiring",
   "searchResult": "Qidiruv natijasi",
   "customerCount": "{count} ta mijoz",
-  "@customerCount": {"placeholders": {"count": {"type": "int"}}},
+  "@customerCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "childCount": "{count} farzand",
-  "@childCount": {"placeholders": {"count": {"type": "int"}}},
+  "@childCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "phoneNotFound": "Bu raqam topilmadi",
   "accountNotFoundForPhone": "+998 {phone} bo‘yicha hisob yo‘q.",
-  "@accountNotFoundForPhone": {"placeholders": {"phone": {"type": "String"}}},
+  "@accountNotFoundForPhone": {
+    "placeholders": {
+      "phone": {
+        "type": "String"
+      }
+    }
+  },
   "addCustomer": "Mijoz qo‘shish",
   "fullName": "Ism familiya",
   "save": "Saqlash",
@@ -117,7 +171,13 @@
   "balance": "Balans",
   "children": "Farzandlar",
   "selectedCount": "tanlangan: {count}",
-  "@selectedCount": {"placeholders": {"count": {"type": "int"}}},
+  "@selectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "noChildren": "farzand yo‘q",
   "selectForQr": "QR uchun tanlang",
   "quickAdd": "Tez qo‘shish",
@@ -127,27 +187,75 @@
   "tariffNotFound": "Tarif topilmadi.",
   "products": "Mahsulotlar",
   "companionDescription": "{price} / dona — ota-ona QR kabi cheklovsiz",
-  "@companionDescription": {"placeholders": {"price": {"type": "String"}}},
+  "@companionDescription": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
   "vipAlreadyActive": "«{name}» allaqachon faol VIP tarifda — qayta to‘lov olinmaydi.",
-  "@vipAlreadyActive": {"placeholders": {"name": {"type": "String"}}},
+  "@vipAlreadyActive": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "vipTariff": "VIP tarif",
   "vipChargedImmediately": "VIP tarif puli chop etilganda balansdan darhol yechiladi.",
   "payFromBalance": "Balansdan yechish",
   "currentBalanceValue": "Joriy balans: {value}",
-  "@currentBalanceValue": {"placeholders": {"value": {"type": "String"}}},
+  "@currentBalanceValue": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "balanceInsufficient": "Balansdan yechishga yetarli emas — kamida {value} to‘lov kerak.",
-  "@balanceInsufficient": {"placeholders": {"value": {"type": "String"}}},
+  "@balanceInsufficient": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "paymentAmount": "To‘lov summasi",
   "paymentMinimumHint": "Kamida {value} — ortig‘i balansda qoladi",
-  "@paymentMinimumHint": {"placeholders": {"value": {"type": "String"}}},
+  "@paymentMinimumHint": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "printParentQr": "Ota-ona QR ham chop etish",
   "unlimitedFreeEntry": "Bepul — kirish-chiqishga cheklovsiz",
   "currentlyInside": "Hozir ichkarida",
   "enteredAtMinutes": "{plan} · kirdi {time} · {minutes} daq",
-  "@enteredAtMinutes": {"placeholders": {"plan": {"type": "String"}, "time": {"type": "String"}, "minutes": {"type": "int"}}},
+  "@enteredAtMinutes": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "totalBill": "Jami hisob",
   "exitBalanceInsufficient": "Balans yetarli emas — chiqish uchun kamida {value} to‘ldirish kerak.",
-  "@exitBalanceInsufficient": {"placeholders": {"value": {"type": "String"}}},
+  "@exitBalanceInsufficient": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "free": "Bepul",
   "freeEntryReasons": "Bepul kirish sabablari",
   "freeReasonDisabled": "Nogiron",
@@ -161,42 +269,136 @@
   "topup": "To‘ldirish",
   "stickerPrintFailed": "Stiker chop etilmadi — printerni tekshiring",
   "entryFailed": "Kirmadi: {message}",
-  "@entryFailed": {"placeholders": {"message": {"type": "String"}}},
+  "@entryFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "planSwitch": "Reja almashtirish",
   "planSwitchQuestion": "«{plan}» rejasiga almashtirilsinmi? Eski stiker bekor qilinadi va yangi QR chop etiladi.",
-  "@planSwitchQuestion": {"placeholders":{"plan":{"type":"String"}}},
+  "@planSwitchQuestion": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
   "planSwitchVipQuestion": "«{plan}» rejasiga almashtirilsinmi? {plan} narxi ({price}) balansdan darhol yechiladi. Eski stiker bekor qilinadi va yangi QR chop etiladi.",
-  "@planSwitchVipQuestion": {"placeholders":{"plan":{"type":"String"},"price":{"type":"String"}}},
+  "@planSwitchVipQuestion": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
+  },
   "currentPlanToday": "«{child}» bugun «{plan}» rejasida{inside}.",
-  "@currentPlanToday": {"placeholders":{"child":{"type":"String"},"plan":{"type":"String"},"inside":{"type":"String"}}},
+  "@currentPlanToday": {
+    "placeholders": {
+      "child": {
+        "type": "String"
+      },
+      "plan": {
+        "type": "String"
+      },
+      "inside": {
+        "type": "String"
+      }
+    }
+  },
   "insideSuffix": " (hozir ichkarida)",
   "downgradeForbidden": "Bu rejadan pasaytirish mumkin emas — stiker yo‘qolgan bo‘lsa, mavjud rejani qayta chop eting.",
   "accruedDue": "O‘ynagan vaqti uchun {value} balansdan yechiladi.",
-  "@accruedDue": {"placeholders":{"value":{"type":"String"}}},
+  "@accruedDue": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "reprint": "Qayta chop etish",
-  "switchAndPrint": "Almashtirish va chop etish"
-  ,"keypadHint": "Raqamni kiritganda o‘ngda natija chiqadi. Mijozni bosib, tafsilotlarni ochasiz.",
+  "switchAndPrint": "Almashtirish va chop etish",
+  "keypadHint": "Raqamni kiritganda o‘ngda natija chiqadi. Mijozni bosib, tafsilotlarni ochasiz.",
   "productNotFound": "Mahsulot topilmadi",
   "noPaymentNow": "Hozir hech narsa to‘lanmaydi — chiqishda balansdan vaqtiga qarab yechiladi.",
   "paymentAndPrint": "To‘lov va chop etish",
   "enter": "Kirish",
   "enterCount": "Kirish ({count})",
-  "@enterCount": {"placeholders":{"count":{"type":"int"}}}
-  ,"pricePerDay": "{value} / kun", "@pricePerDay": {"placeholders":{"value":{"type":"String"}}},
-  "priceFromPerMinute": "{value} / daq dan", "@priceFromPerMinute": {"placeholders":{"value":{"type":"String"}}},
-  "tabInside": "Park ichida", "insideSearchHint": "Bola, ota-ona yoki telefon bo‘yicha qidirish",
-  "insideCount": "Ichkarida: {count}", "@insideCount": {"placeholders":{"count":{"type":"int"}}},
-  "insideEmpty": "Hozir park ichida bolalar yo‘q", "insideSearchEmpty": "Qidiruv bo‘yicha bola topilmadi",
-  "enteredAt": "Kirgan vaqti", "elapsedTime": "O‘tgan vaqt",
-  "minutesCount": "{count} daqiqa", "@minutesCount": {"placeholders":{"count":{"type":"int"}}},
-  "accruedAmount": "Joriy hisob", "markExited": "Chiqarildi deb belgilash", "manualExitTitle": "QR yo‘qolganmi?",
-  "manualExitQuestion": "{child} chiqarildi deb belgilanadi. Hozirgi hisob {amount} bo‘yicha yopilib, ota-ona balansidan yechiladi. Davom etilsinmi?", "@manualExitQuestion": {"placeholders":{"child":{"type":"String"},"amount":{"type":"String"}}},
+  "@enterCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pricePerDay": "{value} / kun",
+  "@pricePerDay": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "priceFromPerMinute": "{value} / daq dan",
+  "@priceFromPerMinute": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "tabInside": "Park ichida",
+  "insideSearchHint": "Bola, ota-ona yoki telefon bo‘yicha qidirish",
+  "insideCount": "Ichkarida: {count}",
+  "@insideCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "insideEmpty": "Hozir park ichida bolalar yo‘q",
+  "insideSearchEmpty": "Qidiruv bo‘yicha bola topilmadi",
+  "enteredAt": "Kirgan vaqti",
+  "elapsedTime": "O‘tgan vaqt",
+  "minutesCount": "{count} daqiqa",
+  "@minutesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "accruedAmount": "Joriy hisob",
+  "markExited": "Chiqarildi deb belgilash",
+  "manualExitTitle": "QR yo‘qolganmi?",
+  "manualExitQuestion": "{child} chiqarildi deb belgilanadi. Hozirgi hisob {amount} bo‘yicha yopilib, ota-ona balansidan yechiladi. Davom etilsinmi?",
+  "@manualExitQuestion": {
+    "placeholders": {
+      "child": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "manualExitSucceeded": "Bola muvaffaqiyatli chiqarildi deb belgilandi",
   "updateTitle": "Yangilanish",
   "updateCheck": "Yangilanishni tekshirish",
   "updateUpToDate": "Eng so‘nggi versiya o‘rnatilgan",
   "updateAvailable": "Yangi versiya mavjud: {version}",
-  "@updateAvailable": {"placeholders": {"version": {"type": "String"}}},
+  "@updateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
   "updateDownload": "Yuklab olish va o‘rnatish",
   "updateDownloading": "Yuklanmoqda…",
   "updateReady": "Yangilanish tayyor",
@@ -236,17 +438,47 @@
   "refundCardWarning": "Karta orqali qaytarish terminalda ham alohida bajarilishi kerak. Ilovadagi amal terminal tranzaksiyasini avtomatik bekor qilmaydi.",
   "refundConfirmTitle": "Qaytarishni tasdiqlang",
   "refundConfirmMessage": "{amount} {method} orqali qaytariladi. Bu amal audit tarixida saqlanadi va o‘chirib bo‘lmaydi.",
-  "@refundConfirmMessage": {"placeholders":{"amount":{"type":"String"},"method":{"type":"String"}}},
+  "@refundConfirmMessage": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "method": {
+        "type": "String"
+      }
+    }
+  },
   "refundSuccess": "{amount} muvaffaqiyatli qaytarildi",
-  "@refundSuccess": {"placeholders":{"amount":{"type":"String"}}},
+  "@refundSuccess": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "refundPartialBadge": "Qisman qaytarilgan",
   "refundFullBadge": "To‘liq qaytarilgan",
   "refundHistory": "Qaytarish tarixi",
   "refundAuditBy": "{date} · {name}",
-  "@refundAuditBy": {"placeholders":{"date":{"type":"String"},"name":{"type":"String"}}},
+  "@refundAuditBy": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "refundBalanceMethod": "Balansga",
   "refundCustomerBalance": "Mijoz balansi: {balance}",
-  "@refundCustomerBalance": {"placeholders":{"balance":{"type":"String"}}},
+  "@refundCustomerBalance": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
   "refundBalanceLimitNote": "To‘ldirishni qaytarish puli balansdan yechiladi, shuning uchun balansda qolgan summadan ortiq qaytarib bo‘lmaydi.",
   "refundSelectPasses": "Qaytarilayotgan chiptalarni tanlang",
   "refundPassUsed": "Ishlatilgan",
@@ -254,5 +486,56 @@
   "refundNoRefundablePasses": "Bu chekda qaytariladigan chipta qolmagan",
   "refundSelectedPassesTotal": "Tanlangan chiptalar summasi",
   "refundSelectPassesValidation": "Kamida bitta chipta tanlang",
-  "refundedTotal": "Qaytarilgan"
+  "refundedTotal": "Qaytarilgan",
+  "correctPaymentAction": "To‘lov usulini to‘g‘irlash",
+  "correctPaymentTitle": "To‘lov usulini to‘g‘irlash",
+  "correctPaymentHint": "Chekdagi jami summa o‘zgarmaydi. Faqat pul naqd yoki karta ustunida yozilgani to‘g‘irlanadi, shunda smena hisobi kassadagi pulga to‘g‘ri keladi.",
+  "correctPaymentFrom": "Xato yozilgan usul",
+  "correctPaymentTo": "To‘g‘ri usul",
+  "correctPaymentAmount": "Ko‘chiriladigan summa",
+  "correctPaymentReason": "To‘g‘irlash sababi",
+  "correctPaymentReasonHint": "Masalan: pul naqd olingan, karta deb belgilangan",
+  "correctPaymentResult": "Natija: naqd {cash}, karta {card}",
+  "@correctPaymentResult": {
+    "placeholders": {
+      "cash": {
+        "type": "String"
+      },
+      "card": {
+        "type": "String"
+      }
+    }
+  },
+  "correctPaymentConfirmTitle": "To‘g‘irlashni tasdiqlang",
+  "correctPaymentConfirmMessage": "{amount} {from} dan {to} ga ko‘chiriladi. Bu amal audit tarixida saqlanadi.",
+  "@correctPaymentConfirmMessage": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
+  "correctPaymentSuccess": "To‘lov usuli to‘g‘irlandi",
+  "correctPaymentHistory": "To‘lov usuli to‘g‘irlashlari",
+  "correctPaymentAudit": "{amount}: {from} → {to}",
+  "@correctPaymentAudit": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
+  "correctPaymentUnavailable": "Qaytarilgan chekda to‘lov usulini to‘g‘irlab bo‘lmaydi"
 }

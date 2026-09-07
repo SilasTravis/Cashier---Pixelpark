@@ -13,6 +13,7 @@ import '../../../../generated/l10n.dart';
 import '../../domain/sale_history.dart';
 import '../../../pos_account/domain/customer.dart';
 import '../bloc/sales_history_bloc.dart';
+import '../widgets/correct_payment_dialog.dart';
 import '../widgets/refund_sale_dialog.dart';
 
 class SalesHistoryPage extends StatelessWidget {
@@ -479,6 +480,30 @@ class _SaleCard extends StatelessWidget {
           ),
           for (final refund in sale.refunds) _RefundAuditRow(refund: refund),
         ],
+        if (sale.hasPaymentCorrections) ...[
+          const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+            child: Row(
+              children: [
+                const Icon(
+                  PhosphorIconsRegular.arrowsLeftRight,
+                  size: 17,
+                  color: NocturneColors.accent,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  AppLocalization.of(context).correctPaymentHistory,
+                  style: AppTextStyles.body.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          for (final correction in sale.paymentCorrections)
+            _PaymentCorrectionAuditRow(correction: correction),
+        ],
         const Divider(height: 1),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
@@ -503,6 +528,15 @@ class _SaleCard extends StatelessWidget {
                   ],
                 ),
               ),
+              if (_canCorrectPaymentNow)
+                OutlinedButton.icon(
+                  onPressed: () => _openCorrectPayment(context),
+                  icon: const Icon(
+                    PhosphorIconsRegular.arrowsLeftRight,
+                    size: 17,
+                  ),
+                  label: Text(AppLocalization.of(context).correctPaymentAction),
+                ),
               if (_canRefundNow)
                 FilledButton.icon(
                   style: FilledButton.styleFrom(
@@ -536,6 +570,18 @@ class _SaleCard extends StatelessWidget {
 
   bool get _canRefundNow =>
       refundEnabled && sale.canRefund && sale.refundableUzs > 0;
+
+  bool get _canCorrectPaymentNow => refundEnabled && sale.canCorrectPayment;
+
+  Future<void> _openCorrectPayment(BuildContext context) async {
+    final corrected = await showCorrectPaymentDialog(context, sale);
+    if (corrected != true || !context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AppLocalization.of(context).correctPaymentSuccess),
+      ),
+    );
+  }
 
   Future<void> _showTopupDetails(BuildContext context) async {
     final l10n = AppLocalization.of(context);
@@ -609,6 +655,15 @@ class _SaleCard extends StatelessWidget {
             onPressed: () => Navigator.pop(dialogContext, null),
             child: Text(l10n.close),
           ),
+          if (_canCorrectPaymentNow)
+            OutlinedButton.icon(
+              onPressed: () => Navigator.pop(
+                dialogContext,
+                _TopupDetailAction.correctPayment,
+              ),
+              icon: const Icon(PhosphorIconsRegular.arrowsLeftRight, size: 18),
+              label: Text(l10n.correctPaymentAction),
+            ),
           if (_canRefundNow)
             FilledButton.icon(
               style: FilledButton.styleFrom(
@@ -632,6 +687,8 @@ class _SaleCard extends StatelessWidget {
     );
     if (!context.mounted) return;
     switch (action) {
+      case _TopupDetailAction.correctPayment:
+        await _openCorrectPayment(context);
       case _TopupDetailAction.refund:
         await _openRefund(context);
       case _TopupDetailAction.profile:
@@ -643,7 +700,7 @@ class _SaleCard extends StatelessWidget {
 }
 
 /// What the cashier chose to do from a top-up receipt's detail dialog.
-enum _TopupDetailAction { refund, profile }
+enum _TopupDetailAction { correctPayment, refund, profile }
 
 class _RefundStatusBadge extends StatelessWidget {
   const _RefundStatusBadge({required this.sale});
@@ -669,6 +726,87 @@ class _RefundStatusBadge extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// One recorded method fix, shown next to the refund trail so an admin can
+/// see the cash/card split was moved and by whom.
+class _PaymentCorrectionAuditRow extends StatelessWidget {
+  const _PaymentCorrectionAuditRow({required this.correction});
+
+  final SalePaymentCorrection correction;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
+    String label(SalePaymentMoveMethod method) =>
+        method == SalePaymentMoveMethod.cash
+        ? l10n.paymentCash
+        : l10n.paymentCard;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: NocturneColors.neutral900,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: NocturneColors.divider),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: NocturneColors.accent900,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                PhosphorIconsRegular.arrowsLeftRight,
+                size: 17,
+                color: NocturneColors.accent300,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.correctPaymentAudit(
+                      formatUzs(correction.amountUzs),
+                      label(correction.fromMethod),
+                      label(correction.toMethod),
+                    ),
+                    style: AppTextStyles.body.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    correction.reason,
+                    style: AppTextStyles.body.copyWith(fontSize: 12),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    l10n.refundAuditBy(
+                      DateFormat(
+                        'dd.MM.yyyy HH:mm',
+                      ).format(correction.createdAt),
+                      correction.correctedByName,
+                    ),
+                    style: AppTextStyles.muted(
+                      AppTextStyles.body,
+                    ).copyWith(fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _RefundAuditRow extends StatelessWidget {
