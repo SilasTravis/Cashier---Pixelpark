@@ -142,6 +142,18 @@ void main() {
     expect(plan.blocker, SaleEditBlocker.balanceTooLow);
   });
 
+  test('a method change is not blamed on a refund that does not exist', () {
+    // The flag is also false for a receipt that never sat in a drawer, and for
+    // a server that has not shipped corrections yet.
+    final plan = planSaleEdit(
+      sale: sale(card: 40000, canCorrectPayment: false),
+      targetTotalUzs: 40000,
+      targetMethod: SalePaymentMoveMethod.cash,
+    );
+
+    expect(plan.blocker, SaleEditBlocker.notEditable);
+  });
+
   test('a balance-paid receipt is not editable here', () {
     final plan = planSaleEdit(
       sale: sale(cash: 0, card: 0, balanceUzs: 60000),

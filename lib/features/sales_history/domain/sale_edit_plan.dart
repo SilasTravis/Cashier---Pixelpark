@@ -93,7 +93,14 @@ SaleEditPlan planSaleEdit({
   final refundUzs = physicalUzs - targetTotalUzs;
 
   if (correctionUzs > 0 && !sale.canCorrectPayment) {
-    return blocked(SaleEditBlocker.methodLockedByRefund);
+    // Only blame a refund when there actually is one. The same flag is also
+    // false for money that never sat in a drawer — and for a server that does
+    // not support corrections yet — where that message would be a lie.
+    return blocked(
+      sale.hasRefunds
+          ? SaleEditBlocker.methodLockedByRefund
+          : SaleEditBlocker.notEditable,
+    );
   }
   if (refundUzs > 0 && !sale.canRefund) {
     return blocked(SaleEditBlocker.notEditable);
