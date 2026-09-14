@@ -1757,7 +1757,20 @@ class _PlayingCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Text(formatUzs(row.dueUzs), style: AppTextStyles.h5),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(formatUzs(row.dueUzs), style: AppTextStyles.h5),
+                      if (row.discountName != null)
+                        Text(
+                          '${l10n.discount}: ${row.discountName}',
+                          style: AppTextStyles.muted(
+                            AppTextStyles.body,
+                          ).copyWith(fontSize: 10, color: NocturneColors.accent),
+                        ),
+                    ],
+                  ),
                 ],
               ),
             ),
