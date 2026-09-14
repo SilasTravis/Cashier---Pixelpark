@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/error/failure.dart';
 import '../../../../core/local_source/local_source.dart';
 import '../../../products/domain/product.dart';
+import '../../../pos_sale/domain/discount.dart';
 import '../../data/pos_account_remote_data_source.dart' show CheckoutLine;
 import '../../data/pos_account_repository_impl.dart';
 import '../../domain/active_pass.dart';
@@ -45,6 +46,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     on<PosAccountActivePassesRequested>(_onActivePassesRequested);
     on<PosAccountCheckoutRequested>(_onCheckoutRequested);
     on<PosAccountConfigRequested>(_onConfigRequested);
+    on<PosAccountDiscountsRequested>(_onDiscountsRequested);
   }
 
   final PosAccountRepository _repository;
@@ -348,6 +350,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
         hasMoreCustomers: state.hasMoreCustomers,
         plans: state.plans,
         companionPriceUzs: state.companionPriceUzs,
+        discounts: state.discounts,
       ),
     );
   }
@@ -669,7 +672,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     if (state.isBusy) return;
     final customer = state.selectedCustomer;
     if (customer == null) return;
-    emit(state.copyWith(isBusy: true, errorMessage: null));
+    emit(state.copyWith(isBusy: true, errorMessage: null, errorCode: null));
     final result = await _repository.planEntryCheckout(
       customerId: customer.id,
       planKey: event.planKey,
@@ -679,11 +682,26 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
       cardUzs: event.cardUzs,
       freeReasons: event.freeReasons,
       companions: event.companions,
+      discountId: event.discountId,
     );
     result.fold(
-      (failure) => emit(
-        state.copyWith(isBusy: false, errorMessage: _messageOf(failure)),
-      ),
+      (failure) {
+        final code = failure is ServerFailure ? failure.code : null;
+        emit(
+          state.copyWith(
+            isBusy: false,
+            errorMessage: _messageOf(failure),
+            errorCode: code,
+          ),
+        );
+        // The picked discount was disabled/deleted between fetch and
+        // checkout — never silently charge full price. The widget clears
+        // its local selection on this code; refetch so it has a fresh
+        // catalog to re-pick from.
+        if (code == 'DISCOUNT_NOT_AVAILABLE') {
+          add(const PosAccountDiscountsRequested(force: true));
+        }
+      },
       (entryResult) {
         emit(
           state.copyWith(
@@ -716,6 +734,19 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     // without the endpoint) the compiled-in default price stays.
     result.fold((failure) {}, (price) {
       emit(state.copyWith(companionPriceUzs: price));
+    });
+  }
+
+  Future<void> _onDiscountsRequested(
+    PosAccountDiscountsRequested event,
+    Emitter<PosAccountState> emit,
+  ) async {
+    if (state.discounts.isNotEmpty && !event.force) return;
+    final result = await _repository.fetchDiscounts();
+    // Best-effort like plans/products/config: on failure (or an older
+    // backend without the endpoint) the picker just stays hidden.
+    result.fold((failure) {}, (discounts) {
+      emit(state.copyWith(discounts: discounts));
     });
   }
 

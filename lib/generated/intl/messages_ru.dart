@@ -205,6 +205,10 @@ class MessageLookup extends MessageLookupByLibrary {
       "Поиск по имени или последним цифрам телефона",
     ),
     "date": MessageLookupByLibrary.simpleMessage("Дата"),
+    "discount": MessageLookupByLibrary.simpleMessage("Скидка"),
+    "discountUnavailableMessage": MessageLookupByLibrary.simpleMessage(
+      "Скидка больше недоступна — выберите заново",
+    ),
     "downgradeForbidden": MessageLookupByLibrary.simpleMessage(
       "Переход на более низкий тариф невозможен — если стикер потерян, повторно напечатайте текущий.",
     ),
@@ -326,6 +330,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "minutesCount": m22,
     "newBalance": MessageLookupByLibrary.simpleMessage("Новый баланс"),
     "noChildren": MessageLookupByLibrary.simpleMessage("детей нет"),
+    "noDiscount": MessageLookupByLibrary.simpleMessage("Без скидки"),
     "noPaymentNow": MessageLookupByLibrary.simpleMessage(
       "Сейчас оплата не требуется — при выходе стоимость времени спишется с баланса.",
     ),

@@ -184,6 +184,7 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
     this.withParentQr = false,
     this.freeReasons = const {},
     this.companions = 0,
+    this.discountId,
   });
 
   final String planKey;
@@ -202,6 +203,10 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
   /// Paid HAMROH stickers to buy (companion price each, from the balance).
   final int companions;
 
+  /// Applies ONLY to [products] (the goods leg) — never to the plan/VIP or
+  /// companion price. Null when no discount is selected.
+  final String? discountId;
+
   @override
   List<Object?> get props => [
     planKey,
@@ -212,12 +217,25 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
     withParentQr,
     freeReasons,
     companions,
+    discountId,
   ];
 }
 
 /// Fired once on page load — pulls server-owned pricing (HAMROH price).
 class PosAccountConfigRequested extends PosAccountEvent {
   const PosAccountConfigRequested();
+}
+
+/// Fired once on page load — the active discount catalog for the goods-cart
+/// picker; [force] re-fetches even if a (possibly stale) list is already
+/// held, used after a `DISCOUNT_NOT_AVAILABLE` checkout failure.
+class PosAccountDiscountsRequested extends PosAccountEvent {
+  const PosAccountDiscountsRequested({this.force = false});
+
+  final bool force;
+
+  @override
+  List<Object?> get props => [force];
 }
 
 /// Cashier tapped "Ota-ona QR" — issue (or re-issue) the free parent

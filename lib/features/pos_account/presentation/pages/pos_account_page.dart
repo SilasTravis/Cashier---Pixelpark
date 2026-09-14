@@ -32,7 +32,8 @@ class PosAccountPage extends StatelessWidget {
           ..add(const PosAccountRecentCustomersRequested())
           ..add(const PosAccountPlansRequested())
           ..add(const PosAccountProductsRequested())
-          ..add(const PosAccountConfigRequested());
+          ..add(const PosAccountConfigRequested())
+          ..add(const PosAccountDiscountsRequested());
         if (initialCustomer != null) {
           bloc.add(PosAccountCustomerSelected(initialCustomer!));
         }

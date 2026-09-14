@@ -9,6 +9,7 @@ class ShiftTotals extends Equatable {
     required this.topupUzs,
     required this.balanceSalesUzs,
     this.refundedUzs = 0,
+    this.discountUzs = 0,
   });
 
   final int salesCount;
@@ -24,6 +25,12 @@ class ShiftTotals extends Equatable {
   /// Physical money handed back during the shift. Money credited to a stored
   /// balance is not counted — it never left the drawer.
   final int refundedUzs;
+
+  /// How much was given away via POS discounts this shift — informational
+  /// only. [subtotalUzs]/[cashUzs]/[cardUzs] already reflect the discounted
+  /// (net) amounts, so this never needs subtracting from them again; it
+  /// just explains the gap for whoever counts the drawer.
+  final int discountUzs;
 
   /// Money physically collected by this cashier in the current shift.
   /// Account-funded sales are reported separately and never added here.
@@ -47,6 +54,7 @@ class ShiftTotals extends Equatable {
     topupUzs,
     balanceSalesUzs,
     refundedUzs,
+    discountUzs,
   ];
 }
 

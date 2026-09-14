@@ -9,8 +9,10 @@ import '../../../../core/local_source/local_source.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
 import '../../../../core/utils/currency.dart';
+import '../../../../core/widgets/discount_picker.dart';
 import '../../../../core/widgets/payment_method_selector.dart';
 import '../../../pos_sale/presentation/widgets/receipt_dialog.dart';
+import '../../../pos_sale/domain/discount.dart';
 import '../../../pos_sale/domain/sale_receipt.dart';
 import '../../../../injector_container.dart';
 import '../../../products/domain/product.dart';
@@ -75,6 +77,11 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
 
   /// productId → qty of the extra goods (socks etc.) sold with this entry.
   final Map<String, int> _cart = {};
+
+  /// Applies ONLY to the goods cart above — never the VIP/plan price or the
+  /// HAMROH companion price. Reset on cart-owning context changes: customer
+  /// switch, checkout, or the server reporting it is no longer available.
+  String? _selectedDiscountId;
 
   /// "Balansdan yechish" — only offered while the balance covers the cart.
   bool _payFromBalance = true;
@@ -142,6 +149,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
     _topupCashController.clear();
     _topupCardController.clear();
     _cart.clear();
+    _selectedDiscountId = null;
     _payFromBalance = true;
     _payMethod = PaymentMethod.cash;
     _payEdited = false;
@@ -232,6 +240,24 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
             );
           },
         ),
+        // The picked discount was disabled/deleted between fetch and
+        // checkout — the bloc already refetches the catalog; the local
+        // pick just needs clearing so the cashier re-selects from it.
+        BlocListener<PosAccountBloc, PosAccountState>(
+          listenWhen: (previous, current) =>
+              current.errorCode == 'DISCOUNT_NOT_AVAILABLE' &&
+              previous.errorCode != current.errorCode,
+          listener: (context, state) {
+            setState(() => _selectedDiscountId = null);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  AppLocalization.of(context).discountUnavailableMessage,
+                ),
+              ),
+            );
+          },
+        ),
       ],
       child: BlocBuilder<PosAccountBloc, PosAccountState>(
         builder: (context, state) {
@@ -272,7 +298,17 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                         freeSelectedIds.length)
               : 0;
           final companionsTotal = _companions * state.companionPriceUzs;
-          final neededTotal = cartTotal + vipTotal + companionsTotal;
+          // Discount applies ONLY to the goods cart — never to vipTotal or
+          // companionsTotal (see the design doc's decision #1 scope note).
+          final selectedDiscount = _selectedDiscountId == null
+              ? null
+              : state.discounts
+                    .where((d) => d.id == _selectedDiscountId)
+                    .firstOrNull;
+          final cartDiscountUzs =
+              selectedDiscount?.appliedDiscountUzs(cartTotal) ?? 0;
+          final netCartTotal = cartTotal - cartDiscountUzs;
+          final neededTotal = netCartTotal + vipTotal + companionsTotal;
           final shortfall = neededTotal - customer.balance;
           final balanceCovers = shortfall <= 0;
           // Money must be collected when the balance can't cover the total,
@@ -398,6 +434,12 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                           products: state.products,
                           cart: _cart,
                           cartTotal: cartTotal,
+                          discounts: state.discounts,
+                          selectedDiscount: selectedDiscount,
+                          cartDiscountUzs: cartDiscountUzs,
+                          onDiscountChanged: (discount) => setState(
+                            () => _selectedDiscountId = discount?.id,
+                          ),
                           vipTotal: vipTotal,
                           companions: _companions,
                           companionPriceUzs: state.companionPriceUzs,
@@ -473,6 +515,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                               cardUzs: requiredPayment == 0
                                   ? 0
                                   : paySplit.cardUzs,
+                              discountId: _selectedDiscountId,
                             ),
                           ),
                         ),
@@ -1099,6 +1142,10 @@ class _CheckoutSection extends StatelessWidget {
     required this.products,
     required this.cart,
     required this.cartTotal,
+    required this.discounts,
+    required this.selectedDiscount,
+    required this.cartDiscountUzs,
+    required this.onDiscountChanged,
     required this.vipTotal,
     required this.companions,
     required this.companionPriceUzs,
@@ -1135,6 +1182,19 @@ class _CheckoutSection extends StatelessWidget {
   final List<Product> products;
   final Map<String, int> cart;
   final int cartTotal;
+
+  /// Active discount catalog — empty hides the picker entirely (best-effort
+  /// fetch, same contract as `products`/`plans`).
+  final List<Discount> discounts;
+
+  /// The cashier's pick, scoped to THIS cart only — never applied to
+  /// [vipTotal] or [companionsTotal].
+  final Discount? selectedDiscount;
+
+  /// PREVIEW ONLY (see `Discount.appliedDiscountUzs`) — how much of
+  /// [cartTotal] the pick above takes off.
+  final int cartDiscountUzs;
+  final ValueChanged<Discount?> onDiscountChanged;
 
   /// VIP flat price × newly-covered children — debited from the balance
   /// the moment the stickers print. 0 for Standard. Children with a
@@ -1204,6 +1264,28 @@ class _CheckoutSection extends StatelessWidget {
                 ),
             ],
           ),
+        ],
+        if (discounts.isNotEmpty && cart.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Text(
+                l10n.discount,
+                style: AppTextStyles.body.copyWith(fontSize: 12),
+              ),
+              const Spacer(),
+              DiscountPicker(
+                discounts: discounts,
+                selectedDiscount: selectedDiscount,
+                onChanged: onDiscountChanged,
+              ),
+            ],
+          ),
+          if (selectedDiscount != null && cartDiscountUzs > 0)
+            DiscountSummaryRow(
+              name: selectedDiscount!.name,
+              amountUzs: cartDiscountUzs,
+            ),
         ],
         const SizedBox(height: 10),
         // Paid HAMROH companion sticker — parent-QR door semantics, minted
@@ -1281,16 +1363,22 @@ class _CheckoutSection extends StatelessWidget {
               ).copyWith(fontSize: 11),
             ),
           ),
-        if (neededTotal > 0) ...[
+        if (neededTotal > 0 || cartDiscountUzs > 0) ...[
           const SizedBox(height: 12),
           if ([
-                cartTotal,
-                vipTotal,
-                companionsTotal,
-              ].where((amount) => amount > 0).length >
-              1) ...[
+                    cartTotal,
+                    vipTotal,
+                    companionsTotal,
+                  ].where((amount) => amount > 0).length >
+                  1 ||
+              cartDiscountUzs > 0) ...[
             if (cartTotal > 0)
               _TotalRow(label: l10n.products, amount: cartTotal),
+            if (cartDiscountUzs > 0)
+              _TotalRow(
+                label: '${l10n.discount} (${selectedDiscount!.name})',
+                amount: -cartDiscountUzs,
+              ),
             if (vipTotal > 0)
               _TotalRow(label: l10n.vipTariff, amount: vipTotal),
             if (companionsTotal > 0)

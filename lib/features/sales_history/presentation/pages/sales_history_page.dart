@@ -166,6 +166,11 @@ class _SalesHistoryView extends StatelessWidget {
                         value: '−${formatUzs(state.summary.refundedUzs)}',
                         tone: NocturneColors.danger,
                       ),
+                    if (state.summary.discountUzs > 0)
+                      _SummaryCard(
+                        label: AppLocalization.of(context).discount,
+                        value: '−${formatUzs(state.summary.discountUzs)}',
+                      ),
                   ],
                 ),
               ],
@@ -420,6 +425,14 @@ class _SaleCard extends StatelessWidget {
                       decoration: TextDecoration.lineThrough,
                     ),
                   ),
+                if (sale.discountUzs > 0)
+                  Text(
+                    '−${formatUzs(sale.discountUzs)}'
+                    '${sale.discountName != null ? ' (${sale.discountName})' : ''}',
+                    style: AppTextStyles.muted(
+                      AppTextStyles.body,
+                    ).copyWith(fontSize: 10),
+                  ),
               ],
             ),
       children: [
@@ -437,23 +450,27 @@ class _SaleCard extends StatelessWidget {
             spacing: 10,
             runSpacing: 6,
             children: [
-              if (sale.cashUzs > 0)
+              // Net of refunds, shown whenever money moved through a column
+              // in either direction: a card receipt paid back in cash never
+              // took cash in, but the payout still left the drawer, so the
+              // cash line reads as a negative figure instead of vanishing.
+              if (sale.cashUzs > 0 || sale.refundedCashUzs > 0)
                 Text(
-                  AppLocalization.of(
-                    context,
-                  ).paymentCashValue(formatUzs(sale.cashUzs)),
+                  AppLocalization.of(context).paymentCashValue(
+                    formatUzs(sale.cashUzs - sale.refundedCashUzs),
+                  ),
                 ),
-              if (sale.cardUzs > 0)
+              if (sale.cardUzs > 0 || sale.refundedCardUzs > 0)
                 Text(
-                  AppLocalization.of(
-                    context,
-                  ).paymentCardValue(formatUzs(sale.cardUzs)),
+                  AppLocalization.of(context).paymentCardValue(
+                    formatUzs(sale.cardUzs - sale.refundedCardUzs),
+                  ),
                 ),
-              if (sale.balanceUzs > 0)
+              if (sale.balanceUzs > 0 || sale.refundedBalanceUzs > 0)
                 Text(
-                  AppLocalization.of(
-                    context,
-                  ).paymentBalanceValue(formatUzs(sale.balanceUzs)),
+                  AppLocalization.of(context).paymentBalanceValue(
+                    formatUzs(sale.balanceUzs - sale.refundedBalanceUzs),
+                  ),
                 ),
             ],
           ),

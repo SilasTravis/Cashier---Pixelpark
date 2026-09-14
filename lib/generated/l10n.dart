@@ -269,6 +269,26 @@ class AppLocalization {
     return Intl.message('Cart is empty', name: 'cartEmpty', desc: '', args: []);
   }
 
+  /// `Discount`
+  String get discount {
+    return Intl.message('Discount', name: 'discount', desc: '', args: []);
+  }
+
+  /// `No discount`
+  String get noDiscount {
+    return Intl.message('No discount', name: 'noDiscount', desc: '', args: []);
+  }
+
+  /// `The discount is no longer available — pick again`
+  String get discountUnavailableMessage {
+    return Intl.message(
+      'The discount is no longer available — pick again',
+      name: 'discountUnavailableMessage',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `All`
   String get categoryAll {
     return Intl.message('All', name: 'categoryAll', desc: '', args: []);

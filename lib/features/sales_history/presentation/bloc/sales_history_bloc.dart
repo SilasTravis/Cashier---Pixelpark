@@ -173,6 +173,9 @@ class SalesHistoryBloc extends Bloc<SalesHistoryEvent, SalesHistoryState> {
                     ? event.amountUzs
                     : 0),
             refundedUzs: state.summary.refundedUzs + drawerRefund,
+            // Unaffected by a refund — it stays what was given away at
+            // sale time, informational only.
+            discountUzs: state.summary.discountUzs,
           ),
         ),
       );
@@ -230,6 +233,7 @@ class SalesHistoryBloc extends Bloc<SalesHistoryEvent, SalesHistoryState> {
             cardUzs: state.summary.cardUzs + (toCash ? -delta : delta),
             balanceUzs: state.summary.balanceUzs,
             refundedUzs: state.summary.refundedUzs,
+            discountUzs: state.summary.discountUzs,
           ),
         ),
       );
@@ -309,6 +313,7 @@ class SalesHistoryBloc extends Bloc<SalesHistoryEvent, SalesHistoryState> {
                 state.summary.cardUzs + (toCash ? -moved : moved - handedBack),
             balanceUzs: state.summary.balanceUzs,
             refundedUzs: state.summary.refundedUzs + handedBack,
+            discountUzs: state.summary.discountUzs,
           ),
         ),
       );

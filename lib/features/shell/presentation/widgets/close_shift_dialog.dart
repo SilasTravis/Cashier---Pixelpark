@@ -46,6 +46,14 @@ Future<void> showCloseShiftDialog(BuildContext context, Shift shift) {
                     label: l10n.balanceSalesNotIncome,
                     value: _uzs(shift.totals.balanceSalesUzs),
                   ),
+                  // Cash/card above already reflect the discounted (net)
+                  // amounts — this is purely informational, "how much was
+                  // given away".
+                  if (shift.totals.discountUzs > 0)
+                    _SummaryRow(
+                      label: l10n.discount,
+                      value: '−${_uzs(shift.totals.discountUzs)}',
+                    ),
                   // Cash and card above are already net of this; showing it
                   // explains the gap when the cashier counts the drawer.
                   if (shift.totals.refundedUzs > 0)

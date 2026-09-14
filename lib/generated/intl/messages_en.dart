@@ -199,6 +199,10 @@ class MessageLookup extends MessageLookupByLibrary {
       "Search by name or the last phone digits",
     ),
     "date": MessageLookupByLibrary.simpleMessage("Date"),
+    "discount": MessageLookupByLibrary.simpleMessage("Discount"),
+    "discountUnavailableMessage": MessageLookupByLibrary.simpleMessage(
+      "The discount is no longer available — pick again",
+    ),
     "downgradeForbidden": MessageLookupByLibrary.simpleMessage(
       "This tariff cannot be downgraded — if the sticker was lost, reprint the current tariff.",
     ),
@@ -318,6 +322,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "minutesCount": m22,
     "newBalance": MessageLookupByLibrary.simpleMessage("New balance"),
     "noChildren": MessageLookupByLibrary.simpleMessage("no children"),
+    "noDiscount": MessageLookupByLibrary.simpleMessage("No discount"),
     "noPaymentNow": MessageLookupByLibrary.simpleMessage(
       "Nothing is due now — played time will be debited from the balance at exit.",
     ),

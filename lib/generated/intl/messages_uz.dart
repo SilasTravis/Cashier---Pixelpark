@@ -198,6 +198,10 @@ class MessageLookup extends MessageLookupByLibrary {
       "Ism yoki telefonning oxirgi raqamlari bo‘yicha qidiring",
     ),
     "date": MessageLookupByLibrary.simpleMessage("Sana"),
+    "discount": MessageLookupByLibrary.simpleMessage("Chegirma"),
+    "discountUnavailableMessage": MessageLookupByLibrary.simpleMessage(
+      "Chegirma endi mavjud emas — qayta tanlang",
+    ),
     "downgradeForbidden": MessageLookupByLibrary.simpleMessage(
       "Bu rejadan pasaytirish mumkin emas — stiker yo‘qolgan bo‘lsa, mavjud rejani qayta chop eting.",
     ),
@@ -317,6 +321,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "minutesCount": m22,
     "newBalance": MessageLookupByLibrary.simpleMessage("Yangi balans"),
     "noChildren": MessageLookupByLibrary.simpleMessage("farzand yo‘q"),
+    "noDiscount": MessageLookupByLibrary.simpleMessage("Chegirmasiz"),
     "noPaymentNow": MessageLookupByLibrary.simpleMessage(
       "Hozir hech narsa to‘lanmaydi — chiqishda balansdan vaqtiga qarab yechiladi.",
     ),
