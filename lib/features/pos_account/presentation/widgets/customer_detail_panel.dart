@@ -430,7 +430,14 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                         selectedPlan: _selectedPlan,
                         onSelectPlan: (p) => setState(() => _selectedPlan = p),
                         checkout: _CheckoutSection(
-                          products: state.products,
+                          // Products are sold from the dedicated "Savdo" tab
+                          // only — never shown/sellable from this per-child
+                          // plan-entry checkout. Passing an empty list (not
+                          // touching `_CheckoutSection` itself) keeps every
+                          // downstream total/discount/payment computation
+                          // working exactly as it already does for an empty
+                          // cart, so nothing else changes.
+                          products: const [],
                           cart: _cart,
                           cartTotal: cartTotal,
                           discounts: state.discounts,
