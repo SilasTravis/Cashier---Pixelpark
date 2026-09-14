@@ -4,6 +4,22 @@ import 'package:equatable/equatable.dart';
 /// `discount.entity.ts`. `percent`: 1..100. `fixed`: a whole UZS amount, >= 1.
 enum DiscountKind { percent, fixed }
 
+/// Which flow a [Discount] row is usable in — mirrors the backend's
+/// `DiscountScope`. `goods`: the POS cart / plan-entry goods leg (the
+/// existing [DiscountPicker]). `entry`: a child's plan-entry gate pass (the
+/// per-child 3-dots menu in `customer_detail_panel.dart`) — replaces the old
+/// hardcoded `FreeReason` picker.
+enum DiscountScope {
+  goods,
+  entry;
+
+  /// Wire value sent as the `?scope=` query param.
+  String get key => name;
+
+  static DiscountScope fromKey(String? key) =>
+      key == 'entry' ? DiscountScope.entry : DiscountScope.goods;
+}
+
 /// One admin-managed catalog row ("Flayer 30%", "Tug'ilgan kun 20 000 so'm")
 /// — global, not branch-scoped. The cashier picks at most one per receipt;
 /// the catalog only ever contains `active: true` rows (see
@@ -15,6 +31,7 @@ class Discount extends Equatable {
     required this.name,
     required this.kind,
     required this.value,
+    this.scope = DiscountScope.goods,
     this.active = true,
   });
 
@@ -22,6 +39,7 @@ class Discount extends Equatable {
   final String name;
   final DiscountKind kind;
   final int value;
+  final DiscountScope scope;
   final bool active;
 
   factory Discount.fromJson(Map<String, dynamic> json) => Discount(
@@ -29,6 +47,7 @@ class Discount extends Equatable {
     name: json['name'] as String,
     kind: json['kind'] == 'fixed' ? DiscountKind.fixed : DiscountKind.percent,
     value: json['value'] as int,
+    scope: DiscountScope.fromKey(json['scope'] as String?),
     active: json['active'] as bool? ?? true,
   );
 
@@ -51,7 +70,7 @@ class Discount extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, name, kind, value, active];
+  List<Object?> get props => [id, name, kind, value, scope, active];
 }
 
 /// The discount actually applied to a sale, as snapshotted and echoed back

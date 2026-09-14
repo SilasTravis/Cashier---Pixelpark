@@ -257,15 +257,6 @@ class MessageLookup extends MessageLookupByLibrary {
       "Enter a phone number to find a customer",
     ),
     "free": MessageLookupByLibrary.simpleMessage("Free"),
-    "freeEntryReasons": MessageLookupByLibrary.simpleMessage(
-      "Free-entry reasons",
-    ),
-    "freeReasonAile": MessageLookupByLibrary.simpleMessage("AILE"),
-    "freeReasonBirthday": MessageLookupByLibrary.simpleMessage("Birthday"),
-    "freeReasonDisabled": MessageLookupByLibrary.simpleMessage("Disability"),
-    "freeReasonSubscription": MessageLookupByLibrary.simpleMessage(
-      "Subscription",
-    ),
     "fullName": MessageLookupByLibrary.simpleMessage("Full name"),
     "history30Days": MessageLookupByLibrary.simpleMessage("30 days"),
     "history7Days": MessageLookupByLibrary.simpleMessage("7 days"),

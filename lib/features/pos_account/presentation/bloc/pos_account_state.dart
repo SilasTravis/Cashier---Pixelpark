@@ -23,6 +23,7 @@ class PosAccountState extends Equatable {
     this.lastParentPass,
     this.companionPriceUzs = defaultCompanionPriceUzs,
     this.discounts = const [],
+    this.entryDiscounts = const [],
     this.errorCode,
   });
 
@@ -82,6 +83,11 @@ class PosAccountState extends Equatable {
   /// picker in the goods-cart checkout section.
   final List<Discount> discounts;
 
+  /// Active ENTRY-scoped discount catalog — the per-child 3-dots menu picks
+  /// from this list instead of the old hardcoded `FreeReason` enum. Same
+  /// best-effort/empty-hides-the-menu contract as [discounts].
+  final List<Discount> entryDiscounts;
+
   /// Machine-readable code paired with [errorMessage] — same reset-on-every-
   /// copyWith lifecycle (not `?? this.errorCode`), so it never lingers past
   /// the action that set it. Lets the widget react to a specific failure
@@ -113,6 +119,7 @@ class PosAccountState extends Equatable {
     bool clearLastParentPass = false,
     int? companionPriceUzs,
     List<Discount>? discounts,
+    List<Discount>? entryDiscounts,
     String? errorCode,
   }) {
     return PosAccountState(
@@ -144,6 +151,7 @@ class PosAccountState extends Equatable {
           : (lastParentPass ?? this.lastParentPass),
       companionPriceUzs: companionPriceUzs ?? this.companionPriceUzs,
       discounts: discounts ?? this.discounts,
+      entryDiscounts: entryDiscounts ?? this.entryDiscounts,
       errorCode: errorCode,
     );
   }
@@ -171,6 +179,7 @@ class PosAccountState extends Equatable {
     lastParentPass,
     companionPriceUzs,
     discounts,
+    entryDiscounts,
     errorCode,
   ];
 }

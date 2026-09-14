@@ -10,7 +10,7 @@ import '../utils/currency.dart';
 /// Sentinel for the "no discount" menu item — a null-valued `PopupMenuItem`
 /// is read by Flutter as a cancel, not a selection, so clearing needs its
 /// own non-null value. Same trick as `customer_detail_panel.dart`'s
-/// `_clearFreeReason`.
+/// `_clearEntryDiscount`.
 const _clearDiscount = Object();
 
 String _valueLabel(Discount discount) => discount.kind == DiscountKind.percent

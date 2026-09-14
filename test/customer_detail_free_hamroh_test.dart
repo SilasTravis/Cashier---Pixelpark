@@ -16,6 +16,7 @@ import 'package:cashier_app/features/pos_account/domain/kids_plan.dart';
 import 'package:cashier_app/features/pos_account/domain/playing_child.dart';
 import 'package:cashier_app/features/pos_account/presentation/bloc/pos_account_bloc.dart';
 import 'package:cashier_app/features/pos_account/presentation/widgets/customer_detail_panel.dart';
+import 'package:cashier_app/features/pos_sale/domain/discount.dart';
 
 /// Canned-response Dio adapter: records the last request and answers every
 /// call with [payload].
@@ -75,6 +76,28 @@ class _FakeRemote implements PosAccountRemoteDataSource {
   Future<List<PlayingChild>> listPlaying(int customerId) async => const [];
 
   @override
+  Future<List<Discount>> fetchDiscounts({
+    DiscountScope scope = DiscountScope.goods,
+  }) async => scope == DiscountScope.entry
+      ? const [
+          Discount(
+            id: 'disc-free',
+            name: 'Nogiron bola',
+            kind: DiscountKind.percent,
+            value: 100,
+            scope: DiscountScope.entry,
+          ),
+          Discount(
+            id: 'disc-partial',
+            name: 'Flayer 30%',
+            kind: DiscountKind.percent,
+            value: 30,
+            scope: DiscountScope.entry,
+          ),
+        ]
+      : const [];
+
+  @override
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
@@ -86,6 +109,7 @@ Future<PosAccountBloc> _pumpPanel(WidgetTester tester) async {
 
   final bloc = PosAccountBloc(PosAccountRepository(_FakeRemote()))
     ..add(const PosAccountPlansRequested())
+    ..add(const PosAccountDiscountsRequested(scope: DiscountScope.entry))
     ..add(
       PosAccountCustomerSelected(
         Customer(
@@ -132,7 +156,7 @@ Future<PosAccountBloc> _pumpPanel(WidgetTester tester) async {
 void main() {
   group('data source', () {
     test(
-      'checkout sends freeReasons + companions and parses HAMROH passes',
+      'checkout sends entryDiscounts + companions and parses HAMROH passes',
       () async {
         final adapter = _FakeAdapter({
           'entries': [],
@@ -154,13 +178,13 @@ void main() {
           products: const [],
           cashUzs: 20000,
           cardUzs: 0,
-          freeReasons: const {'child-1': 'aile'},
+          entryDiscounts: const {'child-1': 'disc-free'},
           companions: 2,
         );
 
         final body = adapter.lastRequest!.data as Map<String, dynamic>;
-        expect(body['freeReasons'], [
-          {'childId': 'child-1', 'reason': 'aile'},
+        expect(body['entryDiscounts'], [
+          {'childId': 'child-1', 'discountId': 'disc-free'},
         ]);
         expect(body['companions'], 2);
         expect(result.companionPasses, hasLength(1));
@@ -169,7 +193,7 @@ void main() {
     );
 
     test(
-      'unused free/companion fields are omitted for older backends',
+      'unused entry-discount/companion fields are omitted for older backends',
       () async {
         final adapter = _FakeAdapter({'entries': [], 'failures': []});
         final dio = Dio(BaseOptions(baseUrl: 'http://x'))
@@ -186,7 +210,7 @@ void main() {
         );
 
         final body = adapter.lastRequest!.data as Map<String, dynamic>;
-        expect(body.containsKey('freeReasons'), isFalse);
+        expect(body.containsKey('entryDiscounts'), isFalse);
         expect(body.containsKey('companions'), isFalse);
         expect(result.companionPasses, isEmpty);
       },
@@ -204,23 +228,23 @@ void main() {
   });
 
   group('panel', () {
-    testWidgets('cashier can select birthday regardless of stored date', (
+    testWidgets('cashier can pick an entry discount from the 3-dots menu', (
       tester,
     ) async {
       await _pumpPanel(tester);
 
-      await tester.tap(find.byTooltip('Bepul kirish sabablari'));
+      await tester.tap(find.byTooltip('Chegirma'));
       await tester.pumpAndSettle();
 
-      final birthday = find.text('Tug‘ilgan kun (bepul)');
-      expect(birthday, findsOneWidget);
-      await tester.tap(birthday);
+      final option = find.text('Nogiron bola (100%)');
+      expect(option, findsOneWidget);
+      await tester.tap(option);
       await tester.pumpAndSettle();
 
-      expect(find.text('Bepul · Tug‘ilgan kun'), findsOneWidget);
+      expect(find.text('Chegirma: Nogiron bola'), findsOneWidget);
     });
 
-    testWidgets('a free reason from the 3-dots menu zeroes the VIP charge', (
+    testWidgets('a 100%-off entry discount zeroes the VIP charge', (
       tester,
     ) async {
       await _pumpPanel(tester);
@@ -232,16 +256,37 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.widgetWithText(TextField, '75000'), findsOneWidget);
 
-      // Pick "Nogiron (bepul)" from the row's 3-dots menu.
-      await tester.tap(find.byTooltip('Bepul kirish sabablari'));
+      // Pick the 100%-off entry discount from the row's 3-dots menu.
+      await tester.tap(find.byTooltip('Chegirma'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Nogiron (bepul)'));
+      await tester.tap(find.text('Nogiron bola (100%)'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Bepul · Nogiron'), findsOneWidget);
+      expect(find.text('Chegirma: Nogiron bola'), findsOneWidget);
       // Nothing to pay any more — the payment field is gone.
       expect(find.widgetWithText(TextField, '75000'), findsNothing);
       expect(find.text('Kirish (1)'), findsOneWidget);
+    });
+
+    testWidgets('a partial entry discount only reduces the VIP charge', (
+      tester,
+    ) async {
+      await _pumpPanel(tester);
+
+      await tester.tap(find.text('QR'));
+      await tester.pump();
+      await tester.tap(find.text('VIP'));
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(TextField, '75000'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Chegirma'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Flayer 30% (30%)'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Chegirma: Flayer 30%'), findsOneWidget);
+      // 75 000 * 70% = 52 500 — still due, just discounted.
+      expect(find.widgetWithText(TextField, '52500'), findsOneWidget);
     });
 
     testWidgets('each HAMROH companion adds its price to the required total', (

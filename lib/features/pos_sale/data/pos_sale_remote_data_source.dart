@@ -48,7 +48,7 @@ class PosSaleRemoteDataSourceImpl implements PosSaleRemoteDataSource {
           'cashUzs': cashUzs,
           'cardUzs': cardUzs,
           // Omitted (never sent as null) when no discount is selected —
-          // same forward-compat convention as `freeReasons`.
+          // same forward-compat convention as `entryDiscounts`.
           'discountId': ?discountId,
         },
       );

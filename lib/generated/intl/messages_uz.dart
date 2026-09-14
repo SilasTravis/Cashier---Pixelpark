@@ -254,13 +254,6 @@ class MessageLookup extends MessageLookupByLibrary {
       "Mijozni topish uchun telefon raqamini kiriting",
     ),
     "free": MessageLookupByLibrary.simpleMessage("Bepul"),
-    "freeEntryReasons": MessageLookupByLibrary.simpleMessage(
-      "Bepul kirish sabablari",
-    ),
-    "freeReasonAile": MessageLookupByLibrary.simpleMessage("AILE"),
-    "freeReasonBirthday": MessageLookupByLibrary.simpleMessage("Tug‘ilgan kun"),
-    "freeReasonDisabled": MessageLookupByLibrary.simpleMessage("Nogiron"),
-    "freeReasonSubscription": MessageLookupByLibrary.simpleMessage("Obuna"),
     "fullName": MessageLookupByLibrary.simpleMessage("Ism familiya"),
     "history30Days": MessageLookupByLibrary.simpleMessage("30 kun"),
     "history7Days": MessageLookupByLibrary.simpleMessage("7 kun"),

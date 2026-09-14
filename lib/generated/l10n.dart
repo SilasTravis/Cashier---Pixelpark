@@ -1094,51 +1094,6 @@ class AppLocalization {
     return Intl.message('Free', name: 'free', desc: '', args: []);
   }
 
-  /// `Free-entry reasons`
-  String get freeEntryReasons {
-    return Intl.message(
-      'Free-entry reasons',
-      name: 'freeEntryReasons',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Disability`
-  String get freeReasonDisabled {
-    return Intl.message(
-      'Disability',
-      name: 'freeReasonDisabled',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `AILE`
-  String get freeReasonAile {
-    return Intl.message('AILE', name: 'freeReasonAile', desc: '', args: []);
-  }
-
-  /// `Subscription`
-  String get freeReasonSubscription {
-    return Intl.message(
-      'Subscription',
-      name: 'freeReasonSubscription',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Birthday`
-  String get freeReasonBirthday {
-    return Intl.message(
-      'Birthday',
-      name: 'freeReasonBirthday',
-      desc: '',
-      args: [],
-    );
-  }
-
   /// `Available only on the birthday`
   String get birthdayFreeOnlyToday {
     return Intl.message(

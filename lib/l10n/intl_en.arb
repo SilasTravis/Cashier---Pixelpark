@@ -260,11 +260,6 @@
     }
   },
   "free": "Free",
-  "freeEntryReasons": "Free-entry reasons",
-  "freeReasonDisabled": "Disability",
-  "freeReasonAile": "AILE",
-  "freeReasonSubscription": "Subscription",
-  "freeReasonBirthday": "Birthday",
   "birthdayFreeOnlyToday": "Available only on the birthday",
   "topupBalance": "Top up balance",
   "amount": "Amount",

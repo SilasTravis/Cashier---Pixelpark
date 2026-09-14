@@ -83,11 +83,12 @@ abstract class PosAccountRemoteDataSource {
 
   /// The one-stop checkout: collected cash/card top the balance up, the
   /// products are debited FROM the balance, and the day passes are issued —
-  /// the plan itself is billed at exit, not here. [freeReasons] maps
-  /// childId → free-entry reason key (absent = billed normally);
-  /// [companions] mints that many paid HAMROH stickers from the balance.
-  /// [discountId] applies ONLY to the goods leg (`products`) — never to the
-  /// plan/VIP or companion legs; omitted from the request entirely when null.
+  /// the plan itself is billed at exit, not here. [entryDiscounts] maps
+  /// childId → an entry-scoped `Discount.id` (absent = billed normally;
+  /// 100% reproduces the old free-pass behavior); [companions] mints that
+  /// many paid HAMROH stickers from the balance. [discountId] applies ONLY
+  /// to the goods leg (`products`) — never to the plan/VIP or companion
+  /// legs; omitted from the request entirely when null.
   Future<PosEntryResult> planEntryCheckout({
     required int customerId,
     required String planKey,
@@ -95,7 +96,7 @@ abstract class PosAccountRemoteDataSource {
     required List<CheckoutLine> products,
     required int cashUzs,
     required int cardUzs,
-    Map<String, String> freeReasons = const {},
+    Map<String, String> entryDiscounts = const {},
     int companions = 0,
     String? discountId,
   });
@@ -106,8 +107,11 @@ abstract class PosAccountRemoteDataSource {
 
   /// Active discount catalog — same endpoint and best-effort contract as
   /// `PosSaleRemoteDataSource.fetchDiscounts`: a failure just hides the
-  /// picker, it never blocks the plan-entry checkout.
-  Future<List<Discount>> fetchDiscounts();
+  /// picker, it never blocks the plan-entry checkout. [scope] selects the
+  /// goods-cart catalog (default) or the per-child entry catalog.
+  Future<List<Discount>> fetchDiscounts({
+    DiscountScope scope = DiscountScope.goods,
+  });
 }
 
 class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
@@ -318,6 +322,8 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
       // Absent on older backends — badge simply shows 0 until redeploy.
       dueTodayUzs: json['dueTodayUzs'] as int? ?? 0,
       freeReason: json['freeReason'] as String?,
+      discountId: json['discountId'] as String?,
+      discountName: json['discountName'] as String?,
     );
   }
 
@@ -341,7 +347,7 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
     required List<CheckoutLine> products,
     required int cashUzs,
     required int cardUzs,
-    Map<String, String> freeReasons = const {},
+    Map<String, String> entryDiscounts = const {},
     int companions = 0,
     String? discountId,
   }) async {
@@ -357,11 +363,11 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
           ],
           'cashUzs': cashUzs,
           'cardUzs': cardUzs,
-          // Omitted when unused so older backends never see the fields.
-          if (freeReasons.isNotEmpty)
-            'freeReasons': [
-              for (final entry in freeReasons.entries)
-                {'childId': entry.key, 'reason': entry.value},
+          // Omitted when unused so older backends never see the field.
+          if (entryDiscounts.isNotEmpty)
+            'entryDiscounts': [
+              for (final entry in entryDiscounts.entries)
+                {'childId': entry.key, 'discountId': entry.value},
             ],
           if (companions > 0) 'companions': companions,
           'discountId': ?discountId,
@@ -390,8 +396,15 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
   }
 
   @override
-  Future<List<Discount>> fetchDiscounts() async {
-    final response = await _request(() => dio.get('/v1/pos/discounts'));
+  Future<List<Discount>> fetchDiscounts({
+    DiscountScope scope = DiscountScope.goods,
+  }) async {
+    final response = await _request(
+      () => dio.get(
+        '/v1/pos/discounts',
+        queryParameters: {'scope': scope.key},
+      ),
+    );
     return (response as List)
         .map((json) => Discount.fromJson(json as Map<String, dynamic>))
         .toList();
@@ -501,6 +514,8 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
           "VIP uchun balans yetarli emas — avval to'lov qabul qiling",
         'PLAN_SWITCH_BALANCE_INSUFFICIENT' =>
           "Balans yetarli emas — avval balansni to'ldiring",
+        'GATE_PASS_DISCOUNT_CONFLICT' =>
+          "Bu bolada allaqachon boshqa chegirma bilan faol propusk mavjud",
         _ => json['message'] as String,
       },
     );

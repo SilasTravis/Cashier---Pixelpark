@@ -114,7 +114,7 @@ class PosAccountRepository {
     required List<CheckoutLine> products,
     required int cashUzs,
     required int cardUzs,
-    Map<String, String> freeReasons = const {},
+    Map<String, String> entryDiscounts = const {},
     int companions = 0,
     String? discountId,
   }) => _call(
@@ -125,7 +125,7 @@ class PosAccountRepository {
       products: products,
       cashUzs: cashUzs,
       cardUzs: cardUzs,
-      freeReasons: freeReasons,
+      entryDiscounts: entryDiscounts,
       companions: companions,
       discountId: discountId,
     ),
@@ -134,8 +134,9 @@ class PosAccountRepository {
   Future<Either<Failure, int>> fetchCompanionPriceUzs() =>
       _call(() => remote.fetchCompanionPriceUzs());
 
-  Future<Either<Failure, List<Discount>>> fetchDiscounts() =>
-      _call(() => remote.fetchDiscounts());
+  Future<Either<Failure, List<Discount>>> fetchDiscounts({
+    DiscountScope scope = DiscountScope.goods,
+  }) => _call(() => remote.fetchDiscounts(scope: scope));
 
   Future<Either<Failure, T>> _call<T>(Future<T> Function() call) async {
     try {
