@@ -101,6 +101,13 @@ class _ReceiptDialogState extends State<_ReceiptDialog> {
                 ),
               ),
             const Divider(height: 20),
+            if (receipt.discountUzs > 0)
+              _SummaryRow(
+                label:
+                    '${AppLocalization.of(context).discount}'
+                    '${receipt.discount != null ? ' (${receipt.discount!.name})' : ''}',
+                value: '−${formatUzs(receipt.discountUzs)}',
+              ),
             _SummaryRow(
               label: AppLocalization.of(context).total,
               value: formatUzs(receipt.subtotalUzs),

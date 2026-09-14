@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../../../core/error/exceptions.dart';
 import '../../products/domain/product.dart';
+import '../../pos_sale/domain/discount.dart';
 import '../../pos_sale/domain/sale_receipt.dart';
 import '../domain/active_pass.dart';
 import '../domain/customer.dart';
@@ -82,9 +83,12 @@ abstract class PosAccountRemoteDataSource {
 
   /// The one-stop checkout: collected cash/card top the balance up, the
   /// products are debited FROM the balance, and the day passes are issued —
-  /// the plan itself is billed at exit, not here. [freeReasons] maps
-  /// childId → free-entry reason key (absent = billed normally);
-  /// [companions] mints that many paid HAMROH stickers from the balance.
+  /// the plan itself is billed at exit, not here. [entryDiscounts] maps
+  /// childId → an entry-scoped `Discount.id` (absent = billed normally;
+  /// 100% reproduces the old free-pass behavior); [companions] mints that
+  /// many paid HAMROH stickers from the balance. [discountId] applies ONLY
+  /// to the goods leg (`products`) — never to the plan/VIP or companion
+  /// legs; omitted from the request entirely when null.
   Future<PosEntryResult> planEntryCheckout({
     required int customerId,
     required String planKey,
@@ -92,13 +96,22 @@ abstract class PosAccountRemoteDataSource {
     required List<CheckoutLine> products,
     required int cashUzs,
     required int cardUzs,
-    Map<String, String> freeReasons = const {},
+    Map<String, String> entryDiscounts = const {},
     int companions = 0,
+    String? discountId,
   });
 
   /// Server-owned terminal pricing (currently the HAMROH companion price) —
   /// so a price change never needs an app re-release.
   Future<int> fetchCompanionPriceUzs();
+
+  /// Active discount catalog — same endpoint and best-effort contract as
+  /// `PosSaleRemoteDataSource.fetchDiscounts`: a failure just hides the
+  /// picker, it never blocks the plan-entry checkout. [scope] selects the
+  /// goods-cart catalog (default) or the per-child entry catalog.
+  Future<List<Discount>> fetchDiscounts({
+    DiscountScope scope = DiscountScope.goods,
+  });
 }
 
 class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
@@ -309,6 +322,8 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
       // Absent on older backends — badge simply shows 0 until redeploy.
       dueTodayUzs: json['dueTodayUzs'] as int? ?? 0,
       freeReason: json['freeReason'] as String?,
+      discountId: json['discountId'] as String?,
+      discountName: json['discountName'] as String?,
     );
   }
 
@@ -332,8 +347,9 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
     required List<CheckoutLine> products,
     required int cashUzs,
     required int cardUzs,
-    Map<String, String> freeReasons = const {},
+    Map<String, String> entryDiscounts = const {},
     int companions = 0,
+    String? discountId,
   }) async {
     final response = await _request(
       () => dio.post(
@@ -347,13 +363,14 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
           ],
           'cashUzs': cashUzs,
           'cardUzs': cardUzs,
-          // Omitted when unused so older backends never see the fields.
-          if (freeReasons.isNotEmpty)
-            'freeReasons': [
-              for (final entry in freeReasons.entries)
-                {'childId': entry.key, 'reason': entry.value},
+          // Omitted when unused so older backends never see the field.
+          if (entryDiscounts.isNotEmpty)
+            'entryDiscounts': [
+              for (final entry in entryDiscounts.entries)
+                {'childId': entry.key, 'discountId': entry.value},
             ],
           if (companions > 0) 'companions': companions,
+          'discountId': ?discountId,
         },
       ),
     );
@@ -373,9 +390,24 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
       balance: map['balance'] as int?,
       productSale: map['productSale'] == null
           ? null
-          : _saleReceiptFromJson(map['productSale'] as Map<String, dynamic>),
+          : SaleReceipt.fromJson(map['productSale'] as Map<String, dynamic>),
       productsTotalUzs: (map['productsTotalUzs'] as int?) ?? 0,
     );
+  }
+
+  @override
+  Future<List<Discount>> fetchDiscounts({
+    DiscountScope scope = DiscountScope.goods,
+  }) async {
+    final response = await _request(
+      () => dio.get(
+        '/v1/pos/discounts',
+        queryParameters: {'scope': scope.key},
+      ),
+    );
+    return (response as List)
+        .map((json) => Discount.fromJson(json as Map<String, dynamic>))
+        .toList();
   }
 
   CompanionPass _companionPassFromJson(Map<String, dynamic> json) {
@@ -392,26 +424,6 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
     final response = await _request(() => dio.get('/v1/pos/config'));
     return (response as Map<String, dynamic>)['companionPriceUzs'] as int;
   }
-
-  SaleReceipt _saleReceiptFromJson(Map<String, dynamic> json) => SaleReceipt(
-    id: json['id'] as String,
-    subtotalUzs: json['subtotalUzs'] as int,
-    cashUzs: json['cashUzs'] as int,
-    cardUzs: json['cardUzs'] as int,
-    balanceUzs: (json['balanceUzs'] as int?) ?? 0,
-    createdAt: DateTime.parse(json['createdAt'] as String),
-    items: (json['items'] as List)
-        .map(
-          (item) => SaleReceiptItem(
-            productId: item['productId'] as String,
-            nameSnapshot: item['nameSnapshot'] as String,
-            priceSnapshotUzs: item['priceSnapshotUzs'] as int,
-            qty: item['qty'] as int,
-            lineTotalUzs: item['lineTotalUzs'] as int,
-          ),
-        )
-        .toList(),
-  );
 
   /// Absent on older backends — parsed defensively as "no conflicts".
   List<PosEntryConflict> _conflictsFromJson(Map<String, dynamic> map) {
@@ -502,6 +514,8 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
           "VIP uchun balans yetarli emas — avval to'lov qabul qiling",
         'PLAN_SWITCH_BALANCE_INSUFFICIENT' =>
           "Balans yetarli emas — avval balansni to'ldiring",
+        'GATE_PASS_DISCOUNT_CONFLICT' =>
+          "Bu bolada allaqachon boshqa chegirma bilan faol propusk mavjud",
         _ => json['message'] as String,
       },
     );

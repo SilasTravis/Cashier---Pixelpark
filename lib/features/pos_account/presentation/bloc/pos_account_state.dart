@@ -22,6 +22,9 @@ class PosAccountState extends Equatable {
     this.lastEntryResult,
     this.lastParentPass,
     this.companionPriceUzs = defaultCompanionPriceUzs,
+    this.discounts = const [],
+    this.entryDiscounts = const [],
+    this.errorCode,
   });
 
   /// Fallback HAMROH price used until (or if) `GET /v1/pos/config` answers —
@@ -75,6 +78,22 @@ class PosAccountState extends Equatable {
   /// page load; the compiled-in default covers older backends.
   final int companionPriceUzs;
 
+  /// Active discount catalog (`GET /v1/pos/discounts`) — fetched once at
+  /// page load, best-effort like [plans]/[products]: empty just hides the
+  /// picker in the goods-cart checkout section.
+  final List<Discount> discounts;
+
+  /// Active ENTRY-scoped discount catalog — the per-child 3-dots menu picks
+  /// from this list instead of the old hardcoded `FreeReason` enum. Same
+  /// best-effort/empty-hides-the-menu contract as [discounts].
+  final List<Discount> entryDiscounts;
+
+  /// Machine-readable code paired with [errorMessage] — same reset-on-every-
+  /// copyWith lifecycle (not `?? this.errorCode`), so it never lingers past
+  /// the action that set it. Lets the widget react to a specific failure
+  /// (`DISCOUNT_NOT_AVAILABLE`) without parsing the localized message text.
+  final String? errorCode;
+
   PosAccountState copyWith({
     String? phoneDigits,
     String? searchQuery,
@@ -99,6 +118,9 @@ class PosAccountState extends Equatable {
     ParentPass? lastParentPass,
     bool clearLastParentPass = false,
     int? companionPriceUzs,
+    List<Discount>? discounts,
+    List<Discount>? entryDiscounts,
+    String? errorCode,
   }) {
     return PosAccountState(
       phoneDigits: phoneDigits ?? this.phoneDigits,
@@ -128,6 +150,9 @@ class PosAccountState extends Equatable {
           ? null
           : (lastParentPass ?? this.lastParentPass),
       companionPriceUzs: companionPriceUzs ?? this.companionPriceUzs,
+      discounts: discounts ?? this.discounts,
+      entryDiscounts: entryDiscounts ?? this.entryDiscounts,
+      errorCode: errorCode,
     );
   }
 
@@ -153,5 +178,8 @@ class PosAccountState extends Equatable {
     lastEntryResult,
     lastParentPass,
     companionPriceUzs,
+    discounts,
+    entryDiscounts,
+    errorCode,
   ];
 }

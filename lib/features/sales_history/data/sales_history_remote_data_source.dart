@@ -64,6 +64,7 @@ class SalesHistoryRemoteDataSource {
         cardUzs: _int(json['cardUzs']),
         balanceUzs: _int(json['balanceUzs']),
         refundedUzs: _int(json['refundedUzs']),
+        discountUzs: _int(json['discountUzs']),
       );
     } on DioException catch (error) {
       throw ServerException.fromJson(error.response?.data);
@@ -132,6 +133,7 @@ class SalesHistoryRemoteDataSource {
     final cashUzs = _int(json['cashUzs']);
     final cardUzs = _int(json['cardUzs']);
     final refundedUzs = _int(json['refundedUzs']);
+    final discount = json['discount'];
     return SaleHistoryEntry(
       id: json['id'] as String,
       type: json['type'] as String,
@@ -140,6 +142,9 @@ class SalesHistoryRemoteDataSource {
       cardUzs: cardUzs,
       balanceUzs: _int(json['balanceUzs']),
       refundedUzs: refundedUzs,
+      grossUzs: _int(json['grossUzs']),
+      discountUzs: _int(json['discountUzs']),
+      discountName: discount is Map ? discount['name'] as String? : null,
       refundedCashUzs: _int(json['refundedCashUzs']),
       refundedCardUzs: _int(json['refundedCardUzs']),
       refundedBalanceUzs: _int(json['refundedBalanceUzs']),

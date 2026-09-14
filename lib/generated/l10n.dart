@@ -269,6 +269,26 @@ class AppLocalization {
     return Intl.message('Cart is empty', name: 'cartEmpty', desc: '', args: []);
   }
 
+  /// `Discount`
+  String get discount {
+    return Intl.message('Discount', name: 'discount', desc: '', args: []);
+  }
+
+  /// `No discount`
+  String get noDiscount {
+    return Intl.message('No discount', name: 'noDiscount', desc: '', args: []);
+  }
+
+  /// `The discount is no longer available — pick again`
+  String get discountUnavailableMessage {
+    return Intl.message(
+      'The discount is no longer available — pick again',
+      name: 'discountUnavailableMessage',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `All`
   String get categoryAll {
     return Intl.message('All', name: 'categoryAll', desc: '', args: []);
@@ -1072,51 +1092,6 @@ class AppLocalization {
   /// `Free`
   String get free {
     return Intl.message('Free', name: 'free', desc: '', args: []);
-  }
-
-  /// `Free-entry reasons`
-  String get freeEntryReasons {
-    return Intl.message(
-      'Free-entry reasons',
-      name: 'freeEntryReasons',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Disability`
-  String get freeReasonDisabled {
-    return Intl.message(
-      'Disability',
-      name: 'freeReasonDisabled',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `AILE`
-  String get freeReasonAile {
-    return Intl.message('AILE', name: 'freeReasonAile', desc: '', args: []);
-  }
-
-  /// `Subscription`
-  String get freeReasonSubscription {
-    return Intl.message(
-      'Subscription',
-      name: 'freeReasonSubscription',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Birthday`
-  String get freeReasonBirthday {
-    return Intl.message(
-      'Birthday',
-      name: 'freeReasonBirthday',
-      desc: '',
-      args: [],
-    );
   }
 
   /// `Available only on the birthday`

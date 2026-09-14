@@ -144,11 +144,26 @@ class SaleHistoryEntry extends Equatable {
     required this.passes,
     required this.paymentCorrections,
     this.customer,
+    this.grossUzs = 0,
+    this.discountUzs = 0,
+    this.discountName,
   });
 
   final String id;
   final String type;
   final int totalUzs;
+
+  /// Undiscounted sum of line totals. Defaults to 0 (rather than [totalUzs])
+  /// on an older backend that never sends it — this app never displays
+  /// [grossUzs] on its own, only alongside [discountUzs]/[discountName].
+  final int grossUzs;
+
+  /// How much was taken off by a POS discount — 0 when none applied.
+  final int discountUzs;
+
+  /// The discount's admin-authored name, shown verbatim — null when
+  /// [discountUzs] is 0.
+  final String? discountName;
   final int cashUzs;
   final int cardUzs;
   final int balanceUzs;
@@ -238,6 +253,9 @@ class SaleHistoryEntry extends Equatable {
     passes,
     paymentCorrections,
     customer,
+    grossUzs,
+    discountUzs,
+    discountName,
   ];
 }
 
@@ -280,6 +298,7 @@ class SalesHistorySummary extends Equatable {
     required this.cardUzs,
     required this.balanceUzs,
     required this.refundedUzs,
+    this.discountUzs = 0,
   });
 
   static const zero = SalesHistorySummary(
@@ -301,6 +320,10 @@ class SalesHistorySummary extends Equatable {
   /// above are already net of it; this is shown so the drop is explained.
   final int refundedUzs;
 
+  /// How much was given away via POS discounts over the period —
+  /// informational, like [refundedUzs]; [totalUzs] is already net of it.
+  final int discountUzs;
+
   @override
   List<Object?> get props => [
     count,
@@ -309,6 +332,7 @@ class SalesHistorySummary extends Equatable {
     cardUzs,
     balanceUzs,
     refundedUzs,
+    discountUzs,
   ];
 }
 

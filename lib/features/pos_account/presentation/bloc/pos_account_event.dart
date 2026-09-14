@@ -182,8 +182,9 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
     required this.cashUzs,
     required this.cardUzs,
     this.withParentQr = false,
-    this.freeReasons = const {},
+    this.entryDiscounts = const {},
     this.companions = 0,
+    this.discountId,
   });
 
   final String planKey;
@@ -195,12 +196,17 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
   /// Also issue + print the free parent QR after a successful entry.
   final bool withParentQr;
 
-  /// childId → free-entry reason key (nogiron/aile/obuna) — those children's
-  /// passes are issued free and the reason is recorded for statistics.
-  final Map<String, String> freeReasons;
+  /// childId → an entry-scoped `Discount.id` — that child's pass is
+  /// discounted (100% reproduces the old free-pass behavior) and the
+  /// catalog name is recorded for statistics.
+  final Map<String, String> entryDiscounts;
 
   /// Paid HAMROH stickers to buy (companion price each, from the balance).
   final int companions;
+
+  /// Applies ONLY to [products] (the goods leg) — never to the plan/VIP or
+  /// companion price. Null when no discount is selected.
+  final String? discountId;
 
   @override
   List<Object?> get props => [
@@ -210,14 +216,33 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
     cashUzs,
     cardUzs,
     withParentQr,
-    freeReasons,
+    entryDiscounts,
     companions,
+    discountId,
   ];
 }
 
 /// Fired once on page load — pulls server-owned pricing (HAMROH price).
 class PosAccountConfigRequested extends PosAccountEvent {
   const PosAccountConfigRequested();
+}
+
+/// Fired once on page load (once per [scope]) — the active discount catalog
+/// for the goods-cart picker (`DiscountScope.goods`) or the per-child entry
+/// picker (`DiscountScope.entry`); [force] re-fetches even if a (possibly
+/// stale) list is already held, used after a `DISCOUNT_NOT_AVAILABLE` /
+/// `GATE_PASS_DISCOUNT_CONFLICT` checkout failure.
+class PosAccountDiscountsRequested extends PosAccountEvent {
+  const PosAccountDiscountsRequested({
+    this.scope = DiscountScope.goods,
+    this.force = false,
+  });
+
+  final DiscountScope scope;
+  final bool force;
+
+  @override
+  List<Object?> get props => [scope, force];
 }
 
 /// Cashier tapped "Ota-ona QR" — issue (or re-issue) the free parent

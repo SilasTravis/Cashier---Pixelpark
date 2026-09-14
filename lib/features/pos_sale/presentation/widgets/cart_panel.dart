@@ -5,6 +5,7 @@ import 'package:phosphor_icons/phosphor_icons.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
 import '../../../../core/utils/currency.dart';
+import '../../../../core/widgets/discount_picker.dart';
 import '../../../../core/widgets/payment_method_selector.dart';
 import '../../../../generated/l10n.dart';
 import '../bloc/pos_sale_bloc.dart';
@@ -32,179 +33,238 @@ class _CartPanelState extends State<CartPanel> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalization.of(context);
-    return BlocConsumer<PosSaleBloc, PosSaleState>(
-      listenWhen: (previous, current) =>
-          previous.lastReceipt != current.lastReceipt &&
-          current.lastReceipt != null,
-      listener: (context, state) async {
-        await printSaleReceiptDirect(context, state.lastReceipt!);
-        if (!context.mounted) return;
-        await showReceiptDialog(context, state.lastReceipt!);
-        if (context.mounted) {
-          context.read<PosSaleBloc>().add(const PosSaleReceiptAcknowledged());
-          setState(() {
-            _method = PaymentMethod.cash;
-            _cashController.clear();
-            _cardController.clear();
-          });
-        }
-      },
-      builder: (context, state) {
-        final subtotal = state.subtotalUzs;
-        final split = PaymentSplit.compute(
-          method: _method,
-          totalUzs: subtotal,
-          cashInput: _cashController.text,
-          cardInput: _cardController.text,
-        );
-        final canCheckout =
-            !state.isCheckingOut && state.cart.isNotEmpty && split.isValid;
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(l10n.cartTitle, style: AppTextStyles.h5),
-                  if (state.cart.isNotEmpty)
-                    TextButton(
-                      onPressed: () => _confirmClear(context),
-                      child: Text(l10n.cartClear),
-                    ),
-                ],
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<PosSaleBloc, PosSaleState>(
+          listenWhen: (previous, current) =>
+              previous.lastReceipt != current.lastReceipt &&
+              current.lastReceipt != null,
+          listener: (context, state) async {
+            await printSaleReceiptDirect(context, state.lastReceipt!);
+            if (!context.mounted) return;
+            await showReceiptDialog(context, state.lastReceipt!);
+            if (context.mounted) {
+              context.read<PosSaleBloc>().add(
+                const PosSaleReceiptAcknowledged(),
+              );
+              setState(() {
+                _method = PaymentMethod.cash;
+                _cashController.clear();
+                _cardController.clear();
+              });
+            }
+          },
+        ),
+        // The picked discount was disabled/deleted between fetch and
+        // checkout — the bloc already clears the pick and refetches the
+        // catalog; a snackbar makes sure the cashier notices before paying.
+        BlocListener<PosSaleBloc, PosSaleState>(
+          listenWhen: (previous, current) =>
+              current.errorCode == 'DISCOUNT_NOT_AVAILABLE' &&
+              previous.errorCode != current.errorCode,
+          listener: (context, state) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  AppLocalization.of(context).discountUnavailableMessage,
+                ),
               ),
-            ),
-            Expanded(
-              child: state.cartLines.isEmpty
-                  ? Center(
-                      child: Text(
-                        l10n.cartEmpty,
-                        style: AppTextStyles.muted(AppTextStyles.body),
+            );
+          },
+        ),
+      ],
+      child: BlocBuilder<PosSaleBloc, PosSaleState>(
+        builder: (context, state) {
+          final netTotal = state.totalUzs;
+          final split = PaymentSplit.compute(
+            method: _method,
+            totalUzs: netTotal,
+            cashInput: _cashController.text,
+            cardInput: _cardController.text,
+            allowZeroTotal: state.selectedDiscountId != null,
+          );
+          final canCheckout =
+              !state.isCheckingOut && state.cart.isNotEmpty && split.isValid;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(l10n.cartTitle, style: AppTextStyles.h5),
+                    if (state.cart.isNotEmpty)
+                      TextButton(
+                        onPressed: () => _confirmClear(context),
+                        child: Text(l10n.cartClear),
                       ),
-                    )
-                  : ListView(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      children: [
-                        for (final line in state.cartLines)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        line.product.name,
-                                        style: AppTextStyles.body.copyWith(
-                                          fontSize: 13,
+                  ],
+                ),
+              ),
+              Expanded(
+                child: state.cartLines.isEmpty
+                    ? Center(
+                        child: Text(
+                          l10n.cartEmpty,
+                          style: AppTextStyles.muted(AppTextStyles.body),
+                        ),
+                      )
+                    : ListView(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        children: [
+                          for (final line in state.cartLines)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          line.product.name,
+                                          style: AppTextStyles.body.copyWith(
+                                            fontSize: 13,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      Text(
-                                        formatUzs(line.lineTotalUzs),
-                                        style: AppTextStyles.muted(
-                                          AppTextStyles.body,
-                                        ).copyWith(fontSize: 11),
-                                      ),
-                                    ],
+                                        Text(
+                                          formatUzs(line.lineTotalUzs),
+                                          style: AppTextStyles.muted(
+                                            AppTextStyles.body,
+                                          ).copyWith(fontSize: 11),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                _QtyStepper(
-                                  qty: line.qty,
-                                  onChanged: (qty) =>
-                                      context.read<PosSaleBloc>().add(
-                                        PosSaleQtyChanged(
-                                          productId: line.product.id,
-                                          qty: qty,
+                                  _QtyStepper(
+                                    qty: line.qty,
+                                    onChanged: (qty) =>
+                                        context.read<PosSaleBloc>().add(
+                                          PosSaleQtyChanged(
+                                            productId: line.product.id,
+                                            qty: qty,
+                                          ),
                                         ),
-                                      ),
-                                ),
-                              ],
+                                  ),
+                                ],
+                              ),
                             ),
+                        ],
+                      ),
+              ),
+              if (state.discounts.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            l10n.discount,
+                            style: AppTextStyles.body.copyWith(fontSize: 12),
                           ),
+                          const Spacer(),
+                          DiscountPicker(
+                            discounts: state.discounts,
+                            selectedDiscount: state.selectedDiscount,
+                            onChanged: (discount) => context
+                                .read<PosSaleBloc>()
+                                .add(PosSaleDiscountSelected(discount?.id)),
+                          ),
+                        ],
+                      ),
+                      if (state.selectedDiscount != null &&
+                          state.discountUzs > 0)
+                        DiscountSummaryRow(
+                          name: state.selectedDiscount!.name,
+                          amountUzs: state.discountUzs,
+                        ),
+                    ],
+                  ),
+                ),
+              const Divider(height: 1),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(l10n.total, style: AppTextStyles.h6),
+                        Text(
+                          formatUzs(netTotal),
+                          style: AppTextStyles.h5.copyWith(
+                            color: NocturneColors.accent,
+                          ),
+                        ),
                       ],
                     ),
-            ),
-            const Divider(height: 1),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(l10n.total, style: AppTextStyles.h6),
+                    const SizedBox(height: 12),
+                    PaymentMethodPills(
+                      selected: _method,
+                      onChanged: (m) => setState(() => _method = m),
+                    ),
+                    if (_method == PaymentMethod.split) ...[
+                      const SizedBox(height: 8),
+                      SplitAmountFields(
+                        cashController: _cashController,
+                        cardController: _cardController,
+                        split: split,
+                        totalUzs: netTotal,
+                        onChanged: () => setState(() {}),
+                      ),
+                    ],
+                    if (state.errorMessage != null) ...[
+                      const SizedBox(height: 10),
                       Text(
-                        formatUzs(subtotal),
-                        style: AppTextStyles.h5.copyWith(
-                          color: NocturneColors.accent,
+                        state.errorMessage!,
+                        style: const TextStyle(
+                          color: NocturneColors.danger,
+                          fontSize: 13,
                         ),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 12),
-                  PaymentMethodPills(
-                    selected: _method,
-                    onChanged: (m) => setState(() => _method = m),
-                  ),
-                  if (_method == PaymentMethod.split) ...[
-                    const SizedBox(height: 8),
-                    SplitAmountFields(
-                      cashController: _cashController,
-                      cardController: _cardController,
-                      split: split,
-                      totalUzs: subtotal,
-                      onChanged: () => setState(() {}),
-                    ),
-                  ],
-                  if (state.errorMessage != null) ...[
-                    const SizedBox(height: 10),
-                    Text(
-                      state.errorMessage!,
-                      style: const TextStyle(
-                        color: NocturneColors.danger,
-                        fontSize: 13,
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      height: 46,
+                      child: ElevatedButton.icon(
+                        onPressed: canCheckout
+                            ? () => context.read<PosSaleBloc>().add(
+                                PosSaleCheckoutRequested(
+                                  cashUzs: split.cashUzs,
+                                  cardUzs: split.cardUzs,
+                                ),
+                              )
+                            : null,
+                        icon: state.isCheckingOut
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(
+                                PhosphorIconsRegular.checkCircle,
+                                size: 18,
+                              ),
+                        label: Text(l10n.pay),
                       ),
                     ),
                   ],
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    height: 46,
-                    child: ElevatedButton.icon(
-                      onPressed: canCheckout
-                          ? () => context.read<PosSaleBloc>().add(
-                              PosSaleCheckoutRequested(
-                                cashUzs: split.cashUzs,
-                                cardUzs: split.cardUzs,
-                              ),
-                            )
-                          : null,
-                      icon: state.isCheckingOut
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(
-                              PhosphorIconsRegular.checkCircle,
-                              size: 18,
-                            ),
-                      label: Text(l10n.pay),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ],
-        );
-      },
+            ],
+          );
+        },
+      ),
     );
   }
 

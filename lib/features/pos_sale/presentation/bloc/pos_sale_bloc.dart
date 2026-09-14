@@ -7,6 +7,7 @@ import '../../../products/domain/product.dart';
 import '../../data/pos_sale_remote_data_source.dart';
 import '../../data/pos_sale_repository_impl.dart';
 import '../../domain/cart_line.dart';
+import '../../domain/discount.dart';
 import '../../domain/sale_receipt.dart';
 
 part 'pos_sale_event.dart';
@@ -21,6 +22,7 @@ class PosSaleBloc extends Bloc<PosSaleEvent, PosSaleState> {
     on<PosSaleQtyChanged>(_onQtyChanged);
     on<PosSaleLineRemoved>(_onLineRemoved);
     on<PosSaleCartCleared>(_onCartCleared);
+    on<PosSaleDiscountSelected>(_onDiscountSelected);
     on<PosSaleCheckoutRequested>(_onCheckoutRequested);
     on<PosSaleReceiptAcknowledged>(_onReceiptAcknowledged);
   }
@@ -33,16 +35,31 @@ class PosSaleBloc extends Bloc<PosSaleEvent, PosSaleState> {
     Emitter<PosSaleState> emit,
   ) async {
     emit(state.copyWith(isLoadingProducts: true));
-    final result = await _products.listProducts();
-    result.fold(
+    // Started concurrently — a slow/failing discount catalog must never
+    // delay showing products.
+    final productsFuture = _products.listProducts();
+    final discountsFuture = _repository.fetchDiscounts();
+    final productsResult = await productsFuture;
+    final discountsResult = await discountsFuture;
+    final discounts = discountsResult.fold(
+      (_) => const <Discount>[],
+      (list) => list,
+    );
+    productsResult.fold(
       (failure) => emit(
         state.copyWith(
           isLoadingProducts: false,
           errorMessage: _messageOf(failure),
+          discounts: discounts,
         ),
       ),
-      (products) =>
-          emit(state.copyWith(isLoadingProducts: false, products: products)),
+      (products) => emit(
+        state.copyWith(
+          isLoadingProducts: false,
+          products: products,
+          discounts: discounts,
+        ),
+      ),
     );
   }
 
@@ -87,7 +104,21 @@ class PosSaleBloc extends Bloc<PosSaleEvent, PosSaleState> {
   }
 
   void _onCartCleared(PosSaleCartCleared event, Emitter<PosSaleState> emit) {
-    emit(state.copyWith(cart: const {}));
+    // Clearing the cart drops the discount pick too — it must never survive
+    // to be silently re-applied to a brand new cart.
+    emit(state.copyWith(cart: const {}, clearSelectedDiscountId: true));
+  }
+
+  void _onDiscountSelected(
+    PosSaleDiscountSelected event,
+    Emitter<PosSaleState> emit,
+  ) {
+    emit(
+      state.copyWith(
+        selectedDiscountId: event.discountId,
+        clearSelectedDiscountId: event.discountId == null,
+      ),
+    );
   }
 
   Future<void> _onCheckoutRequested(
@@ -104,15 +135,39 @@ class PosSaleBloc extends Bloc<PosSaleEvent, PosSaleState> {
       lines: lines,
       cashUzs: event.cashUzs,
       cardUzs: event.cardUzs,
+      discountId: state.selectedDiscountId,
     );
-    result.fold(
-      (failure) => emit(
-        state.copyWith(isCheckingOut: false, errorMessage: _messageOf(failure)),
-      ),
-      (receipt) => emit(
+    await result.fold(
+      (failure) async {
+        // The picked discount was disabled/deleted between fetch and
+        // checkout — never silently charge full price. Clear the stale
+        // pick and refetch so the cashier re-selects from a fresh catalog.
+        if (failure is ServerFailure &&
+            failure.code == 'DISCOUNT_NOT_AVAILABLE') {
+          final refreshed = await _repository.fetchDiscounts();
+          emit(
+            state.copyWith(
+              isCheckingOut: false,
+              errorMessage: _messageOf(failure),
+              errorCode: failure.code,
+              clearSelectedDiscountId: true,
+              discounts: refreshed.fold((_) => state.discounts, (list) => list),
+            ),
+          );
+          return;
+        }
+        emit(
+          state.copyWith(
+            isCheckingOut: false,
+            errorMessage: _messageOf(failure),
+          ),
+        );
+      },
+      (receipt) async => emit(
         state.copyWith(
           isCheckingOut: false,
           cart: const {},
+          clearSelectedDiscountId: true,
           lastReceipt: receipt,
         ),
       ),

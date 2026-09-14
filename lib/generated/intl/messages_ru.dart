@@ -205,6 +205,10 @@ class MessageLookup extends MessageLookupByLibrary {
       "Поиск по имени или последним цифрам телефона",
     ),
     "date": MessageLookupByLibrary.simpleMessage("Дата"),
+    "discount": MessageLookupByLibrary.simpleMessage("Скидка"),
+    "discountUnavailableMessage": MessageLookupByLibrary.simpleMessage(
+      "Скидка больше недоступна — выберите заново",
+    ),
     "downgradeForbidden": MessageLookupByLibrary.simpleMessage(
       "Переход на более низкий тариф невозможен — если стикер потерян, повторно напечатайте текущий.",
     ),
@@ -263,13 +267,6 @@ class MessageLookup extends MessageLookupByLibrary {
       "Введите номер телефона для поиска клиента",
     ),
     "free": MessageLookupByLibrary.simpleMessage("Бесплатно"),
-    "freeEntryReasons": MessageLookupByLibrary.simpleMessage(
-      "Причины бесплатного входа",
-    ),
-    "freeReasonAile": MessageLookupByLibrary.simpleMessage("AILE"),
-    "freeReasonBirthday": MessageLookupByLibrary.simpleMessage("День рождения"),
-    "freeReasonDisabled": MessageLookupByLibrary.simpleMessage("Инвалидность"),
-    "freeReasonSubscription": MessageLookupByLibrary.simpleMessage("Абонемент"),
     "fullName": MessageLookupByLibrary.simpleMessage("Имя и фамилия"),
     "history30Days": MessageLookupByLibrary.simpleMessage("30 дней"),
     "history7Days": MessageLookupByLibrary.simpleMessage("7 дней"),
@@ -326,6 +323,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "minutesCount": m22,
     "newBalance": MessageLookupByLibrary.simpleMessage("Новый баланс"),
     "noChildren": MessageLookupByLibrary.simpleMessage("детей нет"),
+    "noDiscount": MessageLookupByLibrary.simpleMessage("Без скидки"),
     "noPaymentNow": MessageLookupByLibrary.simpleMessage(
       "Сейчас оплата не требуется — при выходе стоимость времени спишется с баланса.",
     ),

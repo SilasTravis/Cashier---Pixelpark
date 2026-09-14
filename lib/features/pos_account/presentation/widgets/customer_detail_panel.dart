@@ -9,14 +9,15 @@ import '../../../../core/local_source/local_source.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
 import '../../../../core/utils/currency.dart';
+import '../../../../core/widgets/discount_picker.dart';
 import '../../../../core/widgets/payment_method_selector.dart';
 import '../../../pos_sale/presentation/widgets/receipt_dialog.dart';
+import '../../../pos_sale/domain/discount.dart';
 import '../../../pos_sale/domain/sale_receipt.dart';
 import '../../../../injector_container.dart';
 import '../../../products/domain/product.dart';
 import '../../domain/active_pass.dart';
 import '../../domain/customer.dart';
-import '../../domain/free_reason.dart';
 import '../../domain/kids_plan.dart';
 import '../../domain/playing_child.dart';
 import '../../domain/pos_entry.dart';
@@ -30,15 +31,7 @@ const _quickTopupAmounts = [10000, 20000, 50000, 100000];
 
 /// Sentinel for the 3-dots menu's "Bekor qilish" item — see the
 /// PopupMenuButton note in [_ChildRow].
-const _clearFreeReason = Object();
-
-String _freeReasonLabel(AppLocalization l10n, FreeReason reason) =>
-    switch (reason) {
-      FreeReason.disabled => l10n.freeReasonDisabled,
-      FreeReason.aile => l10n.freeReasonAile,
-      FreeReason.subscription => l10n.freeReasonSubscription,
-      FreeReason.birthday => l10n.freeReasonBirthday,
-    };
+const _clearEntryDiscount = Object();
 
 /// The center pane once a customer is selected — a summary strip (back,
 /// avatar, name, balance) then two cards side by side (wrapping on narrow
@@ -54,10 +47,10 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
   final Set<String> _selectedChildIds = {};
   KidsPlan? _selectedPlan;
 
-  /// childId → why that child enters FREE (nogiron/aile/obuna) — optional,
-  /// picked from the row's 3-dots menu. Only reasons of SELECTED children
-  /// are sent with the checkout.
-  final Map<String, FreeReason> _childFreeReasons = {};
+  /// childId → an entry-scoped `Discount.id` — optional, picked from the
+  /// row's 3-dots menu. Only the picks of SELECTED children are sent with
+  /// the checkout.
+  final Map<String, String> _childEntryDiscountIds = {};
 
   /// Paid HAMROH companion stickers to buy with this checkout.
   int _companions = 0;
@@ -75,6 +68,11 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
 
   /// productId → qty of the extra goods (socks etc.) sold with this entry.
   final Map<String, int> _cart = {};
+
+  /// Applies ONLY to the goods cart above — never the VIP/plan price or the
+  /// HAMROH companion price. Reset on cart-owning context changes: customer
+  /// switch, checkout, or the server reporting it is no longer available.
+  String? _selectedDiscountId;
 
   /// "Balansdan yechish" — only offered while the balance covers the cart.
   bool _payFromBalance = true;
@@ -132,7 +130,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
   void _resetFor(Customer? customer) {
     _selectedChildIds.clear();
     _selectedPlan = null;
-    _childFreeReasons.clear();
+    _childEntryDiscountIds.clear();
     _companions = 0;
     _addingChild = false;
     _childNameController.clear();
@@ -142,6 +140,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
     _topupCashController.clear();
     _topupCardController.clear();
     _cart.clear();
+    _selectedDiscountId = null;
     _payFromBalance = true;
     _payMethod = PaymentMethod.cash;
     _payEdited = false;
@@ -232,6 +231,24 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
             );
           },
         ),
+        // The picked discount was disabled/deleted between fetch and
+        // checkout — the bloc already refetches the catalog; the local
+        // pick just needs clearing so the cashier re-selects from it.
+        BlocListener<PosAccountBloc, PosAccountState>(
+          listenWhen: (previous, current) =>
+              current.errorCode == 'DISCOUNT_NOT_AVAILABLE' &&
+              previous.errorCode != current.errorCode,
+          listener: (context, state) {
+            setState(() => _selectedDiscountId = null);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  AppLocalization.of(context).discountUnavailableMessage,
+                ),
+              ),
+            );
+          },
+        ),
       ],
       child: BlocBuilder<PosAccountBloc, PosAccountState>(
         builder: (context, state) {
@@ -257,22 +274,38 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               for (final id in _selectedChildIds)
                 if (activePlanByChild[id] == _selectedPlan!.key) id,
           };
-          // A child with a free reason (nogiron/aile/obuna) pays no VIP
-          // price — the backend issues that pass at 0.
-          final freeSelectedIds = <String>{
-            for (final id in _selectedChildIds)
-              if (_childFreeReasons.containsKey(id) &&
-                  !alreadyOnSelectedPlan.contains(id))
-                id,
-          };
+          // A child with an entry discount pays the VIP price net of it — a
+          // 100% discount (PREVIEW ONLY, same formula as the backend) zeroes
+          // it exactly like the old free-reason flow did.
+          Discount? entryDiscountFor(String childId) {
+            final id = _childEntryDiscountIds[childId];
+            if (id == null) return null;
+            return state.entryDiscounts.where((d) => d.id == id).firstOrNull;
+          }
+
           final vipTotal = _selectedPlan?.kind == KidsPlanKind.flatDay
-              ? (_selectedPlan!.flatUzs ?? 0) *
-                    (_selectedChildIds.length -
-                        alreadyOnSelectedPlan.length -
-                        freeSelectedIds.length)
+              ? _selectedChildIds
+                    .where((id) => !alreadyOnSelectedPlan.contains(id))
+                    .fold<int>(0, (sum, id) {
+                      final flat = _selectedPlan!.flatUzs ?? 0;
+                      final discount = entryDiscountFor(id);
+                      final discountUzs =
+                          discount?.appliedDiscountUzs(flat) ?? 0;
+                      return sum + (flat - discountUzs);
+                    })
               : 0;
           final companionsTotal = _companions * state.companionPriceUzs;
-          final neededTotal = cartTotal + vipTotal + companionsTotal;
+          // Discount applies ONLY to the goods cart — never to vipTotal or
+          // companionsTotal (see the design doc's decision #1 scope note).
+          final selectedDiscount = _selectedDiscountId == null
+              ? null
+              : state.discounts
+                    .where((d) => d.id == _selectedDiscountId)
+                    .firstOrNull;
+          final cartDiscountUzs =
+              selectedDiscount?.appliedDiscountUzs(cartTotal) ?? 0;
+          final netCartTotal = cartTotal - cartDiscountUzs;
+          final neededTotal = netCartTotal + vipTotal + companionsTotal;
           final shortfall = neededTotal - customer.balance;
           final balanceCovers = shortfall <= 0;
           // Money must be collected when the balance can't cover the total,
@@ -361,14 +394,16 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                         onRenameChild: (id, name) => context
                             .read<PosAccountBloc>()
                             .add(PosAccountChildNameUpdateRequested(id, name)),
-                        childFreeReasons: _childFreeReasons,
-                        onChildFreeReasonChanged: (id, reason) => setState(() {
-                          if (reason == null) {
-                            _childFreeReasons.remove(id);
-                          } else {
-                            _childFreeReasons[id] = reason;
-                          }
-                        }),
+                        entryDiscounts: state.entryDiscounts,
+                        childEntryDiscountIds: _childEntryDiscountIds,
+                        onChildEntryDiscountChanged: (id, discountId) =>
+                            setState(() {
+                              if (discountId == null) {
+                                _childEntryDiscountIds.remove(id);
+                              } else {
+                                _childEntryDiscountIds[id] = discountId;
+                              }
+                            }),
                         addingChild: _addingChild,
                         onStartAddChild: () =>
                             setState(() => _addingChild = true),
@@ -395,9 +430,22 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                         selectedPlan: _selectedPlan,
                         onSelectPlan: (p) => setState(() => _selectedPlan = p),
                         checkout: _CheckoutSection(
-                          products: state.products,
+                          // Products are sold from the dedicated "Savdo" tab
+                          // only — never shown/sellable from this per-child
+                          // plan-entry checkout. Passing an empty list (not
+                          // touching `_CheckoutSection` itself) keeps every
+                          // downstream total/discount/payment computation
+                          // working exactly as it already does for an empty
+                          // cart, so nothing else changes.
+                          products: const [],
                           cart: _cart,
                           cartTotal: cartTotal,
+                          discounts: state.discounts,
+                          selectedDiscount: selectedDiscount,
+                          cartDiscountUzs: cartDiscountUzs,
+                          onDiscountChanged: (discount) => setState(
+                            () => _selectedDiscountId = discount?.id,
+                          ),
                           vipTotal: vipTotal,
                           companions: _companions,
                           companionPriceUzs: state.companionPriceUzs,
@@ -457,10 +505,11 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                               planKey: _selectedPlan!.key,
                               childIds: _selectedChildIds.toList(),
                               withParentQr: _printParentQr,
-                              freeReasons: {
-                                for (final entry in _childFreeReasons.entries)
+                              entryDiscounts: {
+                                for (final entry
+                                    in _childEntryDiscountIds.entries)
                                   if (_selectedChildIds.contains(entry.key))
-                                    entry.key: entry.value.key,
+                                    entry.key: entry.value,
                               },
                               companions: _companions,
                               products: [
@@ -473,6 +522,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                               cardUzs: requiredPayment == 0
                                   ? 0
                                   : paySplit.cardUzs,
+                              discountId: _selectedDiscountId,
                             ),
                           ),
                         ),
@@ -874,8 +924,9 @@ class _ChildrenCard extends StatelessWidget {
     required this.selectedChildIds,
     required this.onToggleChild,
     required this.onRenameChild,
-    required this.childFreeReasons,
-    required this.onChildFreeReasonChanged,
+    required this.entryDiscounts,
+    required this.childEntryDiscountIds,
+    required this.onChildEntryDiscountChanged,
     required this.addingChild,
     required this.onStartAddChild,
     required this.onCancelAddChild,
@@ -901,11 +952,15 @@ class _ChildrenCard extends StatelessWidget {
   final ValueChanged<String> onToggleChild;
   final void Function(String childId, String fullName) onRenameChild;
 
-  /// Optional per-child free-entry reason picked from the row's 3-dots menu
-  /// — null reason in the callback clears the child's pick.
-  final Map<String, FreeReason> childFreeReasons;
-  final void Function(String childId, FreeReason? reason)
-  onChildFreeReasonChanged;
+  /// Active ENTRY-scoped discount catalog — the row's 3-dots menu picks
+  /// from this list; empty hides the menu (best-effort catalog fetch).
+  final List<Discount> entryDiscounts;
+
+  /// Optional per-child entry discount picked from the row's 3-dots menu —
+  /// null discountId in the callback clears the child's pick.
+  final Map<String, String> childEntryDiscountIds;
+  final void Function(String childId, String? discountId)
+  onChildEntryDiscountChanged;
   final bool addingChild;
   final VoidCallback onStartAddChild;
   final VoidCallback onCancelAddChild;
@@ -958,9 +1013,10 @@ class _ChildrenCard extends StatelessWidget {
                 selected: selectedChildIds.contains(child.id),
                 onToggle: () => onToggleChild(child.id),
                 onRename: (name) => onRenameChild(child.id, name),
-                freeReason: childFreeReasons[child.id],
-                onFreeReasonChanged: (reason) =>
-                    onChildFreeReasonChanged(child.id, reason),
+                entryDiscounts: entryDiscounts,
+                selectedDiscountId: childEntryDiscountIds[child.id],
+                onEntryDiscountChanged: (discountId) =>
+                    onChildEntryDiscountChanged(child.id, discountId),
               ),
             ),
           if (!addingChild)
@@ -1099,6 +1155,10 @@ class _CheckoutSection extends StatelessWidget {
     required this.products,
     required this.cart,
     required this.cartTotal,
+    required this.discounts,
+    required this.selectedDiscount,
+    required this.cartDiscountUzs,
+    required this.onDiscountChanged,
     required this.vipTotal,
     required this.companions,
     required this.companionPriceUzs,
@@ -1135,6 +1195,19 @@ class _CheckoutSection extends StatelessWidget {
   final List<Product> products;
   final Map<String, int> cart;
   final int cartTotal;
+
+  /// Active discount catalog — empty hides the picker entirely (best-effort
+  /// fetch, same contract as `products`/`plans`).
+  final List<Discount> discounts;
+
+  /// The cashier's pick, scoped to THIS cart only — never applied to
+  /// [vipTotal] or [companionsTotal].
+  final Discount? selectedDiscount;
+
+  /// PREVIEW ONLY (see `Discount.appliedDiscountUzs`) — how much of
+  /// [cartTotal] the pick above takes off.
+  final int cartDiscountUzs;
+  final ValueChanged<Discount?> onDiscountChanged;
 
   /// VIP flat price × newly-covered children — debited from the balance
   /// the moment the stickers print. 0 for Standard. Children with a
@@ -1204,6 +1277,28 @@ class _CheckoutSection extends StatelessWidget {
                 ),
             ],
           ),
+        ],
+        if (discounts.isNotEmpty && cart.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Text(
+                l10n.discount,
+                style: AppTextStyles.body.copyWith(fontSize: 12),
+              ),
+              const Spacer(),
+              DiscountPicker(
+                discounts: discounts,
+                selectedDiscount: selectedDiscount,
+                onChanged: onDiscountChanged,
+              ),
+            ],
+          ),
+          if (selectedDiscount != null && cartDiscountUzs > 0)
+            DiscountSummaryRow(
+              name: selectedDiscount!.name,
+              amountUzs: cartDiscountUzs,
+            ),
         ],
         const SizedBox(height: 10),
         // Paid HAMROH companion sticker — parent-QR door semantics, minted
@@ -1281,16 +1376,22 @@ class _CheckoutSection extends StatelessWidget {
               ).copyWith(fontSize: 11),
             ),
           ),
-        if (neededTotal > 0) ...[
+        if (neededTotal > 0 || cartDiscountUzs > 0) ...[
           const SizedBox(height: 12),
           if ([
-                cartTotal,
-                vipTotal,
-                companionsTotal,
-              ].where((amount) => amount > 0).length >
-              1) ...[
+                    cartTotal,
+                    vipTotal,
+                    companionsTotal,
+                  ].where((amount) => amount > 0).length >
+                  1 ||
+              cartDiscountUzs > 0) ...[
             if (cartTotal > 0)
               _TotalRow(label: l10n.products, amount: cartTotal),
+            if (cartDiscountUzs > 0)
+              _TotalRow(
+                label: '${l10n.discount} (${selectedDiscount!.name})',
+                amount: -cartDiscountUzs,
+              ),
             if (vipTotal > 0)
               _TotalRow(label: l10n.vipTariff, amount: vipTotal),
             if (companionsTotal > 0)
@@ -1702,8 +1803,9 @@ class _ChildRow extends StatelessWidget {
     required this.selected,
     required this.onToggle,
     required this.onRename,
-    required this.freeReason,
-    required this.onFreeReasonChanged,
+    required this.entryDiscounts,
+    required this.selectedDiscountId,
+    required this.onEntryDiscountChanged,
   });
 
   final Child child;
@@ -1716,14 +1818,21 @@ class _ChildRow extends StatelessWidget {
   final VoidCallback onToggle;
   final ValueChanged<String> onRename;
 
-  /// This checkout's free-entry pick for the child, or null (bills
+  /// Active ENTRY-scoped discount catalog — the menu below picks from this
+  /// list instead of the old hardcoded `FreeReason` enum.
+  final List<Discount> entryDiscounts;
+
+  /// This checkout's entry-discount pick for the child, or null (bills
   /// normally). Chosen from the 3-dots menu; null in the callback clears.
-  final FreeReason? freeReason;
-  final ValueChanged<FreeReason?> onFreeReasonChanged;
+  final String? selectedDiscountId;
+  final ValueChanged<String?> onEntryDiscountChanged;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalization.of(context);
+    final selectedDiscount = selectedDiscountId == null
+        ? null
+        : entryDiscounts.where((d) => d.id == selectedDiscountId).firstOrNull;
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
       decoration: BoxDecoration(
@@ -1742,7 +1851,7 @@ class _ChildRow extends StatelessWidget {
               onSave: onRename,
             ),
           ),
-          if (freeReason != null) ...[
+          if (selectedDiscount != null) ...[
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
@@ -1751,7 +1860,7 @@ class _ChildRow extends StatelessWidget {
                 border: Border.all(color: NocturneColors.accent),
               ),
               child: Text(
-                '${l10n.free} · ${_freeReasonLabel(l10n, freeReason!)}',
+                '${l10n.discount}: ${selectedDiscount.name}',
                 style: AppTextStyles.body.copyWith(
                   fontSize: 11,
                   color: NocturneColors.accent,
@@ -1768,8 +1877,7 @@ class _ChildRow extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
               child: Text(
-                '${activePass!.planLabel} · '
-                '${activePass!.freeReason != null ? l10n.free : formatUzs(activePass!.dueTodayUzs)}',
+                '${activePass!.planLabel} · ${_activePassBadge(l10n, activePass!)}',
                 style: AppTextStyles.body.copyWith(
                   fontSize: 11,
                   color: NocturneColors.accent300,
@@ -1799,77 +1907,84 @@ class _ChildRow extends StatelessWidget {
               label: const Text('QR'),
             ),
           ),
-          const SizedBox(width: 4),
-          // `Object` values: a null-valued PopupMenuItem never reaches
-          // onSelected (Flutter reads it as a cancel), so clearing uses the
-          // `_clearFreeReason` sentinel instead.
-          PopupMenuButton<Object>(
-            tooltip: l10n.freeEntryReasons,
-            icon: const Icon(
-              PhosphorIconsRegular.dotsThreeVertical,
-              size: 18,
-              color: NocturneColors.text,
-            ),
-            color: NocturneColors.surface,
-            onSelected: (value) =>
-                onFreeReasonChanged(value is FreeReason ? value : null),
-            itemBuilder: (context) => [
-              for (final reason in FreeReason.values)
-                PopupMenuItem<Object>(
-                  value: reason,
-                  child: Row(
-                    children: [
-                      Icon(
-                        freeReason == reason
-                            ? PhosphorIconsRegular.checkCircle
-                            : PhosphorIconsRegular.circle,
-                        size: 16,
-                        color: freeReason == reason
-                            ? NocturneColors.accent
-                            : NocturneColors.text,
-                      ),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '${_freeReasonLabel(l10n, reason)} (${l10n.free.toLowerCase()})',
-                              style: AppTextStyles.body.copyWith(fontSize: 13),
-                            ),
-                          ],
+          if (entryDiscounts.isNotEmpty || selectedDiscountId != null) ...[
+            const SizedBox(width: 4),
+            // `Object` values: a null-valued PopupMenuItem never reaches
+            // onSelected (Flutter reads it as a cancel), so clearing uses
+            // the `_clearEntryDiscount` sentinel instead.
+            PopupMenuButton<Object>(
+              tooltip: l10n.discount,
+              icon: const Icon(
+                PhosphorIconsRegular.dotsThreeVertical,
+                size: 18,
+                color: NocturneColors.text,
+              ),
+              color: NocturneColors.surface,
+              onSelected: (value) =>
+                  onEntryDiscountChanged(value is Discount ? value.id : null),
+              itemBuilder: (context) => [
+                for (final discount in entryDiscounts)
+                  PopupMenuItem<Object>(
+                    value: discount,
+                    child: Row(
+                      children: [
+                        Icon(
+                          selectedDiscountId == discount.id
+                              ? PhosphorIconsRegular.checkCircle
+                              : PhosphorIconsRegular.circle,
+                          size: 16,
+                          color: selectedDiscountId == discount.id
+                              ? NocturneColors.accent
+                              : NocturneColors.text,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            '${discount.name} '
+                            '(${discount.kind == DiscountKind.percent ? '${discount.value}%' : formatUzs(discount.value)})',
+                            style: AppTextStyles.body.copyWith(fontSize: 13),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              if (freeReason != null)
-                PopupMenuItem<Object>(
-                  value: _clearFreeReason,
-                  child: Row(
-                    children: [
-                      const Icon(
-                        PhosphorIconsRegular.x,
-                        size: 16,
-                        color: NocturneColors.danger,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        l10n.cancel,
-                        style: AppTextStyles.body.copyWith(
-                          fontSize: 13,
+                if (selectedDiscountId != null)
+                  PopupMenuItem<Object>(
+                    value: _clearEntryDiscount,
+                    child: Row(
+                      children: [
+                        const Icon(
+                          PhosphorIconsRegular.x,
+                          size: 16,
                           color: NocturneColors.danger,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 8),
+                        Text(
+                          l10n.cancel,
+                          style: AppTextStyles.body.copyWith(
+                            fontSize: 13,
+                            color: NocturneColors.danger,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-            ],
-          ),
+              ],
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  /// LEGACY passes show the raw free-reason label; new passes show the
+  /// discount name when fully free, or the running due amount otherwise (a
+  /// partial discount is already netted into `dueTodayUzs` server-side).
+  String _activePassBadge(AppLocalization l10n, ActivePass pass) {
+    if (pass.freeReason != null) return l10n.free;
+    if (pass.dueTodayUzs == 0 && pass.discountName != null) return l10n.free;
+    return formatUzs(pass.dueTodayUzs);
   }
 }
 

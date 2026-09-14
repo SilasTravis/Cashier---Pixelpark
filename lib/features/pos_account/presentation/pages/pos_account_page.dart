@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/nocturne_colors.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../injector_container.dart';
+import '../../../pos_sale/domain/discount.dart';
 import '../bloc/pos_account_bloc.dart';
 import '../widgets/customer_detail_panel.dart';
 import '../widgets/customer_results_list.dart';
@@ -32,7 +33,11 @@ class PosAccountPage extends StatelessWidget {
           ..add(const PosAccountRecentCustomersRequested())
           ..add(const PosAccountPlansRequested())
           ..add(const PosAccountProductsRequested())
-          ..add(const PosAccountConfigRequested());
+          ..add(const PosAccountConfigRequested())
+          ..add(const PosAccountDiscountsRequested())
+          ..add(
+            const PosAccountDiscountsRequested(scope: DiscountScope.entry),
+          );
         if (initialCustomer != null) {
           bloc.add(PosAccountCustomerSelected(initialCustomer!));
         }

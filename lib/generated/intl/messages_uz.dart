@@ -198,6 +198,10 @@ class MessageLookup extends MessageLookupByLibrary {
       "Ism yoki telefonning oxirgi raqamlari bo‘yicha qidiring",
     ),
     "date": MessageLookupByLibrary.simpleMessage("Sana"),
+    "discount": MessageLookupByLibrary.simpleMessage("Chegirma"),
+    "discountUnavailableMessage": MessageLookupByLibrary.simpleMessage(
+      "Chegirma endi mavjud emas — qayta tanlang",
+    ),
     "downgradeForbidden": MessageLookupByLibrary.simpleMessage(
       "Bu rejadan pasaytirish mumkin emas — stiker yo‘qolgan bo‘lsa, mavjud rejani qayta chop eting.",
     ),
@@ -250,13 +254,6 @@ class MessageLookup extends MessageLookupByLibrary {
       "Mijozni topish uchun telefon raqamini kiriting",
     ),
     "free": MessageLookupByLibrary.simpleMessage("Bepul"),
-    "freeEntryReasons": MessageLookupByLibrary.simpleMessage(
-      "Bepul kirish sabablari",
-    ),
-    "freeReasonAile": MessageLookupByLibrary.simpleMessage("AILE"),
-    "freeReasonBirthday": MessageLookupByLibrary.simpleMessage("Tug‘ilgan kun"),
-    "freeReasonDisabled": MessageLookupByLibrary.simpleMessage("Nogiron"),
-    "freeReasonSubscription": MessageLookupByLibrary.simpleMessage("Obuna"),
     "fullName": MessageLookupByLibrary.simpleMessage("Ism familiya"),
     "history30Days": MessageLookupByLibrary.simpleMessage("30 kun"),
     "history7Days": MessageLookupByLibrary.simpleMessage("7 kun"),
@@ -317,6 +314,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "minutesCount": m22,
     "newBalance": MessageLookupByLibrary.simpleMessage("Yangi balans"),
     "noChildren": MessageLookupByLibrary.simpleMessage("farzand yo‘q"),
+    "noDiscount": MessageLookupByLibrary.simpleMessage("Chegirmasiz"),
     "noPaymentNow": MessageLookupByLibrary.simpleMessage(
       "Hozir hech narsa to‘lanmaydi — chiqishda balansdan vaqtiga qarab yechiladi.",
     ),

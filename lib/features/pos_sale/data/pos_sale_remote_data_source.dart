@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../../../core/error/exceptions.dart';
+import '../domain/discount.dart';
 import '../domain/sale_receipt.dart';
 
 class CheckoutLine {
@@ -15,7 +16,13 @@ abstract class PosSaleRemoteDataSource {
     required List<CheckoutLine> lines,
     required int cashUzs,
     required int cardUzs,
+    String? discountId,
   });
+
+  /// Active discount catalog — best-effort at the call site: an older
+  /// backend or a transient failure just hides the picker, it never blocks
+  /// checkout.
+  Future<List<Discount>> fetchDiscounts();
 }
 
 class PosSaleRemoteDataSourceImpl implements PosSaleRemoteDataSource {
@@ -28,6 +35,7 @@ class PosSaleRemoteDataSourceImpl implements PosSaleRemoteDataSource {
     required List<CheckoutLine> lines,
     required int cashUzs,
     required int cardUzs,
+    String? discountId,
   }) async {
     try {
       final response = await dio.post(
@@ -39,10 +47,13 @@ class PosSaleRemoteDataSourceImpl implements PosSaleRemoteDataSource {
           ],
           'cashUzs': cashUzs,
           'cardUzs': cardUzs,
+          // Omitted (never sent as null) when no discount is selected —
+          // same forward-compat convention as `entryDiscounts`.
+          'discountId': ?discountId,
         },
       );
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return _receiptFromJson(response.data as Map<String, dynamic>);
+        return SaleReceipt.fromJson(response.data as Map<String, dynamic>);
       }
       throw ServerException.fromJson(response.data);
     } on DioException catch (e) {
@@ -50,27 +61,15 @@ class PosSaleRemoteDataSourceImpl implements PosSaleRemoteDataSource {
     }
   }
 
-  SaleReceipt _receiptFromJson(Map<String, dynamic> json) {
-    return SaleReceipt(
-      id: json['id'] as String,
-      subtotalUzs: json['subtotalUzs'] as int,
-      cashUzs: json['cashUzs'] as int,
-      cardUzs: json['cardUzs'] as int,
-      balanceUzs: (json['balanceUzs'] as int?) ?? 0,
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      items: (json['items'] as List)
-          .map((item) => _itemFromJson(item as Map<String, dynamic>))
-          .toList(),
-    );
-  }
-
-  SaleReceiptItem _itemFromJson(Map<String, dynamic> json) {
-    return SaleReceiptItem(
-      productId: json['productId'] as String,
-      nameSnapshot: json['nameSnapshot'] as String,
-      priceSnapshotUzs: json['priceSnapshotUzs'] as int,
-      qty: json['qty'] as int,
-      lineTotalUzs: json['lineTotalUzs'] as int,
-    );
+  @override
+  Future<List<Discount>> fetchDiscounts() async {
+    try {
+      final response = await dio.get('/v1/pos/discounts');
+      return (response.data as List)
+          .map((json) => Discount.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      throw ServerException.fromJson(e.response?.data);
+    }
   }
 }

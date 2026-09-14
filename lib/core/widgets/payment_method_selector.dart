@@ -36,9 +36,15 @@ class PaymentSplit {
     required int totalUzs,
     required String cashInput,
     String cardInput = '',
+    // A 100%-off discount is a valid, zero-total sale (see the POS
+    // discounts design doc's "zero-total sales" decision) — the caller
+    // opts in only when a discount is actually selected, so a genuinely
+    // empty cart's zero total stays invalid.
+    bool allowZeroTotal = false,
   }) {
     if (totalUzs <= 0) {
-      return const PaymentSplit(cashUzs: 0, cardUzs: 0, isValid: false);
+      final zeroIsValid = allowZeroTotal && totalUzs == 0;
+      return PaymentSplit(cashUzs: 0, cardUzs: 0, isValid: zeroIsValid);
     }
     switch (method) {
       case PaymentMethod.cash:

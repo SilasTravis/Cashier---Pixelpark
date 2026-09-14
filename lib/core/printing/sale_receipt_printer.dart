@@ -79,8 +79,16 @@ class SaleReceiptPrinter {
     final items = receipt.items
         .where((item) => !_isGateTicket(item.nameSnapshot))
         .toList();
-    final subtotal = items.fold<int>(0, (sum, item) => sum + item.lineTotalUzs);
-    final payment = _paymentForPrintedProducts(receipt, subtotal);
+    final grossOfPrinted = items.fold<int>(
+      0,
+      (sum, item) => sum + item.lineTotalUzs,
+    );
+    // The discount is sale-level, not per line — clamp defensively so a
+    // partially-printed item set (gate tickets stripped above) never goes
+    // negative even though goods-only sales never actually mix the two.
+    final discountUzs = receipt.discountUzs.clamp(0, grossOfPrinted);
+    final netOfPrinted = grossOfPrinted - discountUzs;
+    final payment = _paymentForPrintedProducts(receipt, netOfPrinted);
     final document = pw.Document();
     final pageFormat = PdfPageFormat(
       _paperWidthMm * PdfPageFormat.mm,
@@ -139,7 +147,14 @@ class SaleReceiptPrinter {
                   pw.SizedBox(height: 4),
                 ],
                 pw.Divider(borderStyle: pw.BorderStyle.dashed),
-                _textRow('JAMI', _money(subtotal), bold, fontSize: 12),
+                if (discountUzs > 0)
+                  _textRow(
+                    'Chegirma'
+                        '${receipt.discount != null ? ' (${receipt.discount!.name})' : ''}',
+                    '-${_money(discountUzs)}',
+                    regular,
+                  ),
+                _textRow('JAMI', _money(netOfPrinted), bold, fontSize: 12),
                 if (payment.cashUzs > 0)
                   _textRow('Naqd', _money(payment.cashUzs), regular),
                 if (payment.cardUzs > 0)
@@ -229,6 +244,7 @@ class SaleReceiptPrinter {
     if (receipt.cashUzs > 0) height += 5;
     if (receipt.cardUzs > 0) height += 5;
     if (receipt.balanceUzs > 0) height += 5;
+    if (receipt.discountUzs > 0) height += 5;
     return height.clamp(105, 280).toDouble();
   }
 

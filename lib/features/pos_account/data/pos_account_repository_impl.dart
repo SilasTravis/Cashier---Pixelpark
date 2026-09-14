@@ -3,6 +3,7 @@ import 'package:dartz/dartz.dart';
 import '../../../core/error/exceptions.dart';
 import '../../../core/error/failure.dart';
 import '../../products/domain/product.dart';
+import '../../pos_sale/domain/discount.dart';
 import '../domain/active_pass.dart';
 import '../domain/customer.dart';
 import '../domain/kids_plan.dart';
@@ -113,8 +114,9 @@ class PosAccountRepository {
     required List<CheckoutLine> products,
     required int cashUzs,
     required int cardUzs,
-    Map<String, String> freeReasons = const {},
+    Map<String, String> entryDiscounts = const {},
     int companions = 0,
+    String? discountId,
   }) => _call(
     () => remote.planEntryCheckout(
       customerId: customerId,
@@ -123,13 +125,18 @@ class PosAccountRepository {
       products: products,
       cashUzs: cashUzs,
       cardUzs: cardUzs,
-      freeReasons: freeReasons,
+      entryDiscounts: entryDiscounts,
       companions: companions,
+      discountId: discountId,
     ),
   );
 
   Future<Either<Failure, int>> fetchCompanionPriceUzs() =>
       _call(() => remote.fetchCompanionPriceUzs());
+
+  Future<Either<Failure, List<Discount>>> fetchDiscounts({
+    DiscountScope scope = DiscountScope.goods,
+  }) => _call(() => remote.fetchDiscounts(scope: scope));
 
   Future<Either<Failure, T>> _call<T>(Future<T> Function() call) async {
     try {
