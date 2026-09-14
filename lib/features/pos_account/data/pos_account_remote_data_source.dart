@@ -336,6 +336,8 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
       enteredAt: DateTime.parse(json['enteredAt'] as String).toLocal(),
       minutes: json['minutes'] as int,
       dueUzs: json['dueUzs'] as int,
+      discountId: json['discountId'] as String?,
+      discountName: json['discountName'] as String?,
     );
   }
 
