@@ -2348,6 +2348,291 @@ class AppLocalization {
       args: [],
     );
   }
+
+  /// `No internet connection`
+  String get offlinePromptTitle {
+    return Intl.message(
+      'No internet connection',
+      name: 'offlinePromptTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The connection to the server was lost. Switch to offline mode and keep selling? Sales are saved on this till and sent to the server when the internet is back.`
+  String get offlinePromptBody {
+    return Intl.message(
+      'The connection to the server was lost. Switch to offline mode and keep selling? Sales are saved on this till and sent to the server when the internet is back.',
+      name: 'offlinePromptBody',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Yes, go offline`
+  String get offlinePromptAccept {
+    return Intl.message(
+      'Yes, go offline',
+      name: 'offlinePromptAccept',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No`
+  String get offlinePromptDecline {
+    return Intl.message('No', name: 'offlinePromptDecline', desc: '', args: []);
+  }
+
+  /// `Internet is back`
+  String get onlinePromptTitle {
+    return Intl.message(
+      'Internet is back',
+      name: 'onlinePromptTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Switch to online mode and sync {count} sales?`
+  String onlinePromptBody(int count) {
+    return Intl.message(
+      'Switch to online mode and sync $count sales?',
+      name: 'onlinePromptBody',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `Yes, sync`
+  String get onlinePromptAccept {
+    return Intl.message(
+      'Yes, sync',
+      name: 'onlinePromptAccept',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Later`
+  String get onlinePromptLater {
+    return Intl.message('Later', name: 'onlinePromptLater', desc: '', args: []);
+  }
+
+  /// `OFFLINE · {count} sales waiting`
+  String offlineBanner(int count) {
+    return Intl.message(
+      'OFFLINE · $count sales waiting',
+      name: 'offlineBanner',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `Syncing…`
+  String get offlineBannerSyncing {
+    return Intl.message(
+      'Syncing…',
+      name: 'offlineBannerSyncing',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Check connection`
+  String get checkOnline {
+    return Intl.message(
+      'Check connection',
+      name: 'checkOnline',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Still no internet`
+  String get stillOffline {
+    return Intl.message(
+      'Still no internet',
+      name: 'stillOffline',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Sync result`
+  String get syncResultTitle {
+    return Intl.message(
+      'Sync result',
+      name: 'syncResultTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{synced} sales synced, {failed} failed.`
+  String syncResultBody(int synced, int failed) {
+    return Intl.message(
+      '$synced sales synced, $failed failed.',
+      name: 'syncResultBody',
+      desc: '',
+      args: [synced, failed],
+    );
+  }
+
+  /// `Could not sync: {reason}. Staying offline.`
+  String syncTransportFailed(String reason) {
+    return Intl.message(
+      'Could not sync: $reason. Staying offline.',
+      name: 'syncTransportFailed',
+      desc: '',
+      args: [reason],
+    );
+  }
+
+  /// `View`
+  String get syncViewFailures {
+    return Intl.message('View', name: 'syncViewFailures', desc: '', args: []);
+  }
+
+  /// `Needs internet`
+  String get needsInternet {
+    return Intl.message(
+      'Needs internet',
+      name: 'needsInternet',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Unsynced`
+  String get tabUnsynced {
+    return Intl.message('Unsynced', name: 'tabUnsynced', desc: '', args: []);
+  }
+
+  /// `All sales are synced`
+  String get unsyncedEmpty {
+    return Intl.message(
+      'All sales are synced',
+      name: 'unsyncedEmpty',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `For a failed sale, call support and read them the code.`
+  String get unsyncedHint {
+    return Intl.message(
+      'For a failed sale, call support and read them the code.',
+      name: 'unsyncedHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Waiting`
+  String get unsyncedPending {
+    return Intl.message('Waiting', name: 'unsyncedPending', desc: '', args: []);
+  }
+
+  /// `Failed`
+  String get unsyncedFailed {
+    return Intl.message('Failed', name: 'unsyncedFailed', desc: '', args: []);
+  }
+
+  /// `Code: {code}`
+  String unsyncedSupportCode(String code) {
+    return Intl.message(
+      'Code: $code',
+      name: 'unsyncedSupportCode',
+      desc: '',
+      args: [code],
+    );
+  }
+
+  /// `Code copied`
+  String get unsyncedCodeCopied {
+    return Intl.message(
+      'Code copied',
+      name: 'unsyncedCodeCopied',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Retry`
+  String get unsyncedRetry {
+    return Intl.message('Retry', name: 'unsyncedRetry', desc: '', args: []);
+  }
+
+  /// `Resend all`
+  String get unsyncedRetryAll {
+    return Intl.message(
+      'Resend all',
+      name: 'unsyncedRetryAll',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Switch to online mode to resend`
+  String get unsyncedRetryNeedsOnline {
+    return Intl.message(
+      'Switch to online mode to resend',
+      name: 'unsyncedRetryNeedsOnline',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Not synced`
+  String get notSyncedBadge {
+    return Intl.message(
+      'Not synced',
+      name: 'notSyncedBadge',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Offline mode: only sales not yet synced are shown`
+  String get historyOfflineNotice {
+    return Intl.message(
+      'Offline mode: only sales not yet synced are shown',
+      name: 'historyOfflineNotice',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{count} sales are not synced. Sync them in online mode before signing out.`
+  String logoutBlockedUnsynced(int count) {
+    return Intl.message(
+      '$count sales are not synced. Sync them in online mode before signing out.',
+      name: 'logoutBlockedUnsynced',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `{count} sales failed to sync. Contact support before closing the shift.`
+  String closeShiftUnsyncedWarning(int count) {
+    return Intl.message(
+      '$count sales failed to sync. Contact support before closing the shift.',
+      name: 'closeShiftUnsyncedWarning',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `A shift can't be closed in offline mode`
+  String get closeShiftOffline {
+    return Intl.message(
+      'A shift can\'t be closed in offline mode',
+      name: 'closeShiftOffline',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalization> {

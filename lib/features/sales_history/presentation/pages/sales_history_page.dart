@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:phosphor_icons/phosphor_icons.dart';
 
+import '../../../../core/local_source/local_source.dart';
+import '../../../../core/offline/app_mode_cubit.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
 import '../../../../core/utils/currency.dart';
@@ -10,6 +12,8 @@ import '../../../../core/utils/receipt_id.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../injector_container.dart';
 import '../../../../generated/l10n.dart';
+import '../../../offline/data/offline_store.dart';
+import '../../../offline/presentation/widgets/offline_history_section.dart';
 import '../../domain/sale_history.dart';
 import '../../../pos_account/domain/customer.dart';
 import '../bloc/sales_history_bloc.dart';
@@ -24,7 +28,7 @@ class SalesHistoryPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => BlocProvider(
     create: (_) => sl<SalesHistoryBloc>()..add(const SalesHistoryStarted()),
-    child: _SalesHistoryView(onOpenCustomer: onOpenCustomer),
+    child: _OfflineAwareHistory(onOpenCustomer: onOpenCustomer),
   );
 }
 
@@ -964,4 +968,52 @@ class _DetailRow extends StatelessWidget {
       ],
     ),
   );
+}
+
+/// Offline: only the queued sales (server history can't load). Online: the
+/// queued ones on top, then server history as before.
+class _OfflineAwareHistory extends StatelessWidget {
+  const _OfflineAwareHistory({required this.onOpenCustomer});
+
+  final ValueChanged<Customer> onOpenCustomer;
+
+  @override
+  Widget build(BuildContext context) {
+    final store = sl<OfflineStore>();
+    final cashierId = sl<LocalSource>().getCashierId();
+    return BlocBuilder<AppModeCubit, AppModeState>(
+      buildWhen: (previous, current) => previous.isOffline != current.isOffline,
+      builder: (context, mode) {
+        if (mode.isOffline) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: Text(
+                  AppLocalization.of(context).historyOfflineNotice,
+                  style: AppTextStyles.body.copyWith(
+                    color: NocturneColors.warning,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: OfflineHistorySection(
+                  store: store,
+                  cashierId: cashierId,
+                  expand: true,
+                ),
+              ),
+            ],
+          );
+        }
+        return Column(
+          children: [
+            OfflineHistorySection(store: store, cashierId: cashierId),
+            Expanded(child: _SalesHistoryView(onOpenCustomer: onOpenCustomer)),
+          ],
+        );
+      },
+    );
+  }
 }

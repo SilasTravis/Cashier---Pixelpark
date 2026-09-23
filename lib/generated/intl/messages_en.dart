@@ -32,84 +32,101 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m4(count) => "${count} children";
 
-  static String m5(price) => "${price} each — unrestricted like parent QR";
+  static String m5(count) =>
+      "${count} sales failed to sync. Contact support before closing the shift.";
 
-  static String m6(amount, from, to) => "${amount}: ${from} → ${to}";
+  static String m6(price) => "${price} each — unrestricted like parent QR";
 
-  static String m7(amount, from, to) =>
+  static String m7(amount, from, to) => "${amount}: ${from} → ${to}";
+
+  static String m8(amount, from, to) =>
       "${amount} moves from ${from} to ${to}. The change is kept in the audit history.";
 
-  static String m8(cash, card) => "Result: cash ${cash}, card ${card}";
+  static String m9(cash, card) => "Result: cash ${cash}, card ${card}";
 
-  static String m9(value) => "Current balance: ${value}";
+  static String m10(value) => "Current balance: ${value}";
 
-  static String m10(child, plan, inside) =>
+  static String m11(child, plan, inside) =>
       "«${child}» is on the «${plan}» tariff today${inside}.";
 
-  static String m11(count) => "${count} customers";
+  static String m12(count) => "${count} customers";
 
-  static String m12(cash, card) => "Now: ${cash} cash + ${card} card";
+  static String m13(cash, card) => "Now: ${cash} cash + ${card} card";
 
-  static String m13(amount, from, to) =>
+  static String m14(amount, from, to) =>
       "${amount} moves from ${from} to ${to}";
 
-  static String m14(amount, method) =>
+  static String m15(amount, method) =>
       "${amount} is handed back to the customer in ${method}";
 
-  static String m15(count) => "Enter (${count})";
+  static String m16(count) => "Enter (${count})";
 
-  static String m16(plan, time, minutes) =>
+  static String m17(plan, time, minutes) =>
       "${plan} · entered ${time} · ${minutes} min";
 
-  static String m17(message) => "Failed to enter: ${message}";
+  static String m18(message) => "Failed to enter: ${message}";
 
-  static String m18(value) =>
+  static String m19(value) =>
       "Insufficient balance — top up at least ${value} to exit.";
 
-  static String m19(count) => "${count}";
+  static String m20(count) => "${count}";
 
-  static String m20(count) => "Inside: ${count}";
+  static String m21(count) => "Inside: ${count}";
 
-  static String m21(child, amount) =>
+  static String m22(count) =>
+      "${count} sales are not synced. Sync them in online mode before signing out.";
+
+  static String m23(child, amount) =>
       "${child} will be marked as exited now. The visit will close at ${amount} and be debited from the parent\'s balance. Continue?";
 
-  static String m22(count) => "${count} min";
+  static String m24(count) => "${count} min";
 
-  static String m23(value) => "Balance: ${value}";
+  static String m25(count) => "OFFLINE · ${count} sales waiting";
 
-  static String m24(value) => "Card: ${value}";
+  static String m26(count) => "Switch to online mode and sync ${count} sales?";
 
-  static String m25(value) => "Cash: ${value}";
+  static String m27(value) => "Balance: ${value}";
 
-  static String m26(value) =>
+  static String m28(value) => "Card: ${value}";
+
+  static String m29(value) => "Cash: ${value}";
+
+  static String m30(value) =>
       "At least ${value} — excess remains on the balance";
 
-  static String m27(plan) =>
+  static String m31(plan) =>
       "Switch to the «${plan}» tariff? The old sticker will be cancelled and a new QR printed.";
 
-  static String m28(plan, price) =>
+  static String m32(plan, price) =>
       "Switch to the «${plan}» tariff? The ${plan} price (${price}) will be debited immediately. The old sticker will be cancelled and a new QR printed.";
 
-  static String m29(value) => "from ${value} / min";
+  static String m33(value) => "from ${value} / min";
 
-  static String m30(value) => "${value} / day";
+  static String m34(value) => "${value} / day";
 
-  static String m31(date, name) => "${date} · ${name}";
+  static String m35(date, name) => "${date} · ${name}";
 
-  static String m32(amount, method) =>
+  static String m36(amount, method) =>
       "${amount} will be refunded via ${method}. This action is permanently stored in the audit history.";
 
-  static String m33(balance) => "Customer balance: ${balance}";
+  static String m37(balance) => "Customer balance: ${balance}";
 
-  static String m34(amount) => "${amount} was refunded successfully";
+  static String m38(amount) => "${amount} was refunded successfully";
 
-  static String m35(count) => "selected: ${count}";
+  static String m39(count) => "selected: ${count}";
 
-  static String m36(time) => "Shift opened at ${time}";
+  static String m40(time) => "Shift opened at ${time}";
 
-  static String m37(version) => "New version available: ${version}";
+  static String m41(synced, failed) =>
+      "${synced} sales synced, ${failed} failed.";
 
-  static String m38(name) =>
+  static String m42(reason) => "Could not sync: ${reason}. Staying offline.";
+
+  static String m43(code) => "Code: ${code}";
+
+  static String m44(version) => "New version available: ${version}";
+
+  static String m45(name) =>
       "«${name}» already has an active VIP tariff — no second charge.";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
@@ -146,19 +163,24 @@ class MessageLookup extends MessageLookupByLibrary {
     "cashDesk": MessageLookupByLibrary.simpleMessage("Cash desk"),
     "cashDeskCashier": m3,
     "categoryAll": MessageLookupByLibrary.simpleMessage("All"),
+    "checkOnline": MessageLookupByLibrary.simpleMessage("Check connection"),
     "childCount": m4,
     "childName": MessageLookupByLibrary.simpleMessage("Child name"),
     "children": MessageLookupByLibrary.simpleMessage("Children"),
     "close": MessageLookupByLibrary.simpleMessage("Close"),
-    "companionDescription": m5,
+    "closeShiftOffline": MessageLookupByLibrary.simpleMessage(
+      "A shift can\'t be closed in offline mode",
+    ),
+    "closeShiftUnsyncedWarning": m5,
+    "companionDescription": m6,
     "correctPaymentAction": MessageLookupByLibrary.simpleMessage(
       "Correct payment method",
     ),
     "correctPaymentAmount": MessageLookupByLibrary.simpleMessage(
       "Amount to move",
     ),
-    "correctPaymentAudit": m6,
-    "correctPaymentConfirmMessage": m7,
+    "correctPaymentAudit": m7,
+    "correctPaymentConfirmMessage": m8,
     "correctPaymentConfirmTitle": MessageLookupByLibrary.simpleMessage(
       "Confirm the correction",
     ),
@@ -177,7 +199,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "correctPaymentReasonHint": MessageLookupByLibrary.simpleMessage(
       "For example: money taken in cash, rung up as card",
     ),
-    "correctPaymentResult": m8,
+    "correctPaymentResult": m9,
     "correctPaymentSuccess": MessageLookupByLibrary.simpleMessage(
       "Payment method corrected",
     ),
@@ -188,13 +210,13 @@ class MessageLookup extends MessageLookupByLibrary {
     "correctPaymentUnavailable": MessageLookupByLibrary.simpleMessage(
       "A receipt with a refund cannot have its payment method corrected",
     ),
-    "currentBalanceValue": m9,
-    "currentPlanToday": m10,
+    "currentBalanceValue": m10,
+    "currentPlanToday": m11,
     "currentShiftOnly": MessageLookupByLibrary.simpleMessage(
       "Current shift only",
     ),
     "currentlyInside": MessageLookupByLibrary.simpleMessage("Currently inside"),
-    "customerCount": m11,
+    "customerCount": m12,
     "customerDirectorySearchHint": MessageLookupByLibrary.simpleMessage(
       "Search by name or the last phone digits",
     ),
@@ -219,7 +241,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "editSaleBlockedNotEditable": MessageLookupByLibrary.simpleMessage(
       "This receipt cannot be edited here.",
     ),
-    "editSaleCurrent": m12,
+    "editSaleCurrent": m13,
     "editSaleHint": MessageLookupByLibrary.simpleMessage(
       "Enter the correct total and the correct payment method. The steps are worked out for you: a changed method moves the columns, a lower total hands back the difference.",
     ),
@@ -229,11 +251,11 @@ class MessageLookup extends MessageLookupByLibrary {
     "editSalePartialFailure": MessageLookupByLibrary.simpleMessage(
       "The edit did not finish. Reopen the receipt and edit again — only what is still missing will run.",
     ),
-    "editSalePlanCorrection": m13,
+    "editSalePlanCorrection": m14,
     "editSalePlanNoop": MessageLookupByLibrary.simpleMessage(
       "Nothing changes — the receipt already says this",
     ),
-    "editSalePlanRefund": m14,
+    "editSalePlanRefund": m15,
     "editSalePlanTitle": MessageLookupByLibrary.simpleMessage(
       "What will happen",
     ),
@@ -248,11 +270,11 @@ class MessageLookup extends MessageLookupByLibrary {
     "editSaleTotal": MessageLookupByLibrary.simpleMessage("Correct total"),
     "elapsedTime": MessageLookupByLibrary.simpleMessage("Elapsed"),
     "enter": MessageLookupByLibrary.simpleMessage("Enter"),
-    "enterCount": m15,
+    "enterCount": m16,
     "enteredAt": MessageLookupByLibrary.simpleMessage("Entered at"),
-    "enteredAtMinutes": m16,
-    "entryFailed": m17,
-    "exitBalanceInsufficient": m18,
+    "enteredAtMinutes": m17,
+    "entryFailed": m18,
+    "exitBalanceInsufficient": m19,
     "findCustomerHint": MessageLookupByLibrary.simpleMessage(
       "Enter a phone number to find a customer",
     ),
@@ -265,16 +287,19 @@ class MessageLookup extends MessageLookupByLibrary {
     "historyChoosePeriod": MessageLookupByLibrary.simpleMessage(
       "Choose sales period",
     ),
-    "historyCount": m19,
+    "historyCount": m20,
     "historyDateRange": MessageLookupByLibrary.simpleMessage("Date range"),
     "historyEmpty": MessageLookupByLibrary.simpleMessage(
       "No sales in this period",
+    ),
+    "historyOfflineNotice": MessageLookupByLibrary.simpleMessage(
+      "Offline mode: only sales not yet synced are shown",
     ),
     "historyProduct": MessageLookupByLibrary.simpleMessage("Product"),
     "historySales": MessageLookupByLibrary.simpleMessage("Sales"),
     "historyToday": MessageLookupByLibrary.simpleMessage("Today"),
     "historyYear": MessageLookupByLibrary.simpleMessage("This year"),
-    "insideCount": m20,
+    "insideCount": m21,
     "insideEmpty": MessageLookupByLibrary.simpleMessage(
       "There are no children inside the park",
     ),
@@ -302,7 +327,8 @@ class MessageLookup extends MessageLookupByLibrary {
     "loginTitle": MessageLookupByLibrary.simpleMessage("Kassaga kirish"),
     "loginUsername": MessageLookupByLibrary.simpleMessage("Login"),
     "logout": MessageLookupByLibrary.simpleMessage("Log out"),
-    "manualExitQuestion": m21,
+    "logoutBlockedUnsynced": m22,
+    "manualExitQuestion": m23,
     "manualExitSucceeded": MessageLookupByLibrary.simpleMessage(
       "The child was successfully marked as exited",
     ),
@@ -310,7 +336,8 @@ class MessageLookup extends MessageLookupByLibrary {
     "markExited": MessageLookupByLibrary.simpleMessage("Mark as exited"),
     "menuClose": MessageLookupByLibrary.simpleMessage("Close menu"),
     "menuOpen": MessageLookupByLibrary.simpleMessage("Open menu"),
-    "minutesCount": m22,
+    "minutesCount": m24,
+    "needsInternet": MessageLookupByLibrary.simpleMessage("Needs internet"),
     "newBalance": MessageLookupByLibrary.simpleMessage("New balance"),
     "noChildren": MessageLookupByLibrary.simpleMessage("no children"),
     "noDiscount": MessageLookupByLibrary.simpleMessage("No discount"),
@@ -319,6 +346,25 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "noPrintersFound": MessageLookupByLibrary.simpleMessage(
       "No installed Windows printers found",
+    ),
+    "notSyncedBadge": MessageLookupByLibrary.simpleMessage("Not synced"),
+    "offlineBanner": m25,
+    "offlineBannerSyncing": MessageLookupByLibrary.simpleMessage("Syncing…"),
+    "offlinePromptAccept": MessageLookupByLibrary.simpleMessage(
+      "Yes, go offline",
+    ),
+    "offlinePromptBody": MessageLookupByLibrary.simpleMessage(
+      "The connection to the server was lost. Switch to offline mode and keep selling? Sales are saved on this till and sent to the server when the internet is back.",
+    ),
+    "offlinePromptDecline": MessageLookupByLibrary.simpleMessage("No"),
+    "offlinePromptTitle": MessageLookupByLibrary.simpleMessage(
+      "No internet connection",
+    ),
+    "onlinePromptAccept": MessageLookupByLibrary.simpleMessage("Yes, sync"),
+    "onlinePromptBody": m26,
+    "onlinePromptLater": MessageLookupByLibrary.simpleMessage("Later"),
+    "onlinePromptTitle": MessageLookupByLibrary.simpleMessage(
+      "Internet is back",
     ),
     "openCustomerProfile": MessageLookupByLibrary.simpleMessage(
       "Open customer profile",
@@ -331,25 +377,25 @@ class MessageLookup extends MessageLookupByLibrary {
     "paymentBalance": MessageLookupByLibrary.simpleMessage(
       "Balance-funded sales",
     ),
-    "paymentBalanceValue": m23,
+    "paymentBalanceValue": m27,
     "paymentCard": MessageLookupByLibrary.simpleMessage("Card"),
-    "paymentCardValue": m24,
+    "paymentCardValue": m28,
     "paymentCash": MessageLookupByLibrary.simpleMessage("Cash"),
-    "paymentCashValue": m25,
+    "paymentCashValue": m29,
     "paymentExcess": MessageLookupByLibrary.simpleMessage(
       "Amount exceeds total",
     ),
     "paymentMatched": MessageLookupByLibrary.simpleMessage("Amount matched"),
-    "paymentMinimumHint": m26,
+    "paymentMinimumHint": m30,
     "paymentMissing": MessageLookupByLibrary.simpleMessage("Amount remaining"),
     "paymentSplit": MessageLookupByLibrary.simpleMessage("Split"),
     "phoneNotFound": MessageLookupByLibrary.simpleMessage("Number not found"),
     "phoneNumber": MessageLookupByLibrary.simpleMessage("Phone number"),
     "planSwitch": MessageLookupByLibrary.simpleMessage("Switch tariff"),
-    "planSwitchQuestion": m27,
-    "planSwitchVipQuestion": m28,
-    "priceFromPerMinute": m29,
-    "pricePerDay": m30,
+    "planSwitchQuestion": m31,
+    "planSwitchVipQuestion": m32,
+    "priceFromPerMinute": m33,
+    "pricePerDay": m34,
     "printParentQr": MessageLookupByLibrary.simpleMessage(
       "Also print parent QR",
     ),
@@ -378,7 +424,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "refundAction": MessageLookupByLibrary.simpleMessage("Refund"),
     "refundAlreadyAmount": MessageLookupByLibrary.simpleMessage("Refunded"),
     "refundAmount": MessageLookupByLibrary.simpleMessage("Amount to refund"),
-    "refundAuditBy": m31,
+    "refundAuditBy": m35,
     "refundBalanceLimitNote": MessageLookupByLibrary.simpleMessage(
       "Reversing a top-up takes the money back off the balance, so you cannot return more than it still holds.",
     ),
@@ -386,11 +432,11 @@ class MessageLookup extends MessageLookupByLibrary {
     "refundCardWarning": MessageLookupByLibrary.simpleMessage(
       "A card refund must also be completed on the payment terminal. This action does not automatically reverse the terminal transaction.",
     ),
-    "refundConfirmMessage": m32,
+    "refundConfirmMessage": m36,
     "refundConfirmTitle": MessageLookupByLibrary.simpleMessage(
       "Confirm refund",
     ),
-    "refundCustomerBalance": m33,
+    "refundCustomerBalance": m37,
     "refundFullBadge": MessageLookupByLibrary.simpleMessage("Fully refunded"),
     "refundHistory": MessageLookupByLibrary.simpleMessage("Refund history"),
     "refundMax": MessageLookupByLibrary.simpleMessage("Select all"),
@@ -425,7 +471,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "refundSelectedPassesTotal": MessageLookupByLibrary.simpleMessage(
       "Selected passes total",
     ),
-    "refundSuccess": m34,
+    "refundSuccess": m38,
     "refundTitle": MessageLookupByLibrary.simpleMessage("Refund payment"),
     "refundedTotal": MessageLookupByLibrary.simpleMessage("Refunded"),
     "reprint": MessageLookupByLibrary.simpleMessage("Reprint"),
@@ -437,11 +483,11 @@ class MessageLookup extends MessageLookupByLibrary {
     "searchHistory": MessageLookupByLibrary.simpleMessage("Search history"),
     "searchResult": MessageLookupByLibrary.simpleMessage("Search results"),
     "selectForQr": MessageLookupByLibrary.simpleMessage("Select for QR"),
-    "selectedCount": m35,
+    "selectedCount": m39,
     "shiftClose": MessageLookupByLibrary.simpleMessage("Close shift"),
     "shiftClosed": MessageLookupByLibrary.simpleMessage("Shift closed"),
     "shiftOpen": MessageLookupByLibrary.simpleMessage("Open shift"),
-    "shiftOpenedAt": m36,
+    "shiftOpenedAt": m40,
     "shiftOpeningCash": MessageLookupByLibrary.simpleMessage(
       "Opening cash (UZS)",
     ),
@@ -456,12 +502,18 @@ class MessageLookup extends MessageLookupByLibrary {
     "stickerPrintFailed": MessageLookupByLibrary.simpleMessage(
       "Sticker was not printed — check the printer",
     ),
+    "stillOffline": MessageLookupByLibrary.simpleMessage("Still no internet"),
     "switchAndPrint": MessageLookupByLibrary.simpleMessage("Switch and print"),
+    "syncResultBody": m41,
+    "syncResultTitle": MessageLookupByLibrary.simpleMessage("Sync result"),
+    "syncTransportFailed": m42,
+    "syncViewFailures": MessageLookupByLibrary.simpleMessage("View"),
     "tabAccount": MessageLookupByLibrary.simpleMessage("Account & QR"),
     "tabHistory": MessageLookupByLibrary.simpleMessage("Sales history"),
     "tabInside": MessageLookupByLibrary.simpleMessage("Inside park"),
     "tabSales": MessageLookupByLibrary.simpleMessage("Sales"),
     "tabSettings": MessageLookupByLibrary.simpleMessage("Settings"),
+    "tabUnsynced": MessageLookupByLibrary.simpleMessage("Unsynced"),
     "tabVisitHistory": MessageLookupByLibrary.simpleMessage(
       "Entry/exit history",
     ),
@@ -493,7 +545,22 @@ class MessageLookup extends MessageLookupByLibrary {
     "unlimitedFreeEntry": MessageLookupByLibrary.simpleMessage(
       "Free — unrestricted entry and exit",
     ),
-    "updateAvailable": m37,
+    "unsyncedCodeCopied": MessageLookupByLibrary.simpleMessage("Code copied"),
+    "unsyncedEmpty": MessageLookupByLibrary.simpleMessage(
+      "All sales are synced",
+    ),
+    "unsyncedFailed": MessageLookupByLibrary.simpleMessage("Failed"),
+    "unsyncedHint": MessageLookupByLibrary.simpleMessage(
+      "For a failed sale, call support and read them the code.",
+    ),
+    "unsyncedPending": MessageLookupByLibrary.simpleMessage("Waiting"),
+    "unsyncedRetry": MessageLookupByLibrary.simpleMessage("Retry"),
+    "unsyncedRetryAll": MessageLookupByLibrary.simpleMessage("Resend all"),
+    "unsyncedRetryNeedsOnline": MessageLookupByLibrary.simpleMessage(
+      "Switch to online mode to resend",
+    ),
+    "unsyncedSupportCode": m43,
+    "updateAvailable": m44,
     "updateCancel": MessageLookupByLibrary.simpleMessage("Cancel"),
     "updateCheck": MessageLookupByLibrary.simpleMessage("Check for updates"),
     "updateConfirm": MessageLookupByLibrary.simpleMessage("Continue"),
@@ -536,7 +603,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Automatic updates work on Windows only",
     ),
     "version": MessageLookupByLibrary.simpleMessage("Version"),
-    "vipAlreadyActive": m38,
+    "vipAlreadyActive": m45,
     "vipChargedImmediately": MessageLookupByLibrary.simpleMessage(
       "The VIP tariff is debited from the balance immediately when printed.",
     ),
