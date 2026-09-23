@@ -556,5 +556,8 @@
   "@logoutBlockedUnsynced": { "placeholders": { "count": { "type": "int" } } },
   "closeShiftUnsyncedWarning": "{count} sales failed to sync. Contact support before closing the shift.",
   "@closeShiftUnsyncedWarning": { "placeholders": { "count": { "type": "int" } } },
-  "closeShiftOffline": "A shift can't be closed in offline mode"
+  "closeShiftOffline": "A shift can't be closed in offline mode",
+  "logoutFailedSalesConfirm": "{count} sales failed to sync. They stay saved on this till. Sign out anyway?",
+  "@logoutFailedSalesConfirm": { "placeholders": { "count": { "type": "int" } } },
+  "logoutAnyway": "Sign out anyway"
 }

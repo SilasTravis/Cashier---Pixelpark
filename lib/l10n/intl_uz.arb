@@ -632,5 +632,8 @@
   "@logoutBlockedUnsynced": { "placeholders": { "count": { "type": "int" } } },
   "closeShiftUnsyncedWarning": "{count} ta savdo serverga o‘tmadi (xato). Smenani yopishdan oldin qo‘llab-quvvatlashga murojaat qiling.",
   "@closeShiftUnsyncedWarning": { "placeholders": { "count": { "type": "int" } } },
-  "closeShiftOffline": "Offline rejimda smenani yopib bo‘lmaydi"
+  "closeShiftOffline": "Offline rejimda smenani yopib bo‘lmaydi",
+  "logoutFailedSalesConfirm": "{count} ta savdo serverga o‘tmadi (xato). Ular kassada saqlanadi. Baribir chiqasizmi?",
+  "@logoutFailedSalesConfirm": { "placeholders": { "count": { "type": "int" } } },
+  "logoutAnyway": "Baribir chiqish"
 }

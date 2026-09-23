@@ -2633,6 +2633,26 @@ class AppLocalization {
       args: [],
     );
   }
+
+  /// `{count} sales failed to sync. They stay saved on this till. Sign out anyway?`
+  String logoutFailedSalesConfirm(int count) {
+    return Intl.message(
+      '$count sales failed to sync. They stay saved on this till. Sign out anyway?',
+      name: 'logoutFailedSalesConfirm',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `Sign out anyway`
+  String get logoutAnyway {
+    return Intl.message(
+      'Sign out anyway',
+      name: 'logoutAnyway',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalization> {

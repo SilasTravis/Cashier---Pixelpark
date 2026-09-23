@@ -556,5 +556,8 @@
   "@logoutBlockedUnsynced": { "placeholders": { "count": { "type": "int" } } },
   "closeShiftUnsyncedWarning": "Продаж с ошибкой синхронизации: {count}. Перед закрытием смены обратитесь в поддержку.",
   "@closeShiftUnsyncedWarning": { "placeholders": { "count": { "type": "int" } } },
-  "closeShiftOffline": "В офлайн-режиме смену закрыть нельзя"
+  "closeShiftOffline": "В офлайн-режиме смену закрыть нельзя",
+  "logoutFailedSalesConfirm": "{count} продаж не синхронизированы (ошибка). Они сохранятся на кассе. Всё равно выйти?",
+  "@logoutFailedSalesConfirm": { "placeholders": { "count": { "type": "int" } } },
+  "logoutAnyway": "Всё равно выйти"
 }
