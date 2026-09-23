@@ -13,6 +13,7 @@ class PosSaleState extends Equatable {
     this.errorMessage,
     this.errorCode,
     this.lastReceipt,
+    this.offlineMode = false,
   });
 
   final bool isLoadingProducts;
@@ -43,8 +44,17 @@ class PosSaleState extends Equatable {
   final String? errorCode;
   final SaleReceipt? lastReceipt;
 
+  /// Offline mode: sales are queued locally; offline-only plan items show.
+  final bool offlineMode;
+
+  /// What this mode may sell: offline-only items (VIP / hourly plans sold
+  /// without a QR) exist only in offline mode.
+  List<Product> get sellableProducts => offlineMode
+      ? products
+      : products.where((product) => !product.offlineOnly).toList();
+
   List<String> get categories =>
-      products.map((p) => p.category).toSet().toList()..sort();
+      sellableProducts.map((p) => p.category).toSet().toList()..sort();
 
   Discount? get selectedDiscount => selectedDiscountId == null
       ? null
@@ -52,7 +62,7 @@ class PosSaleState extends Equatable {
 
   List<Product> get visibleProducts {
     final query = searchQuery.trim().toLowerCase();
-    return products.where((p) {
+    return sellableProducts.where((p) {
       final normalizedCategory = p.category.trim().toLowerCase();
       final matchesCategory =
           selectedCategory == null ||
@@ -66,7 +76,7 @@ class PosSaleState extends Equatable {
   }
 
   List<CartLine> get cartLines {
-    final byId = {for (final product in products) product.id: product};
+    final byId = {for (final product in sellableProducts) product.id: product};
     return [
       for (final entry in cart.entries)
         if (byId[entry.key] case final product?)
@@ -104,6 +114,7 @@ class PosSaleState extends Equatable {
     String? errorCode,
     SaleReceipt? lastReceipt,
     bool clearLastReceipt = false,
+    bool? offlineMode,
   }) {
     return PosSaleState(
       isLoadingProducts: isLoadingProducts ?? this.isLoadingProducts,
@@ -121,6 +132,7 @@ class PosSaleState extends Equatable {
       errorMessage: errorMessage,
       errorCode: errorCode,
       lastReceipt: clearLastReceipt ? null : (lastReceipt ?? this.lastReceipt),
+      offlineMode: offlineMode ?? this.offlineMode,
     );
   }
 
@@ -137,5 +149,6 @@ class PosSaleState extends Equatable {
     errorMessage,
     errorCode,
     lastReceipt,
+    offlineMode,
   ];
 }

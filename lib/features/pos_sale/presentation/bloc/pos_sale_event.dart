@@ -88,3 +88,14 @@ class PosSaleCheckoutRequested extends PosSaleEvent {
 class PosSaleReceiptAcknowledged extends PosSaleEvent {
   const PosSaleReceiptAcknowledged();
 }
+
+/// The app switched online ↔ offline (dispatched by `PosSalePage` from
+/// `AppModeCubit`). Reloads the catalog from the right source.
+class PosSaleModeChanged extends PosSaleEvent {
+  const PosSaleModeChanged(this.offline);
+
+  final bool offline;
+
+  @override
+  List<Object?> get props => [offline];
+}

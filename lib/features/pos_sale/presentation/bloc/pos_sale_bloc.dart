@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/error/failure.dart';
+import '../../../offline/application/offline_checkout.dart';
 import '../../../products/data/products_repository_impl.dart';
 import '../../../products/domain/product.dart';
 import '../../data/pos_sale_remote_data_source.dart';
@@ -14,7 +15,12 @@ part 'pos_sale_event.dart';
 part 'pos_sale_state.dart';
 
 class PosSaleBloc extends Bloc<PosSaleEvent, PosSaleState> {
-  PosSaleBloc(this._repository, this._products) : super(const PosSaleState()) {
+  PosSaleBloc(
+    this._repository,
+    this._products,
+    this._offlineCheckout, {
+    bool offlineMode = false,
+  }) : super(PosSaleState(offlineMode: offlineMode)) {
     on<PosSaleStarted>(_onStarted);
     on<PosSaleSearchChanged>(_onSearchChanged);
     on<PosSaleCategorySelected>(_onCategorySelected);
@@ -25,10 +31,12 @@ class PosSaleBloc extends Bloc<PosSaleEvent, PosSaleState> {
     on<PosSaleDiscountSelected>(_onDiscountSelected);
     on<PosSaleCheckoutRequested>(_onCheckoutRequested);
     on<PosSaleReceiptAcknowledged>(_onReceiptAcknowledged);
+    on<PosSaleModeChanged>(_onModeChanged);
   }
 
   final PosSaleRepository _repository;
   final ProductsRepository _products;
+  final OfflineCheckout _offlineCheckout;
 
   Future<void> _onStarted(
     PosSaleStarted event,
@@ -127,6 +135,39 @@ class PosSaleBloc extends Bloc<PosSaleEvent, PosSaleState> {
   ) async {
     if (state.cart.isEmpty) return;
     emit(state.copyWith(isCheckingOut: true, errorMessage: null));
+    if (state.offlineMode) {
+      try {
+        final sale = await _offlineCheckout.record(
+          lines: state.cartLines,
+          discount: state.selectedDiscount,
+          cashUzs: event.cashUzs,
+          cardUzs: event.cardUzs,
+        );
+        emit(
+          state.copyWith(
+            isCheckingOut: false,
+            cart: const {},
+            clearSelectedDiscountId: true,
+            lastReceipt: sale.toReceipt(),
+          ),
+        );
+      } on NoShiftForOfflineSaleException {
+        emit(
+          state.copyWith(
+            isCheckingOut: false,
+            errorMessage: "Offline savdo uchun ochiq smena yo'q",
+          ),
+        );
+      } on OfflinePaymentShortException {
+        emit(
+          state.copyWith(
+            isCheckingOut: false,
+            errorMessage: "To'lov summasi yetarli emas",
+          ),
+        );
+      }
+      return;
+    }
     final lines = [
       for (final entry in state.cart.entries)
         CheckoutLine(productId: entry.key, qty: entry.value),
@@ -179,6 +220,23 @@ class PosSaleBloc extends Bloc<PosSaleEvent, PosSaleState> {
     Emitter<PosSaleState> emit,
   ) {
     emit(state.copyWith(clearLastReceipt: true));
+  }
+
+  Future<void> _onModeChanged(
+    PosSaleModeChanged event,
+    Emitter<PosSaleState> emit,
+  ) async {
+    if (event.offline == state.offlineMode) return;
+    final byId = {for (final product in state.products) product.id: product};
+    final cart = event.offline
+        ? state.cart
+        : {
+            for (final entry in state.cart.entries)
+              if (!(byId[entry.key]?.offlineOnly ?? false))
+                entry.key: entry.value,
+          };
+    emit(state.copyWith(offlineMode: event.offline, cart: cart));
+    await _onStarted(const PosSaleStarted(), emit);
   }
 
   String _messageOf(Failure failure) {
