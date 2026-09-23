@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-23
 **Repos:** `cashier_app` (main work), `maestro_backend`, `Dashboard`
-**Status:** part 1 (data model + backend contract) approved; part 2 (cashier behaviour) pending review
+**Status:** approved 2026-09-23; plans in `docs/superpowers/plans/2026-09-23-offline-mode-{1-backend,2-dashboard,3-cashier}.md`
 
 ## Goal
 
@@ -11,6 +11,16 @@ print as normal receipts, queue locally, and sync to the backend once the
 connection is back. VIP and hourly plans normally mint a QR and so need the
 server. Offline, they're sold as plain products and printed as a normal
 product receipt.
+
+## Revisions made during planning
+
+Code reading during planning changed these points. Where they disagree with the sections below, these win:
+
+1. **`GET /v1/pos/products?includeOffline=true`.** Offline-only rows are returned only when the terminal asks for them. An older cashier build therefore never shows "VIP" online, which would hit `PRODUCT_OFFLINE_ONLY` at checkout.
+2. **A shift reference on every sale.** The sync payload takes `shifts: [...]` (usually 0–1 entries) instead of a single `shift`, and every sale names either `shiftId` (the cached server shift) or `shiftOfflineRequestId`. A sale retried days later then lands on the shift it was actually rung under, not whichever shift happens to be open at retry time.
+3. **Closed shifts accept their own sales.** A sale can land on a shift that has since closed; `createdAt` is clamped to `[shift.openedAt, shift.closedAt ?? now]`.
+4. **Closing a shift.** It's blocked while that cashier has *pending* queued sales. With only *failed* ones, the close dialog warns but allows it, so one bad row can't trap the cashier.
+5. **The close-shift dialog now shows `ShiftBloc.errorMessage`.** It used to swallow close errors silently.
 
 ## Decisions (from brainstorming)
 
