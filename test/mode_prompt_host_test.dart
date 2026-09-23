@@ -88,6 +88,36 @@ void main() {
     expect(cubit.state.mode, AppMode.online);
   });
 
+  testWidgets(
+    'a sync report that arrives while a confirm dialog is open is shown '
+    'once the dialog closes',
+    (tester) async {
+      await pump(tester);
+
+      events.add(
+        const ConnectivityEvent(reachable: false, fromUserRequest: true),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('No internet connection'), findsOneWidget);
+
+      // The internet comes back behind the dialog (the cubit drops the
+      // prompt) and then the Unsynced page's Retry finishes: by the time the
+      // cashier answers, neither the prompt nor the report changes again.
+      events.add(const ConnectivityEvent(reachable: true));
+      await tester.pumpAndSettle();
+      expect(cubit.state.prompt, ModePrompt.none);
+      await cubit.retry();
+      await tester.pumpAndSettle();
+      expect(cubit.state.lastReport, isNotNull);
+      expect(find.text('2 sales synced, 0 failed.'), findsNothing);
+
+      await tester.tap(find.text('No'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('2 sales synced, 0 failed.'), findsOneWidget);
+    },
+  );
+
   testWidgets('back online: confirm, sync, then show the result', (
     tester,
   ) async {

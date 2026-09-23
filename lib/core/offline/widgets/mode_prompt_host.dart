@@ -51,6 +51,7 @@ class _ModePromptHostState extends State<ModePromptHost> {
         } else {
           cubit.declineOffline();
         }
+        _recheck();
       case ModePrompt.goOnline:
         final yes = await _confirm(
           icon: PhosphorIconsRegular.cloudArrowUp,
@@ -64,6 +65,7 @@ class _ModePromptHostState extends State<ModePromptHost> {
         } else {
           cubit.postponeOnline();
         }
+        _recheck();
       case ModePrompt.none:
         final report = state.lastReport;
         if (report == null) return;
@@ -75,6 +77,12 @@ class _ModePromptHostState extends State<ModePromptHost> {
         }
         await _showReport(report);
     }
+  }
+
+  /// A report (or prompt) emitted while a dialog was open was ignored, and
+  /// the answer may not change the state again to re-trigger the listener.
+  void _recheck() {
+    if (mounted) _handle(context.read<AppModeCubit>().state);
   }
 
   Future<bool> _confirm({
@@ -145,7 +153,7 @@ class _ModePromptHostState extends State<ModePromptHost> {
       ),
     );
     _open = false;
-    if (mounted) _handle(context.read<AppModeCubit>().state);
+    _recheck();
   }
 
   @override
