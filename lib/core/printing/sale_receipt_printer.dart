@@ -19,6 +19,12 @@ class SaleReceiptPrinter {
   static bool hasPrintableProducts(SaleReceipt receipt) =>
       receipt.items.any((item) => !_isGateTicket(item.nameSnapshot));
 
+  /// Printed under the header of a receipt rung up offline, so whoever reads
+  /// the paper later knows why it isn't in the server history yet. ASCII
+  /// only — the receipt uses the built-in Helvetica.
+  static String? offlineNotice(SaleReceipt receipt) =>
+      receipt.isOffline ? 'OFFLINE - internet qaytganda sinxronlanadi' : null;
+
   static Future<bool> printDirect(
     SaleReceipt receipt, {
     required String branchName,
@@ -122,6 +128,14 @@ class SaleReceiptPrinter {
                     textAlign: pw.TextAlign.center,
                     style: pw.TextStyle(font: regular, fontSize: 9),
                   ),
+                if (offlineNotice(receipt) case final notice?) ...[
+                  pw.SizedBox(height: 3),
+                  pw.Text(
+                    notice,
+                    textAlign: pw.TextAlign.center,
+                    style: pw.TextStyle(font: bold, fontSize: 9),
+                  ),
+                ],
                 pw.SizedBox(height: 8),
                 _metadataBlock('Chek', formatReceiptId(receipt.id), regular),
                 _metadataBlock(
@@ -245,6 +259,7 @@ class SaleReceiptPrinter {
     if (receipt.cardUzs > 0) height += 5;
     if (receipt.balanceUzs > 0) height += 5;
     if (receipt.discountUzs > 0) height += 5;
+    if (receipt.isOffline) height += 6;
     return height.clamp(105, 280).toDouble();
   }
 

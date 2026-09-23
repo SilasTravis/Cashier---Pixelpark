@@ -75,6 +75,25 @@ class Shift extends Equatable {
 
   bool get isOpen => status == 'open';
 
+  /// Offline-mode cache of the shift's identity. Totals are deliberately not
+  /// cached — they come back as zero and refresh from the server once online.
+  Map<String, dynamic> toCacheJson() => {
+    'id': id,
+    'openedAt': openedAt.toUtc().toIso8601String(),
+    'closedAt': closedAt?.toUtc().toIso8601String(),
+    'status': status,
+  };
+
+  factory Shift.fromCacheJson(Map<String, dynamic> json) => Shift(
+    id: json['id'] as String,
+    openedAt: DateTime.parse(json['openedAt'] as String),
+    closedAt: json['closedAt'] == null
+        ? null
+        : DateTime.parse(json['closedAt'] as String),
+    status: json['status'] as String,
+    totals: ShiftTotals.zero,
+  );
+
   @override
   List<Object?> get props => [id, openedAt, closedAt, status, totals];
 }

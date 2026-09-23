@@ -51,6 +51,16 @@ class Discount extends Equatable {
     active: json['active'] as bool? ?? true,
   );
 
+  /// Cache shape for offline mode — the inverse of [Discount.fromJson].
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'kind': kind.name,
+    'value': value,
+    'scope': scope.key,
+    'active': active,
+  };
+
   /// Replicates the backend's `applyDiscount()` formula — `percent`:
   /// `round(gross * value / 100)`; `fixed`: `min(value, gross)`; always
   /// clamped to `0 <= discountUzs <= grossUzs`.

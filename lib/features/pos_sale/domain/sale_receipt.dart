@@ -47,6 +47,7 @@ class SaleReceipt extends Equatable {
     required this.cardUzs,
     this.balanceUzs = 0,
     required this.createdAt,
+    this.isOffline = false,
     required this.items,
   }) : grossUzs = grossUzs ?? subtotalUzs;
 
@@ -71,6 +72,10 @@ class SaleReceipt extends Equatable {
   final int cardUzs;
   final int balanceUzs;
   final DateTime createdAt;
+
+  /// Rung up while the terminal was offline — not on the server yet. The
+  /// printer marks the paper; [id] is the offline request id.
+  final bool isOffline;
   final List<SaleReceiptItem> items;
 
   factory SaleReceipt.fromJson(Map<String, dynamic> json) => SaleReceipt(
@@ -101,6 +106,7 @@ class SaleReceipt extends Equatable {
     cardUzs,
     balanceUzs,
     createdAt,
+    isOffline,
     items,
   ];
 }
