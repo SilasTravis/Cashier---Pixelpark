@@ -113,7 +113,7 @@ class AppModeCubit extends Cubit<AppModeState> {
         clearReport: true,
       ),
     );
-    final report = await _sync();
+    var report = await _sync();
     if (report.transportFailed && !report.serverReachable) {
       // The connection itself failed: genuinely still offline.
       _postponedAt = _clock();
@@ -126,8 +126,28 @@ class AppModeCubit extends Cubit<AppModeState> {
     // and the report tells the cashier what went wrong.
     _postponedAt = null;
     await _store.setOfflineMode(false);
+    if (!report.transportFailed && _hasPendingSales()) {
+      // Sales rung up while the queue was replaying (mode `syncing` still
+      // sells offline) missed that run. Switch online first so no new sale
+      // can be queued, then give them exactly one more run.
+      emit(state.copyWith(mode: AppMode.online));
+      report = _merge(report, await _sync());
+    }
     emit(state.copyWith(mode: AppMode.online, lastReport: report));
   }
+
+  bool _hasPendingSales() {
+    final cashierId = _cashierId();
+    if (cashierId == null) return false;
+    return _store.sales(cashierId: cashierId).any((sale) => !sale.isFailed);
+  }
+
+  static SyncReport _merge(SyncReport first, SyncReport second) => SyncReport(
+    syncedCount: first.syncedCount + second.syncedCount,
+    failed: [...first.failed, ...second.failed],
+    transportError: second.transportError,
+    serverReachable: second.serverReachable,
+  );
 
   /// The Unsynced page's Retry. Resends failed sales too; online only.
   Future<SyncReport> retry({Set<String>? ids}) async {

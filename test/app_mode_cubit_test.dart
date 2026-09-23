@@ -243,6 +243,52 @@ void main() {
     expect(cubit.state.pendingCount, 1);
   });
 
+  test('a sale rung up while syncing gets one more sync run, merged into the '
+      'report', () async {
+    await store.setOfflineMode(true);
+    final failedSale = _sale('bad', failed: true);
+    var calls = 0;
+    final cubit = AppModeCubit(
+      connectivity: events.stream,
+      checkNow: () async => true,
+      store: store,
+      sync: ({Set<String>? onlyIds, bool includeFailed = false}) async {
+        calls++;
+        if (calls == 1) {
+          // The cashier rings a sale up mid-sync: it is queued offline.
+          await store.putSale(_sale('late'));
+          return SyncReport(syncedCount: 2, failed: [failedSale]);
+        }
+        await store.removeSales(['late']);
+        return const SyncReport(syncedCount: 1);
+      },
+      currentCashierId: () => 'cashier-1',
+      clock: () => now,
+    );
+    addTearDown(cubit.close);
+
+    await cubit.acceptOnline();
+
+    expect(calls, 2);
+    expect(cubit.state.mode, AppMode.online);
+    expect(cubit.state.lastReport?.syncedCount, 3);
+    expect(cubit.state.lastReport?.failed, [failedSale]);
+    expect(store.sales(), isEmpty);
+  });
+
+  test('only failed sales left after a sync: no second run', () async {
+    await store.setOfflineMode(true);
+    await store.putSale(_sale('bad', failed: true));
+    nextReport = const SyncReport(syncedCount: 1);
+    final cubit = build();
+    addTearDown(cubit.close);
+
+    await cubit.acceptOnline();
+
+    expect(syncCalls, hasLength(1));
+    expect(cubit.state.mode, AppMode.online);
+  });
+
   test('retry resends failed sales too, and only online', () async {
     final cubit = build();
     addTearDown(cubit.close);
