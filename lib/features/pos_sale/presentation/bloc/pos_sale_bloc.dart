@@ -133,7 +133,7 @@ class PosSaleBloc extends Bloc<PosSaleEvent, PosSaleState> {
     PosSaleCheckoutRequested event,
     Emitter<PosSaleState> emit,
   ) async {
-    if (state.cart.isEmpty) return;
+    if (state.cart.isEmpty || state.isCheckingOut) return;
     emit(state.copyWith(isCheckingOut: true, errorMessage: null));
     if (state.offlineMode) {
       try {
@@ -163,6 +163,13 @@ class PosSaleBloc extends Bloc<PosSaleEvent, PosSaleState> {
           state.copyWith(
             isCheckingOut: false,
             errorMessage: "To'lov summasi yetarli emas",
+          ),
+        );
+      } catch (_) {
+        emit(
+          state.copyWith(
+            isCheckingOut: false,
+            errorMessage: "Savdo saqlanmadi. Qayta urinib ko'ring.",
           ),
         );
       }

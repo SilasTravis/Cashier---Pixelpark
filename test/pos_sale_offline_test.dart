@@ -3,8 +3,10 @@ import 'dart:io';
 import 'package:cashier_app/core/local_source/local_source.dart';
 import 'package:cashier_app/features/offline/application/offline_checkout.dart';
 import 'package:cashier_app/features/offline/data/offline_store.dart';
+import 'package:cashier_app/features/offline/domain/offline_sale.dart';
 import 'package:cashier_app/features/pos_sale/data/pos_sale_remote_data_source.dart';
 import 'package:cashier_app/features/pos_sale/data/pos_sale_repository_impl.dart';
+import 'package:cashier_app/features/pos_sale/domain/cart_line.dart';
 import 'package:cashier_app/features/pos_sale/domain/discount.dart';
 import 'package:cashier_app/features/pos_sale/domain/sale_receipt.dart';
 import 'package:cashier_app/features/pos_sale/presentation/bloc/pos_sale_bloc.dart';
@@ -55,9 +57,52 @@ class _Sales extends PosSaleRemoteDataSourceImpl {
   }
 }
 
+/// A Hive write failure, a corrupt cached shift — anything not one of
+/// `OfflineCheckout`'s two documented exceptions.
+class _ThrowingOfflineCheckout extends OfflineCheckout {
+  _ThrowingOfflineCheckout(super.store, super.local);
+
+  @override
+  Future<OfflineSale> record({
+    required List<CartLine> lines,
+    required Discount? discount,
+    required int cashUzs,
+    required int cardUzs,
+  }) async {
+    throw Exception('Hive write failed');
+  }
+}
+
+/// Holds `record` open so a second checkout dispatched before the first
+/// settles has a window to slip through (see topup_double_submit_test.dart).
+class _SlowOfflineCheckout extends OfflineCheckout {
+  _SlowOfflineCheckout(super.store, super.local);
+
+  int calls = 0;
+
+  @override
+  Future<OfflineSale> record({
+    required List<CartLine> lines,
+    required Discount? discount,
+    required int cashUzs,
+    required int cardUzs,
+  }) async {
+    calls++;
+    await Future<void>.delayed(const Duration(milliseconds: 40));
+    return super.record(
+      lines: lines,
+      discount: discount,
+      cashUzs: cashUzs,
+      cardUzs: cardUzs,
+    );
+  }
+}
+
 void main() {
   late Directory temp;
   late OfflineStore store;
+  late LocalSource local;
+  late ProductsRepository products;
   late _Sales sales;
   late PosSaleBloc Function({bool offlineMode}) build;
 
@@ -65,7 +110,7 @@ void main() {
     temp = await Directory.systemTemp.createTemp('cashier_pos_offline');
     Hive.init(temp.path);
     store = OfflineStore(await Hive.openBox<dynamic>(OfflineStore.boxName));
-    final local = LocalSource(await Hive.openBox<dynamic>('app_test'))
+    local = LocalSource(await Hive.openBox<dynamic>('app_test'))
       ..setCashier(
         id: 'cashier-1',
         fullName: 'Zaira',
@@ -84,7 +129,7 @@ void main() {
       ),
     );
     sales = _Sales();
-    final products = ProductsRepository(_Products(), store, local);
+    products = ProductsRepository(_Products(), store, local);
     await products
         .listProducts(); // warm the cache like an online session would
     build = ({bool offlineMode = false}) => PosSaleBloc(
@@ -164,5 +209,56 @@ void main() {
 
     expect(bloc.state.offlineMode, isFalse);
     expect(bloc.state.cart.keys, ['popcorn']);
+  });
+
+  test(
+    'a non-specific offline checkout failure stops the spinner and shows a message',
+    () async {
+      final bloc = PosSaleBloc(
+        PosSaleRepository(sales, store),
+        products,
+        _ThrowingOfflineCheckout(store, local),
+        offlineMode: true,
+      );
+      addTearDown(bloc.close);
+      bloc.add(const PosSaleStarted());
+      await settle();
+
+      bloc
+        ..add(const PosSaleProductAdded(_vip))
+        ..add(const PosSaleCheckoutRequested(cashUzs: 75000, cardUzs: 0));
+      await settle();
+
+      expect(bloc.state.isCheckingOut, isFalse);
+      expect(
+        bloc.state.errorMessage,
+        "Savdo saqlanmadi. Qayta urinib ko'ring.",
+      );
+      expect(store.sales(), isEmpty);
+    },
+  );
+
+  test('double-tapping checkout offline queues exactly one sale', () async {
+    final checkout = _SlowOfflineCheckout(store, local);
+    final bloc = PosSaleBloc(
+      PosSaleRepository(sales, store),
+      products,
+      checkout,
+      offlineMode: true,
+    );
+    addTearDown(bloc.close);
+    bloc.add(const PosSaleStarted());
+    await settle();
+
+    bloc.add(const PosSaleProductAdded(_vip));
+    await settle();
+
+    bloc
+      ..add(const PosSaleCheckoutRequested(cashUzs: 75000, cardUzs: 0))
+      ..add(const PosSaleCheckoutRequested(cashUzs: 75000, cardUzs: 0));
+    await Future<void>.delayed(const Duration(milliseconds: 120));
+
+    expect(checkout.calls, 1);
+    expect(store.sales(), hasLength(1));
   });
 }

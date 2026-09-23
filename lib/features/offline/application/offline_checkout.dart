@@ -33,6 +33,10 @@ class OfflineCheckout {
     required int cashUzs,
     required int cardUzs,
   }) async {
+    if (lines.isEmpty) {
+      throw ArgumentError.value(lines, 'lines', 'cannot be empty');
+    }
+
     final cashierId = _local.getCashierId();
     if (cashierId == null) throw NoShiftForOfflineSaleException();
 

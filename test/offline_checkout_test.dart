@@ -123,4 +123,14 @@ void main() {
     );
     expect(store.sales(), isEmpty);
   });
+
+  test('refuses an empty sale, without saving anything', () async {
+    await cacheOpenShift();
+
+    await expectLater(
+      checkout.record(lines: const [], discount: null, cashUzs: 0, cardUzs: 0),
+      throwsA(isA<ArgumentError>()),
+    );
+    expect(store.sales(), isEmpty);
+  });
 }
