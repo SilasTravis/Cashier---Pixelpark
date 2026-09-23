@@ -35,11 +35,18 @@ class OfflineStore extends ChangeNotifier {
   Future<void> setOfflineMode(bool value) => _write(_modeKey, value);
 
   List<OfflineSale> sales({String? cashierId}) {
-    final all = [
-      for (final key in _box.keys)
-        if (key is String && key.startsWith(_salePrefix))
-          OfflineSale.fromJson(_decode(_box.get(key))),
-    ]..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    final all = <OfflineSale>[];
+    for (final key in _box.keys) {
+      if (key is! String || !key.startsWith(_salePrefix)) continue;
+      // One corrupt row must not take the whole queue (sync, counts, the
+      // Unsynced page) down with it. It stays in the box for support.
+      try {
+        all.add(OfflineSale.fromJson(_decode(_box.get(key))));
+      } catch (error) {
+        debugPrint('OfflineStore: skipping unreadable sale row $key: $error');
+      }
+    }
+    all.sort((a, b) => a.createdAt.compareTo(b.createdAt));
     return cashierId == null
         ? all
         : all.where((sale) => sale.cashierId == cashierId).toList();

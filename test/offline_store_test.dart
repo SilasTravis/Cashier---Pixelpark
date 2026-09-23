@@ -49,6 +49,19 @@ void main() {
     expect(OfflineStore(box).isOfflineMode, isTrue);
   });
 
+  test('skips a corrupt sale row instead of breaking the queue', () async {
+    await store.putSale(_sale('a', minute: 1));
+    await box.put('sale:x', 'not json {');
+    await box.put('sale:y', '{"offlineRequestId": 42}');
+    await store.putSale(_sale('b', minute: 2));
+
+    expect(store.sales().map((s) => s.offlineRequestId), ['a', 'b']);
+    expect(store.sales(cashierId: 'cashier-1').map((s) => s.offlineRequestId), [
+      'a',
+      'b',
+    ]);
+  });
+
   test(
     'queues sales oldest first, per cashier, and removes synced ones',
     () async {
