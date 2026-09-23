@@ -14,6 +14,7 @@ class SyncReport extends Equatable {
     this.syncedCount = 0,
     this.failed = const [],
     this.transportError,
+    this.serverReachable = true,
   });
 
   static const empty = SyncReport();
@@ -25,10 +26,28 @@ class SyncReport extends Equatable {
   /// Every sale of that request is still pending and safe to resend.
   final String? transportError;
 
+  /// Whether the failing request got an HTTP answer at all (a 5xx/403/404,
+  /// or a 200 whose body didn't parse). Only `false` when the connection
+  /// itself failed — then the till is genuinely offline. Empty and
+  /// successful reports count as reachable.
+  final bool serverReachable;
+
   bool get transportFailed => transportError != null;
 
   @override
-  List<Object?> get props => [syncedCount, failed, transportError];
+  List<Object?> get props => [
+    syncedCount,
+    failed,
+    transportError,
+    serverReachable,
+  ];
+}
+
+class _TransportError {
+  const _TransportError(this.message, {required this.serverReachable});
+
+  final String message;
+  final bool serverReachable;
 }
 
 /// Replays the signed-in cashier's queue to `POST /v1/pos/offline/sync`,
@@ -128,8 +147,8 @@ class OfflineSyncService {
     final failed = <OfflineSale>[];
 
     // Sends one request (a batch, or one sale resent solo after the batch it
-    // was part of got rejected outright). Returns a transport-error message
-    // when the request never got per-sale answers; null otherwise.
+    // was part of got rejected outright). Returns a transport error when the
+    // request never got per-sale answers; null otherwise.
     //
     // The unsynced offline shift rides EVERY request — solo or batch — not
     // just the first one, until some request actually gets a per-item
@@ -142,7 +161,7 @@ class OfflineSyncService {
     // OFFLINE_SHIFT_NOT_FOUND (I1, fix round 2). The server treats a
     // repeated offlineRequestId as `duplicate`, so re-sending an
     // already-created shift is harmless.
-    Future<String?> sendRequest(List<OfflineSale> saleBatch) async {
+    Future<_TransportError?> sendRequest(List<OfflineSale> saleBatch) async {
       final sendShift = shift != null && !shift!.isSynced;
       final OfflineSyncResult result;
       try {
@@ -151,9 +170,14 @@ class OfflineSyncService {
           sales: [for (final sale in saleBatch) _payload(sale, shift)],
         );
       } on NoInternetException {
-        return "Internet aloqasi yo'q";
+        return const _TransportError(
+          "Internet aloqasi yo'q",
+          serverReachable: false,
+        );
       } on ServerException catch (e) {
-        return e.message;
+        // An HTTP answer (5xx/403/404…) or a malformed 200 body: the server
+        // is there, it just didn't take this request.
+        return _TransportError(e.message, serverReachable: true);
       } on OfflineSyncValidationException catch (e) {
         if (saleBatch.length > 1) {
           for (final sale in saleBatch) {
@@ -167,7 +191,7 @@ class OfflineSyncService {
           // rejected outright: there's no sale to blame or split further,
           // so this is a whole-request failure like any other (I2, fix
           // round 2 — avoids `saleBatch.single` throwing on an empty list).
-          return e.message;
+          return _TransportError(e.message, serverReachable: true);
         }
         // A single sale still fails validation on its own — it's genuinely
         // bad (out-of-range qty/price, an empty line list…), not a victim of
@@ -213,7 +237,8 @@ class OfflineSyncService {
         return SyncReport(
           syncedCount: synced,
           failed: failed,
-          transportError: error,
+          transportError: error.message,
+          serverReachable: error.serverReachable,
         );
       }
     }

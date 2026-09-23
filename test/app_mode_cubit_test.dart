@@ -206,7 +206,10 @@ void main() {
     'a sync that cannot reach the server leaves the terminal offline',
     () async {
       await store.setOfflineMode(true);
-      nextReport = const SyncReport(transportError: "Internet aloqasi yo'q");
+      nextReport = const SyncReport(
+        transportError: "Internet aloqasi yo'q",
+        serverReachable: false,
+      );
       final cubit = build();
       addTearDown(cubit.close);
 
@@ -220,6 +223,25 @@ void main() {
       expect(cubit.state.prompt, ModePrompt.none);
     },
   );
+
+  test('a sync the server answered with an error still goes online and keeps '
+      'the report', () async {
+    await store.setOfflineMode(true);
+    await store.putSale(_sale('a'));
+    nextReport = const SyncReport(transportError: 'Internal server error');
+    final cubit = build();
+    addTearDown(cubit.close);
+
+    await cubit.acceptOnline();
+
+    expect(cubit.state.mode, AppMode.online);
+    expect(store.isOfflineMode, isFalse);
+    expect(cubit.state.lastReport, nextReport);
+    expect(cubit.state.lastReport?.serverReachable, isTrue);
+    // The sale is untouched and still pending; the Unsynced tab shows it.
+    expect(store.sales().single.isFailed, isFalse);
+    expect(cubit.state.pendingCount, 1);
+  });
 
   test('retry resends failed sales too, and only online', () async {
     final cubit = build();

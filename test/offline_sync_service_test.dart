@@ -236,6 +236,55 @@ void main() {
     },
   );
 
+  group('serverReachable', () {
+    test('is false when the request never reached the server', () async {
+      await store.putSale(_sale('a'));
+      remote.throwOnCall = NoInternetException();
+
+      final report = await service.sync();
+
+      expect(report.transportFailed, isTrue);
+      expect(report.serverReachable, isFalse);
+    });
+
+    test('is true when the server answered with an error status', () async {
+      await store.putSale(_sale('a'));
+      remote.throwOnCall = ServerException(
+        message: 'Server xatosi',
+        statusCode: 500,
+      );
+
+      final report = await service.sync();
+
+      expect(report.transportFailed, isTrue);
+      expect(report.serverReachable, isTrue);
+    });
+
+    test(
+      'is true for a malformed 200 body (surfaced as ServerException)',
+      () async {
+        await store.putSale(_sale('a'));
+        remote.throwOnCall = ServerException(
+          message: 'Server javobi noto‘g‘ri',
+        );
+
+        final report = await service.sync();
+
+        expect(report.serverReachable, isTrue);
+      },
+    );
+
+    test('is true for success and for the empty report', () async {
+      expect(SyncReport.empty.serverReachable, isTrue);
+      await store.putSale(_sale('a'));
+
+      final report = await service.sync();
+
+      expect(report.transportFailed, isFalse);
+      expect(report.serverReachable, isTrue);
+    });
+  });
+
   test('sends the offline shift first, then refers to its server id', () async {
     await store.saveOfflineShift(
       OfflineShift(

@@ -114,11 +114,16 @@ class AppModeCubit extends Cubit<AppModeState> {
       ),
     );
     final report = await _sync();
-    if (report.transportFailed) {
+    if (report.transportFailed && !report.serverReachable) {
+      // The connection itself failed: genuinely still offline.
       _postponedAt = _clock();
       emit(state.copyWith(mode: AppMode.offline, lastReport: report));
       return;
     }
+    // Any HTTP answer (even a 5xx) proves the server is reachable. Locking
+    // the till offline on a persistent server error would also block
+    // logout forever, so go online; the sales stay pending (Unsynced tab)
+    // and the report tells the cashier what went wrong.
     _postponedAt = null;
     await _store.setOfflineMode(false);
     emit(state.copyWith(mode: AppMode.online, lastReport: report));
