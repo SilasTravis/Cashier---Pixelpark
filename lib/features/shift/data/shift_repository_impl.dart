@@ -5,6 +5,7 @@ import '../../../core/error/exceptions.dart';
 import '../../../core/error/failure.dart';
 import '../../../core/local_source/local_source.dart';
 import '../../offline/data/offline_store.dart';
+import '../../offline/domain/offline_sale.dart';
 import '../../offline/domain/offline_shift.dart';
 import '../domain/shift.dart';
 import 'shift_remote_data_source.dart';
@@ -135,14 +136,57 @@ class ShiftRepository {
   Either<Failure, Shift> _localShift(String? cashierId) {
     if (cashierId != null) {
       final cached = _store.cachedShift(cashierId);
-      if (cached != null && cached.isOpen) return Right(cached);
+      if (cached != null && cached.isOpen) {
+        return Right(
+          _plusQueuedSales(cached, cashierId, (s) => s.shiftId == cached.id),
+        );
+      }
       // A synced offline shift is only a mapping (see above) — it may have
       // been closed on the server since, so it is never the open shift.
       final offline = _store.offlineShift(cashierId);
-      if (offline != null && !offline.isSynced) return Right(offline.toShift());
+      if (offline != null && !offline.isSynced) {
+        return Right(
+          _plusQueuedSales(
+            offline.toShift(),
+            cashierId,
+            (s) => s.shiftOfflineRequestId == offline.offlineRequestId,
+          ),
+        );
+      }
     }
     return Left(
       ServerFailure(message: 'Smena ochilmagan', code: 'SHIFT_NOT_OPEN'),
+    );
+  }
+
+  /// The cached totals stop at the last online load; add this shift's
+  /// queued sales so the header's takings keep up offline. Failed sales are
+  /// left out — the server refused them. PaymentSplit keeps cash + card ==
+  /// total (no change given), so cash and card can be summed as tendered.
+  Shift _plusQueuedSales(
+    Shift shift,
+    String cashierId,
+    bool Function(OfflineSale sale) belongs,
+  ) {
+    final queued = _store
+        .sales(cashierId: cashierId)
+        .where((sale) => !sale.isFailed && belongs(sale))
+        .toList();
+    if (queued.isEmpty) return shift;
+    int sum(int Function(OfflineSale sale) of) =>
+        queued.fold(0, (total, sale) => total + of(sale));
+    final t = shift.totals;
+    return shift.copyWith(
+      totals: ShiftTotals(
+        salesCount: t.salesCount + queued.length,
+        subtotalUzs: t.subtotalUzs + sum((s) => s.totalUzs),
+        cashUzs: t.cashUzs + sum((s) => s.cashUzs),
+        cardUzs: t.cardUzs + sum((s) => s.cardUzs),
+        topupUzs: t.topupUzs,
+        balanceSalesUzs: t.balanceSalesUzs,
+        refundedUzs: t.refundedUzs,
+        discountUzs: t.discountUzs + sum((s) => s.discountUzs),
+      ),
     );
   }
 

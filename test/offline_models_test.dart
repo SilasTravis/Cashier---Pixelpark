@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:cashier_app/features/offline/domain/offline_sale.dart';
 import 'package:cashier_app/features/offline/domain/offline_shift.dart';
 import 'package:cashier_app/features/pos_sale/domain/discount.dart';
@@ -150,15 +152,55 @@ void main() {
       expect(Discount.fromJson(_flyer.toJson()), _flyer);
     });
 
-    test('Shift round-trips its identity (totals are not cached)', () {
+    test('Shift round-trips its identity and every totals field', () {
       final shift = Shift(
         id: 'shift-1',
         openedAt: DateTime.utc(2026, 9, 23, 8),
         closedAt: null,
         status: 'open',
-        totals: ShiftTotals.zero,
+        totals: const ShiftTotals(
+          salesCount: 4,
+          subtotalUzs: 159000,
+          cashUzs: 100000,
+          cardUzs: 49000,
+          topupUzs: 20000,
+          balanceSalesUzs: 30000,
+          refundedUzs: 10000,
+          discountUzs: 5000,
+        ),
       );
-      expect(Shift.fromCacheJson(shift.toCacheJson()), shift);
+      final restored = Shift.fromCacheJson(
+        Map<String, dynamic>.from(
+          jsonDecode(jsonEncode(shift.toCacheJson())) as Map,
+        ),
+      );
+      expect(restored, shift);
+      expect(restored.totals, shift.totals);
+    });
+
+    test('an old cache entry without totals still parses, as zero', () {
+      final shift = Shift.fromCacheJson({
+        'id': 'shift-1',
+        'openedAt': '2026-09-23T08:00:00.000Z',
+        'closedAt': null,
+        'status': 'open',
+      });
+      expect(shift.id, 'shift-1');
+      expect(shift.totals, ShiftTotals.zero);
+    });
+
+    test('a partial totals entry defaults the missing fields to zero', () {
+      final shift = Shift.fromCacheJson({
+        'id': 'shift-1',
+        'openedAt': '2026-09-23T08:00:00.000Z',
+        'closedAt': null,
+        'status': 'open',
+        'totals': {'salesCount': 2, 'cashUzs': 159000},
+      });
+      expect(shift.totals.salesCount, 2);
+      expect(shift.totals.cashUzs, 159000);
+      expect(shift.totals.cardUzs, 0);
+      expect(shift.totals.discountUzs, 0);
     });
   });
 }

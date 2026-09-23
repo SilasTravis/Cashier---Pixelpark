@@ -26,6 +26,15 @@ import '../widgets/title_bar.dart';
 import '../../../../generated/l10n.dart';
 import '../../../pos_account/domain/customer.dart';
 
+/// When the shell reloads the shift (ShiftRefreshed): online again (after
+/// sync) → the real server shift; offline → the cache / offline shift; and,
+/// while offline, after every queued sale so the header's takings (cached
+/// totals + queued sales) keep up.
+@visibleForTesting
+bool shiftNeedsRefresh(AppModeState previous, AppModeState current) =>
+    previous.isOffline != current.isOffline ||
+    (current.isOffline && previous.pendingCount != current.pendingCount);
+
 class ShellPage extends StatelessWidget {
   const ShellPage({super.key});
 
@@ -72,10 +81,7 @@ class _ShellViewState extends State<_ShellView> {
         : const <ShellTab>{};
     final tab = disabled.contains(_tab) ? ShellTab.posSale : _tab;
     return BlocListener<AppModeCubit, AppModeState>(
-      // Online again (after sync) → load the real server shift; offline →
-      // switch the shift source to the cache / offline shift.
-      listenWhen: (previous, current) =>
-          previous.isOffline != current.isOffline,
+      listenWhen: shiftNeedsRefresh,
       listener: (context, _) =>
           context.read<ShiftBloc>().add(const ShiftRefreshed()),
       child: ModePromptHost(

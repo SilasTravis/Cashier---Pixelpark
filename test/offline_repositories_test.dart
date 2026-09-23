@@ -67,11 +67,12 @@ class _Shifts extends ShiftRemoteDataSourceImpl {
   _Shifts() : super(Dio());
   Object? error;
   int calls = 0;
+  Shift? next;
   @override
   Future<Shift> getCurrentShift() async {
     calls++;
     if (error != null) throw error!;
-    return _serverShift;
+    return next ?? _serverShift;
   }
 
   @override
@@ -274,6 +275,155 @@ void main() {
       expect(sale.isFailed, isTrue);
       expect(sale.toSyncJson()['shiftId'], 'srv-old');
       expect(sale.toSyncJson().containsKey('shiftOfflineRequestId'), isFalse);
+    });
+
+    group('offline totals', () {
+      OfflineSale queued(
+        String id, {
+        String? shiftId,
+        String? shiftOfflineRequestId,
+        int cash = 75000,
+        int card = 0,
+        int qty = 1,
+        Discount? discount,
+        bool failed = false,
+      }) {
+        final sale = OfflineSale(
+          offlineRequestId: id,
+          cashierId: 'cashier-1',
+          createdAt: DateTime.utc(2026, 9, 23, 10),
+          shiftId: shiftId,
+          shiftOfflineRequestId: shiftOfflineRequestId,
+          lines: [
+            OfflineSaleLine(
+              productId: 'vip',
+              name: 'VIP',
+              priceUzs: 75000,
+              qty: qty,
+            ),
+          ],
+          discount: discount,
+          cashUzs: cash,
+          cardUzs: card,
+        );
+        return failed
+            ? sale.markFailed(code: 'X', message: 'bad', at: DateTime.utc(2026))
+            : sale;
+      }
+
+      test(
+        'the cached shift totals plus this shift\'s queued, non-failed sales',
+        () async {
+          await store.cacheShift(
+            'cashier-1',
+            Shift(
+              id: 'shift-1',
+              openedAt: DateTime.utc(2026, 9, 23, 8),
+              closedAt: null,
+              status: 'open',
+              totals: const ShiftTotals(
+                salesCount: 3,
+                subtotalUzs: 159000,
+                cashUzs: 100000,
+                cardUzs: 59000,
+                topupUzs: 40000,
+                balanceSalesUzs: 12000,
+                refundedUzs: 1000,
+                discountUzs: 2000,
+              ),
+            ),
+          );
+          await store.putSale(queued('a', shiftId: 'shift-1'));
+          await store.putSale(
+            queued(
+              'b',
+              shiftId: 'shift-1',
+              qty: 2,
+              discount: _flyer, // 10% of 150 000
+              cash: 35000,
+              card: 100000,
+            ),
+          );
+          await store.putSale(
+            queued('failed', shiftId: 'shift-1', failed: true),
+          );
+          await store.putSale(queued('other', shiftId: 'shift-0'));
+          await store.setOfflineMode(true);
+
+          final shift = (await build(
+            _Shifts(),
+          ).getCurrentShift()).getOrElse(() => throw 'no shift');
+
+          expect(shift.id, 'shift-1');
+          expect(
+            shift.totals,
+            const ShiftTotals(
+              salesCount: 5,
+              subtotalUzs: 159000 + 75000 + 135000,
+              cashUzs: 100000 + 75000 + 35000,
+              cardUzs: 59000 + 100000,
+              topupUzs: 40000,
+              balanceSalesUzs: 12000,
+              refundedUzs: 1000,
+              discountUzs: 2000 + 15000,
+            ),
+          );
+        },
+      );
+
+      test('an unsynced offline shift counts its own queued sales', () async {
+        await store.saveOfflineShift(
+          OfflineShift(
+            offlineRequestId: 'off-1',
+            cashierId: 'cashier-1',
+            openedAt: DateTime.utc(2026, 9, 23, 8),
+          ),
+        );
+        await store.putSale(queued('a', shiftOfflineRequestId: 'off-1'));
+        await store.putSale(
+          queued('b', shiftOfflineRequestId: 'off-1', cash: 0, card: 75000),
+        );
+        await store.putSale(queued('stale', shiftOfflineRequestId: 'off-0'));
+        await store.setOfflineMode(true);
+
+        final shift = (await build(
+          _Shifts(),
+        ).getCurrentShift()).getOrElse(() => throw 'no shift');
+
+        expect(shift.id, 'offline:off-1');
+        expect(shift.totals.salesCount, 2);
+        expect(shift.totals.subtotalUzs, 150000);
+        expect(shift.totals.cashUzs, 75000);
+        expect(shift.totals.cardUzs, 75000);
+        expect(shift.totals.grandTotalUzs, 150000);
+      });
+
+      test('online, the server totals are cached for offline use', () async {
+        final remote = _Shifts()
+          ..next = Shift(
+            id: 'shift-1',
+            openedAt: DateTime.utc(2026, 9, 23, 8),
+            closedAt: null,
+            status: 'open',
+            totals: const ShiftTotals(
+              salesCount: 2,
+              subtotalUzs: 159000,
+              cashUzs: 159000,
+              cardUzs: 0,
+              topupUzs: 0,
+              balanceSalesUzs: 0,
+            ),
+          );
+        final repository = build(remote);
+        await repository.getCurrentShift();
+        await store.setOfflineMode(true);
+
+        final shift = (await repository.getCurrentShift()).getOrElse(
+          () => throw 'no shift',
+        );
+
+        expect(shift.totals.grandTotalUzs, 159000);
+      });
     });
 
     test('a shift cannot be closed offline', () async {

@@ -36,6 +36,32 @@ class ShiftTotals extends Equatable {
   /// Account-funded sales are reported separately and never added here.
   int get grandTotalUzs => cashUzs + cardUzs;
 
+  Map<String, dynamic> toCacheJson() => {
+    'salesCount': salesCount,
+    'subtotalUzs': subtotalUzs,
+    'cashUzs': cashUzs,
+    'cardUzs': cardUzs,
+    'topupUzs': topupUzs,
+    'balanceSalesUzs': balanceSalesUzs,
+    'refundedUzs': refundedUzs,
+    'discountUzs': discountUzs,
+  };
+
+  /// Every field defaults to 0, so an older or partial cache entry parses.
+  factory ShiftTotals.fromCacheJson(Map<String, dynamic> json) {
+    int read(String key) => (json[key] as num?)?.toInt() ?? 0;
+    return ShiftTotals(
+      salesCount: read('salesCount'),
+      subtotalUzs: read('subtotalUzs'),
+      cashUzs: read('cashUzs'),
+      cardUzs: read('cardUzs'),
+      topupUzs: read('topupUzs'),
+      balanceSalesUzs: read('balanceSalesUzs'),
+      refundedUzs: read('refundedUzs'),
+      discountUzs: read('discountUzs'),
+    );
+  }
+
   static const zero = ShiftTotals(
     salesCount: 0,
     subtotalUzs: 0,
@@ -75,23 +101,38 @@ class Shift extends Equatable {
 
   bool get isOpen => status == 'open';
 
-  /// Offline-mode cache of the shift's identity. Totals are deliberately not
-  /// cached — they come back as zero and refresh from the server once online.
+  /// Offline-mode cache of the shift, totals included (as of the last
+  /// online load) so the header's takings don't drop to 0 offline.
   Map<String, dynamic> toCacheJson() => {
     'id': id,
     'openedAt': openedAt.toUtc().toIso8601String(),
     'closedAt': closedAt?.toUtc().toIso8601String(),
     'status': status,
+    'totals': totals.toCacheJson(),
   };
 
-  factory Shift.fromCacheJson(Map<String, dynamic> json) => Shift(
-    id: json['id'] as String,
-    openedAt: DateTime.parse(json['openedAt'] as String),
-    closedAt: json['closedAt'] == null
-        ? null
-        : DateTime.parse(json['closedAt'] as String),
-    status: json['status'] as String,
-    totals: ShiftTotals.zero,
+  /// Entries cached before totals were stored come back with zero totals.
+  factory Shift.fromCacheJson(Map<String, dynamic> json) {
+    final totals = json['totals'];
+    return Shift(
+      id: json['id'] as String,
+      openedAt: DateTime.parse(json['openedAt'] as String),
+      closedAt: json['closedAt'] == null
+          ? null
+          : DateTime.parse(json['closedAt'] as String),
+      status: json['status'] as String,
+      totals: totals is Map
+          ? ShiftTotals.fromCacheJson(Map<String, dynamic>.from(totals))
+          : ShiftTotals.zero,
+    );
+  }
+
+  Shift copyWith({ShiftTotals? totals}) => Shift(
+    id: id,
+    openedAt: openedAt,
+    closedAt: closedAt,
+    status: status,
+    totals: totals ?? this.totals,
   );
 
   @override
