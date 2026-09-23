@@ -115,6 +115,24 @@ class OfflineSale extends Equatable {
     lastAttemptAt: at,
   );
 
+  /// The same sale, attached directly to the server shift its offline
+  /// shift became. Status and failure details are kept.
+  OfflineSale withServerShift(String serverShiftId) => OfflineSale(
+    offlineRequestId: offlineRequestId,
+    cashierId: cashierId,
+    createdAt: createdAt,
+    shiftId: serverShiftId,
+    lines: lines,
+    discount: discount,
+    cashUzs: cashUzs,
+    cardUzs: cardUzs,
+    status: status,
+    failureCode: failureCode,
+    failureMessage: failureMessage,
+    attempts: attempts,
+    lastAttemptAt: lastAttemptAt,
+  );
+
   SaleReceipt toReceipt() => SaleReceipt(
     id: offlineRequestId,
     subtotalUzs: totalUzs,

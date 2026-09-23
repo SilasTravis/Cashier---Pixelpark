@@ -46,12 +46,11 @@ class OfflineCheckout {
     final offline = _store.offlineShift(cashierId);
     if (cached != null && cached.isOpen) {
       shiftId = cached.id;
-    } else if (offline != null) {
-      shiftId = offline.serverShiftId;
-      shiftOfflineRequestId = offline.isSynced
-          ? null
-          : offline.offlineRequestId;
+    } else if (offline != null && !offline.isSynced) {
+      shiftOfflineRequestId = offline.offlineRequestId;
     } else {
+      // A synced offline shift is kept only as a mapping for retrying its
+      // failed sales; it may long since be closed on the server.
       throw NoShiftForOfflineSaleException();
     }
 

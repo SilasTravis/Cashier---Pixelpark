@@ -100,6 +100,29 @@ void main() {
     expect(sale.shiftOfflineRequestId, 'off-1');
   });
 
+  test('a synced offline shift is only a mapping: with no cached server shift '
+      'there is no shift to sell under', () async {
+    await store.saveOfflineShift(
+      OfflineShift(
+        offlineRequestId: 'off-1',
+        cashierId: 'cashier-1',
+        openedAt: DateTime.utc(2026, 9, 22, 8),
+        serverShiftId: 'srv-old',
+      ),
+    );
+
+    await expectLater(
+      checkout.record(
+        lines: const [CartLine(product: _vip, qty: 1)],
+        discount: null,
+        cashUzs: 75000,
+        cardUzs: 0,
+      ),
+      throwsA(isA<NoShiftForOfflineSaleException>()),
+    );
+    expect(store.sales(), isEmpty);
+  });
+
   test('refuses without any shift, and when underpaid', () async {
     await expectLater(
       checkout.record(

@@ -214,6 +214,68 @@ void main() {
       );
     });
 
+    test(
+      'offline, a synced offline shift (kept only as a mapping) is never the '
+      'open shift',
+      () async {
+        await store.saveOfflineShift(
+          OfflineShift(
+            offlineRequestId: 'off-1',
+            cashierId: 'cashier-1',
+            openedAt: DateTime.utc(2026, 9, 22, 8),
+            serverShiftId: 'srv-old',
+          ),
+        );
+        await store.setOfflineMode(true);
+
+        final result = await build(_Shifts()).getCurrentShift();
+
+        expect(
+          result.fold((f) => (f as ServerFailure).code, (s) => s.id),
+          'SHIFT_NOT_OPEN',
+        );
+      },
+    );
+
+    test('opening a new offline shift keeps failed sales of the old synced one '
+        'pointed at its server shift', () async {
+      await store.saveOfflineShift(
+        OfflineShift(
+          offlineRequestId: 'off-old',
+          cashierId: 'cashier-1',
+          openedAt: DateTime.utc(2026, 9, 22, 8),
+          serverShiftId: 'srv-old',
+        ),
+      );
+      await store.putSale(
+        OfflineSale(
+          offlineRequestId: 'a',
+          cashierId: 'cashier-1',
+          createdAt: DateTime.utc(2026, 9, 22, 10),
+          shiftOfflineRequestId: 'off-old',
+          lines: const [
+            OfflineSaleLine(
+              productId: 'vip',
+              name: 'VIP',
+              priceUzs: 75000,
+              qty: 1,
+            ),
+          ],
+          cashUzs: 75000,
+          cardUzs: 0,
+        ).markFailed(code: 'X', message: 'bad', at: DateTime.utc(2026)),
+      );
+      await store.setOfflineMode(true);
+
+      await build(_Shifts()).openShift();
+
+      expect(store.offlineShift('cashier-1')!.offlineRequestId, 'off-shift-1');
+      final sale = store.sales().single;
+      expect(sale.isFailed, isTrue);
+      expect(sale.toSyncJson()['shiftId'], 'srv-old');
+      expect(sale.toSyncJson().containsKey('shiftOfflineRequestId'), isFalse);
+    });
+
     test('a shift cannot be closed offline', () async {
       await store.setOfflineMode(true);
       final result = await build(_Shifts()).closeShift();

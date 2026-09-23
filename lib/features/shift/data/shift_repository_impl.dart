@@ -57,6 +57,7 @@ class ShiftRepository {
           (openingCashUzs < 0 || openingCashUzs > 10000000000)) {
         return Left(CacheFailure(message: "Boshlang'ich naqd summa noto'g'ri"));
       }
+      await _rehomeSalesOfSyncedOfflineShift(cashierId);
       final shift = OfflineShift(
         offlineRequestId: _newId(),
         cashierId: cashierId,
@@ -117,12 +118,28 @@ class ShiftRepository {
     }
   }
 
+  /// The store keeps ONE offline shift per cashier. A synced one survives
+  /// only as the mapping that lets its failed sales be retried against its
+  /// server shift; before a new offline shift overwrites it, point those
+  /// sales straight at the server shift so the mapping isn't needed.
+  Future<void> _rehomeSalesOfSyncedOfflineShift(String cashierId) async {
+    final old = _store.offlineShift(cashierId);
+    if (old == null || !old.isSynced) return;
+    for (final sale in _store.sales(cashierId: cashierId)) {
+      if (sale.shiftOfflineRequestId == old.offlineRequestId) {
+        await _store.putSale(sale.withServerShift(old.serverShiftId!));
+      }
+    }
+  }
+
   Either<Failure, Shift> _localShift(String? cashierId) {
     if (cashierId != null) {
       final cached = _store.cachedShift(cashierId);
       if (cached != null && cached.isOpen) return Right(cached);
+      // A synced offline shift is only a mapping (see above) — it may have
+      // been closed on the server since, so it is never the open shift.
       final offline = _store.offlineShift(cashierId);
-      if (offline != null) return Right(offline.toShift());
+      if (offline != null && !offline.isSynced) return Right(offline.toShift());
     }
     return Left(
       ServerFailure(message: 'Smena ochilmagan', code: 'SHIFT_NOT_OPEN'),
