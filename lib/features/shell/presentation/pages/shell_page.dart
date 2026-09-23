@@ -2,9 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/local_source/local_source.dart';
+import '../../../../core/offline/app_mode_cubit.dart';
+import '../../../../core/offline/widgets/mode_prompt_host.dart';
+import '../../../../core/offline/widgets/offline_banner.dart';
 import '../../../../core/theme/nocturne_colors.dart';
 import '../../../../core/update/update_service.dart';
 import '../../../../injector_container.dart';
+import '../../../offline/data/offline_store.dart';
+import '../../../offline/presentation/pages/unsynced_sales_page.dart';
 import '../../../pos_account/presentation/pages/pos_account_page.dart';
 import '../../../inside/presentation/pages/inside_page.dart';
 import '../../../pos_sale/presentation/pages/pos_sale_page.dart';
@@ -46,71 +51,114 @@ class _ShellViewState extends State<_ShellView> {
   bool? _sidebarCollapsed;
 
   @override
+  void initState() {
+    super.initState();
+    // Queue counts belong to whoever just signed in.
+    context.read<AppModeCubit>().refreshCounts();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: NocturneColors.bg,
-      body: Column(
-        children: [
-          const TitleBar(),
-          const Divider(height: 1),
-          Expanded(
-            child: BlocConsumer<ShiftBloc, ShiftState>(
-              listenWhen: (previous, current) =>
-                  previous.lastClosed != current.lastClosed &&
-                  current.lastClosed != null,
-              listener: (context, state) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(AppLocalization.of(context).shiftClosed),
-                  ),
-                );
-              },
-              builder: (context, state) {
-                if (!state.hasOpenShift) {
-                  return const OpenShiftPrompt();
-                }
-                final isCompact = MediaQuery.sizeOf(context).width < 1100;
-                final sidebarCollapsed = _sidebarCollapsed ?? isCompact;
-                return Row(
-                  children: [
-                    Sidebar(
-                      collapsed: sidebarCollapsed,
-                      onToggle: () =>
-                          setState(() => _sidebarCollapsed = !sidebarCollapsed),
-                      selected: _tab,
-                      onSelect: (tab) => setState(() {
-                        _tab = tab;
-                        if (tab == ShellTab.posAccount) _initialCustomer = null;
-                      }),
-                      cashierName: sl<LocalSource>().getCashierFullName() ?? '',
-                      shiftOpenedAt: state.shift?.openedAt,
-                      onCloseShift: () =>
-                          showCloseShiftDialog(context, state.shift!),
-                      updateAvailable: sl<UpdateService>().hasUpdate,
-                    ),
-                    Expanded(
-                      child: Column(
-                        children: [
-                          HeaderBar(tab: _tab, shift: state.shift),
-                          Expanded(
-                            child: _TabContent(
-                              tab: _tab,
-                              initialCustomer: _initialCustomer,
-                              onOpenCustomer: (customer) => setState(() {
-                                _initialCustomer = customer;
-                                _tab = ShellTab.posAccount;
-                              }),
-                            ),
-                          ),
-                        ],
+    final mode = context.watch<AppModeCubit>().state;
+    final tabs = [
+      ...ShellTab.primary,
+      if (mode.queuedCount > 0 || _tab == ShellTab.unsynced) ShellTab.unsynced,
+    ];
+    final disabled = mode.isOffline
+        ? {
+            for (final tab in ShellTab.values)
+              if (tab.needsInternet) tab,
+          }
+        : const <ShellTab>{};
+    final tab = disabled.contains(_tab) ? ShellTab.posSale : _tab;
+    return BlocListener<AppModeCubit, AppModeState>(
+      // Online again (after sync) → load the real server shift; offline →
+      // switch the shift source to the cache / offline shift.
+      listenWhen: (previous, current) =>
+          previous.isOffline != current.isOffline,
+      listener: (context, _) =>
+          context.read<ShiftBloc>().add(const ShiftRefreshed()),
+      child: ModePromptHost(
+        onShowUnsynced: () => setState(() => _tab = ShellTab.unsynced),
+        child: Scaffold(
+          backgroundColor: NocturneColors.bg,
+          body: Column(
+            children: [
+              const TitleBar(),
+              const Divider(height: 1),
+              const OfflineBanner(),
+              Expanded(
+                child: BlocConsumer<ShiftBloc, ShiftState>(
+                  listenWhen: (previous, current) =>
+                      previous.lastClosed != current.lastClosed &&
+                      current.lastClosed != null,
+                  listener: (context, state) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(AppLocalization.of(context).shiftClosed),
                       ),
-                    ),
-                  ],
-                );
-              },
-            ),
+                    );
+                  },
+                  builder: (context, state) {
+                    if (!state.hasOpenShift) {
+                      return const OpenShiftPrompt();
+                    }
+                    final isCompact = MediaQuery.sizeOf(context).width < 1100;
+                    final sidebarCollapsed = _sidebarCollapsed ?? isCompact;
+                    return Row(
+                      children: [
+                        Sidebar(
+                          collapsed: sidebarCollapsed,
+                          onToggle: () => setState(
+                            () => _sidebarCollapsed = !sidebarCollapsed,
+                          ),
+                          selected: tab,
+                          tabs: tabs,
+                          disabledTabs: disabled,
+                          counts: {ShellTab.unsynced: mode.queuedCount},
+                          onSelect: (picked) => setState(() {
+                            _tab = picked;
+                            if (picked == ShellTab.posAccount) {
+                              _initialCustomer = null;
+                            }
+                          }),
+                          cashierName:
+                              sl<LocalSource>().getCashierFullName() ?? '',
+                          shiftOpenedAt: state.shift?.openedAt,
+                          closeShiftDisabledReason: AppLocalization.of(
+                            context,
+                          ).closeShiftOffline,
+                          onCloseShift: mode.isOffline
+                              ? null
+                              : () =>
+                                    showCloseShiftDialog(context, state.shift!),
+                          updateAvailable: sl<UpdateService>().hasUpdate,
+                        ),
+                        Expanded(
+                          child: Column(
+                            children: [
+                              HeaderBar(tab: tab, shift: state.shift),
+                              Expanded(
+                                child: _TabContent(
+                                  tab: tab,
+                                  initialCustomer: _initialCustomer,
+                                  onOpenCustomer: (customer) => setState(() {
+                                    _initialCustomer = customer;
+                                    _tab = ShellTab.posAccount;
+                                  }),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -139,6 +187,10 @@ class _TabContent extends StatelessWidget {
       ShellTab.visitHistory => VisitHistoryPage(onOpenCustomer: onOpenCustomer),
       ShellTab.inside => const InsidePage(),
       ShellTab.settings => const SettingsPage(),
+      ShellTab.unsynced => UnsyncedSalesPage(
+        store: sl<OfflineStore>(),
+        cashierId: sl<LocalSource>().getCashierId(),
+      ),
     };
   }
 }

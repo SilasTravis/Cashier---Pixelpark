@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/offline/app_mode_cubit.dart';
 import '../../../../core/theme/nocturne_colors.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../injector_container.dart';
@@ -22,39 +23,45 @@ class PosSalePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => sl<PosSaleBloc>()..add(const PosSaleStarted()),
-      child: Padding(
-        padding: breakpointOfContext(context) == Breakpoint.compact
-            ? const EdgeInsets.fromLTRB(12, 12, 12, 14)
-            : const EdgeInsets.fromLTRB(20, 16, 20, 18),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const CategoryFilter(),
-                  const SizedBox(height: 12),
-                  const Expanded(child: ProductGrid()),
-                ],
+      child: BlocListener<AppModeCubit, AppModeState>(
+        listenWhen: (previous, current) =>
+            previous.isOffline != current.isOffline,
+        listener: (context, mode) =>
+            context.read<PosSaleBloc>().add(PosSaleModeChanged(mode.isOffline)),
+        child: Padding(
+          padding: breakpointOfContext(context) == Breakpoint.compact
+              ? const EdgeInsets.fromLTRB(12, 12, 12, 14)
+              : const EdgeInsets.fromLTRB(20, 16, 20, 18),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const CategoryFilter(),
+                    const SizedBox(height: 12),
+                    const Expanded(child: ProductGrid()),
+                  ],
+                ),
               ),
-            ),
-            SizedBox(
-              width: breakpointOfContext(context) == Breakpoint.compact
-                  ? 12
-                  : 16,
-            ),
-            Container(
-              width: _cartPanel.of(context),
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              decoration: BoxDecoration(
-                color: NocturneColors.surface,
-                borderRadius: BorderRadius.circular(AppRadius.lg),
-                boxShadow: AppShadow.sm,
+              SizedBox(
+                width: breakpointOfContext(context) == Breakpoint.compact
+                    ? 12
+                    : 16,
               ),
-              child: const CartPanel(),
-            ),
-          ],
+              Container(
+                width: _cartPanel.of(context),
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                decoration: BoxDecoration(
+                  color: NocturneColors.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  boxShadow: AppShadow.sm,
+                ),
+                child: const CartPanel(),
+              ),
+            ],
+          ),
         ),
       ),
     );

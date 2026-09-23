@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/localization/locale_cubit.dart';
+import 'core/offline/app_mode_cubit.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/shell/presentation/pages/shell_page.dart';
@@ -18,8 +19,12 @@ class App extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasSession = sl<LocalSource>().getAccessToken() != null;
 
-    return BlocProvider(
-      create: (_) => sl<LocaleCubit>(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => sl<LocaleCubit>()),
+        // `.value`: the singleton outlives this widget; never closed here.
+        BlocProvider<AppModeCubit>.value(value: sl<AppModeCubit>()),
+      ],
       child: BlocBuilder<LocaleCubit, Locale>(
         builder: (context, locale) => MaterialApp(
           onGenerateTitle: (context) => AppLocalization.of(context).appTitle,

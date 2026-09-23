@@ -22,6 +22,10 @@ class Sidebar extends StatelessWidget {
     required this.shiftOpenedAt,
     required this.onCloseShift,
     required this.updateAvailable,
+    this.tabs = ShellTab.primary,
+    this.disabledTabs = const {},
+    this.counts = const {},
+    this.closeShiftDisabledReason,
   });
 
   final ShellTab selected;
@@ -36,6 +40,20 @@ class Sidebar extends StatelessWidget {
   /// on the Settings tab so nobody has to remember to look.
   final ValueListenable<bool> updateAvailable;
 
+  /// Tiles to show, in order. The shell appends [ShellTab.unsynced] only
+  /// while sales are queued.
+  final List<ShellTab> tabs;
+
+  /// Tiles that ignore taps and explain why (offline: internet-only tabs).
+  final Set<ShellTab> disabledTabs;
+
+  /// A count pill per tab; zero or missing renders nothing.
+  final Map<ShellTab, int> counts;
+
+  /// Tooltip on the close-shift button while [onCloseShift] is null, so a
+  /// greyed-out button explains itself (offline: shifts close online only).
+  final String? closeShiftDisabledReason;
+
   static const _width = ResponsivePanel(compact: 156, standard: 200, wide: 220);
   static const double _collapsedWidth = 68;
 
@@ -45,6 +63,15 @@ class Sidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalization.of(context);
+    final disabledReason = onCloseShift == null
+        ? closeShiftDisabledReason
+        : null;
+    final closeButton = OutlinedButton.icon(
+      onPressed: onCloseShift,
+      style: OutlinedButton.styleFrom(alignment: Alignment.centerLeft),
+      icon: const Icon(PhosphorIconsRegular.signOut, size: 16),
+      label: Text(l10n.shiftClose),
+    );
     return Container(
       width: collapsed ? _collapsedWidth : _width.of(context),
       decoration: const BoxDecoration(
@@ -89,18 +116,31 @@ class Sidebar extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          for (final tab in ShellTab.values)
-            ValueListenableBuilder<bool>(
-              valueListenable: updateAvailable,
-              builder: (context, hasUpdate, _) => _NavTile(
-                tab: tab,
-                selected: tab == selected,
-                collapsed: collapsed,
-                badge: hasUpdate && tab == ShellTab.settings,
-                onTap: () => onSelect(tab),
+          // Scrolls instead of overflowing: with the Unsynced tab there are
+          // seven tiles, more than fit above the footer at the 600 px
+          // minimum window height.
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final tab in tabs)
+                    ValueListenableBuilder<bool>(
+                      valueListenable: updateAvailable,
+                      builder: (context, hasUpdate, _) => _NavTile(
+                        tab: tab,
+                        selected: tab == selected,
+                        collapsed: collapsed,
+                        badge: hasUpdate && tab == ShellTab.settings,
+                        disabled: disabledTabs.contains(tab),
+                        count: counts[tab] ?? 0,
+                        onTap: () => onSelect(tab),
+                      ),
+                    ),
+                ],
               ),
             ),
-          const Spacer(),
+          ),
           Padding(
             padding: EdgeInsets.fromLTRB(
               collapsed ? 8 : 10,
@@ -124,19 +164,14 @@ class Sidebar extends StatelessWidget {
                   ),
                 if (collapsed)
                   IconButton.outlined(
-                    tooltip: l10n.shiftClose,
+                    tooltip: disabledReason ?? l10n.shiftClose,
                     onPressed: onCloseShift,
                     icon: const Icon(PhosphorIconsRegular.signOut, size: 16),
                   )
+                else if (disabledReason != null)
+                  Tooltip(message: disabledReason, child: closeButton)
                 else
-                  OutlinedButton.icon(
-                    onPressed: onCloseShift,
-                    style: OutlinedButton.styleFrom(
-                      alignment: Alignment.centerLeft,
-                    ),
-                    icon: const Icon(PhosphorIconsRegular.signOut, size: 16),
-                    label: Text(l10n.shiftClose),
-                  ),
+                  closeButton,
               ],
             ),
           ),
@@ -153,6 +188,8 @@ class _NavTile extends StatelessWidget {
     required this.collapsed,
     required this.onTap,
     this.badge = false,
+    this.disabled = false,
+    this.count = 0,
   });
 
   final ShellTab tab;
@@ -160,83 +197,108 @@ class _NavTile extends StatelessWidget {
   final bool collapsed;
   final VoidCallback onTap;
   final bool badge;
+  final bool disabled;
+  final int count;
 
   @override
   Widget build(BuildContext context) {
-    final tile = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      child: Material(
-        color: selected
-            ? NocturneColors.accent.withValues(alpha: 0.12)
-            : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
-        child: InkWell(
-          onTap: onTap,
+    final tile = Opacity(
+      opacity: disabled ? .38 : 1,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        child: Material(
+          color: selected
+              ? NocturneColors.accent.withValues(alpha: 0.12)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: collapsed ? 0 : 10,
-              vertical: 10,
-            ),
-            child: Row(
-              mainAxisAlignment: collapsed
-                  ? MainAxisAlignment.center
-                  : MainAxisAlignment.start,
-              children: [
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Icon(
-                      tab.icon,
-                      size: 18,
-                      color: selected
-                          ? NocturneColors.accent
-                          : NocturneColors.neutral500,
+          child: InkWell(
+            onTap: disabled ? null : onTap,
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: collapsed ? 0 : 10,
+                vertical: 10,
+              ),
+              child: Row(
+                mainAxisAlignment: collapsed
+                    ? MainAxisAlignment.center
+                    : MainAxisAlignment.start,
+                children: [
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Icon(
+                        tab.icon,
+                        size: 18,
+                        color: selected
+                            ? NocturneColors.accent
+                            : NocturneColors.neutral500,
+                      ),
+                      if (badge)
+                        Positioned(
+                          top: -2,
+                          right: -2,
+                          child: Container(
+                            // Keyed per tab (not just for Settings) so tests
+                            // can assert which tile the badge renders on,
+                            // rather than merely that it renders somewhere.
+                            key: Key('nav-update-badge-${tab.name}'),
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: NocturneColors.accent,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  if (!collapsed) ...[
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        tab.label(AppLocalization.of(context)),
+                        style: AppTextStyles.body.copyWith(
+                          fontSize: 13,
+                          color: selected
+                              ? NocturneColors.accent
+                              : NocturneColors.text,
+                          fontWeight: selected
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                        ),
+                      ),
                     ),
-                    if (badge)
-                      Positioned(
-                        top: -2,
-                        right: -2,
-                        child: Container(
-                          // Keyed per tab (not just for Settings) so tests
-                          // can assert which tile the badge renders on,
-                          // rather than merely that it renders somewhere.
-                          key: Key('nav-update-badge-${tab.name}'),
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: NocturneColors.accent,
-                            shape: BoxShape.circle,
+                    if (count > 0)
+                      Container(
+                        key: Key('nav-count-${tab.name}'),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 1,
+                        ),
+                        decoration: BoxDecoration(
+                          color: NocturneColors.warning,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '$count',
+                          style: AppTextStyles.body.copyWith(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: NocturneColors.bg,
                           ),
                         ),
                       ),
                   ],
-                ),
-                if (!collapsed) ...[
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      tab.label(AppLocalization.of(context)),
-                      style: AppTextStyles.body.copyWith(
-                        fontSize: 13,
-                        color: selected
-                            ? NocturneColors.accent
-                            : NocturneColors.text,
-                        fontWeight: selected
-                            ? FontWeight.w600
-                            : FontWeight.w400,
-                      ),
-                    ),
-                  ),
                 ],
-              ],
+              ),
             ),
           ),
         ),
       ),
     );
-    return collapsed
-        ? Tooltip(message: tab.label(AppLocalization.of(context)), child: tile)
-        : tile;
+    final l10n = AppLocalization.of(context);
+    if (disabled) return Tooltip(message: l10n.needsInternet, child: tile);
+    return collapsed ? Tooltip(message: tab.label(l10n), child: tile) : tile;
   }
 }

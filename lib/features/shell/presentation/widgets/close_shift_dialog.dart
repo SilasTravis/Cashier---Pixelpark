@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/offline/app_mode_cubit.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
 import '../../../shift/domain/shift.dart';
@@ -66,6 +67,32 @@ Future<void> showCloseShiftDialog(BuildContext context, Shift shift) {
                     label: l10n.shiftTotalIncome,
                     value: _uzs(shift.totals.grandTotalUzs),
                     emphasize: true,
+                  ),
+                  if (context.read<AppModeCubit>().state.failedCount
+                      case final failed when failed > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Text(
+                        l10n.closeShiftUnsyncedWarning(failed),
+                        style: AppTextStyles.body.copyWith(
+                          color: NocturneColors.warning,
+                        ),
+                      ),
+                    ),
+                  // Shows OFFLINE_SALES_PENDING (and any other close error),
+                  // which used to fail silently in this dialog.
+                  BlocBuilder<ShiftBloc, ShiftState>(
+                    builder: (context, state) => state.errorMessage == null
+                        ? const SizedBox.shrink()
+                        : Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: Text(
+                              state.errorMessage!,
+                              style: AppTextStyles.body.copyWith(
+                                color: NocturneColors.danger,
+                              ),
+                            ),
+                          ),
                   ),
                 ],
               ),

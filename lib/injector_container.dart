@@ -4,10 +4,13 @@ import 'package:hive_ce/hive.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'constants/app_constants.dart';
+import 'core/connectivity/connectivity_monitor.dart';
 import 'core/local_source/local_source.dart';
 import 'core/localization/locale_cubit.dart';
 import 'core/network/api_client.dart';
 import 'core/network/token_refresher.dart';
+import 'core/offline/app_mode_cubit.dart';
 import 'core/update/release_source.dart';
 import 'core/update/update_service.dart';
 import 'features/auth/data/datasources/auth_remote_data_source.dart';
@@ -16,7 +19,9 @@ import 'features/auth/domain/repositories/auth_repository.dart';
 import 'features/auth/domain/usecases/login_usecase.dart';
 import 'features/auth/presentation/bloc/login_bloc.dart';
 import 'features/offline/application/offline_checkout.dart';
+import 'features/offline/application/offline_sync_service.dart';
 import 'features/offline/data/offline_store.dart';
+import 'features/offline/data/offline_sync_remote_data_source.dart';
 import 'features/pos_account/data/pos_account_remote_data_source.dart';
 import 'features/inside/data/inside_repository.dart';
 import 'features/inside/presentation/bloc/inside_cubit.dart';
@@ -43,7 +48,21 @@ Future<void> init() async {
   await _initHive();
 
   sl.registerLazySingleton<TokenRefresher>(() => TokenRefresher(sl()));
-  sl.registerLazySingleton<Dio>(() => buildDio(sl(), sl()));
+  sl.registerLazySingleton<ConnectivityMonitor>(
+    () => ConnectivityMonitor(
+      probe: httpHealthProbe(
+        () =>
+            sl<LocalSource>().getApiBaseUrl() ?? AppConstants.defaultApiBaseUrl,
+      ),
+    ),
+  );
+  sl.registerLazySingleton<Dio>(
+    () => buildDio(
+      sl(),
+      sl(),
+      onConnectionFailure: sl<ConnectivityMonitor>().reportRequestFailure,
+    ),
+  );
 
   // Read once at startup: the version is fixed for the process lifetime, and
   // reading it eagerly keeps every consumer synchronous.
@@ -59,6 +78,7 @@ Future<void> init() async {
   sl.registerFactory<LocaleCubit>(() => LocaleCubit(sl()));
 
   _authFeature();
+  _offlineFeature();
   _shiftFeature();
   _productsFeature();
   _posAccountFeature();
@@ -99,6 +119,26 @@ Future<void> _initHive() async {
   // Separate box: logout's clearSession() must never touch queued sales.
   final offlineBox = await Hive.openBox<dynamic>(OfflineStore.boxName);
   sl.registerSingleton<OfflineStore>(OfflineStore(offlineBox));
+}
+
+void _offlineFeature() {
+  sl.registerLazySingleton<OfflineSyncRemoteDataSource>(
+    () => OfflineSyncRemoteDataSourceImpl(sl()),
+  );
+  sl.registerLazySingleton<OfflineSyncService>(
+    () =>
+        OfflineSyncService(sl(), sl(), () => sl<LocalSource>().getCashierId()),
+  );
+  // App-wide, like the connection itself — survives login/logout routes.
+  sl.registerLazySingleton<AppModeCubit>(
+    () => AppModeCubit(
+      connectivity: sl<ConnectivityMonitor>().events,
+      checkNow: sl<ConnectivityMonitor>().checkNow,
+      store: sl(),
+      sync: sl<OfflineSyncService>().sync,
+      currentCashierId: () => sl<LocalSource>().getCashierId(),
+    ),
+  );
 }
 
 void _authFeature() {
