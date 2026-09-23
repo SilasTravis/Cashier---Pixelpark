@@ -52,10 +52,17 @@ class InsideCubit extends Cubit<InsideState> {
   InsideCubit(this.repository) : super(const InsideState());
   final InsideRepository repository;
 
-  Future<void> load() async {
+  /// [background]: the periodic refresh, not a tap — see
+  /// [InsideRepository.list].
+  Future<void> load({bool background = false}) async {
     emit(state.copyWith(loading: true, clearError: true, exitSucceeded: false));
     try {
-      emit(state.copyWith(children: await repository.list(), loading: false));
+      emit(
+        state.copyWith(
+          children: await repository.list(background: background),
+          loading: false,
+        ),
+      );
     } catch (error) {
       emit(state.copyWith(loading: false, error: _message(error)));
     }

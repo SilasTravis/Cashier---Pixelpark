@@ -10,6 +10,10 @@ class ConnectivityInterceptor extends Interceptor {
 
   final void Function() _onConnectionFailure;
 
+  /// `Options(extra: {backgroundKey: true})` marks a request nobody asked
+  /// for (a periodic refresh). Its connection failures are not reported.
+  static const backgroundKey = 'background';
+
   static bool isConnectionError(DioException e) => switch (e.type) {
     DioExceptionType.connectionError ||
     DioExceptionType.connectionTimeout ||
@@ -21,7 +25,8 @@ class ConnectivityInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    if (isConnectionError(err)) _onConnectionFailure();
+    final background = err.requestOptions.extra[backgroundKey] == true;
+    if (!background && isConnectionError(err)) _onConnectionFailure();
     handler.next(err);
   }
 }

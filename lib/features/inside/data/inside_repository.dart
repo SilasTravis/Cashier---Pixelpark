@@ -1,15 +1,24 @@
 import 'package:dio/dio.dart';
 
 import '../../../core/error/exceptions.dart';
+import '../../../core/network/connectivity_interceptor.dart';
 import '../domain/inside_child.dart';
 
 class InsideRepository {
   InsideRepository(this.dio);
   final Dio dio;
 
-  Future<List<InsideChild>> list() async {
+  /// [background]: the Inside tab's periodic refresh. Its connection
+  /// failures must not count as the cashier's own request (spec D13), or a
+  /// declined offline prompt would re-open every minute.
+  Future<List<InsideChild>> list({bool background = false}) async {
     try {
-      final response = await dio.get('/v1/pos/inside');
+      final response = await dio.get(
+        '/v1/pos/inside',
+        options: background
+            ? Options(extra: {ConnectivityInterceptor.backgroundKey: true})
+            : null,
+      );
       return (response.data as List).map((raw) {
         final json = Map<String, dynamic>.from(raw as Map);
         return InsideChild(

@@ -40,7 +40,7 @@ class _InsideViewState extends State<_InsideView> {
     super.initState();
     _clock = Timer.periodic(const Duration(minutes: 1), (_) {
       if (mounted && !context.read<InsideCubit>().state.loading) {
-        context.read<InsideCubit>().load();
+        context.read<InsideCubit>().load(background: true);
       }
     });
   }

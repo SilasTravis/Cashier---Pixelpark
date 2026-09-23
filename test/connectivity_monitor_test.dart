@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:cashier_app/core/connectivity/connectivity_monitor.dart';
 import 'package:cashier_app/core/network/connectivity_interceptor.dart';
+import 'package:cashier_app/features/inside/data/inside_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -189,6 +190,52 @@ void main() {
       expect(reports, 1);
       expect(passedOn, 2);
     });
+
+    test('a background-tagged connection error does not report', () {
+      var reports = 0;
+      var passedOn = 0;
+      final interceptor = ConnectivityInterceptor(() => reports++);
+      final handler = _Handler(() => passedOn++);
+
+      interceptor.onError(
+        DioException(
+          requestOptions: RequestOptions(
+            path: '/v1/pos/inside',
+            extra: {'background': true},
+          ),
+          type: DioExceptionType.connectionError,
+        ),
+        handler,
+      );
+
+      expect(reports, 0);
+      expect(passedOn, 1);
+    });
+
+    test(
+      "the Inside tab's periodic refresh tags its request as background",
+      () async {
+        final seen = <Map<String, dynamic>>[];
+        final dio = Dio()
+          ..interceptors.add(
+            InterceptorsWrapper(
+              onRequest: (options, handler) {
+                seen.add(Map.of(options.extra));
+                handler.resolve(
+                  Response(requestOptions: options, data: const []),
+                );
+              },
+            ),
+          );
+        final repository = InsideRepository(dio);
+
+        await repository.list(background: true);
+        await repository.list();
+
+        expect(seen[0]['background'], isTrue);
+        expect(seen[1]['background'], isNot(true));
+      },
+    );
   });
 }
 
