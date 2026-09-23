@@ -179,47 +179,65 @@ class PosSaleBloc extends Bloc<PosSaleEvent, PosSaleState> {
       for (final entry in state.cart.entries)
         CheckoutLine(productId: entry.key, qty: entry.value),
     ];
-    final result = await _repository.checkout(
-      lines: lines,
-      cashUzs: event.cashUzs,
-      cardUzs: event.cardUzs,
-      discountId: state.selectedDiscountId,
-    );
-    await result.fold(
-      (failure) async {
-        // The picked discount was disabled/deleted between fetch and
-        // checkout — never silently charge full price. Clear the stale
-        // pick and refetch so the cashier re-selects from a fresh catalog.
-        if (failure is ServerFailure &&
-            failure.code == 'DISCOUNT_NOT_AVAILABLE') {
-          final refreshed = await _repository.fetchDiscounts();
+    try {
+      final result = await _repository.checkout(
+        lines: lines,
+        cashUzs: event.cashUzs,
+        cardUzs: event.cardUzs,
+        discountId: state.selectedDiscountId,
+      );
+      await result.fold(
+        (failure) async {
+          // The picked discount was disabled/deleted between fetch and
+          // checkout — never silently charge full price. Clear the stale
+          // pick and refetch so the cashier re-selects from a fresh catalog.
+          if (failure is ServerFailure &&
+              failure.code == 'DISCOUNT_NOT_AVAILABLE') {
+            final refreshed = await _repository.fetchDiscounts();
+            emit(
+              state.copyWith(
+                isCheckingOut: false,
+                errorMessage: _messageOf(failure),
+                errorCode: failure.code,
+                clearSelectedDiscountId: true,
+                discounts: refreshed.fold(
+                  (_) => state.discounts,
+                  (list) => list,
+                ),
+              ),
+            );
+            return;
+          }
           emit(
             state.copyWith(
               isCheckingOut: false,
               errorMessage: _messageOf(failure),
-              errorCode: failure.code,
-              clearSelectedDiscountId: true,
-              discounts: refreshed.fold((_) => state.discounts, (list) => list),
             ),
           );
-          return;
-        }
-        emit(
+        },
+        (receipt) async => emit(
           state.copyWith(
             isCheckingOut: false,
-            errorMessage: _messageOf(failure),
+            cart: const {},
+            clearSelectedDiscountId: true,
+            lastReceipt: receipt,
           ),
-        );
-      },
-      (receipt) async => emit(
+        ),
+      );
+    } catch (_) {
+      // The request may already have reached the server and committed the
+      // sale before the response body failed to parse (a malformed
+      // SaleReceipt/ServerException JSON) — never invite a blind retry that
+      // could double-charge. Leave the cart untouched so the cashier can
+      // check sales history first.
+      emit(
         state.copyWith(
           isCheckingOut: false,
-          cart: const {},
-          clearSelectedDiscountId: true,
-          lastReceipt: receipt,
+          errorMessage:
+              "Server javobini o'qib bo'lmadi. Savdo tarixini tekshiring, keyin qayta urining.",
         ),
-      ),
-    );
+      );
+    }
   }
 
   void _onReceiptAcknowledged(

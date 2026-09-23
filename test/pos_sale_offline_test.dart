@@ -57,6 +57,26 @@ class _Sales extends PosSaleRemoteDataSourceImpl {
   }
 }
 
+/// A malformed response body: `SaleReceipt.fromJson`/`ServerException.fromJson`
+/// throwing a `FormatException`/`TypeError` that `PosSaleRepository._call`
+/// doesn't catch.
+class _MalformedResponseSales extends PosSaleRemoteDataSourceImpl {
+  _MalformedResponseSales() : super(Dio());
+  int calls = 0;
+  @override
+  Future<List<Discount>> fetchDiscounts() async => const [];
+  @override
+  Future<SaleReceipt> checkout({
+    required List<CheckoutLine> lines,
+    required int cashUzs,
+    required int cardUzs,
+    String? discountId,
+  }) async {
+    calls++;
+    throw const FormatException('unexpected character');
+  }
+}
+
 /// A Hive write failure, a corrupt cached shift — anything not one of
 /// `OfflineCheckout`'s two documented exceptions.
 class _ThrowingOfflineCheckout extends OfflineCheckout {
@@ -261,4 +281,43 @@ void main() {
     expect(checkout.calls, 1);
     expect(store.sales(), hasLength(1));
   });
+
+  test(
+    'a malformed checkout response online stops the spinner, warns instead of '
+    'clearing the cart, and a later tap still reaches the server',
+    () async {
+      final remote = _MalformedResponseSales();
+      final bloc = PosSaleBloc(
+        PosSaleRepository(remote, store),
+        products,
+        OfflineCheckout(store, local),
+      );
+      addTearDown(bloc.close);
+      bloc.add(const PosSaleStarted());
+      await settle();
+
+      bloc
+        ..add(const PosSaleProductAdded(_popcorn))
+        ..add(const PosSaleCheckoutRequested(cashUzs: 12000, cardUzs: 0));
+      await settle();
+
+      expect(bloc.state.isCheckingOut, isFalse);
+      expect(
+        bloc.state.errorMessage,
+        "Server javobini o'qib bo'lmadi. Savdo tarixini tekshiring, keyin "
+        "qayta urining.",
+      );
+      // The sale may already have been committed server-side — never clear
+      // the cart on a blind guess that it wasn't.
+      expect(bloc.state.cart, isNotEmpty);
+      expect(remote.calls, 1);
+
+      // The earlier "stuck spinner" bug left isCheckingOut true forever,
+      // silently dropping every later tap — confirm this one actually
+      // reaches the remote instead of being swallowed by that guard.
+      bloc.add(const PosSaleCheckoutRequested(cashUzs: 12000, cardUzs: 0));
+      await settle();
+      expect(remote.calls, 2);
+    },
+  );
 }
