@@ -87,6 +87,22 @@ class OfflineSyncResult {
       );
 }
 
+/// Thrown when the server rejects the WHOLE request (HTTP 400/422) because
+/// its payload failed validation — qty/price/discount out of range, an empty
+/// line list, an unknown key, and so on. Unlike [ServerException], this is
+/// specific enough for [OfflineSyncService] to know the request itself (not
+/// the connection) was the problem, so it can retry the other sales solo
+/// instead of treating the whole sync run as a transport failure.
+class OfflineSyncValidationException implements Exception {
+  OfflineSyncValidationException({required this.message, this.code});
+
+  final String message;
+  final String? code;
+
+  @override
+  String toString() => 'OfflineSyncValidationException($code): $message';
+}
+
 abstract class OfflineSyncRemoteDataSource {
   Future<OfflineSyncResult> sync({
     required List<Map<String, dynamic>> shifts,
@@ -104,10 +120,11 @@ class OfflineSyncRemoteDataSourceImpl implements OfflineSyncRemoteDataSource {
     required List<Map<String, dynamic>> shifts,
     required List<Map<String, dynamic>> sales,
   }) async {
+    final Response<dynamic> response;
     try {
       // The server runs roughly 5 queries per sale, so a large batch (up to
       // 200 sales) can take well past Dio's default 30s timeouts.
-      final response = await dio.post(
+      response = await dio.post(
         '/v1/pos/offline/sync',
         data: {'shifts': shifts, 'sales': sales},
         options: Options(
@@ -115,12 +132,27 @@ class OfflineSyncRemoteDataSourceImpl implements OfflineSyncRemoteDataSource {
           sendTimeout: const Duration(seconds: 60),
         ),
       );
-      return OfflineSyncResult.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       if (ConnectivityInterceptor.isConnectionError(e)) {
         throw NoInternetException();
       }
-      throw ServerException.fromJson(e.response?.data);
+      final parsed = ServerException.fromJson(e.response?.data);
+      final statusCode = e.response?.statusCode;
+      if (statusCode == 400 || statusCode == 422) {
+        throw OfflineSyncValidationException(
+          message: parsed.message,
+          code: parsed.code,
+        );
+      }
+      throw parsed;
+    }
+    try {
+      return OfflineSyncResult.fromJson(response.data as Map<String, dynamic>);
+    } catch (_) {
+      // A 200 with a body that isn't the expected JSON shape — e.g. a
+      // captive-portal HTML page — is a transport-level problem, not a sale
+      // being rejected, so the service should treat it as one.
+      throw ServerException(message: 'Server javobi noto‘g‘ri');
     }
   }
 }

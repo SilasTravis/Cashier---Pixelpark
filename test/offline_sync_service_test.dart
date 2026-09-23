@@ -15,6 +15,12 @@ class _FakeRemote implements OfflineSyncRemoteDataSource {
         ({List<Map<String, dynamic>> shifts, List<Map<String, dynamic>> sales})
       >[];
   Object? throwOnCall;
+
+  /// Per-call trigger keyed on the request's own sales payload — lets a test
+  /// throw only for a request that still contains a particular sale, so a
+  /// validation failure can be modelled precisely across the service's
+  /// batch → solo-resend split.
+  Object? Function(List<Map<String, dynamic>> sales)? throwFor;
   OfflineSyncItemResult Function(Map<String, dynamic> sale) saleResult =
       (sale) => OfflineSyncItemResult(
         offlineRequestId: sale['offlineRequestId'] as String,
@@ -29,6 +35,8 @@ class _FakeRemote implements OfflineSyncRemoteDataSource {
   }) async {
     calls.add((shifts: shifts, sales: sales));
     if (throwOnCall != null) throw throwOnCall!;
+    final trigger = throwFor?.call(sales);
+    if (trigger != null) throw trigger;
     return OfflineSyncResult(
       shifts: [
         for (final shift in shifts)
@@ -278,4 +286,111 @@ void main() {
 
     expect(remote.calls.length, 1);
   });
+
+  test(
+    'a call with different arguments waits for the in-flight sync, then makes its own',
+    () async {
+      await store.putSale(
+        _sale('p'),
+      ); // pending — picked up by the automatic sync
+      await store.putSale(
+        _sale(
+          'a',
+        ).markFailed(code: 'X', message: 'bad', at: DateTime.utc(2026)),
+      );
+
+      final automatic = service.sync();
+      final retry = service.sync(onlyIds: {'a'}, includeFailed: true);
+
+      await Future.wait([automatic, retry]);
+
+      expect(remote.calls.length, 2);
+      expect(remote.calls.first.sales.map((s) => s['offlineRequestId']), ['p']);
+      expect(remote.calls.last.sales.map((s) => s['offlineRequestId']), ['a']);
+    },
+  );
+
+  test(
+    'a validation-rejected batch is retried sale by sale; the bad one fails, the rest sync',
+    () async {
+      await store.putSale(_sale('good1'));
+      await store.putSale(_sale('good2', minute: 1));
+      await store.putSale(_sale('bad', minute: 2));
+      remote.throwFor = (sales) =>
+          sales.any((s) => s['offlineRequestId'] == 'bad')
+          ? OfflineSyncValidationException(
+              message: 'Miqdor juda katta',
+              code: 'QTY_TOO_HIGH',
+            )
+          : null;
+
+      final report = await service.sync();
+
+      expect(report.transportFailed, isFalse);
+      expect(report.syncedCount, 2);
+      expect(report.failed.single.offlineRequestId, 'bad');
+      expect(report.failed.single.failureMessage, 'Miqdor juda katta');
+      expect(report.failed.single.failureCode, 'QTY_TOO_HIGH');
+      final left = store.sales().single;
+      expect(left.offlineRequestId, 'bad');
+      expect(left.isFailed, isTrue);
+    },
+  );
+
+  test(
+    'a later batch is still sent after a validation failure in an earlier one',
+    () async {
+      for (var i = 0; i < 199; i++) {
+        await store.putSale(_sale('ok$i', minute: i));
+      }
+      await store.putSale(_sale('bad', minute: 199)); // 200th of batch 1
+      await store.putSale(_sale('last', minute: 200)); // sole sale of batch 2
+      remote.throwFor = (sales) =>
+          sales.any((s) => s['offlineRequestId'] == 'bad')
+          ? OfflineSyncValidationException(message: 'bad sale', code: 'X')
+          : null;
+
+      final report = await service.sync();
+
+      expect(report.transportFailed, isFalse);
+      expect(report.failed.single.offlineRequestId, 'bad');
+      expect(report.syncedCount, 200); // 199 ok's + the second batch's 'last'
+      expect(
+        remote.calls.any(
+          (c) => c.sales.map((s) => s['offlineRequestId']).contains('last'),
+        ),
+        isTrue,
+      );
+    },
+  );
+
+  test(
+    'a transport failure during a solo resend leaves the rest of the queue pending',
+    () async {
+      await store.putSale(_sale('good1'));
+      await store.putSale(_sale('good2', minute: 1));
+      await store.putSale(_sale('bad', minute: 2));
+      remote.throwFor = (sales) {
+        if (sales.length > 1 &&
+            sales.any((s) => s['offlineRequestId'] == 'bad')) {
+          return OfflineSyncValidationException(message: 'bad sale', code: 'X');
+        }
+        if (sales.length == 1 && sales.single['offlineRequestId'] == 'good2') {
+          return NoInternetException();
+        }
+        return null;
+      };
+
+      final report = await service.sync();
+
+      expect(report.transportFailed, isTrue);
+      expect(report.syncedCount, 1); // only good1 made it through
+      final pending = store
+          .sales()
+          .where((sale) => !sale.isFailed)
+          .map((sale) => sale.offlineRequestId)
+          .toSet();
+      expect(pending, {'good2', 'bad'});
+    },
+  );
 }

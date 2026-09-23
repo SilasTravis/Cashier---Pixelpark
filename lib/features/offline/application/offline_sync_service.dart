@@ -50,14 +50,43 @@ class OfflineSyncService {
   final DateTime Function() _clock;
 
   Future<SyncReport>? _inFlight;
+  ({Set<String>? onlyIds, bool includeFailed})? _inFlightArgs;
 
   /// [includeFailed]: the automatic sync on reconnect only sends pending
   /// sales; the Unsynced page's Retry resends failed ones too.
-  Future<SyncReport> sync({Set<String>? onlyIds, bool includeFailed = false}) =>
-      _inFlight ??= _sync(
-        onlyIds,
-        includeFailed,
-      ).whenComplete(() => _inFlight = null);
+  ///
+  /// A call that matches the currently running one (same [onlyIds]/
+  /// [includeFailed]) shares its result. A call with different arguments —
+  /// e.g. a Retry tapped while the automatic sync is mid-flight — must not
+  /// be swallowed by it, so it waits for that run to finish and then starts
+  /// its own; only one sync request is ever outstanding at a time.
+  Future<SyncReport> sync({Set<String>? onlyIds, bool includeFailed = false}) {
+    final inFlight = _inFlight;
+    if (inFlight != null) {
+      if (_sameArgs(_inFlightArgs, onlyIds, includeFailed)) return inFlight;
+      return inFlight.then(
+        (_) => sync(onlyIds: onlyIds, includeFailed: includeFailed),
+      );
+    }
+    _inFlightArgs = (onlyIds: onlyIds, includeFailed: includeFailed);
+    final future = _sync(onlyIds, includeFailed).whenComplete(() {
+      _inFlight = null;
+      _inFlightArgs = null;
+    });
+    _inFlight = future;
+    return future;
+  }
+
+  static bool _sameArgs(
+    ({Set<String>? onlyIds, bool includeFailed})? args,
+    Set<String>? onlyIds,
+    bool includeFailed,
+  ) {
+    if (args == null || args.includeFailed != includeFailed) return false;
+    final a = args.onlyIds;
+    if (a == null || onlyIds == null) return a == onlyIds;
+    return a.length == onlyIds.length && a.containsAll(onlyIds);
+  }
 
   Future<SyncReport> _sync(Set<String>? onlyIds, bool includeFailed) async {
     final cashierId = _currentCashierId();
@@ -83,32 +112,55 @@ class OfflineSyncService {
 
     var synced = 0;
     final failed = <OfflineSale>[];
-    for (final batch in batches) {
+
+    // Sends one request (a batch, or one sale resent solo after the batch it
+    // was part of got rejected outright). Returns a transport-error message
+    // when the request never got per-sale answers; null otherwise. [shift]
+    // is only offered on [includeShift] — set for the very first request of
+    // the whole sync, and never again, even if that first request had to be
+    // split into solo retries (I1).
+    Future<String?> sendRequest(
+      List<OfflineSale> saleBatch, {
+      required bool includeShift,
+    }) async {
+      final sendShift = includeShift && shift != null && !shift!.isSynced;
       final OfflineSyncResult result;
       try {
         result = await _remote.sync(
-          shifts: shift != null && !shift.isSynced
-              ? [shift.toSyncJson()]
-              : const [],
-          sales: [for (final sale in batch) _payload(sale, shift)],
+          shifts: sendShift ? [shift!.toSyncJson()] : const [],
+          sales: [for (final sale in saleBatch) _payload(sale, shift)],
         );
       } on NoInternetException {
-        return SyncReport(
-          syncedCount: synced,
-          failed: failed,
-          transportError: "Internet aloqasi yo'q",
-        );
+        return "Internet aloqasi yo'q";
       } on ServerException catch (e) {
-        return SyncReport(
-          syncedCount: synced,
-          failed: failed,
-          transportError: e.message,
+        return e.message;
+      } on OfflineSyncValidationException catch (e) {
+        if (saleBatch.length > 1) {
+          var carryShift = includeShift;
+          for (final sale in saleBatch) {
+            final err = await sendRequest([sale], includeShift: carryShift);
+            carryShift = false;
+            if (err != null) return err;
+          }
+          return null;
+        }
+        // A single sale still fails validation on its own — it's genuinely
+        // bad (out-of-range qty/price, an empty line list…), not a victim of
+        // some other sale in the batch. Fail it and move on.
+        final sale = saleBatch.single;
+        final marked = sale.markFailed(
+          code: e.code ?? 'VALIDATION',
+          message: e.message,
+          at: _clock(),
         );
+        await _store.putSale(marked);
+        failed.add(marked);
+        return null;
       }
 
       shift = await _applyShiftResults(shift, result.shifts);
 
-      final byId = {for (final sale in batch) sale.offlineRequestId: sale};
+      final byId = {for (final sale in saleBatch) sale.offlineRequestId: sale};
       final done = <String>[];
       for (final item in result.sales) {
         final sale = byId[item.offlineRequestId];
@@ -127,6 +179,18 @@ class OfflineSyncService {
       }
       await _store.removeSales(done);
       synced += done.length;
+      return null;
+    }
+
+    for (var i = 0; i < batches.length; i++) {
+      final error = await sendRequest(batches[i], includeShift: i == 0);
+      if (error != null) {
+        return SyncReport(
+          syncedCount: synced,
+          failed: failed,
+          transportError: error,
+        );
+      }
     }
 
     await _releaseOfflineShiftIfDone(cashierId);
