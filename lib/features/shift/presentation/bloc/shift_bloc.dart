@@ -91,6 +91,7 @@ class ShiftBloc extends Bloc<ShiftEvent, ShiftState> {
     return switch (failure) {
       ServerFailure(:final message) => message,
       NoInternetFailure() => "Internet aloqasi yo'q",
+      CacheFailure(:final message) => message,
       _ => 'Xatolik yuz berdi',
     };
   }

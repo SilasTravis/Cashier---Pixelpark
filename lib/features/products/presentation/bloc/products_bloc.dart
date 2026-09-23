@@ -54,6 +54,7 @@ class ProductsBloc extends Bloc<ProductsEvent, ProductsState> {
     return switch (failure) {
       ServerFailure(:final message) => message,
       NoInternetFailure() => "Internet aloqasi yo'q",
+      CacheFailure(:final message) => message,
       _ => 'Xatolik yuz berdi',
     };
   }
