@@ -51,6 +51,78 @@ class _FakeRemote implements OfflineSyncRemoteDataSource {
   }
 }
 
+/// Mimics the real backend's per-request atomicity for the offline shift:
+/// a request that carries the shift persists it server-side (unless that
+/// same request 400s, in which case NOTHING in it is persisted); a sale
+/// naming an offline shift that was never actually persisted comes back
+/// `rejected` with `OFFLINE_SHIFT_NOT_FOUND`, exactly like the maestro
+/// backend. Used to pin fix round 2 item 1: the offline shift must ride
+/// every retry — not just the first request of the run — until some
+/// request actually gets it created.
+class _ShiftAwareFakeRemote implements OfflineSyncRemoteDataSource {
+  _ShiftAwareFakeRemote(this.validationIds);
+
+  /// offlineRequestIds that make the WHOLE request 400, same as a real
+  /// out-of-range qty/price would.
+  final Set<String> validationIds;
+
+  final calls =
+      <
+        ({List<Map<String, dynamic>> shifts, List<Map<String, dynamic>> sales})
+      >[];
+
+  bool _shiftPersisted = false;
+  String? _persistedOfflineRequestId;
+
+  @override
+  Future<OfflineSyncResult> sync({
+    required List<Map<String, dynamic>> shifts,
+    required List<Map<String, dynamic>> sales,
+  }) async {
+    calls.add((shifts: shifts, sales: sales));
+    if (sales.any((s) => validationIds.contains(s['offlineRequestId']))) {
+      // A 400 persists nothing — not the shift, not any sale in the batch.
+      throw OfflineSyncValidationException(
+        message: 'Miqdor juda katta',
+        code: 'QTY_TOO_HIGH',
+      );
+    }
+    for (final shift in shifts) {
+      _shiftPersisted = true;
+      _persistedOfflineRequestId = shift['offlineRequestId'] as String;
+    }
+    return OfflineSyncResult(
+      shifts: [
+        for (final shift in shifts)
+          OfflineSyncItemResult(
+            offlineRequestId: shift['offlineRequestId'] as String,
+            status: OfflineSyncStatus.created,
+            serverId: 'srv-shift',
+          ),
+      ],
+      sales: [
+        for (final sale in sales)
+          if (sale['shiftId'] != null ||
+              (sale['shiftOfflineRequestId'] != null &&
+                  _shiftPersisted &&
+                  sale['shiftOfflineRequestId'] == _persistedOfflineRequestId))
+            OfflineSyncItemResult(
+              offlineRequestId: sale['offlineRequestId'] as String,
+              status: OfflineSyncStatus.created,
+              serverId: 'srv-${sale['offlineRequestId']}',
+            )
+          else
+            OfflineSyncItemResult(
+              offlineRequestId: sale['offlineRequestId'] as String,
+              status: OfflineSyncStatus.rejected,
+              code: 'OFFLINE_SHIFT_NOT_FOUND',
+              message: 'Smena topilmadi',
+            ),
+      ],
+    );
+  }
+}
+
 OfflineSale _sale(
   String id, {
   String cashierId = 'cashier-1',
@@ -391,6 +463,150 @@ void main() {
           .map((sale) => sale.offlineRequestId)
           .toSet();
       expect(pending, {'good2', 'bad'});
+    },
+  );
+
+  test(
+    'the offline shift keeps riding every retry until it is actually created (bad sale first)',
+    () async {
+      await store.saveOfflineShift(
+        OfflineShift(
+          offlineRequestId: 'off-1',
+          cashierId: 'cashier-1',
+          openedAt: DateTime.utc(2026, 9, 23, 8),
+        ),
+      );
+      await store.putSale(
+        _sale('bad', shiftId: null, shiftOfflineRequestId: 'off-1'),
+      );
+      await store.putSale(
+        _sale(
+          'good1',
+          shiftId: null,
+          shiftOfflineRequestId: 'off-1',
+          minute: 1,
+        ),
+      );
+      await store.putSale(
+        _sale(
+          'good2',
+          shiftId: null,
+          shiftOfflineRequestId: 'off-1',
+          minute: 2,
+        ),
+      );
+      final shiftRemote = _ShiftAwareFakeRemote({'bad'});
+      final shiftService = OfflineSyncService(
+        store,
+        shiftRemote,
+        () => cashierId,
+        clock: () => DateTime.utc(2026, 9, 23, 12),
+      );
+
+      final report = await shiftService.sync();
+
+      expect(report.syncedCount, 2);
+      expect(report.failed.single.offlineRequestId, 'bad');
+      expect(report.failed.single.failureCode, 'QTY_TOO_HIGH');
+      expect(report.transportFailed, isFalse);
+      expect(store.offlineShift('cashier-1')!.serverShiftId, 'srv-shift');
+      // The rejected full batch, then bad/good1/good2 solo — the shift rides
+      // every one of them until good1's request actually creates it.
+      expect(shiftRemote.calls.map((c) => c.shifts.length), [1, 1, 1, 0]);
+      expect(shiftRemote.calls.map((c) => c.sales.length), [3, 1, 1, 1]);
+    },
+  );
+
+  test(
+    'the offline shift keeps riding every retry until it is actually created (bad sale in the middle)',
+    () async {
+      await store.saveOfflineShift(
+        OfflineShift(
+          offlineRequestId: 'off-1',
+          cashierId: 'cashier-1',
+          openedAt: DateTime.utc(2026, 9, 23, 8),
+        ),
+      );
+      await store.putSale(
+        _sale('good1', shiftId: null, shiftOfflineRequestId: 'off-1'),
+      );
+      await store.putSale(
+        _sale('bad', shiftId: null, shiftOfflineRequestId: 'off-1', minute: 1),
+      );
+      await store.putSale(
+        _sale(
+          'good2',
+          shiftId: null,
+          shiftOfflineRequestId: 'off-1',
+          minute: 2,
+        ),
+      );
+      final shiftRemote = _ShiftAwareFakeRemote({'bad'});
+      final shiftService = OfflineSyncService(
+        store,
+        shiftRemote,
+        () => cashierId,
+        clock: () => DateTime.utc(2026, 9, 23, 12),
+      );
+
+      final report = await shiftService.sync();
+
+      expect(report.syncedCount, 2);
+      expect(report.failed.single.offlineRequestId, 'bad');
+      expect(report.failed.single.failureCode, 'QTY_TOO_HIGH');
+      expect(report.transportFailed, isFalse);
+      expect(store.offlineShift('cashier-1')!.serverShiftId, 'srv-shift');
+      // good1's solo request (2nd overall) still had to carry the shift —
+      // the batch it was originally part of never got it created.
+      expect(shiftRemote.calls[1].shifts.length, 1);
+    },
+  );
+
+  test(
+    'a validation error on a shift-only request is a transport failure, not a crash',
+    () async {
+      await store.saveOfflineShift(
+        OfflineShift(
+          offlineRequestId: 'off-1',
+          cashierId: 'cashier-1',
+          openedAt: DateTime.utc(2026, 9, 23, 8),
+        ),
+      );
+      remote.throwOnCall = OfflineSyncValidationException(
+        message: 'Smena topilmadi',
+        code: 'BAD_SHIFT',
+      );
+
+      final report = await service.sync();
+
+      expect(report.transportFailed, isTrue);
+      expect(report.transportError, 'Smena topilmadi');
+      expect(store.offlineShift('cashier-1')!.serverShiftId, isNull);
+    },
+  );
+
+  test(
+    'a queued call still runs its own attempt even if the run it waited on threw',
+    () async {
+      await store.putSale(_sale('p'));
+      await store.putSale(
+        _sale(
+          'a',
+        ).markFailed(code: 'X', message: 'bad', at: DateTime.utc(2026)),
+      );
+      remote.throwOnCall = StateError('boom');
+
+      final automatic = service.sync();
+      final retry = service.sync(onlyIds: {'a'}, includeFailed: true);
+
+      // Both fail here (the fake keeps throwing unconditionally), but the
+      // point is that the second call actually reaches the remote at all —
+      // with the old `.then(...)` chaining it never would have.
+      await expectLater(automatic, throwsStateError);
+      await expectLater(retry, throwsStateError);
+
+      expect(remote.calls.length, 2);
+      expect(remote.calls.last.sales.map((s) => s['offlineRequestId']), ['a']);
     },
   );
 }

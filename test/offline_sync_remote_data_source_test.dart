@@ -183,6 +183,23 @@ void main() {
     );
   });
 
+  test(
+    'a 413 (body over the 1 MB cap) also throws OfflineSyncValidationException',
+    () async {
+      final remote = _remoteWith(
+        _FixedResponseAdapter(
+          '{"message": {"en": "Payload too large"}, "code": "PAYLOAD_TOO_LARGE"}',
+          statusCode: 413,
+        ),
+      );
+
+      await expectLater(
+        remote.sync(shifts: const [], sales: const []),
+        throwsA(isA<OfflineSyncValidationException>()),
+      );
+    },
+  );
+
   test('a connection error throws NoInternetException', () async {
     final remote = _remoteWith(_ThrowingAdapter());
 

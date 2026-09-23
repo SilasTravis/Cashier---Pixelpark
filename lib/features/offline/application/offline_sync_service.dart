@@ -64,9 +64,7 @@ class OfflineSyncService {
     final inFlight = _inFlight;
     if (inFlight != null) {
       if (_sameArgs(_inFlightArgs, onlyIds, includeFailed)) return inFlight;
-      return inFlight.then(
-        (_) => sync(onlyIds: onlyIds, includeFailed: includeFailed),
-      );
+      return _afterCurrentRun(inFlight, onlyIds, includeFailed);
     }
     _inFlightArgs = (onlyIds: onlyIds, includeFailed: includeFailed);
     final future = _sync(onlyIds, includeFailed).whenComplete(() {
@@ -75,6 +73,22 @@ class OfflineSyncService {
     });
     _inFlight = future;
     return future;
+  }
+
+  /// Waits for a differently-scoped run to settle — however it settles —
+  /// before making our own attempt. A plain `previous.then(...)` would skip
+  /// our attempt entirely if [previous] threw, silently dropping this call.
+  Future<SyncReport> _afterCurrentRun(
+    Future<SyncReport> previous,
+    Set<String>? onlyIds,
+    bool includeFailed,
+  ) async {
+    try {
+      await previous;
+    } catch (_) {
+      // Not this call's failure to report — it still makes its own attempt.
+    }
+    return sync(onlyIds: onlyIds, includeFailed: includeFailed);
   }
 
   static bool _sameArgs(
@@ -115,15 +129,21 @@ class OfflineSyncService {
 
     // Sends one request (a batch, or one sale resent solo after the batch it
     // was part of got rejected outright). Returns a transport-error message
-    // when the request never got per-sale answers; null otherwise. [shift]
-    // is only offered on [includeShift] — set for the very first request of
-    // the whole sync, and never again, even if that first request had to be
-    // split into solo retries (I1).
-    Future<String?> sendRequest(
-      List<OfflineSale> saleBatch, {
-      required bool includeShift,
-    }) async {
-      final sendShift = includeShift && shift != null && !shift!.isSynced;
+    // when the request never got per-sale answers; null otherwise.
+    //
+    // The unsynced offline shift rides EVERY request — solo or batch — not
+    // just the first one, until some request actually gets a per-item
+    // answer for it (`_applyShiftResults` then marks it synced and
+    // `!shift!.isSynced` stops offering it). A 400/422 persists nothing
+    // server-side, so if the very first request that carried the shift is
+    // the one that gets rejected, the shift was never created — every
+    // later request must still offer it, or the server has no shift to
+    // hang the following sales off and rejects them all with
+    // OFFLINE_SHIFT_NOT_FOUND (I1, fix round 2). The server treats a
+    // repeated offlineRequestId as `duplicate`, so re-sending an
+    // already-created shift is harmless.
+    Future<String?> sendRequest(List<OfflineSale> saleBatch) async {
+      final sendShift = shift != null && !shift!.isSynced;
       final OfflineSyncResult result;
       try {
         result = await _remote.sync(
@@ -136,13 +156,18 @@ class OfflineSyncService {
         return e.message;
       } on OfflineSyncValidationException catch (e) {
         if (saleBatch.length > 1) {
-          var carryShift = includeShift;
           for (final sale in saleBatch) {
-            final err = await sendRequest([sale], includeShift: carryShift);
-            carryShift = false;
+            final err = await sendRequest([sale]);
             if (err != null) return err;
           }
           return null;
+        }
+        if (saleBatch.isEmpty) {
+          // A shift-only request (nothing queued, shift still unsynced)
+          // rejected outright: there's no sale to blame or split further,
+          // so this is a whole-request failure like any other (I2, fix
+          // round 2 — avoids `saleBatch.single` throwing on an empty list).
+          return e.message;
         }
         // A single sale still fails validation on its own — it's genuinely
         // bad (out-of-range qty/price, an empty line list…), not a victim of
@@ -182,8 +207,8 @@ class OfflineSyncService {
       return null;
     }
 
-    for (var i = 0; i < batches.length; i++) {
-      final error = await sendRequest(batches[i], includeShift: i == 0);
+    for (final batch in batches) {
+      final error = await sendRequest(batch);
       if (error != null) {
         return SyncReport(
           syncedCount: synced,

@@ -138,7 +138,11 @@ class OfflineSyncRemoteDataSourceImpl implements OfflineSyncRemoteDataSource {
       }
       final parsed = ServerException.fromJson(e.response?.data);
       final statusCode = e.response?.statusCode;
-      if (statusCode == 400 || statusCode == 422) {
+      // 400/422: the payload failed validation. 413: the batch itself is too
+      // big (the server caps the body at 1 MB) — splitting it into solo
+      // requests fixes that too, so the service should retry it the same
+      // way rather than treating it as a permanent transport failure.
+      if (statusCode == 400 || statusCode == 422 || statusCode == 413) {
         throw OfflineSyncValidationException(
           message: parsed.message,
           code: parsed.code,
