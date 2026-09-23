@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:cashier_app/core/connectivity/connectivity_monitor.dart';
@@ -81,6 +82,53 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       expect(events, isEmpty);
     });
+
+    test(
+      'disposing while a probe is in flight does not throw (probe resolves reachable)',
+      () {
+        fakeAsync((async) {
+          final completer = Completer<bool>();
+          final monitor = ConnectivityMonitor(probe: () => completer.future);
+          Object? uncaughtError;
+
+          runZonedGuarded(() {
+            monitor.start();
+            async.elapse(const Duration(seconds: 15));
+          }, (error, stack) => uncaughtError = error);
+
+          monitor.dispose();
+          completer.complete(true);
+          async.flushMicrotasks();
+
+          expect(uncaughtError, isNull);
+        });
+      },
+    );
+
+    test(
+      'disposing while a probe is in flight does not throw (probe resolves unreachable)',
+      () {
+        fakeAsync((async) {
+          final completer = Completer<bool>();
+          final monitor = ConnectivityMonitor(
+            probe: () => completer.future,
+            failuresBeforeUnreachable: 1,
+          );
+          Object? uncaughtError;
+
+          runZonedGuarded(() {
+            monitor.start();
+            async.elapse(const Duration(seconds: 15));
+          }, (error, stack) => uncaughtError = error);
+
+          monitor.dispose();
+          completer.complete(false);
+          async.flushMicrotasks();
+
+          expect(uncaughtError, isNull);
+        });
+      },
+    );
   });
 
   group('ConnectivityInterceptor', () {

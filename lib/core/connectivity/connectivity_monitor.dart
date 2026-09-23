@@ -70,7 +70,10 @@ class ConnectivityMonitor {
     if (_probing) return;
     _probing = true;
     try {
-      if (await _safeProbe()) {
+      final reachable = await _safeProbe();
+      // dispose() may have closed the stream while the probe was in flight.
+      if (_events.isClosed) return;
+      if (reachable) {
         _failures = 0;
         _events.add(const ConnectivityEvent(reachable: true));
       } else if (++_failures >= failuresBeforeUnreachable) {
