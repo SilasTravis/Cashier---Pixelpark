@@ -45,10 +45,8 @@ class OfflineStore extends ChangeNotifier {
         : all.where((sale) => sale.cashierId == cashierId).toList();
   }
 
-  Future<void> putSale(OfflineSale sale) => _write(
-    '$_salePrefix${sale.offlineRequestId}',
-    jsonEncode(sale.toJson()),
-  );
+  Future<void> putSale(OfflineSale sale) =>
+      _write('$_salePrefix${sale.offlineRequestId}', jsonEncode(sale.toJson()));
 
   Future<void> removeSales(Iterable<String> ids) async {
     await _box.deleteAll([for (final id in ids) '$_salePrefix$id']);
@@ -73,10 +71,8 @@ class OfflineStore extends ChangeNotifier {
     return raw == null ? null : Shift.fromCacheJson(_decode(raw));
   }
 
-  Future<void> cacheShift(String cashierId, Shift shift) => _write(
-    '$_cachedShiftPrefix$cashierId',
-    jsonEncode(shift.toCacheJson()),
-  );
+  Future<void> cacheShift(String cashierId, Shift shift) =>
+      _write('$_cachedShiftPrefix$cashierId', jsonEncode(shift.toCacheJson()));
 
   Future<void> clearCachedShift(String cashierId) =>
       _delete('$_cachedShiftPrefix$cashierId');
@@ -90,11 +86,10 @@ class OfflineStore extends ChangeNotifier {
     ];
   }
 
-  Future<void> cacheProducts(String branchId, List<Product> products) =>
-      _write(
-        '$_productsPrefix$branchId',
-        jsonEncode([for (final product in products) product.toJson()]),
-      );
+  Future<void> cacheProducts(String branchId, List<Product> products) => _write(
+    '$_productsPrefix$branchId',
+    jsonEncode([for (final product in products) product.toJson()]),
+  );
 
   List<Discount>? cachedDiscounts() {
     final raw = _box.get(_discountsKey);

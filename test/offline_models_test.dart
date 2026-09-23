@@ -79,18 +79,24 @@ void main() {
       });
     });
 
-    test('sync payload points at an offline shift until it has a server id', () {
-      final sale = _sale(shiftId: null, shiftOfflineRequestId: 'off-shift');
-      expect(sale.toSyncJson()['shiftOfflineRequestId'], 'off-shift');
-      expect(sale.toSyncJson().containsKey('shiftId'), isFalse);
+    test(
+      'sync payload points at an offline shift until it has a server id',
+      () {
+        final sale = _sale(shiftId: null, shiftOfflineRequestId: 'off-shift');
+        expect(sale.toSyncJson()['shiftOfflineRequestId'], 'off-shift');
+        expect(sale.toSyncJson().containsKey('shiftId'), isFalse);
 
-      final resolved = sale.toSyncJson(serverShiftIdForOfflineShift: 'srv-9');
-      expect(resolved['shiftId'], 'srv-9');
-      expect(resolved.containsKey('shiftOfflineRequestId'), isFalse);
-    });
+        final resolved = sale.toSyncJson(serverShiftIdForOfflineShift: 'srv-9');
+        expect(resolved['shiftId'], 'srv-9');
+        expect(resolved.containsKey('shiftOfflineRequestId'), isFalse);
+      },
+    );
 
     test('sync payload omits the discount when none was applied', () {
-      expect(_sale(discount: null).toSyncJson().containsKey('discount'), isFalse);
+      expect(
+        _sale(discount: null).toSyncJson().containsKey('discount'),
+        isFalse,
+      );
     });
   });
 
@@ -122,19 +128,23 @@ void main() {
   });
 
   group('cache JSON of existing models', () {
-    test('Product keeps offlineOnly, defaulting to false for older backends', () {
-      const vip = Product(
-        id: 'vip',
-        name: 'VIP',
-        priceUzs: 75000,
-        category: 'Tariflar',
-        icon: 'ph-crown',
-        offlineOnly: true,
-      );
-      expect(Product.fromJson(vip.toJson()), vip);
-      final legacy = Map<String, dynamic>.from(vip.toJson())..remove('offlineOnly');
-      expect(Product.fromJson(legacy).offlineOnly, isFalse);
-    });
+    test(
+      'Product keeps offlineOnly, defaulting to false for older backends',
+      () {
+        const vip = Product(
+          id: 'vip',
+          name: 'VIP',
+          priceUzs: 75000,
+          category: 'Tariflar',
+          icon: 'ph-crown',
+          offlineOnly: true,
+        );
+        expect(Product.fromJson(vip.toJson()), vip);
+        final legacy = Map<String, dynamic>.from(vip.toJson())
+          ..remove('offlineOnly');
+        expect(Product.fromJson(legacy).offlineOnly, isFalse);
+      },
+    );
 
     test('Discount round-trips', () {
       expect(Discount.fromJson(_flyer.toJson()), _flyer);

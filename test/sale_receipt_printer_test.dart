@@ -84,41 +84,44 @@ void main() {
     expect(bytes.length, greaterThan(1000));
   });
 
-  test('an offline receipt carries the OFFLINE notice and still renders', () async {
-    final offline = SaleReceipt(
-      id: '35b4fb47-a84f-483f-b73c-44ff6a04be23',
-      subtotalUzs: 75000,
-      cashUzs: 75000,
-      cardUzs: 0,
-      createdAt: DateTime.utc(2026, 9, 23, 10),
-      isOffline: true,
-      items: const [
-        SaleReceiptItem(
-          productId: 'vip',
-          nameSnapshot: 'VIP',
-          priceSnapshotUzs: 75000,
-          qty: 1,
-          lineTotalUzs: 75000,
-        ),
-      ],
-    );
-    expect(SaleReceiptPrinter.offlineNotice(offline), contains('OFFLINE'));
+  test(
+    'an offline receipt carries the OFFLINE notice and still renders',
+    () async {
+      final offline = SaleReceipt(
+        id: '35b4fb47-a84f-483f-b73c-44ff6a04be23',
+        subtotalUzs: 75000,
+        cashUzs: 75000,
+        cardUzs: 0,
+        createdAt: DateTime.utc(2026, 9, 23, 10),
+        isOffline: true,
+        items: const [
+          SaleReceiptItem(
+            productId: 'vip',
+            nameSnapshot: 'VIP',
+            priceSnapshotUzs: 75000,
+            qty: 1,
+            lineTotalUzs: 75000,
+          ),
+        ],
+      );
+      expect(SaleReceiptPrinter.offlineNotice(offline), contains('OFFLINE'));
 
-    final online = SaleReceipt(
-      id: offline.id,
-      subtotalUzs: offline.subtotalUzs,
-      cashUzs: offline.cashUzs,
-      cardUzs: 0,
-      createdAt: offline.createdAt,
-      items: offline.items,
-    );
-    expect(SaleReceiptPrinter.offlineNotice(online), isNull);
+      final online = SaleReceipt(
+        id: offline.id,
+        subtotalUzs: offline.subtotalUzs,
+        cashUzs: offline.cashUzs,
+        cardUzs: 0,
+        createdAt: offline.createdAt,
+        items: offline.items,
+      );
+      expect(SaleReceiptPrinter.offlineNotice(online), isNull);
 
-    final bytes = await SaleReceiptPrinter.buildPdf(
-      offline,
-      branchName: 'Algoritm',
-      cashierName: 'Zaira',
-    );
-    expect(latin1.decode(bytes), startsWith('%PDF'));
-  });
+      final bytes = await SaleReceiptPrinter.buildPdf(
+        offline,
+        branchName: 'Algoritm',
+        cashierName: 'Zaira',
+      );
+      expect(latin1.decode(bytes), startsWith('%PDF'));
+    },
+  );
 }
