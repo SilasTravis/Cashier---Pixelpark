@@ -1,3 +1,7 @@
+import 'dart:io';
+
+import 'package:cashier_app/core/local_source/local_source.dart';
+import 'package:cashier_app/features/offline/data/offline_store.dart';
 import 'package:cashier_app/features/products/data/products_remote_data_source.dart';
 import 'package:cashier_app/features/products/data/products_repository_impl.dart';
 import 'package:cashier_app/features/products/domain/product.dart';
@@ -9,6 +13,7 @@ import 'package:cashier_app/features/pos_account/domain/customer.dart';
 import 'package:cashier_app/features/sales_history/presentation/bloc/sales_history_bloc.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hive_ce/hive.dart';
 
 SaleHistoryEntry _sale({
   int refundedUzs = 0,
@@ -113,13 +118,45 @@ class _FakeProductsRemote implements ProductsRemoteDataSource {
   Future<List<Product>> listProducts() async => const [];
 }
 
+late Directory _temp;
+late OfflineStore _store;
+late LocalSource _local;
+
+ProductsRepository _productsRepository() =>
+    ProductsRepository(_FakeProductsRemote(), _store, _local);
+
 void main() {
+  setUp(() async {
+    _temp = await Directory.systemTemp.createTemp('cashier_refund_test');
+    Hive.init(_temp.path);
+    final offlineBox = await Hive.openBox<dynamic>(
+      '${OfflineStore.boxName}-${DateTime.now().microsecondsSinceEpoch}',
+    );
+    final appBox = await Hive.openBox<dynamic>(
+      'app-${DateTime.now().microsecondsSinceEpoch}',
+    );
+    _store = OfflineStore(offlineBox);
+    _local = LocalSource(appBox)
+      ..setCashier(
+        id: 'cashier-1',
+        fullName: 'Zaira',
+        username: 'zaira',
+        branchId: 'branch-1',
+        branchName: 'Algoritm',
+      );
+  });
+
+  tearDown(() async {
+    await Hive.close();
+    await _temp.delete(recursive: true);
+  });
+
   test(
     '30 000 refund updates the sale and net shift summary to 70 000',
     () async {
       final bloc = SalesHistoryBloc(
         SalesHistoryRepository(_FakeSalesRemote()),
-        ProductsRepository(_FakeProductsRemote()),
+        _productsRepository(),
       );
       addTearDown(bloc.close);
 
@@ -163,7 +200,7 @@ void main() {
       final remote = _FakeSalesRemote();
       final bloc = SalesHistoryBloc(
         SalesHistoryRepository(remote),
-        ProductsRepository(_FakeProductsRemote()),
+        _productsRepository(),
       );
       addTearDown(bloc.close);
 
@@ -195,7 +232,7 @@ void main() {
     () async {
       final bloc = SalesHistoryBloc(
         SalesHistoryRepository(_FakeSalesRemote()),
-        ProductsRepository(_FakeProductsRemote()),
+        _productsRepository(),
       );
       addTearDown(bloc.close);
 
@@ -242,7 +279,7 @@ void _editTests() {
       final remote = _FakeSalesRemote();
       final bloc = SalesHistoryBloc(
         SalesHistoryRepository(remote),
-        ProductsRepository(_FakeProductsRemote()),
+        _productsRepository(),
       );
       addTearDown(bloc.close);
 
@@ -282,7 +319,7 @@ void _editTests() {
     final remote = _FakeSalesRemote();
     final bloc = SalesHistoryBloc(
       SalesHistoryRepository(remote),
-      ProductsRepository(_FakeProductsRemote()),
+      _productsRepository(),
     );
     addTearDown(bloc.close);
 
@@ -320,7 +357,7 @@ void _correctionTests() {
     () async {
       final bloc = SalesHistoryBloc(
         SalesHistoryRepository(_FakeSalesRemote()),
-        ProductsRepository(_FakeProductsRemote()),
+        _productsRepository(),
       );
       addTearDown(bloc.close);
 
@@ -356,7 +393,7 @@ void _correctionTests() {
     final remote = _FakeSalesRemote();
     final bloc = SalesHistoryBloc(
       SalesHistoryRepository(remote),
-      ProductsRepository(_FakeProductsRemote()),
+      _productsRepository(),
     );
     addTearDown(bloc.close);
 

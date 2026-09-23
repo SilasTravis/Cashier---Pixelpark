@@ -15,7 +15,12 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
   @override
   Future<List<Product>> listProducts() async {
     try {
-      final response = await dio.get('/v1/pos/products');
+      // includeOffline: the offline-only plan items are cached with the rest
+      // and shown only in offline mode (an older backend ignores the flag).
+      final response = await dio.get(
+        '/v1/pos/products',
+        queryParameters: {'includeOffline': 'true'},
+      );
       if (response.statusCode == 200) {
         return (response.data as List)
             .map((json) => Product.fromJson(json as Map<String, dynamic>))

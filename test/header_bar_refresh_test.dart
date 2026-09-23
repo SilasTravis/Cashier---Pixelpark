@@ -1,7 +1,12 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hive_ce/hive.dart';
 
+import 'package:cashier_app/core/local_source/local_source.dart';
+import 'package:cashier_app/features/offline/data/offline_store.dart';
 import 'package:cashier_app/generated/l10n.dart';
 import 'package:cashier_app/features/shell/presentation/model/shell_tab.dart';
 import 'package:cashier_app/features/shell/presentation/widgets/header_bar.dart';
@@ -46,8 +51,32 @@ void main() {
   testWidgets('header refresh button re-fetches the shift totals', (
     tester,
   ) async {
+    // In-memory boxes: `testWidgets` runs inside a FakeAsync zone, so real
+    // disk I/O (a temp-dir Hive box) never completes — it needs an
+    // `Uint8List` backend, which stays synchronous, instead of a real path.
+    final offlineBox = await Hive.openBox<dynamic>(
+      OfflineStore.boxName,
+      bytes: Uint8List(0),
+    );
+    final appBox = await Hive.openBox<dynamic>(
+      'cashier_app_box_test',
+      bytes: Uint8List(0),
+    );
+    final store = OfflineStore(offlineBox);
+    final local = LocalSource(appBox)
+      ..setCashier(
+        id: 'cashier-1',
+        fullName: 'Zaira',
+        username: 'zaira',
+        branchId: 'branch-1',
+        branchName: 'Algoritm',
+      );
+    addTearDown(() async {
+      await Hive.close();
+    });
+
     final remote = _FakeShiftRemote();
-    final bloc = ShiftBloc(ShiftRepository(remote));
+    final bloc = ShiftBloc(ShiftRepository(remote, store, local));
     addTearDown(bloc.close);
 
     await tester.pumpWidget(

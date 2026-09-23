@@ -15,6 +15,7 @@ import 'features/auth/data/repositories/auth_repository_impl.dart';
 import 'features/auth/domain/repositories/auth_repository.dart';
 import 'features/auth/domain/usecases/login_usecase.dart';
 import 'features/auth/presentation/bloc/login_bloc.dart';
+import 'features/offline/data/offline_store.dart';
 import 'features/pos_account/data/pos_account_remote_data_source.dart';
 import 'features/inside/data/inside_repository.dart';
 import 'features/inside/presentation/bloc/inside_cubit.dart';
@@ -93,6 +94,10 @@ Future<void> _initHive() async {
   Hive.init(dir.path);
   final box = await Hive.openBox<dynamic>('cashier_app_box');
   sl.registerSingleton<LocalSource>(LocalSource(box));
+
+  // Separate box: logout's clearSession() must never touch queued sales.
+  final offlineBox = await Hive.openBox<dynamic>(OfflineStore.boxName);
+  sl.registerSingleton<OfflineStore>(OfflineStore(offlineBox));
 }
 
 void _authFeature() {
@@ -112,7 +117,9 @@ void _authFeature() {
 void _shiftFeature() {
   sl.registerFactory<ShiftBloc>(() => ShiftBloc(sl()));
 
-  sl.registerLazySingleton<ShiftRepository>(() => ShiftRepository(sl()));
+  sl.registerLazySingleton<ShiftRepository>(
+    () => ShiftRepository(sl(), sl(), sl()),
+  );
 
   sl.registerLazySingleton<ShiftRemoteDataSource>(
     () => ShiftRemoteDataSourceImpl(sl()),
@@ -122,7 +129,9 @@ void _shiftFeature() {
 void _productsFeature() {
   sl.registerFactory<ProductsBloc>(() => ProductsBloc(sl()));
 
-  sl.registerLazySingleton<ProductsRepository>(() => ProductsRepository(sl()));
+  sl.registerLazySingleton<ProductsRepository>(
+    () => ProductsRepository(sl(), sl(), sl()),
+  );
 
   sl.registerLazySingleton<ProductsRemoteDataSource>(
     () => ProductsRemoteDataSourceImpl(sl()),
@@ -144,7 +153,9 @@ void _posAccountFeature() {
 void _posSaleFeature() {
   sl.registerFactory<PosSaleBloc>(() => PosSaleBloc(sl(), sl()));
 
-  sl.registerLazySingleton<PosSaleRepository>(() => PosSaleRepository(sl()));
+  sl.registerLazySingleton<PosSaleRepository>(
+    () => PosSaleRepository(sl(), sl()),
+  );
 
   sl.registerLazySingleton<PosSaleRemoteDataSource>(
     () => PosSaleRemoteDataSourceImpl(sl()),
