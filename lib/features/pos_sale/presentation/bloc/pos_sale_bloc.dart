@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/error/failure.dart';
 import '../../../offline/application/offline_checkout.dart';
+import '../../../offline/domain/offline_sale.dart';
 import '../../../products/data/products_repository_impl.dart';
 import '../../../products/domain/product.dart';
 import '../../data/pos_sale_remote_data_source.dart';
@@ -136,20 +137,13 @@ class PosSaleBloc extends Bloc<PosSaleEvent, PosSaleState> {
     if (state.cart.isEmpty || state.isCheckingOut) return;
     emit(state.copyWith(isCheckingOut: true, errorMessage: null));
     if (state.offlineMode) {
+      final OfflineSale sale;
       try {
-        final sale = await _offlineCheckout.record(
+        sale = await _offlineCheckout.record(
           lines: state.cartLines,
           discount: state.selectedDiscount,
           cashUzs: event.cashUzs,
           cardUzs: event.cardUzs,
-        );
-        emit(
-          state.copyWith(
-            isCheckingOut: false,
-            cart: const {},
-            clearSelectedDiscountId: true,
-            lastReceipt: sale.toReceipt(),
-          ),
         );
       } on NoShiftForOfflineSaleException {
         emit(
@@ -158,6 +152,7 @@ class PosSaleBloc extends Bloc<PosSaleEvent, PosSaleState> {
             errorMessage: "Offline savdo uchun ochiq smena yo'q",
           ),
         );
+        return;
       } on OfflinePaymentShortException {
         emit(
           state.copyWith(
@@ -165,6 +160,7 @@ class PosSaleBloc extends Bloc<PosSaleEvent, PosSaleState> {
             errorMessage: "To'lov summasi yetarli emas",
           ),
         );
+        return;
       } catch (_) {
         emit(
           state.copyWith(
@@ -172,7 +168,28 @@ class PosSaleBloc extends Bloc<PosSaleEvent, PosSaleState> {
             errorMessage: "Savdo saqlanmadi. Qayta urinib ko'ring.",
           ),
         );
+        return;
       }
+      // The sale is saved from here on: the "not saved" catch-all above
+      // must never cover it. Clear the cart either way so it isn't rung
+      // up twice.
+      SaleReceipt? receipt;
+      try {
+        receipt = sale.toReceipt();
+      } catch (_) {
+        receipt = null;
+      }
+      emit(
+        state.copyWith(
+          isCheckingOut: false,
+          cart: const {},
+          clearSelectedDiscountId: true,
+          lastReceipt: receipt,
+          errorMessage: receipt == null
+              ? 'Savdo saqlandi, lekin chek chiqmadi.'
+              : null,
+        ),
+      );
       return;
     }
     final lines = [
@@ -211,7 +228,13 @@ class PosSaleBloc extends Bloc<PosSaleEvent, PosSaleState> {
           emit(
             state.copyWith(
               isCheckingOut: false,
-              errorMessage: _messageOf(failure),
+              // A lost connection mid-POST is not a rejection: the server
+              // may have saved the sale. Keep the cart, but steer the
+              // cashier to the history before any retry.
+              errorMessage: failure is NoInternetFailure
+                  ? 'Aloqa uzildi. Savdo serverga yetgan bo‘lishi mumkin — '
+                        'Sotuv tarixini tekshiring, keyin qayta urining.'
+                  : _messageOf(failure),
             ),
           );
         },

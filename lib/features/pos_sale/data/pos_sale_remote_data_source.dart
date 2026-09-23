@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../../../core/error/exceptions.dart';
+import '../../../core/network/connectivity_interceptor.dart';
 import '../domain/discount.dart';
 import '../domain/sale_receipt.dart';
 
@@ -57,6 +58,12 @@ class PosSaleRemoteDataSourceImpl implements PosSaleRemoteDataSource {
       }
       throw ServerException.fromJson(response.data);
     } on DioException catch (e) {
+      // No answer at all (timeout, dropped connection): the server may
+      // still have saved the sale, so the caller must not treat this like
+      // a rejection. A real fix needs an idempotency key on POST /pos/sales.
+      if (ConnectivityInterceptor.isConnectionError(e)) {
+        throw NoInternetException();
+      }
       throw ServerException.fromJson(e.response?.data);
     }
   }

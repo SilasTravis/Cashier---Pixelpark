@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:cashier_app/core/error/exceptions.dart';
 import 'package:cashier_app/core/local_source/local_source.dart';
 import 'package:cashier_app/features/offline/application/offline_checkout.dart';
 import 'package:cashier_app/features/offline/data/offline_store.dart';
@@ -76,6 +77,76 @@ class _MalformedResponseSales extends PosSaleRemoteDataSourceImpl {
     throw const FormatException('unexpected character');
   }
 }
+
+/// The POST timed out / lost the connection: the server may or may not have
+/// saved the sale.
+class _LostConnectionSales extends PosSaleRemoteDataSourceImpl {
+  _LostConnectionSales() : super(Dio());
+  int calls = 0;
+  @override
+  Future<List<Discount>> fetchDiscounts() async => const [];
+  @override
+  Future<SaleReceipt> checkout({
+    required List<CheckoutLine> lines,
+    required int cashUzs,
+    required int cardUzs,
+    String? discountId,
+  }) async {
+    calls++;
+    throw NoInternetException();
+  }
+}
+
+/// `record` succeeds (the sale IS saved) but building the receipt throws.
+class _BadReceiptSale extends OfflineSale {
+  _BadReceiptSale(OfflineSale sale)
+    : super(
+        offlineRequestId: sale.offlineRequestId,
+        cashierId: sale.cashierId,
+        createdAt: sale.createdAt,
+        shiftId: sale.shiftId,
+        shiftOfflineRequestId: sale.shiftOfflineRequestId,
+        lines: sale.lines,
+        cashUzs: sale.cashUzs,
+        cardUzs: sale.cardUzs,
+      );
+
+  @override
+  SaleReceipt toReceipt() => throw StateError('receipt build failed');
+}
+
+class _SavedButNoReceiptCheckout extends OfflineCheckout {
+  _SavedButNoReceiptCheckout(super.store, super.local);
+
+  @override
+  Future<OfflineSale> record({
+    required List<CartLine> lines,
+    required Discount? discount,
+    required int cashUzs,
+    required int cardUzs,
+  }) async => _BadReceiptSale(
+    await super.record(
+      lines: lines,
+      discount: discount,
+      cashUzs: cashUzs,
+      cardUzs: cardUzs,
+    ),
+  );
+}
+
+Dio _dioFailingWith(DioExceptionType type, {Response<dynamic>? response}) =>
+    Dio()
+      ..interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) => handler.reject(
+            DioException(
+              requestOptions: options,
+              type: type,
+              response: response,
+            ),
+          ),
+        ),
+      );
 
 /// A Hive write failure, a corrupt cached shift — anything not one of
 /// `OfflineCheckout`'s two documented exceptions.
@@ -257,6 +328,116 @@ void main() {
       expect(store.sales(), isEmpty);
     },
   );
+
+  test('a saved offline sale whose receipt fails to build is never reported as '
+      'not saved', () async {
+    final bloc = PosSaleBloc(
+      PosSaleRepository(sales, store),
+      products,
+      _SavedButNoReceiptCheckout(store, local),
+      offlineMode: true,
+    );
+    addTearDown(bloc.close);
+    bloc.add(const PosSaleStarted());
+    await settle();
+
+    bloc
+      ..add(const PosSaleProductAdded(_vip))
+      ..add(const PosSaleCheckoutRequested(cashUzs: 75000, cardUzs: 0));
+    await settle();
+
+    expect(store.sales(), hasLength(1));
+    expect(bloc.state.isCheckingOut, isFalse);
+    expect(
+      bloc.state.errorMessage,
+      isNot("Savdo saqlanmadi. Qayta urinib ko'ring."),
+    );
+    expect(bloc.state.errorMessage, "Savdo saqlandi, lekin chek chiqmadi.");
+    // Saved, so the cart must not invite ringing it up again.
+    expect(bloc.state.cart, isEmpty);
+  });
+
+  group('online checkout that loses the connection', () {
+    test('the remote maps a connection/timeout error to NoInternet', () async {
+      await expectLater(
+        PosSaleRemoteDataSourceImpl(
+          _dioFailingWith(DioExceptionType.receiveTimeout),
+        ).checkout(
+          lines: const [CheckoutLine(productId: 'popcorn', qty: 1)],
+          cashUzs: 12000,
+          cardUzs: 0,
+        ),
+        throwsA(isA<NoInternetException>()),
+      );
+      await expectLater(
+        PosSaleRemoteDataSourceImpl(
+          _dioFailingWith(DioExceptionType.connectionError),
+        ).checkout(
+          lines: const [CheckoutLine(productId: 'popcorn', qty: 1)],
+          cashUzs: 12000,
+          cardUzs: 0,
+        ),
+        throwsA(isA<NoInternetException>()),
+      );
+    });
+
+    test('an HTTP error answer is still a ServerException', () async {
+      final options = RequestOptions(path: '/v1/pos/sales');
+      await expectLater(
+        PosSaleRemoteDataSourceImpl(
+          _dioFailingWith(
+            DioExceptionType.badResponse,
+            response: Response(
+              requestOptions: options,
+              statusCode: 500,
+              data: {'message': 'Server xatosi'},
+            ),
+          ),
+        ).checkout(
+          lines: const [CheckoutLine(productId: 'popcorn', qty: 1)],
+          cashUzs: 12000,
+          cardUzs: 0,
+        ),
+        throwsA(
+          isA<ServerException>().having(
+            (e) => e.message,
+            'message',
+            'Server xatosi',
+          ),
+        ),
+      );
+    });
+
+    test(
+      'warns the sale may have reached the server and keeps the cart',
+      () async {
+        final remote = _LostConnectionSales();
+        final bloc = PosSaleBloc(
+          PosSaleRepository(remote, store),
+          products,
+          OfflineCheckout(store, local),
+        );
+        addTearDown(bloc.close);
+        bloc.add(const PosSaleStarted());
+        await settle();
+
+        bloc
+          ..add(const PosSaleProductAdded(_popcorn))
+          ..add(const PosSaleCheckoutRequested(cashUzs: 12000, cardUzs: 0));
+        await settle();
+
+        expect(remote.calls, 1);
+        expect(bloc.state.isCheckingOut, isFalse);
+        expect(
+          bloc.state.errorMessage,
+          'Aloqa uzildi. Savdo serverga yetgan bo‘lishi mumkin — Sotuv '
+          'tarixini tekshiring, keyin qayta urining.',
+        );
+        expect(bloc.state.cart, {'popcorn': 1});
+        expect(store.sales(), isEmpty);
+      },
+    );
+  });
 
   test('double-tapping checkout offline queues exactly one sale', () async {
     final checkout = _SlowOfflineCheckout(store, local);
