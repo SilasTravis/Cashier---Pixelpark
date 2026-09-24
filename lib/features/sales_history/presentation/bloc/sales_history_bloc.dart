@@ -275,25 +275,32 @@ class SalesHistoryBloc extends Bloc<SalesHistoryEvent, SalesHistoryState> {
         updated = await repository.correctPayment(
           saleId: event.saleId,
           fromMethod: plan.correctionFrom!,
-          toMethod: plan.targetMethod,
+          toMethod: plan.correctionTo!,
           amountUzs: plan.correctionUzs,
           reason: event.reason,
           requestId: const Uuid().v4(),
         );
       }
-      if (plan.needsRefund) {
+      for (final (amountUzs, method) in [
+        (plan.cashRefundUzs, SaleRefundMethod.cash),
+        (plan.cardRefundUzs, SaleRefundMethod.card),
+      ]) {
+        if (amountUzs <= 0) continue;
         updated = await repository.refund(
           saleId: event.saleId,
-          amountUzs: plan.refundUzs,
-          method: plan.refundMethod,
+          amountUzs: amountUzs,
+          method: method,
           reason: event.reason,
           requestId: const Uuid().v4(),
         );
       }
       if (updated == null) return;
 
-      final toCash = plan.targetMethod == SalePaymentMoveMethod.cash;
-      final moved = plan.correctionUzs;
+      final intoCash = plan.correctionTo == SalePaymentMoveMethod.cash
+          ? plan.correctionUzs
+          : -plan.correctionUzs;
+      final cashDelta = intoCash - plan.cashRefundUzs;
+      final cardDelta = -intoCash - plan.cardRefundUzs;
       final handedBack = plan.refundUzs;
       emit(
         state.copyWith(
@@ -307,10 +314,8 @@ class SalesHistoryBloc extends Bloc<SalesHistoryEvent, SalesHistoryState> {
           summary: SalesHistorySummary(
             count: state.summary.count,
             totalUzs: state.summary.totalUzs - handedBack,
-            cashUzs:
-                state.summary.cashUzs + (toCash ? moved - handedBack : -moved),
-            cardUzs:
-                state.summary.cardUzs + (toCash ? -moved : moved - handedBack),
+            cashUzs: state.summary.cashUzs + cashDelta,
+            cardUzs: state.summary.cardUzs + cardDelta,
             balanceUzs: state.summary.balanceUzs,
             refundedUzs: state.summary.refundedUzs + handedBack,
             discountUzs: state.summary.discountUzs,

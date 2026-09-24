@@ -11,7 +11,12 @@ import 'package:cashier_app/features/sales_history/domain/sale_edit_plan.dart';
 import 'package:cashier_app/features/sales_history/domain/sale_history.dart';
 import 'package:cashier_app/features/pos_account/domain/customer.dart';
 import 'package:cashier_app/features/sales_history/presentation/bloc/sales_history_bloc.dart';
+import 'package:cashier_app/features/sales_history/presentation/widgets/edit_sale_dialog.dart';
+import 'package:cashier_app/generated/l10n.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
 
@@ -314,6 +319,113 @@ void _editTests() {
       expect(remote.lastMethod, SaleRefundMethod.card);
     },
   );
+
+  test('a mixed edit refunds out of both columns after the move', () async {
+    final remote = _FakeSalesRemote();
+    final bloc = SalesHistoryBloc(
+      SalesHistoryRepository(remote),
+      _productsRepository(),
+    );
+    addTearDown(bloc.close);
+
+    bloc.add(const SalesHistoryStarted());
+    final loaded = await bloc.stream.firstWhere(
+      (state) => !state.isLoading && state.items.isNotEmpty,
+    );
+
+    // The fixture is 100 000 in cash; say it was 30 000 cash + 50 000 card.
+    final plan = planSaleEditSplit(
+      sale: _sale(),
+      targetCashUzs: 30000,
+      targetCardUzs: 50000,
+    );
+
+    bloc.add(
+      SalesHistoryEditRequested(
+        saleId: 'sale-1',
+        plan: plan,
+        reason: 'Aralash to‘lov xato kiritilgan',
+      ),
+    );
+    final done = await bloc.stream.firstWhere(
+      (state) => state.actionStatus == SaleActionStatus.success,
+    );
+
+    expect(remote.calls, ['correct:50000', 'refund:20000']);
+    expect(remote.lastFrom, SalePaymentMoveMethod.cash);
+    expect(remote.lastTo, SalePaymentMoveMethod.card);
+    expect(remote.lastMethod, SaleRefundMethod.cash);
+    expect(done.summary.totalUzs, loaded.summary.totalUzs - 20000);
+    expect(done.summary.cashUzs, loaded.summary.cashUzs - 70000);
+    expect(done.summary.cardUzs, loaded.summary.cardUzs + 50000);
+  });
+
+  testWidgets('the edit dialog takes a cash + card split and runs it', (
+    tester,
+  ) async {
+    final remote = _FakeSalesRemote();
+    final bloc = SalesHistoryBloc(
+      SalesHistoryRepository(remote),
+      _productsRepository(),
+    );
+    addTearDown(bloc.close);
+    tester.view.physicalSize = const Size(1200, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: const [
+          AppLocalization.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalization.delegate.supportedLocales,
+        locale: const Locale('en'),
+        home: BlocProvider.value(
+          value: bloc,
+          child: Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () => showEditSaleDialog(context, _sale()),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    // A cash-only receipt opens on the single-total field.
+    expect(find.widgetWithText(TextFormField, 'Correct total'), findsOneWidget);
+
+    await tester.tap(find.text('Split'));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(TextFormField, 'Correct total'), findsNothing);
+
+    await tester.enterText(find.widgetWithText(TextFormField, 'Cash'), '30000');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Card'), '50000');
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Reason for the edit'),
+      'Aralash to‘lov xato kiritilgan',
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('moves from cash to card'), findsOneWidget);
+    expect(
+      find.textContaining('handed back to the customer in cash'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('in card'), findsNothing);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Edit'));
+    await tester.pumpAndSettle();
+
+    expect(remote.calls, ['correct:50000', 'refund:20000']);
+    expect(remote.lastMethod, SaleRefundMethod.cash);
+  });
 
   test('an amount-only edit skips the column move', () async {
     final remote = _FakeSalesRemote();

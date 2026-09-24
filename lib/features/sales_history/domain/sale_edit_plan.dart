@@ -24,73 +24,113 @@ enum SaleEditBlocker {
 /// where the cashier says it should be.
 ///
 /// Both halves are existing, separately audited operations: the method
-/// correction moves the columns, the refund hands money back. They run in
+/// correction moves the columns, the refunds hand money back. They run in
 /// that order because the server refuses to move columns underneath a refund.
-/// A retry re-derives the plan from the receipt's new state, so a half-applied
-/// edit converges rather than doubling up.
+/// A retry re-derives the plan from the receipt's new state (net of what was
+/// already handed back), so a half-applied edit converges rather than
+/// doubling up.
 class SaleEditPlan {
   const SaleEditPlan({
+    required this.targetCashUzs,
+    required this.targetCardUzs,
     required this.correctionUzs,
     required this.correctionFrom,
-    required this.refundUzs,
-    required this.targetMethod,
+    required this.cashRefundUzs,
+    required this.cardRefundUzs,
     this.blocker,
   });
 
-  /// Money to move into [targetMethod] before anything is handed back.
+  /// The split the receipt should end up with.
+  final int targetCashUzs;
+  final int targetCardUzs;
+
+  /// Money to move out of [correctionFrom] into the other column before
+  /// anything is handed back.
   final int correctionUzs;
   final SalePaymentMoveMethod? correctionFrom;
 
-  /// Money to hand back, always out of [targetMethod] — by then the whole
-  /// receipt sits there, so the customer is refunded the way they paid.
-  final int refundUzs;
-  final SalePaymentMoveMethod targetMethod;
+  /// Money to hand back out of each column, after the move.
+  final int cashRefundUzs;
+  final int cardRefundUzs;
 
   final SaleEditBlocker? blocker;
+
+  SalePaymentMoveMethod? get correctionTo => switch (correctionFrom) {
+    SalePaymentMoveMethod.cash => SalePaymentMoveMethod.card,
+    SalePaymentMoveMethod.card => SalePaymentMoveMethod.cash,
+    null => null,
+  };
+
+  int get refundUzs => cashRefundUzs + cardRefundUzs;
 
   bool get isBlocked => blocker != null;
   bool get needsCorrection => correctionUzs > 0;
   bool get needsRefund => refundUzs > 0;
   bool get isNoop => !isBlocked && !needsCorrection && !needsRefund;
-
-  SaleRefundMethod get refundMethod =>
-      targetMethod == SalePaymentMoveMethod.cash
-      ? SaleRefundMethod.cash
-      : SaleRefundMethod.card;
 }
 
 /// Works out how to get [sale] to [targetTotalUzs] paid entirely by
-/// [targetMethod].
-///
-/// The receipt ends up with everything under the correct method and the
-/// correct total, which is the shape of every real mis-entry at the desk:
-/// the cashier typed the wrong number, picked the wrong method, or both. A
-/// genuinely mixed payment that was split wrong is left to the two
-/// operations on their own, where the exact split can be dialled in.
+/// [targetMethod] — the shape of most mis-entries at the desk: the cashier
+/// typed the wrong number, picked the wrong method, or both.
 SaleEditPlan planSaleEdit({
   required SaleHistoryEntry sale,
   required int targetTotalUzs,
   required SalePaymentMoveMethod targetMethod,
+}) => planSaleEditSplit(
+  sale: sale,
+  targetCashUzs: targetMethod == SalePaymentMoveMethod.cash
+      ? targetTotalUzs
+      : 0,
+  targetCardUzs: targetMethod == SalePaymentMoveMethod.card
+      ? targetTotalUzs
+      : 0,
+);
+
+/// Works out how to get [sale] to exactly [targetCashUzs] cash plus
+/// [targetCardUzs] card — a mixed payment rung up with the wrong split.
+///
+/// A single-method target pulls the whole receipt onto that method and
+/// refunds out of it, so the customer is refunded the way they paid. A mixed
+/// target moves only as much as the split needs, then hands back whatever
+/// each column still holds above its target.
+SaleEditPlan planSaleEditSplit({
+  required SaleHistoryEntry sale,
+  required int targetCashUzs,
+  required int targetCardUzs,
 }) {
   SaleEditPlan blocked(SaleEditBlocker blocker) => SaleEditPlan(
+    targetCashUzs: targetCashUzs,
+    targetCardUzs: targetCardUzs,
     correctionUzs: 0,
     correctionFrom: null,
-    refundUzs: 0,
-    targetMethod: targetMethod,
+    cashRefundUzs: 0,
+    cardRefundUzs: 0,
     blocker: blocker,
   );
 
-  final physicalUzs = sale.cashUzs + sale.cardUzs;
+  final cashUzs = sale.netCashUzs;
+  final cardUzs = sale.netCardUzs;
+  final physicalUzs = cashUzs + cardUzs;
   if (physicalUzs <= 0 || sale.balanceUzs > 0) {
     return blocked(SaleEditBlocker.notEditable);
   }
-  if (targetTotalUzs > physicalUzs) {
+  if (targetCashUzs < 0 ||
+      targetCardUzs < 0 ||
+      targetCashUzs + targetCardUzs > physicalUzs) {
     return blocked(SaleEditBlocker.increaseNotSupported);
   }
 
-  final underTarget = sale.movableFor(targetMethod);
-  final correctionUzs = physicalUzs - underTarget;
-  final refundUzs = physicalUzs - targetTotalUzs;
+  // Where the cash column must sit after the move: at least the target, and
+  // low enough to leave the card target covered.
+  final cashAfterMove = targetCardUzs == 0
+      ? physicalUzs
+      : targetCashUzs == 0
+      ? 0
+      : cashUzs.clamp(targetCashUzs, physicalUzs - targetCardUzs);
+  final correctionUzs = (cashAfterMove - cashUzs).abs();
+  final cashRefundUzs = cashAfterMove - targetCashUzs;
+  final cardRefundUzs = physicalUzs - cashAfterMove - targetCardUzs;
+  final refundUzs = cashRefundUzs + cardRefundUzs;
 
   if (correctionUzs > 0 && !sale.canCorrectPayment) {
     // Only blame a refund when there actually is one. The same flag is also
@@ -115,13 +155,15 @@ SaleEditPlan planSaleEdit({
   }
 
   return SaleEditPlan(
+    targetCashUzs: targetCashUzs,
+    targetCardUzs: targetCardUzs,
     correctionUzs: correctionUzs,
-    correctionFrom: correctionUzs > 0
-        ? (targetMethod == SalePaymentMoveMethod.cash
+    correctionFrom: correctionUzs == 0
+        ? null
+        : (cashAfterMove > cashUzs
               ? SalePaymentMoveMethod.card
-              : SalePaymentMoveMethod.cash)
-        : null,
-    refundUzs: refundUzs,
-    targetMethod: targetMethod,
+              : SalePaymentMoveMethod.cash),
+    cashRefundUzs: cashRefundUzs,
+    cardRefundUzs: cardRefundUzs,
   );
 }

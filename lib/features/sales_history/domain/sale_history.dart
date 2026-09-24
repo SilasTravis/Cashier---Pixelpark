@@ -197,6 +197,11 @@ class SaleHistoryEntry extends Equatable {
     SalePaymentMoveMethod.card => cardUzs,
   };
 
+  /// What each column still holds once refunds are taken out — the money
+  /// the receipt actually kept.
+  int get netCashUzs => cashUzs - refundedCashUzs;
+  int get netCardUzs => cardUzs - refundedCardUzs;
+
   bool get isFullyRefunded => refundableUzs == 0 && hasRefunds;
   bool get isTopup => type == 'ACCOUNT_TOPUP';
   bool get isGatePass => type == 'GATE_PASS';

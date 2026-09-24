@@ -72,8 +72,8 @@ void main() {
     );
 
     expect(plan.needsCorrection, isFalse);
-    expect(plan.refundUzs, 15000);
-    expect(plan.refundMethod, SaleRefundMethod.cash);
+    expect(plan.cashRefundUzs, 15000);
+    expect(plan.cardRefundUzs, 0);
   });
 
   test('both wrong: corrects first, then refunds out of the right method', () {
@@ -86,8 +86,8 @@ void main() {
 
     expect(plan.correctionUzs, 40000);
     expect(plan.correctionFrom, SalePaymentMoveMethod.card);
-    expect(plan.refundUzs, 10000);
-    expect(plan.refundMethod, SaleRefundMethod.cash);
+    expect(plan.cashRefundUzs, 10000);
+    expect(plan.cardRefundUzs, 0);
   });
 
   test('a mixed receipt is pulled onto one method before the refund', () {
@@ -179,9 +179,128 @@ void main() {
       card -= plan.correctionUzs;
       cash += plan.correctionUzs;
     }
-    cash -= plan.refundUzs;
+    cash -= plan.cashRefundUzs;
+    card -= plan.cardRefundUzs;
 
     expect(cash, 25000);
     expect(card, 0);
+  });
+
+  group('mixed target', () {
+    (int, int) apply(SaleHistoryEntry input, SaleEditPlan plan) {
+      var cash = input.netCashUzs;
+      var card = input.netCardUzs;
+      if (plan.correctionFrom == SalePaymentMoveMethod.card) {
+        card -= plan.correctionUzs;
+        cash += plan.correctionUzs;
+      } else if (plan.correctionFrom == SalePaymentMoveMethod.cash) {
+        cash -= plan.correctionUzs;
+        card += plan.correctionUzs;
+      }
+      return (cash - plan.cashRefundUzs, card - plan.cardRefundUzs);
+    }
+
+    test('a single-method receipt is split: only the difference moves', () {
+      final input = sale(cash: 0, card: 40000);
+      final plan = planSaleEditSplit(
+        sale: input,
+        targetCashUzs: 15000,
+        targetCardUzs: 25000,
+      );
+
+      expect(plan.correctionUzs, 15000);
+      expect(plan.correctionFrom, SalePaymentMoveMethod.card);
+      expect(plan.correctionTo, SalePaymentMoveMethod.cash);
+      expect(plan.needsRefund, isFalse);
+      expect(apply(input, plan), (15000, 25000));
+    });
+
+    test('a wrong split with a lower total refunds out of each column', () {
+      final input = sale(cash: 20000, card: 30000, customerBalance: 100000);
+      final plan = planSaleEditSplit(
+        sale: input,
+        targetCashUzs: 15000,
+        targetCardUzs: 25000,
+      );
+
+      expect(plan.needsCorrection, isFalse);
+      expect(plan.cashRefundUzs, 5000);
+      expect(plan.cardRefundUzs, 5000);
+      expect(apply(input, plan), (15000, 25000));
+    });
+
+    test('move and refund together still land on the split', () {
+      final input = sale(cash: 40000, card: 0, customerBalance: 100000);
+      final plan = planSaleEditSplit(
+        sale: input,
+        targetCashUzs: 10000,
+        targetCardUzs: 20000,
+      );
+
+      expect(plan.correctionFrom, SalePaymentMoveMethod.cash);
+      expect(plan.correctionUzs, 20000);
+      expect(plan.cashRefundUzs, 10000);
+      expect(plan.cardRefundUzs, 0);
+      expect(apply(input, plan), (10000, 20000));
+    });
+
+    test('a split above what was taken is refused', () {
+      final plan = planSaleEditSplit(
+        sale: sale(cash: 20000, card: 20000),
+        targetCashUzs: 30000,
+        targetCardUzs: 20000,
+      );
+
+      expect(plan.blocker, SaleEditBlocker.increaseNotSupported);
+    });
+
+    test('the split already on the receipt is a no-op', () {
+      final plan = planSaleEditSplit(
+        sale: sale(cash: 10000, card: 30000),
+        targetCashUzs: 10000,
+        targetCardUzs: 30000,
+      );
+
+      expect(plan.isNoop, isTrue);
+    });
+
+    test('a retry after one refund landed only does what is left', () {
+      // 20k cash + 30k card → 15k + 25k; the cash refund already went through.
+      final input = SaleHistoryEntry(
+        id: 'sale-1',
+        type: 'GOODS_CHECKOUT',
+        totalUzs: 50000,
+        cashUzs: 20000,
+        cardUzs: 30000,
+        balanceUzs: 0,
+        refundedUzs: 5000,
+        refundedCashUzs: 5000,
+        refundedCardUzs: 0,
+        refundedBalanceUzs: 0,
+        netUzs: 45000,
+        refundableUzs: 45000,
+        refundableCashUzs: 15000,
+        refundableCardUzs: 30000,
+        refundableBalanceUzs: 0,
+        canRefund: true,
+        canCorrectPayment: false,
+        createdAt: DateTime(2026, 9, 7, 10),
+        items: const [],
+        refunds: const [],
+        passes: const [],
+        paymentCorrections: const [],
+        customer: null,
+      );
+      final plan = planSaleEditSplit(
+        sale: input,
+        targetCashUzs: 15000,
+        targetCardUzs: 25000,
+      );
+
+      expect(plan.isBlocked, isFalse);
+      expect(plan.needsCorrection, isFalse);
+      expect(plan.cashRefundUzs, 0);
+      expect(plan.cardRefundUzs, 5000);
+    });
   });
 }

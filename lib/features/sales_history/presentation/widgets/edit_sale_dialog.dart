@@ -28,6 +28,9 @@ Future<bool?> showEditSaleDialog(BuildContext context, SaleHistoryEntry sale) {
 /// the method SHOULD have been, and the steps needed to get there are derived
 /// and spelled out before anything is written. Under the hood those steps are
 /// the existing column move and refund, each separately audited.
+/// The payment shape the cashier says the receipt should have had.
+enum _EditMode { cash, card, mixed }
+
 class _EditSaleDialog extends StatefulWidget {
   const _EditSaleDialog({required this.sale});
 
@@ -40,34 +43,64 @@ class _EditSaleDialog extends StatefulWidget {
 class _EditSaleDialogState extends State<_EditSaleDialog> {
   final _formKey = GlobalKey<FormState>();
   final _totalController = TextEditingController();
+  final _cashController = TextEditingController();
+  final _cardController = TextEditingController();
   final _reasonController = TextEditingController();
-  late SalePaymentMoveMethod _method;
+  late _EditMode _mode;
 
-  int get _physicalUzs => widget.sale.cashUzs + widget.sale.cardUzs;
+  int get _physicalUzs => widget.sale.netCashUzs + widget.sale.netCardUzs;
 
   @override
   void initState() {
     super.initState();
+    final cash = widget.sale.netCashUzs;
+    final card = widget.sale.netCardUzs;
     _totalController.text = '$_physicalUzs';
-    _method = widget.sale.cardUzs > 0
-        ? SalePaymentMoveMethod.card
-        : SalePaymentMoveMethod.cash;
+    _cashController.text = '$cash';
+    _cardController.text = '$card';
+    _mode = cash > 0 && card > 0
+        ? _EditMode.mixed
+        : card > 0
+        ? _EditMode.card
+        : _EditMode.cash;
   }
 
   @override
   void dispose() {
     _totalController.dispose();
+    _cashController.dispose();
+    _cardController.dispose();
     _reasonController.dispose();
     super.dispose();
   }
 
-  int get _target => int.tryParse(_totalController.text) ?? 0;
+  int _amount(TextEditingController controller) =>
+      int.tryParse(controller.text) ?? 0;
 
-  SaleEditPlan get _plan => planSaleEdit(
-    sale: widget.sale,
-    targetTotalUzs: _target,
-    targetMethod: _method,
-  );
+  int get _target => _amount(_totalController);
+
+  /// A receipt edited down to nothing is a full refund, not an edit.
+  bool get _hasTotal => _mode == _EditMode.mixed
+      ? _amount(_cashController) + _amount(_cardController) >= 1
+      : _target >= 1;
+
+  SaleEditPlan get _plan => switch (_mode) {
+    _EditMode.cash => planSaleEdit(
+      sale: widget.sale,
+      targetTotalUzs: _target,
+      targetMethod: SalePaymentMoveMethod.cash,
+    ),
+    _EditMode.card => planSaleEdit(
+      sale: widget.sale,
+      targetTotalUzs: _target,
+      targetMethod: SalePaymentMoveMethod.card,
+    ),
+    _EditMode.mixed => planSaleEditSplit(
+      sale: widget.sale,
+      targetCashUzs: _amount(_cashController),
+      targetCardUzs: _amount(_cardController),
+    ),
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -123,34 +156,11 @@ class _EditSaleDialogState extends State<_EditSaleDialog> {
                     _Note(
                       icon: PhosphorIconsRegular.receipt,
                       text: l10n.editSaleCurrent(
-                        formatUzs(widget.sale.cashUzs),
-                        formatUzs(widget.sale.cardUzs),
+                        formatUzs(widget.sale.netCashUzs),
+                        formatUzs(widget.sale.netCardUzs),
                       ),
                     ),
                     const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _totalController,
-                      enabled: !submitting,
-                      autofocus: true,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      onChanged: (_) => setState(() {}),
-                      decoration: InputDecoration(
-                        labelText: l10n.editSaleTotal,
-                        suffixText: "so'm",
-                        helperText: '1 — ${formatUzs(_physicalUzs)}',
-                      ),
-                      validator: (value) {
-                        final amount = int.tryParse(value ?? '');
-                        if (amount == null ||
-                            amount < 1 ||
-                            amount > _physicalUzs) {
-                          return '1 — ${formatUzs(_physicalUzs)}';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 14),
                     Text(
                       l10n.editSaleMethod,
                       style: AppTextStyles.body.copyWith(
@@ -158,21 +168,64 @@ class _EditSaleDialogState extends State<_EditSaleDialog> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    SegmentedButton<SalePaymentMoveMethod>(
+                    SegmentedButton<_EditMode>(
                       segments: [
-                        for (final method in SalePaymentMoveMethod.values)
+                        for (final mode in _EditMode.values)
                           ButtonSegment(
-                            value: method,
-                            icon: Icon(_icon(method), size: 18),
-                            label: Text(_label(l10n, method)),
+                            value: mode,
+                            icon: Icon(_icon(mode), size: 18),
+                            label: Text(_label(l10n, mode)),
                           ),
                       ],
-                      selected: {_method},
+                      selected: {_mode},
                       onSelectionChanged: submitting
                           ? null
                           : (selection) =>
-                                setState(() => _method = selection.first),
+                                setState(() => _mode = selection.first),
                     ),
+                    const SizedBox(height: 14),
+                    if (_mode == _EditMode.mixed)
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: _amountField(
+                              controller: _cashController,
+                              label: l10n.paymentCash,
+                              enabled: !submitting,
+                              autofocus: true,
+                              min: 0,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _amountField(
+                              controller: _cardController,
+                              label: l10n.paymentCard,
+                              enabled: !submitting,
+                              min: 0,
+                            ),
+                          ),
+                        ],
+                      )
+                    else
+                      _amountField(
+                        controller: _totalController,
+                        label: l10n.editSaleTotal,
+                        enabled: !submitting,
+                        autofocus: true,
+                        min: 1,
+                      ),
+                    if (_mode == _EditMode.mixed) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        '${l10n.editSaleTotal}: ${formatUzs(_amount(_cashController) + _amount(_cardController))}'
+                        '  ·  1 — ${formatUzs(_physicalUzs)}',
+                        style: AppTextStyles.muted(
+                          AppTextStyles.body,
+                        ).copyWith(fontSize: 12),
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     _PlanPreview(plan: plan, sale: widget.sale),
                     const SizedBox(height: 14),
@@ -217,7 +270,8 @@ class _EditSaleDialogState extends State<_EditSaleDialog> {
               child: Text(l10n.cancel),
             ),
             FilledButton.icon(
-              onPressed: submitting || plan.isBlocked || plan.isNoop
+              onPressed:
+                  submitting || plan.isBlocked || plan.isNoop || !_hasTotal
                   ? null
                   : _submit,
               icon: submitting
@@ -234,8 +288,36 @@ class _EditSaleDialogState extends State<_EditSaleDialog> {
     );
   }
 
+  Widget _amountField({
+    required TextEditingController controller,
+    required String label,
+    required bool enabled,
+    required int min,
+    bool autofocus = false,
+  }) => TextFormField(
+    controller: controller,
+    enabled: enabled,
+    autofocus: autofocus,
+    keyboardType: TextInputType.number,
+    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+    onChanged: (_) => setState(() {}),
+    decoration: InputDecoration(
+      labelText: label,
+      suffixText: "so'm",
+      helperText: '$min — ${formatUzs(_physicalUzs)}',
+    ),
+    validator: (value) {
+      final amount = int.tryParse(value ?? '');
+      if (amount == null || amount < min || amount > _physicalUzs) {
+        return '$min — ${formatUzs(_physicalUzs)}';
+      }
+      return null;
+    },
+  );
+
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
+    if (!_hasTotal) return;
     context.read<SalesHistoryBloc>().add(
       SalesHistoryEditRequested(
         saleId: widget.sale.id,
@@ -245,16 +327,17 @@ class _EditSaleDialogState extends State<_EditSaleDialog> {
     );
   }
 
-  IconData _icon(SalePaymentMoveMethod method) => switch (method) {
-    SalePaymentMoveMethod.cash => PhosphorIconsRegular.money,
-    SalePaymentMoveMethod.card => PhosphorIconsRegular.creditCard,
+  IconData _icon(_EditMode mode) => switch (mode) {
+    _EditMode.cash => PhosphorIconsRegular.money,
+    _EditMode.card => PhosphorIconsRegular.creditCard,
+    _EditMode.mixed => PhosphorIconsRegular.arrowsSplit,
   };
 
-  String _label(AppLocalization l10n, SalePaymentMoveMethod method) =>
-      switch (method) {
-        SalePaymentMoveMethod.cash => l10n.paymentCash,
-        SalePaymentMoveMethod.card => l10n.paymentCard,
-      };
+  String _label(AppLocalization l10n, _EditMode mode) => switch (mode) {
+    _EditMode.cash => l10n.paymentCash,
+    _EditMode.card => l10n.paymentCard,
+    _EditMode.mixed => l10n.paymentSplit,
+  };
 }
 
 /// Spells the derived steps out in words, so the cashier confirms an outcome
@@ -313,15 +396,23 @@ class _PlanPreview extends StatelessWidget {
               text: l10n.editSalePlanCorrection(
                 formatUzs(plan.correctionUzs),
                 label(plan.correctionFrom!),
-                label(plan.targetMethod),
+                label(plan.correctionTo!),
               ),
             ),
-          if (plan.needsRefund)
+          if (plan.cashRefundUzs > 0)
             _Step(
               icon: PhosphorIconsRegular.arrowUDownLeft,
               text: l10n.editSalePlanRefund(
-                formatUzs(plan.refundUzs),
-                label(plan.targetMethod),
+                formatUzs(plan.cashRefundUzs),
+                label(SalePaymentMoveMethod.cash),
+              ),
+            ),
+          if (plan.cardRefundUzs > 0)
+            _Step(
+              icon: PhosphorIconsRegular.arrowUDownLeft,
+              text: l10n.editSalePlanRefund(
+                formatUzs(plan.cardRefundUzs),
+                label(SalePaymentMoveMethod.card),
               ),
             ),
         ],
