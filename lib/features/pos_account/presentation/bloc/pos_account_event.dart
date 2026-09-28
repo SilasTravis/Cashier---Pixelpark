@@ -185,6 +185,7 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
     this.entryDiscounts = const {},
     this.companions = 0,
     this.discountId,
+    this.promoCode,
   });
 
   final String planKey;
@@ -208,6 +209,11 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
   /// companion price. Null when no discount is selected.
   final String? discountId;
 
+  /// A verified partner promo code and the ONE child it discounts (that
+  /// child is left out of [entryDiscounts]). Claimed server-side before any
+  /// money moves.
+  final ({String code, String childId})? promoCode;
+
   @override
   List<Object?> get props => [
     planKey,
@@ -219,6 +225,7 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
     entryDiscounts,
     companions,
     discountId,
+    promoCode,
   ];
 }
 
@@ -254,4 +261,20 @@ class PosAccountParentQrRequested extends PosAccountEvent {
 /// UI has printed the parent sticker — clear it from state.
 class PosAccountParentQrAcknowledged extends PosAccountEvent {
   const PosAccountParentQrAcknowledged();
+}
+
+/// A partner promo code was scanned (the gun types it + Enter) or typed —
+/// verify it, and open its owner's account when another (or no) customer
+/// is on screen.
+class PosAccountPromoCodeSubmitted extends PosAccountEvent {
+  const PosAccountPromoCodeSubmitted(this.rawCode);
+
+  final String rawCode;
+
+  @override
+  List<Object?> get props => [rawCode];
+}
+
+class PosAccountPromoCodeCleared extends PosAccountEvent {
+  const PosAccountPromoCodeCleared();
 }

@@ -10,6 +10,7 @@ import '../domain/kids_plan.dart';
 import '../domain/parent_pass.dart';
 import '../domain/playing_child.dart';
 import '../domain/pos_entry.dart';
+import '../domain/promo_code_check.dart';
 
 /// One product line of a combined checkout: `qty` pieces of `productId`.
 typedef CheckoutLine = ({String productId, int qty});
@@ -99,7 +100,12 @@ abstract class PosAccountRemoteDataSource {
     Map<String, String> entryDiscounts = const {},
     int companions = 0,
     String? discountId,
+    ({String code, String childId})? promoCode,
   });
+
+  /// `POST /v1/pos/promo-codes/verify` — what a scanned partner code is
+  /// worth and whose it is. Read-only; [code] is the normalised 16 digits.
+  Future<PromoCodeCheck> verifyPromoCode(String code);
 
   /// Server-owned terminal pricing (currently the HAMROH companion price) —
   /// so a price change never needs an app re-release.
@@ -352,6 +358,7 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
     Map<String, String> entryDiscounts = const {},
     int companions = 0,
     String? discountId,
+    ({String code, String childId})? promoCode,
   }) async {
     final response = await _request(
       () => dio.post(
@@ -373,6 +380,8 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
             ],
           if (companions > 0) 'companions': companions,
           'discountId': ?discountId,
+          if (promoCode != null)
+            'promoCode': {'code': promoCode.code, 'childId': promoCode.childId},
         },
       ),
     );
@@ -394,7 +403,18 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
           ? null
           : SaleReceipt.fromJson(map['productSale'] as Map<String, dynamic>),
       productsTotalUzs: (map['productsTotalUzs'] as int?) ?? 0,
+      promoCode: map['promoCode'] == null
+          ? null
+          : PromoCodeOutcome.fromJson(map['promoCode'] as Map<String, dynamic>),
     );
+  }
+
+  @override
+  Future<PromoCodeCheck> verifyPromoCode(String code) async {
+    final response = await _request(
+      () => dio.post('/v1/pos/promo-codes/verify', data: {'code': code}),
+    );
+    return PromoCodeCheck.fromJson(code, response as Map<String, dynamic>);
   }
 
   @override
@@ -518,6 +538,8 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
           "Balans yetarli emas — avval balansni to'ldiring",
         'GATE_PASS_DISCOUNT_CONFLICT' =>
           "Bu bolada allaqachon boshqa chegirma bilan faol propusk mavjud",
+        'PROMO_CODE_CHILD_HAS_PASS' =>
+          "Promokod faqat yangi propuskka qo'llanadi — bolada bugun propusk bor",
         _ => json['message'] as String,
       },
     );

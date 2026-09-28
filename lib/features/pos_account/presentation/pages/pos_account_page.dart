@@ -3,12 +3,15 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/nocturne_colors.dart';
 import '../../../../core/utils/responsive.dart';
+import '../../../../core/widgets/promo_code_field.dart';
+import '../../../../generated/l10n.dart';
 import '../../../../injector_container.dart';
 import '../../../pos_sale/domain/discount.dart';
 import '../bloc/pos_account_bloc.dart';
 import '../widgets/customer_detail_panel.dart';
 import '../widgets/customer_results_list.dart';
 import '../widgets/phone_keypad.dart';
+import '../widgets/promo_code_error.dart';
 import '../../domain/customer.dart';
 
 /// Search uses a keypad + results layout. Once a customer is selected the
@@ -72,7 +75,39 @@ class PosAccountPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(AppRadius.lg),
                     boxShadow: AppShadow.sm,
                   ),
-                  child: const PhoneKeypad(),
+                  // Scrolls only if a short window can't fit the promo
+                  // field's error line on top of the keypad.
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Scanning a partner code here opens its owner's
+                        // account straight away (see PosAccountBloc).
+                        BlocBuilder<PosAccountBloc, PosAccountState>(
+                          buildWhen: (previous, current) =>
+                              previous.isCheckingPromo !=
+                                  current.isCheckingPromo ||
+                              previous.promoErrorCode !=
+                                  current.promoErrorCode ||
+                              previous.promoErrorMessage !=
+                                  current.promoErrorMessage,
+                          builder: (context, state) => PromoCodeField(
+                            autofocus: true,
+                            busy: state.isCheckingPromo,
+                            errorText: promoCodeErrorText(
+                              AppLocalization.of(context),
+                              state,
+                            ),
+                            onSubmit: (raw) => context
+                                .read<PosAccountBloc>()
+                                .add(PosAccountPromoCodeSubmitted(raw)),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        const PhoneKeypad(),
+                      ],
+                    ),
+                  ),
                 ),
                 SizedBox(
                   width: breakpointOfContext(context) == Breakpoint.compact

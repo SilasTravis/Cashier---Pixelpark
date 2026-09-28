@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import '../../pos_sale/domain/sale_receipt.dart';
+import 'promo_code_check.dart';
 
 /// One issued Standard-plan entrance QR — the same kind of token the mobile
 /// app itself generates, just triggered by the cashier for a walk-in.
@@ -98,6 +99,7 @@ class PosEntryResult extends Equatable {
     this.balance,
     this.productSale,
     this.productsTotalUzs = 0,
+    this.promoCode,
   });
 
   final List<PosEntry> entries;
@@ -116,6 +118,9 @@ class PosEntryResult extends Equatable {
   final SaleReceipt? productSale;
   final int productsTotalUzs;
 
+  /// Null when no partner promo code was sent.
+  final PromoCodeOutcome? promoCode;
+
   @override
   List<Object?> get props => [
     entries,
@@ -125,5 +130,6 @@ class PosEntryResult extends Equatable {
     balance,
     productSale,
     productsTotalUzs,
+    promoCode,
   ];
 }

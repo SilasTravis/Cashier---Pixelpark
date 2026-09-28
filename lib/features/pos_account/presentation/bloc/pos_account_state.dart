@@ -25,6 +25,10 @@ class PosAccountState extends Equatable {
     this.discounts = const [],
     this.entryDiscounts = const [],
     this.errorCode,
+    this.promo,
+    this.isCheckingPromo = false,
+    this.promoErrorCode,
+    this.promoErrorMessage,
   });
 
   /// Fallback HAMROH price used until (or if) `GET /v1/pos/config` answers —
@@ -94,6 +98,18 @@ class PosAccountState extends Equatable {
   /// (`DISCOUNT_NOT_AVAILABLE`) without parsing the localized message text.
   final String? errorCode;
 
+  /// The verified partner promo code for [selectedCustomer] (its owner) —
+  /// applied to one child at checkout; cleared on checkout, on a promo
+  /// error, or when another customer is opened.
+  final PromoCodeCheck? promo;
+  final bool isCheckingPromo;
+
+  /// The last promo-code failure — sticky until the next promo action (it
+  /// is shown under the field, not as a one-off snackbar). A local
+  /// `PROMO_CODE_INVALID_FORMAT` never reaches the server.
+  final String? promoErrorCode;
+  final String? promoErrorMessage;
+
   PosAccountState copyWith({
     String? phoneDigits,
     String? searchQuery,
@@ -121,6 +137,12 @@ class PosAccountState extends Equatable {
     List<Discount>? discounts,
     List<Discount>? entryDiscounts,
     String? errorCode,
+    PromoCodeCheck? promo,
+    bool clearPromo = false,
+    bool? isCheckingPromo,
+    String? promoErrorCode,
+    String? promoErrorMessage,
+    bool clearPromoError = false,
   }) {
     return PosAccountState(
       phoneDigits: phoneDigits ?? this.phoneDigits,
@@ -153,6 +175,15 @@ class PosAccountState extends Equatable {
       discounts: discounts ?? this.discounts,
       entryDiscounts: entryDiscounts ?? this.entryDiscounts,
       errorCode: errorCode,
+      promo: clearPromo ? null : (promo ?? this.promo),
+      isCheckingPromo: isCheckingPromo ?? this.isCheckingPromo,
+      // `clearPromoError` drops the OLD error; a new one passed alongside
+      // still lands.
+      promoErrorCode:
+          promoErrorCode ?? (clearPromoError ? null : this.promoErrorCode),
+      promoErrorMessage:
+          promoErrorMessage ??
+          (clearPromoError ? null : this.promoErrorMessage),
     );
   }
 
@@ -181,5 +212,9 @@ class PosAccountState extends Equatable {
     discounts,
     entryDiscounts,
     errorCode,
+    promo,
+    isCheckingPromo,
+    promoErrorCode,
+    promoErrorMessage,
   ];
 }

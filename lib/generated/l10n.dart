@@ -2653,6 +2653,96 @@ class AppLocalization {
       args: [],
     );
   }
+
+  /// `Promo code`
+  String get promoCode {
+    return Intl.message('Promo code', name: 'promoCode', desc: '', args: []);
+  }
+
+  /// `Scan or type the 16 digits`
+  String get promoCodeHint {
+    return Intl.message(
+      'Scan or type the 16 digits',
+      name: 'promoCodeHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Check`
+  String get promoCodeCheck {
+    return Intl.message('Check', name: 'promoCodeCheck', desc: '', args: []);
+  }
+
+  /// `Invalid promo code — check the 16 digits`
+  String get promoCodeInvalid {
+    return Intl.message(
+      'Invalid promo code — check the 16 digits',
+      name: 'promoCodeInvalid',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The promo code owner was not found`
+  String get promoCodeOwnerNotFound {
+    return Intl.message(
+      'The promo code owner was not found',
+      name: 'promoCodeOwnerNotFound',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `This promo code belongs to another customer`
+  String get promoCodeWrongCustomer {
+    return Intl.message(
+      'This promo code belongs to another customer',
+      name: 'promoCodeWrongCustomer',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `For child`
+  String get promoCodeForChild {
+    return Intl.message(
+      'For child',
+      name: 'promoCodeForChild',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Select a child for the promo code`
+  String get promoCodeNoChild {
+    return Intl.message(
+      'Select a child for the promo code',
+      name: 'promoCodeNoChild',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Remove promo code`
+  String get promoCodeRemove {
+    return Intl.message(
+      'Remove promo code',
+      name: 'promoCodeRemove',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Promo code not applied, code returned: {reason}`
+  String promoCodeReleased(String reason) {
+    return Intl.message(
+      'Promo code not applied, code returned: $reason',
+      name: 'promoCodeReleased',
+      desc: '',
+      args: [reason],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalization> {

@@ -67,6 +67,7 @@ class _FakeRemote implements PosAccountRemoteDataSource {
     Map<String, String> entryDiscounts = const {},
     int companions = 0,
     String? discountId,
+    ({String code, String childId})? promoCode,
   }) async => checkoutResult!;
 
   @override

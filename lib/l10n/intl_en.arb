@@ -559,5 +559,16 @@
   "closeShiftOffline": "A shift can't be closed in offline mode",
   "logoutFailedSalesConfirm": "{count} sales failed to sync. They stay saved on this till. Sign out anyway?",
   "@logoutFailedSalesConfirm": { "placeholders": { "count": { "type": "int" } } },
-  "logoutAnyway": "Sign out anyway"
+  "logoutAnyway": "Sign out anyway",
+  "promoCode": "Promo code",
+  "promoCodeHint": "Scan or type the 16 digits",
+  "promoCodeCheck": "Check",
+  "promoCodeInvalid": "Invalid promo code — check the 16 digits",
+  "promoCodeOwnerNotFound": "The promo code owner was not found",
+  "promoCodeWrongCustomer": "This promo code belongs to another customer",
+  "promoCodeForChild": "For child",
+  "promoCodeNoChild": "Select a child for the promo code",
+  "promoCodeRemove": "Remove promo code",
+  "promoCodeReleased": "Promo code not applied, code returned: {reason}",
+  "@promoCodeReleased": { "placeholders": { "reason": { "type": "String" } } }
 }

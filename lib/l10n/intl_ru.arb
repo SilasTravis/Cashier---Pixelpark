@@ -559,5 +559,16 @@
   "closeShiftOffline": "В офлайн-режиме смену закрыть нельзя",
   "logoutFailedSalesConfirm": "{count} продаж не синхронизированы (ошибка). Они сохранятся на кассе. Всё равно выйти?",
   "@logoutFailedSalesConfirm": { "placeholders": { "count": { "type": "int" } } },
-  "logoutAnyway": "Всё равно выйти"
+  "logoutAnyway": "Всё равно выйти",
+  "promoCode": "Промокод",
+  "promoCodeHint": "Отсканируйте или введите 16 цифр",
+  "promoCodeCheck": "Проверить",
+  "promoCodeInvalid": "Неверный промокод — проверьте 16 цифр",
+  "promoCodeOwnerNotFound": "Владелец промокода не найден",
+  "promoCodeWrongCustomer": "Этот промокод принадлежит другому клиенту",
+  "promoCodeForChild": "Какому ребёнку",
+  "promoCodeNoChild": "Выберите ребёнка для промокода",
+  "promoCodeRemove": "Убрать промокод",
+  "promoCodeReleased": "Промокод не применён, код возвращён: {reason}",
+  "@promoCodeReleased": { "placeholders": { "reason": { "type": "String" } } }
 }

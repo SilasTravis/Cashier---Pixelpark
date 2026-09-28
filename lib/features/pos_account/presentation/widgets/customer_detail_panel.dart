@@ -11,6 +11,7 @@ import '../../../../core/theme/nocturne_colors.dart';
 import '../../../../core/utils/currency.dart';
 import '../../../../core/widgets/discount_picker.dart';
 import '../../../../core/widgets/payment_method_selector.dart';
+import '../../../../core/widgets/promo_code_field.dart';
 import '../../../pos_sale/presentation/widgets/receipt_dialog.dart';
 import '../../../pos_sale/domain/discount.dart';
 import '../../../pos_sale/domain/sale_receipt.dart';
@@ -21,10 +22,12 @@ import '../../domain/customer.dart';
 import '../../domain/kids_plan.dart';
 import '../../domain/playing_child.dart';
 import '../../domain/pos_entry.dart';
+import '../../domain/promo_code_check.dart';
 import 'confirm_topup_dialog.dart';
 import '../bloc/pos_account_bloc.dart';
 import 'plan_conflict_dialog.dart';
 import 'plan_entry_printing.dart';
+import 'promo_code_error.dart';
 import '../../../../generated/l10n.dart';
 
 const _quickTopupAmounts = [10000, 20000, 50000, 100000];
@@ -51,6 +54,11 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
   /// row's 3-dots menu. Only the picks of SELECTED children are sent with
   /// the checkout.
   final Map<String, String> _childEntryDiscountIds = {};
+
+  /// The cashier's "Qaysi bolaga" pick for the verified partner promo code
+  /// (`state.promo`) — null (or deselected) falls back to the first
+  /// selected child without a pass today; see `promoChildId` in build.
+  String? _promoChildId;
 
   /// Paid HAMROH companion stickers to buy with this checkout.
   int _companions = 0;
@@ -131,6 +139,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
     _selectedChildIds.clear();
     _selectedPlan = null;
     _childEntryDiscountIds.clear();
+    _promoChildId = null;
     _companions = 0;
     _addingChild = false;
     _childNameController.clear();
@@ -274,10 +283,32 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               for (final id in _selectedChildIds)
                 if (activePlanByChild[id] == _selectedPlan!.key) id,
           };
+          // The partner promo code discounts ONE selected child. A child
+          // with a pass today can't take it — the backend would fail that
+          // child (a plain re-print included) rather than burn the code —
+          // so the default skips those, and with none left the code stays
+          // unsent until the cashier selects a child who can.
+          final promo = state.promo;
+          final passChildIds = {for (final p in state.activePasses) p.childId};
+          final selectedChildren = [
+            for (final child in customer.children)
+              if (_selectedChildIds.contains(child.id)) child,
+          ];
+          final promoChildId = promo == null
+              ? null
+              : _selectedChildIds.contains(_promoChildId)
+              ? _promoChildId
+              : selectedChildren
+                    .where((c) => !passChildIds.contains(c.id))
+                    .firstOrNull
+                    ?.id;
+
           // A child with an entry discount pays the VIP price net of it — a
           // 100% discount (PREVIEW ONLY, same formula as the backend) zeroes
-          // it exactly like the old free-reason flow did.
+          // it exactly like the old free-reason flow did. The promo child's
+          // discount is the code's tier, replacing any 3-dots pick.
           Discount? entryDiscountFor(String childId) {
+            if (childId == promoChildId) return promo!.discount;
             final id = _childEntryDiscountIds[childId];
             if (id == null) return null;
             return state.entryDiscounts.where((d) => d.id == id).firstOrNull;
@@ -396,6 +427,8 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                             .add(PosAccountChildNameUpdateRequested(id, name)),
                         entryDiscounts: state.entryDiscounts,
                         childEntryDiscountIds: _childEntryDiscountIds,
+                        promoChildId: promoChildId,
+                        promoLabel: promo == null ? null : _promoLabel(promo),
                         onChildEntryDiscountChanged: (id, discountId) =>
                             setState(() {
                               if (discountId == null) {
@@ -438,6 +471,26 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                           // working exactly as it already does for an empty
                           // cart, so nothing else changes.
                           products: const [],
+                          promoSection: _PromoSection(
+                            promo: promo,
+                            isChecking: state.isCheckingPromo,
+                            errorText: promoCodeErrorText(
+                              AppLocalization.of(context),
+                              state,
+                            ),
+                            label: promo == null ? null : _promoLabel(promo),
+                            selectedChildren: selectedChildren,
+                            passChildIds: passChildIds,
+                            promoChildId: promoChildId,
+                            onSubmit: (raw) => context
+                                .read<PosAccountBloc>()
+                                .add(PosAccountPromoCodeSubmitted(raw)),
+                            onChildPicked: (id) =>
+                                setState(() => _promoChildId = id),
+                            onClear: () => context.read<PosAccountBloc>().add(
+                              const PosAccountPromoCodeCleared(),
+                            ),
+                          ),
                           cart: _cart,
                           cartTotal: cartTotal,
                           discounts: state.discounts,
@@ -508,9 +561,13 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                               entryDiscounts: {
                                 for (final entry
                                     in _childEntryDiscountIds.entries)
-                                  if (_selectedChildIds.contains(entry.key))
+                                  if (_selectedChildIds.contains(entry.key) &&
+                                      entry.key != promoChildId)
                                     entry.key: entry.value,
                               },
+                              promoCode: promoChildId == null
+                                  ? null
+                                  : (code: promo!.code, childId: promoChildId),
                               companions: _companions,
                               products: [
                                 for (final line in _cart.entries)
@@ -580,6 +637,16 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
         },
       ),
     );
+  }
+
+  /// "Fonus · Premium · −30%" — the chip text on the promo child's row and
+  /// in the checkout's promo section.
+  String _promoLabel(PromoCodeCheck promo) {
+    final discount = promo.discount;
+    final value = discount.kind == DiscountKind.percent
+        ? '${discount.value}%'
+        : formatUzs(discount.value);
+    return '${promo.partnerName} · ${promo.tierName} · −$value';
   }
 
   SaleReceipt? _legacyProductReceipt(
@@ -927,6 +994,8 @@ class _ChildrenCard extends StatelessWidget {
     required this.entryDiscounts,
     required this.childEntryDiscountIds,
     required this.onChildEntryDiscountChanged,
+    required this.promoChildId,
+    required this.promoLabel,
     required this.addingChild,
     required this.onStartAddChild,
     required this.onCancelAddChild,
@@ -961,6 +1030,11 @@ class _ChildrenCard extends StatelessWidget {
   final Map<String, String> childEntryDiscountIds;
   final void Function(String childId, String? discountId)
   onChildEntryDiscountChanged;
+
+  /// The child the verified promo code discounts, and its chip text —
+  /// both null without a code.
+  final String? promoChildId;
+  final String? promoLabel;
   final bool addingChild;
   final VoidCallback onStartAddChild;
   final VoidCallback onCancelAddChild;
@@ -1017,6 +1091,7 @@ class _ChildrenCard extends StatelessWidget {
                 selectedDiscountId: childEntryDiscountIds[child.id],
                 onEntryDiscountChanged: (discountId) =>
                     onChildEntryDiscountChanged(child.id, discountId),
+                promoLabel: child.id == promoChildId ? promoLabel : null,
               ),
             ),
           if (!addingChild)
@@ -1153,6 +1228,7 @@ class _ChildrenCard extends StatelessWidget {
 class _CheckoutSection extends StatelessWidget {
   const _CheckoutSection({
     required this.products,
+    required this.promoSection,
     required this.cart,
     required this.cartTotal,
     required this.discounts,
@@ -1193,6 +1269,9 @@ class _CheckoutSection extends StatelessWidget {
   });
 
   final List<Product> products;
+
+  /// The "Promokod" field, or the verified code's chip + child picker.
+  final Widget promoSection;
   final Map<String, int> cart;
   final int cartTotal;
 
@@ -1300,6 +1379,8 @@ class _CheckoutSection extends StatelessWidget {
               amountUzs: cartDiscountUzs,
             ),
         ],
+        const SizedBox(height: 10),
+        promoSection,
         const SizedBox(height: 10),
         // Paid HAMROH companion sticker — parent-QR door semantics, minted
         // by the same checkout and settled through the same payment flow.
@@ -1536,6 +1617,190 @@ class _CheckoutSection extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The checkout's partner promo code: the "Promokod" field until a code is
+/// verified, then its chip — partner, tier, discount — with the child it
+/// goes to ("Qaysi bolaga") and ✕ to drop it. The code is only claimed when
+/// the checkout runs.
+class _PromoSection extends StatelessWidget {
+  const _PromoSection({
+    required this.promo,
+    required this.isChecking,
+    required this.errorText,
+    required this.label,
+    required this.selectedChildren,
+    required this.passChildIds,
+    required this.promoChildId,
+    required this.onSubmit,
+    required this.onChildPicked,
+    required this.onClear,
+  });
+
+  final PromoCodeCheck? promo;
+  final bool isChecking;
+  final String? errorText;
+  final String? label;
+
+  /// Selected children in the card's order — the picker's choices.
+  final List<Child> selectedChildren;
+
+  /// Children holding a pass today — the code can't go to them.
+  final Set<String> passChildIds;
+  final String? promoChildId;
+  final ValueChanged<String> onSubmit;
+  final ValueChanged<String> onChildPicked;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
+    if (promo == null) {
+      return PromoCodeField(
+        busy: isChecking,
+        errorText: errorText,
+        onSubmit: onSubmit,
+      );
+    }
+    final promoChild = selectedChildren
+        .where((c) => c.id == promoChildId)
+        .firstOrNull;
+    final childStyle = AppTextStyles.body.copyWith(fontSize: 12);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: NocturneColors.accent),
+        color: NocturneColors.accent.withValues(alpha: 0.08),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                PhosphorIconsRegular.qrCode,
+                size: 16,
+                color: NocturneColors.accent,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  label!,
+                  style: AppTextStyles.body.copyWith(
+                    fontSize: 13,
+                    color: NocturneColors.accent,
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: l10n.promoCodeRemove,
+                visualDensity: VisualDensity.compact,
+                onPressed: onClear,
+                icon: const Icon(
+                  PhosphorIconsRegular.x,
+                  size: 16,
+                  color: NocturneColors.danger,
+                ),
+              ),
+            ],
+          ),
+          if (promoChild == null)
+            Text(
+              l10n.promoCodeNoChild,
+              style: AppTextStyles.muted(
+                AppTextStyles.body,
+              ).copyWith(fontSize: 11),
+            )
+          else
+            Row(
+              children: [
+                Text(
+                  '${l10n.promoCodeForChild}: ',
+                  style: AppTextStyles.muted(
+                    AppTextStyles.body,
+                  ).copyWith(fontSize: 12),
+                ),
+                if (selectedChildren.length == 1)
+                  Flexible(
+                    child: Text(
+                      promoChild.fullName,
+                      overflow: TextOverflow.ellipsis,
+                      style: childStyle,
+                    ),
+                  )
+                else
+                  Flexible(
+                    child: PopupMenuButton<String>(
+                      tooltip: l10n.promoCodeForChild,
+                      color: NocturneColors.surface,
+                      onSelected: onChildPicked,
+                      itemBuilder: (context) => [
+                        for (final child in selectedChildren)
+                          PopupMenuItem<String>(
+                            value: child.id,
+                            // A child with a pass today would only get the
+                            // code refused (and returned) by the server.
+                            enabled: !passChildIds.contains(child.id),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  child.id == promoChildId
+                                      ? PhosphorIconsRegular.checkCircle
+                                      : PhosphorIconsRegular.circle,
+                                  size: 16,
+                                  color: child.id == promoChildId
+                                      ? NocturneColors.accent
+                                      : NocturneColors.text,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  child.fullName,
+                                  style: AppTextStyles.body.copyWith(
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              promoChild.fullName,
+                              overflow: TextOverflow.ellipsis,
+                              style: childStyle,
+                            ),
+                          ),
+                          const Icon(
+                            PhosphorIconsRegular.caretDown,
+                            size: 14,
+                            color: NocturneColors.text,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          if (errorText != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 4, right: 8),
+              child: Text(
+                errorText!,
+                style: const TextStyle(
+                  color: NocturneColors.danger,
+                  fontSize: 11,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -1819,6 +2084,7 @@ class _ChildRow extends StatelessWidget {
     required this.entryDiscounts,
     required this.selectedDiscountId,
     required this.onEntryDiscountChanged,
+    this.promoLabel,
   });
 
   final Child child;
@@ -1840,10 +2106,15 @@ class _ChildRow extends StatelessWidget {
   final String? selectedDiscountId;
   final ValueChanged<String?> onEntryDiscountChanged;
 
+  /// Set on the child the partner promo code discounts — shown instead of
+  /// the 3-dots pick (the code's tier replaces it), and the menu is hidden.
+  final String? promoLabel;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalization.of(context);
-    final selectedDiscount = selectedDiscountId == null
+    final hasPromo = promoLabel != null;
+    final selectedDiscount = selectedDiscountId == null || hasPromo
         ? null
         : entryDiscounts.where((d) => d.id == selectedDiscountId).firstOrNull;
     return Container(
@@ -1864,6 +2135,40 @@ class _ChildRow extends StatelessWidget {
               onSave: onRename,
             ),
           ),
+          if (hasPromo) ...[
+            Flexible(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: NocturneColors.accent.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  border: Border.all(color: NocturneColors.accent),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      PhosphorIconsRegular.qrCode,
+                      size: 12,
+                      color: NocturneColors.accent,
+                    ),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        promoLabel!,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.body.copyWith(
+                          fontSize: 11,
+                          color: NocturneColors.accent,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
           if (selectedDiscount != null) ...[
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -1920,7 +2225,8 @@ class _ChildRow extends StatelessWidget {
               label: const Text('QR'),
             ),
           ),
-          if (entryDiscounts.isNotEmpty || selectedDiscountId != null) ...[
+          if (!hasPromo &&
+              (entryDiscounts.isNotEmpty || selectedDiscountId != null)) ...[
             const SizedBox(width: 4),
             // `Object` values: a null-valued PopupMenuItem never reaches
             // onSelected (Flutter reads it as a cancel), so clearing uses

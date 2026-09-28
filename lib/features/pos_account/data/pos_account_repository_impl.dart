@@ -10,6 +10,7 @@ import '../domain/kids_plan.dart';
 import '../domain/parent_pass.dart';
 import '../domain/playing_child.dart';
 import '../domain/pos_entry.dart';
+import '../domain/promo_code_check.dart';
 import 'pos_account_remote_data_source.dart';
 
 class PosAccountRepository {
@@ -117,6 +118,7 @@ class PosAccountRepository {
     Map<String, String> entryDiscounts = const {},
     int companions = 0,
     String? discountId,
+    ({String code, String childId})? promoCode,
   }) => _call(
     () => remote.planEntryCheckout(
       customerId: customerId,
@@ -128,8 +130,12 @@ class PosAccountRepository {
       entryDiscounts: entryDiscounts,
       companions: companions,
       discountId: discountId,
+      promoCode: promoCode,
     ),
   );
+
+  Future<Either<Failure, PromoCodeCheck>> verifyPromoCode(String code) =>
+      _call(() => remote.verifyPromoCode(code));
 
   Future<Either<Failure, int>> fetchCompanionPriceUzs() =>
       _call(() => remote.fetchCompanionPriceUzs());

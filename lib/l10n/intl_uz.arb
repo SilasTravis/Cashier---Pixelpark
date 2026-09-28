@@ -635,5 +635,16 @@
   "closeShiftOffline": "Offline rejimda smenani yopib bo‘lmaydi",
   "logoutFailedSalesConfirm": "{count} ta savdo serverga o‘tmadi (xato). Ular kassada saqlanadi. Baribir chiqasizmi?",
   "@logoutFailedSalesConfirm": { "placeholders": { "count": { "type": "int" } } },
-  "logoutAnyway": "Baribir chiqish"
+  "logoutAnyway": "Baribir chiqish",
+  "promoCode": "Promokod",
+  "promoCodeHint": "Skanerlang yoki 16 raqamni kiriting",
+  "promoCodeCheck": "Tekshirish",
+  "promoCodeInvalid": "Promokod noto‘g‘ri — 16 ta raqamni tekshiring",
+  "promoCodeOwnerNotFound": "Promokod egasi topilmadi",
+  "promoCodeWrongCustomer": "Bu promokod boshqa mijozga tegishli",
+  "promoCodeForChild": "Qaysi bolaga",
+  "promoCodeNoChild": "Promokod uchun bolani tanlang",
+  "promoCodeRemove": "Promokodni olib tashlash",
+  "promoCodeReleased": "Promokod qo‘llanmadi, kod qaytarildi: {reason}",
+  "@promoCodeReleased": { "placeholders": { "reason": { "type": "String" } } }
 }
