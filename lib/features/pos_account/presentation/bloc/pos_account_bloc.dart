@@ -58,6 +58,10 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
   }
 
   final PosAccountRepository _repository;
+
+  /// Bumped by every promo verify, so a stale answer only clears the busy
+  /// flag when no newer verify started after it.
+  int _promoRequest = 0;
   final LocalSource? _localSource;
 
   static const _maxPhoneDigits = 9;
@@ -865,15 +869,17 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
       );
       return;
     }
+    _promoRequest++;
     emit(state.copyWith(isCheckingPromo: true, clearPromoError: true));
     // A blogger code is once per customer — with one open, the server says
     // up front if they already redeemed it. Partner codes are matched to
     // their owner here instead (and the owner opened).
+    final checkedFor = kind == PromoCodeKind.blogger
+        ? state.selectedCustomer?.id
+        : null;
     final verified = await _repository.verifyPromoCode(
       code,
-      customerId: kind == PromoCodeKind.blogger
-          ? state.selectedCustomer?.id
-          : null,
+      customerId: checkedFor,
     );
     await verified.fold(
       (failure) async => emit(
@@ -889,6 +895,13 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
           // search screen until the cashier opens/creates one (then
           // re-checked for that customer — see _keepsPromoFor).
           emit(state.copyWith(isCheckingPromo: false, promo: check));
+          // The cashier opened another customer while this was in flight:
+          // the answer was for the previous one (or for nobody) — ask again
+          // for the customer now on screen.
+          final now = state.selectedCustomer?.id;
+          if (now != null && now != checkedFor) {
+            add(const _PosAccountPromoCodeRechecked());
+          }
           return;
         }
         final owner = check.owner;
@@ -946,16 +959,20 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     final promo = state.promo;
     final customer = state.selectedCustomer;
     if (promo == null || !promo.isBlogger || customer == null) return;
+    final request = ++_promoRequest;
     emit(state.copyWith(isCheckingPromo: true, clearPromoError: true));
     final verified = await _repository.verifyPromoCode(
       promo.code,
       customerId: customer.id,
     );
     // The cashier moved on (other customer, ✕, another code) meanwhile —
-    // this answer is about a code/customer pair no longer on screen.
+    // this answer is about a code/customer pair no longer on screen. The
+    // busy flag is only ours to clear if no newer check started since.
     if (state.selectedCustomer?.id != customer.id ||
         state.promo?.code != promo.code) {
-      emit(state.copyWith(isCheckingPromo: false));
+      if (request == _promoRequest) {
+        emit(state.copyWith(isCheckingPromo: false));
+      }
       return;
     }
     verified.fold((failure) {
