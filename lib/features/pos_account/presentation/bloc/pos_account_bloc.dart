@@ -50,6 +50,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     on<PosAccountConfigRequested>(_onConfigRequested);
     on<PosAccountDiscountsRequested>(_onDiscountsRequested);
     on<PosAccountPromoCodeSubmitted>(_onPromoCodeSubmitted);
+    on<_PosAccountPromoCodeRechecked>(_onPromoCodeRechecked);
     on<PosAccountPromoCodeCleared>(
       (event, emit) =>
           emit(state.copyWith(clearPromo: true, clearPromoError: true)),
@@ -220,21 +221,39 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
       event.customer,
       ...state.customerHistory.where((item) => item.id != event.customer.id),
     ].take(10).toList();
+    final keepPromo = _keepsPromoFor(event.customer);
     emit(
       state.copyWith(
         selectedCustomer: event.customer,
         customerHistory: history,
         playing: [],
         activePasses: [],
-        // A promo code belongs to exactly one customer — keep it only when
-        // that customer is the one being opened (the scan-to-open path).
-        clearPromo: state.promo?.owner?.id != event.customer.id,
-        clearPromoError: state.promo?.owner?.id != event.customer.id,
+        clearPromo: !keepPromo,
+        clearPromoError: !keepPromo,
       ),
     );
     unawaited(_persistCustomerHistory(history));
     add(const PosAccountPlayingRequested());
     add(const PosAccountActivePassesRequested());
+    if (keepPromo && state.promo!.isBlogger) {
+      add(const _PosAccountPromoCodeRechecked());
+    }
+  }
+
+  /// Whether `state.promo` survives opening [customer]. A partner code
+  /// belongs to exactly one customer — kept only when that customer is the
+  /// one being opened (the scan-to-open path). A blogger code has no owner:
+  /// one accepted on the search screen rides into whichever customer is
+  /// opened (or created) next; switching from one customer to another
+  /// drops it, like a partner code.
+  bool _keepsPromoFor(Customer customer) {
+    final promo = state.promo;
+    if (promo == null) return false;
+    if (promo.isBlogger) {
+      final current = state.selectedCustomer;
+      return current == null || current.id == customer.id;
+    }
+    return promo.owner?.id == customer.id;
   }
 
   List<Customer> _readCustomerHistory() {
@@ -417,13 +436,19 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
         state.copyWith(isBusy: false, errorMessage: _messageOf(failure)),
       ),
       (customer) {
+        final keepPromo = _keepsPromoFor(customer);
         emit(
           state.copyWith(
             isBusy: false,
             selectedCustomer: customer,
             results: [customer],
+            clearPromo: !keepPromo,
+            clearPromoError: !keepPromo,
           ),
         );
+        if (keepPromo && state.promo!.isBlogger) {
+          add(const _PosAccountPromoCodeRechecked());
+        }
       },
     );
   }
@@ -825,12 +850,13 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     Emitter<PosAccountState> emit,
   ) async {
     if (state.isCheckingPromo) return;
-    final digits = normalizePromoCode(event.rawCode);
+    final code = normalizePromoCode(event.rawCode);
     // A re-scan of the code already applied is a no-op, not a new request.
-    if (state.promo?.code == digits) return;
-    if (!isValidPromoCode(digits)) {
-      // Rejected locally — a mistyped code or a gate-pass sticker scanned
-      // into the wrong field never costs a request.
+    if (state.promo?.code == code) return;
+    final kind = classifyPromoCode(code);
+    if (kind == null) {
+      // Rejected locally — a mistyped partner code (Luhn) or anything that
+      // is neither shape never costs a request.
       emit(
         state.copyWith(
           clearPromoError: true,
@@ -840,7 +866,15 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
       return;
     }
     emit(state.copyWith(isCheckingPromo: true, clearPromoError: true));
-    final verified = await _repository.verifyPromoCode(digits);
+    // A blogger code is once per customer — with one open, the server says
+    // up front if they already redeemed it. Partner codes are matched to
+    // their owner here instead (and the owner opened).
+    final verified = await _repository.verifyPromoCode(
+      code,
+      customerId: kind == PromoCodeKind.blogger
+          ? state.selectedCustomer?.id
+          : null,
+    );
     await verified.fold(
       (failure) async => emit(
         state.copyWith(
@@ -850,6 +884,13 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
         ),
       ),
       (check) async {
+        if (check.isBlogger) {
+          // No owner to open: applied to the open customer, or held on the
+          // search screen until the cashier opens/creates one (then
+          // re-checked for that customer — see _keepsPromoFor).
+          emit(state.copyWith(isCheckingPromo: false, promo: check));
+          return;
+        }
         final owner = check.owner;
         if (owner == null) {
           emit(
@@ -893,6 +934,44 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
         );
       },
     );
+  }
+
+  /// Re-verifies a held blogger code for the customer it just rode into, so
+  /// a code they already redeemed (`PROMO_CODE_ALREADY_USED_BY_CUSTOMER`) is
+  /// refused right away rather than at the checkout.
+  Future<void> _onPromoCodeRechecked(
+    _PosAccountPromoCodeRechecked event,
+    Emitter<PosAccountState> emit,
+  ) async {
+    final promo = state.promo;
+    final customer = state.selectedCustomer;
+    if (promo == null || !promo.isBlogger || customer == null) return;
+    emit(state.copyWith(isCheckingPromo: true, clearPromoError: true));
+    final verified = await _repository.verifyPromoCode(
+      promo.code,
+      customerId: customer.id,
+    );
+    // The cashier moved on (other customer, ✕, another code) meanwhile —
+    // this answer is about a code/customer pair no longer on screen.
+    if (state.selectedCustomer?.id != customer.id ||
+        state.promo?.code != promo.code) {
+      emit(state.copyWith(isCheckingPromo: false));
+      return;
+    }
+    verified.fold((failure) {
+      final code = failure is ServerFailure ? failure.code : null;
+      // Refused by the server → dropped with the reason. A network hiccup
+      // keeps it: the checkout claims it atomically and stays the judge.
+      final refused = code?.startsWith('PROMO_CODE_') ?? false;
+      emit(
+        state.copyWith(
+          isCheckingPromo: false,
+          clearPromo: refused,
+          promoErrorCode: code,
+          promoErrorMessage: _messageOf(failure),
+        ),
+      );
+    }, (check) => emit(state.copyWith(isCheckingPromo: false, promo: check)));
   }
 
   String _messageOf(Failure failure) {

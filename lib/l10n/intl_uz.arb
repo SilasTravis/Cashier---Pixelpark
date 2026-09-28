@@ -637,14 +637,20 @@
   "@logoutFailedSalesConfirm": { "placeholders": { "count": { "type": "int" } } },
   "logoutAnyway": "Baribir chiqish",
   "promoCode": "Promokod",
-  "promoCodeHint": "Skanerlang yoki 16 raqamni kiriting",
+  "promoCodeHint": "Skanerlang yoki kodni kiriting",
   "promoCodeCheck": "Tekshirish",
-  "promoCodeInvalid": "Promokod noto‘g‘ri — 16 ta raqamni tekshiring",
+  "promoCodeInvalid": "Promokod noto‘g‘ri — kodni tekshiring",
   "promoCodeOwnerNotFound": "Promokod egasi topilmadi",
   "promoCodeWrongCustomer": "Bu promokod boshqa mijozga tegishli",
   "promoCodeForChild": "Qaysi bolaga",
   "promoCodeNoChild": "Promokod uchun bolani tanlang",
   "promoCodeRemove": "Promokodni olib tashlash",
   "promoCodeReleased": "Promokod qo‘llanmadi, kod qaytarildi: {reason}",
-  "@promoCodeReleased": { "placeholders": { "reason": { "type": "String" } } }
+  "@promoCodeReleased": { "placeholders": { "reason": { "type": "String" } } },
+  "promoCodeBlogger": "Blogger",
+  "promoCodeBloggerPending": "Blogger promokodi {code} qabul qilindi — mijozni tanlang",
+  "@promoCodeBloggerPending": { "placeholders": { "code": { "type": "String" } } },
+  "promoCodeNotStarted": "Promokod hali amal qilmaydi",
+  "promoCodeLimitReached": "Promokoddan foydalanish limiti tugagan",
+  "promoCodeAlreadyUsedByCustomer": "Bu mijoz ushbu promokoddan allaqachon foydalangan"
 }

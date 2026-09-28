@@ -428,7 +428,9 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                         entryDiscounts: state.entryDiscounts,
                         childEntryDiscountIds: _childEntryDiscountIds,
                         promoChildId: promoChildId,
-                        promoLabel: promo == null ? null : _promoLabel(promo),
+                        promoLabel: promo == null
+                            ? null
+                            : promoCodeLabel(promo),
                         onChildEntryDiscountChanged: (id, discountId) =>
                             setState(() {
                               if (discountId == null) {
@@ -478,7 +480,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                               AppLocalization.of(context),
                               state,
                             ),
-                            label: promo == null ? null : _promoLabel(promo),
+                            label: promo == null ? null : promoCodeLabel(promo),
                             selectedChildren: selectedChildren,
                             passChildIds: passChildIds,
                             promoChildId: promoChildId,
@@ -637,16 +639,6 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
         },
       ),
     );
-  }
-
-  /// "Fonus · Premium · −30%" — the chip text on the promo child's row and
-  /// in the checkout's promo section.
-  String _promoLabel(PromoCodeCheck promo) {
-    final discount = promo.discount;
-    final value = discount.kind == DiscountKind.percent
-        ? '${discount.value}%'
-        : formatUzs(discount.value);
-    return '${promo.partnerName} · ${promo.tierName} · −$value';
   }
 
   SaleReceipt? _legacyProductReceipt(
@@ -1621,8 +1613,9 @@ class _CheckoutSection extends StatelessWidget {
   }
 }
 
-/// The checkout's partner promo code: the "Promokod" field until a code is
-/// verified, then its chip — partner, tier, discount — with the child it
+/// The checkout's promo code (partner or blogger): the "Promokod" field
+/// until a code is verified, then its chip — partner, tier, discount (plus a
+/// "Blogger · ALI20" tag for a blogger code) — with the child it
 /// goes to ("Qaysi bolaga") and ✕ to drop it. The code is only claimed when
 /// the checkout runs.
 class _PromoSection extends StatelessWidget {
@@ -1681,19 +1674,36 @@ class _PromoSection extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(
-                PhosphorIconsRegular.qrCode,
+              Icon(
+                promo!.isBlogger
+                    ? PhosphorIconsRegular.megaphone
+                    : PhosphorIconsRegular.qrCode,
                 size: 16,
                 color: NocturneColors.accent,
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(
-                  label!,
-                  style: AppTextStyles.body.copyWith(
-                    fontSize: 13,
-                    color: NocturneColors.accent,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // A blogger code is typed, reusable and ownerless — name
+                    // it so the cashier can read back what was entered.
+                    if (promo!.isBlogger)
+                      Text(
+                        '${l10n.promoCodeBlogger} · ${promo!.code}',
+                        style: AppTextStyles.muted(
+                          AppTextStyles.body,
+                        ).copyWith(fontSize: 11),
+                      ),
+                    Text(
+                      label!,
+                      style: AppTextStyles.body.copyWith(
+                        fontSize: 13,
+                        color: NocturneColors.accent,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               IconButton(
@@ -2030,9 +2040,11 @@ class _PlayingCard extends StatelessWidget {
                       if (row.discountName != null)
                         Text(
                           '${l10n.discount}: ${row.discountName}',
-                          style: AppTextStyles.muted(
-                            AppTextStyles.body,
-                          ).copyWith(fontSize: 10, color: NocturneColors.accent),
+                          style: AppTextStyles.muted(AppTextStyles.body)
+                              .copyWith(
+                                fontSize: 10,
+                                color: NocturneColors.accent,
+                              ),
                         ),
                     ],
                   ),

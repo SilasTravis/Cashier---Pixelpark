@@ -561,14 +561,20 @@
   "@logoutFailedSalesConfirm": { "placeholders": { "count": { "type": "int" } } },
   "logoutAnyway": "Sign out anyway",
   "promoCode": "Promo code",
-  "promoCodeHint": "Scan or type the 16 digits",
+  "promoCodeHint": "Scan or type the code",
   "promoCodeCheck": "Check",
-  "promoCodeInvalid": "Invalid promo code — check the 16 digits",
+  "promoCodeInvalid": "Invalid promo code — check the code",
   "promoCodeOwnerNotFound": "The promo code owner was not found",
   "promoCodeWrongCustomer": "This promo code belongs to another customer",
   "promoCodeForChild": "For child",
   "promoCodeNoChild": "Select a child for the promo code",
   "promoCodeRemove": "Remove promo code",
   "promoCodeReleased": "Promo code not applied, code returned: {reason}",
-  "@promoCodeReleased": { "placeholders": { "reason": { "type": "String" } } }
+  "@promoCodeReleased": { "placeholders": { "reason": { "type": "String" } } },
+  "promoCodeBlogger": "Blogger",
+  "promoCodeBloggerPending": "Blogger promo code {code} accepted — select a customer",
+  "@promoCodeBloggerPending": { "placeholders": { "code": { "type": "String" } } },
+  "promoCodeNotStarted": "This promo code is not active yet",
+  "promoCodeLimitReached": "This promo code has reached its usage limit",
+  "promoCodeAlreadyUsedByCustomer": "This customer has already used this promo code"
 }

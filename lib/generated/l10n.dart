@@ -2659,10 +2659,10 @@ class AppLocalization {
     return Intl.message('Promo code', name: 'promoCode', desc: '', args: []);
   }
 
-  /// `Scan or type the 16 digits`
+  /// `Scan or type the code`
   String get promoCodeHint {
     return Intl.message(
-      'Scan or type the 16 digits',
+      'Scan or type the code',
       name: 'promoCodeHint',
       desc: '',
       args: [],
@@ -2674,10 +2674,10 @@ class AppLocalization {
     return Intl.message('Check', name: 'promoCodeCheck', desc: '', args: []);
   }
 
-  /// `Invalid promo code — check the 16 digits`
+  /// `Invalid promo code — check the code`
   String get promoCodeInvalid {
     return Intl.message(
-      'Invalid promo code — check the 16 digits',
+      'Invalid promo code — check the code',
       name: 'promoCodeInvalid',
       desc: '',
       args: [],
@@ -2741,6 +2741,56 @@ class AppLocalization {
       name: 'promoCodeReleased',
       desc: '',
       args: [reason],
+    );
+  }
+
+  /// `Blogger`
+  String get promoCodeBlogger {
+    return Intl.message(
+      'Blogger',
+      name: 'promoCodeBlogger',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Blogger promo code {code} accepted — select a customer`
+  String promoCodeBloggerPending(String code) {
+    return Intl.message(
+      'Blogger promo code $code accepted — select a customer',
+      name: 'promoCodeBloggerPending',
+      desc: '',
+      args: [code],
+    );
+  }
+
+  /// `This promo code is not active yet`
+  String get promoCodeNotStarted {
+    return Intl.message(
+      'This promo code is not active yet',
+      name: 'promoCodeNotStarted',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `This promo code has reached its usage limit`
+  String get promoCodeLimitReached {
+    return Intl.message(
+      'This promo code has reached its usage limit',
+      name: 'promoCodeLimitReached',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `This customer has already used this promo code`
+  String get promoCodeAlreadyUsedByCustomer {
+    return Intl.message(
+      'This customer has already used this promo code',
+      name: 'promoCodeAlreadyUsedByCustomer',
+      desc: '',
+      args: [],
     );
   }
 }

@@ -561,14 +561,20 @@
   "@logoutFailedSalesConfirm": { "placeholders": { "count": { "type": "int" } } },
   "logoutAnyway": "Всё равно выйти",
   "promoCode": "Промокод",
-  "promoCodeHint": "Отсканируйте или введите 16 цифр",
+  "promoCodeHint": "Отсканируйте или введите код",
   "promoCodeCheck": "Проверить",
-  "promoCodeInvalid": "Неверный промокод — проверьте 16 цифр",
+  "promoCodeInvalid": "Неверный промокод — проверьте код",
   "promoCodeOwnerNotFound": "Владелец промокода не найден",
   "promoCodeWrongCustomer": "Этот промокод принадлежит другому клиенту",
   "promoCodeForChild": "Какому ребёнку",
   "promoCodeNoChild": "Выберите ребёнка для промокода",
   "promoCodeRemove": "Убрать промокод",
   "promoCodeReleased": "Промокод не применён, код возвращён: {reason}",
-  "@promoCodeReleased": { "placeholders": { "reason": { "type": "String" } } }
+  "@promoCodeReleased": { "placeholders": { "reason": { "type": "String" } } },
+  "promoCodeBlogger": "Блогер",
+  "promoCodeBloggerPending": "Промокод блогера {code} принят — выберите клиента",
+  "@promoCodeBloggerPending": { "placeholders": { "code": { "type": "String" } } },
+  "promoCodeNotStarted": "Промокод ещё не действует",
+  "promoCodeLimitReached": "Лимит использований промокода исчерпан",
+  "promoCodeAlreadyUsedByCustomer": "Этот клиент уже использовал этот промокод"
 }

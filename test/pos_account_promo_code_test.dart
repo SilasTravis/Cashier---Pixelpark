@@ -19,6 +19,7 @@ import 'package:cashier_app/features/pos_account/domain/pos_entry.dart';
 import 'package:cashier_app/features/pos_account/domain/promo_code_check.dart';
 import 'package:cashier_app/features/pos_account/presentation/bloc/pos_account_bloc.dart';
 import 'package:cashier_app/features/pos_account/presentation/widgets/customer_detail_panel.dart';
+import 'package:cashier_app/features/pos_account/presentation/widgets/promo_code_error.dart';
 import 'package:cashier_app/features/pos_sale/domain/discount.dart';
 import 'package:cashier_app/generated/l10n.dart';
 
@@ -60,7 +61,12 @@ class _FakeRemote implements PosAccountRemoteDataSource {
   PromoCodeCheck? check;
   List<Customer> searchResults = const [];
   final List<String> verified = [];
+  final List<int?> verifiedFor = [];
   final List<String> searched = [];
+
+  /// Thrown by verify calls carrying a customer id (the blogger re-check).
+  ServerException? verifyForCustomerError;
+  Customer? created;
 
   PosEntryResult? checkoutResult;
   ServerException? checkoutError;
@@ -68,10 +74,20 @@ class _FakeRemote implements PosAccountRemoteDataSource {
   Map<String, String>? lastEntryDiscounts;
 
   @override
-  Future<PromoCodeCheck> verifyPromoCode(String code) async {
+  Future<PromoCodeCheck> verifyPromoCode(String code, {int? customerId}) async {
     verified.add(code);
+    verifiedFor.add(customerId);
+    if (customerId != null && verifyForCustomerError != null) {
+      throw verifyForCustomerError!;
+    }
     return check!;
   }
+
+  @override
+  Future<Customer> createCustomer({
+    required String phoneNumber,
+    required String fullName,
+  }) async => created!;
 
   @override
   Future<List<Customer>> searchCustomers(String query, {int page = 1}) async {
@@ -172,6 +188,21 @@ PromoCodeCheck _check({int ownerId = 7}) => PromoCodeCheck(
   owner: PromoCodeOwner(id: ownerId, phoneNumber: '+998901112233'),
 );
 
+PromoCodeCheck _bloggerCheck() => const PromoCodeCheck(
+  source: PromoCodeSource.blogger,
+  code: 'ALI20',
+  partnerName: 'Ali',
+  tierName: 'Oltin',
+  discount: Discount(
+    id: 'discount-2',
+    name: 'Ali · Oltin',
+    kind: DiscountKind.percent,
+    value: 20,
+    scope: DiscountScope.entry,
+  ),
+  expiresAt: null,
+);
+
 const _checkout = PosAccountCheckoutRequested(
   planKey: 'vip',
   childIds: ['child-1'],
@@ -226,6 +257,59 @@ void main() {
       expect(check.owner!.id, 7);
       expect(check.discount.scope, DiscountScope.entry);
       expect(check.discount.appliedDiscountUzs(100000), 30000);
+    });
+
+    test(
+      'verifyPromoCode sends customerId and parses a blogger code',
+      () async {
+        final adapter = _FakeAdapter({
+          'source': 'blogger',
+          'code': 'ALI20',
+          'customer': null,
+          'partner': {'id': 'p2', 'name': 'Ali'},
+          'tier': {'code': 'gold', 'name': 'Oltin'},
+          'discount': {
+            'id': 'discount-2',
+            'name': 'Ali · Oltin',
+            'kind': 'percent',
+            'value': 20,
+          },
+          'maxChildren': 1,
+          'expiresAt': null,
+        });
+        final dio = Dio(BaseOptions(baseUrl: 'http://x'))
+          ..httpClientAdapter = adapter;
+
+        final check = await PosAccountRemoteDataSourceImpl(
+          dio,
+        ).verifyPromoCode('ALI20', customerId: 7);
+
+        expect(adapter.lastRequest!.data, {'code': 'ALI20', 'customerId': 7});
+        expect(check.source, PromoCodeSource.blogger);
+        expect(check.isBlogger, isTrue);
+        expect(check.code, 'ALI20');
+        expect(check.owner, isNull);
+        expect(check.expiresAt, isNull);
+        expect(check.discount.appliedDiscountUzs(100000), 20000);
+      },
+    );
+
+    test('the checkout outcome carries its source', () {
+      expect(
+        PromoCodeOutcome.fromJson({
+          'status': 'applied',
+          'source': 'blogger',
+          'childId': 'child-1',
+          'partnerName': 'Ali',
+          'tierName': 'Oltin',
+          'reasonCode': null,
+        }),
+        const PromoCodeOutcome(
+          applied: true,
+          childId: 'child-1',
+          source: PromoCodeSource.blogger,
+        ),
+      );
     });
 
     test(
@@ -424,6 +508,164 @@ void main() {
       expect(bloc.state.promo, isNull);
       expect(bloc.state.promoErrorCode, isNull);
     });
+
+    group('blogger codes', () {
+      PosAccountBloc freshBloc(_FakeRemote remote) {
+        final bloc = PosAccountBloc(PosAccountRepository(remote));
+        addTearDown(bloc.close);
+        return bloc;
+      }
+
+      test('neither shape is refused locally, without a request', () async {
+        final remote = _FakeRemote()..check = _bloggerCheck();
+        final bloc = freshBloc(remote);
+
+        for (final raw in ['AB', 'ALI_20', '12345']) {
+          bloc.add(PosAccountPromoCodeSubmitted(raw));
+          await bloc.stream.firstWhere(
+            (s) => s.promoErrorCode == 'PROMO_CODE_INVALID_FORMAT',
+          );
+          bloc.add(const PosAccountPromoCodeCleared());
+          await bloc.stream.firstWhere((s) => s.promoErrorCode == null);
+        }
+        expect(remote.verified, isEmpty);
+      });
+
+      test(
+        'on the search screen the code is held — no owner is looked up',
+        () async {
+          final remote = _FakeRemote()..check = _bloggerCheck();
+          final bloc = freshBloc(remote);
+
+          // A Russian layout turns A-L-I into Ф-Д-Ш.
+          bloc.add(const PosAccountPromoCodeSubmitted('фдш 20'));
+          await bloc.stream.firstWhere((s) => s.promo != null);
+
+          expect(remote.verified, ['ALI20']);
+          expect(remote.verifiedFor, [null]);
+          expect(remote.searched, isEmpty);
+          expect(bloc.state.selectedCustomer, isNull);
+          expect(bloc.state.promo!.isBlogger, isTrue);
+        },
+      );
+
+      test(
+        'a held code rides into the opened customer and is re-checked',
+        () async {
+          final remote = _FakeRemote()..check = _bloggerCheck();
+          final bloc = freshBloc(remote);
+          bloc.add(const PosAccountPromoCodeSubmitted('ALI20'));
+          await bloc.stream.firstWhere((s) => s.promo != null);
+
+          bloc.add(PosAccountCustomerSelected(_customer(7, '+998901112233')));
+          await bloc.stream.firstWhere(
+            (s) => s.selectedCustomer?.id == 7 && !s.isCheckingPromo,
+          );
+          await pumpEventQueue();
+
+          expect(remote.verifiedFor, [null, 7]);
+          expect(bloc.state.promo!.code, 'ALI20');
+        },
+      );
+
+      test(
+        'a code the opened customer already used is dropped at once',
+        () async {
+          final remote = _FakeRemote()
+            ..check = _bloggerCheck()
+            ..verifyForCustomerError = ServerException(
+              message: 'Already used',
+              code: 'PROMO_CODE_ALREADY_USED_BY_CUSTOMER',
+            );
+          final bloc = freshBloc(remote);
+          bloc.add(const PosAccountPromoCodeSubmitted('ALI20'));
+          await bloc.stream.firstWhere((s) => s.promo != null);
+
+          bloc.add(PosAccountCustomerSelected(_customer(7, '+998901112233')));
+          await bloc.stream.firstWhere((s) => s.promoErrorCode != null);
+
+          expect(bloc.state.promo, isNull);
+          expect(
+            bloc.state.promoErrorCode,
+            'PROMO_CODE_ALREADY_USED_BY_CUSTOMER',
+          );
+          expect(bloc.state.selectedCustomer!.id, 7);
+        },
+      );
+
+      test('a held code rides into a newly created customer', () async {
+        final remote = _FakeRemote()
+          ..check = _bloggerCheck()
+          ..created = _customer(12, '+998901234567');
+        final bloc = freshBloc(remote);
+        bloc.add(const PosAccountPromoCodeSubmitted('ALI20'));
+        await bloc.stream.firstWhere((s) => s.promo != null);
+
+        bloc.add(const PosAccountNewCustomerRequested('Dil'));
+        await bloc.stream.firstWhere((s) => s.selectedCustomer?.id == 12);
+        await pumpEventQueue();
+
+        expect(remote.verifiedFor, [null, 12]);
+        expect(bloc.state.promo!.code, 'ALI20');
+      });
+
+      test(
+        'with a customer open it is verified for them and applied',
+        () async {
+          final remote = _FakeRemote()..check = _bloggerCheck();
+          final bloc = await _blocWith(remote, _customer(7, '+998901112233'));
+
+          bloc.add(const PosAccountPromoCodeSubmitted('ali20'));
+          await bloc.stream.firstWhere((s) => s.promo != null);
+
+          expect(remote.verifiedFor, [7]);
+          expect(remote.searched, isEmpty);
+          expect(bloc.state.selectedCustomer!.id, 7);
+        },
+      );
+
+      test(
+        'switching to another customer drops it, like a partner code',
+        () async {
+          final remote = _FakeRemote()..check = _bloggerCheck();
+          final bloc = await _blocWith(remote, _customer(7, '+998901112233'));
+          bloc.add(const PosAccountPromoCodeSubmitted('ALI20'));
+          await bloc.stream.firstWhere((s) => s.promo != null);
+
+          bloc.add(PosAccountCustomerSelected(_customer(8, '+998900000000')));
+          await bloc.stream.firstWhere((s) => s.selectedCustomer?.id == 8);
+
+          expect(bloc.state.promo, isNull);
+        },
+      );
+
+      test('leaving the customer drops it', () async {
+        final remote = _FakeRemote()..check = _bloggerCheck();
+        final bloc = await _blocWith(remote, _customer(7, '+998901112233'));
+        bloc.add(const PosAccountPromoCodeSubmitted('ALI20'));
+        await bloc.stream.firstWhere((s) => s.promo != null);
+
+        bloc.add(const PosAccountSelectionCleared());
+        await bloc.stream.firstWhere((s) => s.selectedCustomer == null);
+
+        expect(bloc.state.promo, isNull);
+      });
+    });
+  });
+
+  test('the new blogger refusals have localized messages', () async {
+    final l10n = await AppLocalization.load(const Locale('uz'));
+    String? text(String code) => promoCodeErrorText(
+      l10n,
+      PosAccountState(promoErrorCode: code, promoErrorMessage: 'server'),
+    );
+    expect(text('PROMO_CODE_NOT_STARTED'), l10n.promoCodeNotStarted);
+    expect(text('PROMO_CODE_LIMIT_REACHED'), l10n.promoCodeLimitReached);
+    expect(
+      text('PROMO_CODE_ALREADY_USED_BY_CUSTOMER'),
+      l10n.promoCodeAlreadyUsedByCustomer,
+    );
+    expect(text('PROMO_CODE_NOT_FOUND'), 'server');
   });
 
   group('panel', () {
@@ -611,6 +853,88 @@ void main() {
     });
   });
 
+  testWidgets('panel: a blogger code is tagged and checks out normalised', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1600, 1400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    final remote = _FakeRemote()
+      ..check = _bloggerCheck()
+      ..checkoutResult = const PosEntryResult(
+        entries: [],
+        failures: [],
+        promoCode: PromoCodeOutcome(
+          applied: true,
+          childId: 'child-1',
+          source: PromoCodeSource.blogger,
+        ),
+      );
+    final bloc = PosAccountBloc(PosAccountRepository(remote))
+      ..add(const PosAccountPlansRequested())
+      ..add(const PosAccountDiscountsRequested(scope: DiscountScope.entry))
+      ..add(
+        PosAccountCustomerSelected(
+          Customer(
+            id: 7,
+            phoneNumber: '+998901112233',
+            firstName: 'Dil',
+            lastName: null,
+            balance: 0,
+            children: [
+              Child(
+                id: 'child-1',
+                firstName: 'Aziza',
+                lastName: null,
+                birthDate: DateTime(2018, 1, 1),
+              ),
+            ],
+          ),
+        ),
+      );
+    addTearDown(bloc.close);
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('uz'),
+        localizationsDelegates: const [
+          AppLocalization.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalization.delegate.supportedLocales,
+        home: BlocProvider.value(
+          value: bloc,
+          child: const Scaffold(
+            body: SingleChildScrollView(child: CustomerDetailPanel()),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('QR'));
+    await tester.pump();
+    await tester.tap(find.text('VIP'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.widgetWithText(TextField, 'Promokod'), 'фдш20');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(remote.verified, ['ALI20']);
+    expect(remote.verifiedFor, [7]);
+    expect(find.text('Blogger · ALI20'), findsOneWidget);
+    expect(find.text('Ali · Oltin · −20%'), findsNWidgets(2));
+    // 75 000 − 20% = 60 000 still due.
+    expect(find.widgetWithText(TextField, '60000'), findsOneWidget);
+
+    await tester.tap(find.text('To‘lov va chop etish'));
+    await tester.pumpAndSettle();
+
+    expect(remote.lastPromoCode, (code: 'ALI20', childId: 'child-1'));
+  });
+
   group('PromoCodeField', () {
     Future<List<String>> pump(WidgetTester tester) async {
       final submitted = <String>[];
@@ -658,13 +982,17 @@ void main() {
       expect(field.focusNode!.hasFocus, isTrue);
     });
 
-    testWidgets('letters never land in the field', (tester) async {
-      await pump(tester);
+    testWidgets('letters (blogger codes, any layout) are typed as-is', (
+      tester,
+    ) async {
+      final submitted = await pump(tester);
 
-      await tester.enterText(find.byType(TextField), '40ab00');
+      await tester.enterText(find.byType(TextField), 'фдш20');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump();
 
-      final field = tester.widget<TextField>(find.byType(TextField));
-      expect(field.controller!.text, '4000');
+      // Normalising is the bloc's job — the field hands over the raw text.
+      expect(submitted, ['фдш20']);
     });
   });
 }

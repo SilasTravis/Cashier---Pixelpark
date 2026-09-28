@@ -134,8 +134,10 @@ class PosAccountRepository {
     ),
   );
 
-  Future<Either<Failure, PromoCodeCheck>> verifyPromoCode(String code) =>
-      _call(() => remote.verifyPromoCode(code));
+  Future<Either<Failure, PromoCodeCheck>> verifyPromoCode(
+    String code, {
+    int? customerId,
+  }) => _call(() => remote.verifyPromoCode(code, customerId: customerId));
 
   Future<Either<Failure, int>> fetchCompanionPriceUzs() =>
       _call(() => remote.fetchCompanionPriceUzs());

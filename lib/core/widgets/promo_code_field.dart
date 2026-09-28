@@ -10,8 +10,9 @@ import '../theme/nocturne_colors.dart';
 /// handheld scanner gun at the partner app's QR: the gun "types" the 16
 /// digits and ends with Enter (or Tab, depending on its setup) — both submit
 /// here and are swallowed, so the suffix never presses another control.
-/// Typing by hand plus the check button is the fallback. The field clears
-/// itself after each submit and keeps focus for the next scan.
+/// A blogger code (`ALI20`) is typed by hand, in any keyboard layout — the
+/// bloc maps Russian-layout letters back to Latin. The field clears itself
+/// after each submit and keeps focus for the next scan.
 class PromoCodeField extends StatefulWidget {
   const PromoCodeField({
     super.key,
@@ -21,7 +22,8 @@ class PromoCodeField extends StatefulWidget {
     this.autofocus = false,
   });
 
-  /// Raw text as scanned/typed — validation (Luhn) happens in the bloc.
+  /// Raw text as scanned/typed — normalisation and validation (shape, Luhn)
+  /// happen in the bloc.
   final ValueChanged<String> onSubmit;
   final bool busy;
   final String? errorText;
@@ -73,14 +75,16 @@ class _PromoCodeFieldState extends State<PromoCodeField> {
           autofocus: widget.autofocus,
           // Never disabled while [busy]: a disabled field drops focus, and
           // the next scan would then type into nothing.
-          keyboardType: TextInputType.number,
+          keyboardType: TextInputType.text,
+          textCapitalization: TextCapitalization.characters,
+          autocorrect: false,
+          enableSuggestions: false,
           textInputAction: TextInputAction.done,
-          // Digits plus the display form's spaces/dashes; the bloc strips
-          // them. Letters can't come from a valid code, so they never land.
-          inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'[0-9 \-]')),
-            LengthLimitingTextInputFormatter(24),
-          ],
+          // No character filter: blogger codes carry letters (Latin, or
+          // Cyrillic from a Russian layout), and anything else must reach
+          // the classifier to be refused — silently dropping, say, a '.'
+          // would turn a wrong code into another one. 64 = the server's max.
+          inputFormatters: [LengthLimitingTextInputFormatter(64)],
           onSubmitted: (_) => _submit(),
           style: AppTextStyles.body.copyWith(
             fontSize: 14,

@@ -98,9 +98,11 @@ class PosAccountState extends Equatable {
   /// (`DISCOUNT_NOT_AVAILABLE`) without parsing the localized message text.
   final String? errorCode;
 
-  /// The verified partner promo code for [selectedCustomer] (its owner) —
-  /// applied to one child at checkout; cleared on checkout, on a promo
-  /// error, or when another customer is opened.
+  /// The verified promo code for [selectedCustomer] — applied to one child
+  /// at checkout; cleared on checkout, on a promo error, or when another
+  /// customer is opened. A partner code is its owner's; a blogger code may
+  /// also sit here with no customer open (accepted on the search screen,
+  /// waiting for the cashier to pick one).
   final PromoCodeCheck? promo;
   final bool isCheckingPromo;
 

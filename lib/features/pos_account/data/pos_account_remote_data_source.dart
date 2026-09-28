@@ -103,9 +103,12 @@ abstract class PosAccountRemoteDataSource {
     ({String code, String childId})? promoCode,
   });
 
-  /// `POST /v1/pos/promo-codes/verify` — what a scanned partner code is
-  /// worth and whose it is. Read-only; [code] is the normalised 16 digits.
-  Future<PromoCodeCheck> verifyPromoCode(String code);
+  /// `POST /v1/pos/promo-codes/verify` — what a promo code is worth and,
+  /// for a partner code, whose it is. Read-only; [code] is normalised. Pass
+  /// [customerId] for a blogger code with a customer open — the server then
+  /// refuses one that customer already redeemed
+  /// (`PROMO_CODE_ALREADY_USED_BY_CUSTOMER`).
+  Future<PromoCodeCheck> verifyPromoCode(String code, {int? customerId});
 
   /// Server-owned terminal pricing (currently the HAMROH companion price) —
   /// so a price change never needs an app re-release.
@@ -410,9 +413,12 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
   }
 
   @override
-  Future<PromoCodeCheck> verifyPromoCode(String code) async {
+  Future<PromoCodeCheck> verifyPromoCode(String code, {int? customerId}) async {
     final response = await _request(
-      () => dio.post('/v1/pos/promo-codes/verify', data: {'code': code}),
+      () => dio.post(
+        '/v1/pos/promo-codes/verify',
+        data: {'code': code, 'customerId': ?customerId},
+      ),
     );
     return PromoCodeCheck.fromJson(code, response as Map<String, dynamic>);
   }
@@ -422,10 +428,7 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
     DiscountScope scope = DiscountScope.goods,
   }) async {
     final response = await _request(
-      () => dio.get(
-        '/v1/pos/discounts',
-        queryParameters: {'scope': scope.key},
-      ),
+      () => dio.get('/v1/pos/discounts', queryParameters: {'scope': scope.key}),
     );
     return (response as List)
         .map((json) => Discount.fromJson(json as Map<String, dynamic>))

@@ -263,9 +263,10 @@ class PosAccountParentQrAcknowledged extends PosAccountEvent {
   const PosAccountParentQrAcknowledged();
 }
 
-/// A partner promo code was scanned (the gun types it + Enter) or typed —
-/// verify it, and open its owner's account when another (or no) customer
-/// is on screen.
+/// A promo code was scanned (the gun types it + Enter) or typed — verify
+/// it; for a partner code, open its owner's account when another (or no)
+/// customer is on screen; a blogger code applies to the open customer or
+/// waits for one to be opened.
 class PosAccountPromoCodeSubmitted extends PosAccountEvent {
   const PosAccountPromoCodeSubmitted(this.rawCode);
 
@@ -277,4 +278,10 @@ class PosAccountPromoCodeSubmitted extends PosAccountEvent {
 
 class PosAccountPromoCodeCleared extends PosAccountEvent {
   const PosAccountPromoCodeCleared();
+}
+
+/// Internal: a held blogger code rode into a freshly opened/created
+/// customer — verify it again with that customer's id.
+class _PosAccountPromoCodeRechecked extends PosAccountEvent {
+  const _PosAccountPromoCodeRechecked();
 }
