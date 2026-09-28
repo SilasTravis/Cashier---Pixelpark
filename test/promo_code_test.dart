@@ -20,6 +20,8 @@ void main() {
     test('the partner display form and scanner suffixes', () {
       expect(normalizePromoCode('4111 1111-1111 1111\r\n'), '4111111111111111');
       expect(normalizePromoCode('\t4111111111111111\t'), '4111111111111111');
+      expect(normalizePromoCode('4111.1111_1111 1111'), '4111111111111111');
+      expect(normalizePromoCode('ALI.20'), 'ALI.20');
     });
 
     test(

@@ -33,7 +33,13 @@ String normalizePromoCode(String raw) {
     final char = String.fromCharCode(rune);
     mapped.write(_ruToLatin[char.toUpperCase()] ?? char);
   }
-  return mapped.toString().toUpperCase().replaceAll(RegExp(r'[\s\-]'), '');
+  final upper = mapped.toString().toUpperCase();
+  // No letters at all = a partner code: keep only its digits (display form,
+  // dots, a scanner's prefix byte). A static code only loses whitespace and
+  // dashes. Mirrors the backend's normalizeAnyPromoCode.
+  return RegExp(r'[A-Z]').hasMatch(upper)
+      ? upper.replaceAll(RegExp(r'[\s\-]'), '')
+      : upper.replaceAll(RegExp(r'\D'), '');
 }
 
 /// The kind of an already-normalised code, or null when it has neither
