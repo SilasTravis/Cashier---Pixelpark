@@ -16,6 +16,15 @@ abstract final class AppKeys {
   static const String qrPrinterName = 'qrPrinterName';
   static const String receiptPrinterName = 'receiptPrinterName';
 
+  /// This installation's identity for the backend's terminal monitoring.
+  /// Device config, not session: never cleared on logout.
+  static const String terminalId = 'terminalId';
+
+  /// The most recent failed self-update attempt (a JSON-compatible map, see
+  /// `UpdateFailureLog`). Device config, not session: never cleared on
+  /// logout.
+  static const String lastUpdateFailure = 'lastUpdateFailure';
+
   /// Prefix only; the actual key also contains cashier + branch IDs so one
   /// terminal account never inherits another cashier's customer history.
   static const String customerSearchHistory = 'customerSearchHistory';

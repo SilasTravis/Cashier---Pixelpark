@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/update/update_exception.dart';
+import '../../../../core/update/update_failure_log.dart';
 import '../../../../core/update/update_release.dart';
 import '../../../../core/update/update_service.dart';
 
@@ -91,9 +92,15 @@ class UpdateFailureUnexpected extends UpdateFailure {
 }
 
 class UpdateCubit extends Cubit<UpdateState> {
-  UpdateCubit(this._service) : super(const UpdateIdle());
+  UpdateCubit(this._service, {this._failureLog}) : super(const UpdateIdle());
 
   final UpdateService _service;
+
+  /// Where a failed download/stage/apply is remembered for the terminal
+  /// heartbeat, so the dashboard sees which till is stuck on which version.
+  /// Optional so tests (and any caller that doesn't care) can leave it out.
+  /// A failed [check] is not an update failure and is not recorded.
+  final UpdateFailureLog? _failureLog;
 
   String get currentVersion => _service.currentVersion;
 
@@ -121,6 +128,9 @@ class UpdateCubit extends Cubit<UpdateState> {
       _emit(UpdateReadyToRestart(release, staged));
     } catch (error) {
       _emit(_failureFrom(error, release.releasePageUrl));
+      // After the emit, so the cashier sees the failure without waiting on
+      // a disk write; `record` never throws.
+      await _failureLog?.record(release.version, error);
     }
   }
 
@@ -132,6 +142,7 @@ class UpdateCubit extends Cubit<UpdateState> {
       await _service.applyAndRestart(current.staged);
     } catch (error) {
       _emit(_failureFrom(error, current.release.releasePageUrl));
+      await _failureLog?.record(current.release.version, error);
     }
   }
 

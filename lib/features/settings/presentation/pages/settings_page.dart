@@ -7,6 +7,7 @@ import 'package:printing/printing.dart';
 import '../../../../core/local_source/local_source.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
+import '../../../../core/update/update_failure_log.dart';
 import '../../../../core/update/update_service.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../injector_container.dart';
@@ -73,9 +74,8 @@ class SettingsPage extends StatelessWidget {
                               ),
                               Text(
                                 '@${local.getCashierUsername() ?? ''}',
-                                style: AppTextStyles.muted(
-                                  AppTextStyles.body,
-                                ).copyWith(fontSize: 12),
+                                style: AppTextStyles.muted(AppTextStyles.body)
+                                    .copyWith(fontSize: 12),
                               ),
                             ],
                           ),
@@ -96,7 +96,10 @@ class SettingsPage extends StatelessWidget {
               const _PrinterSettingsCard(),
               const SizedBox(height: 16),
               BlocProvider<UpdateCubit>(
-                create: (_) => UpdateCubit(sl<UpdateService>()),
+                create: (_) => UpdateCubit(
+                  sl<UpdateService>(),
+                  failureLog: sl<UpdateFailureLog>(),
+                ),
                 child: const UpdateCard(),
               ),
               const SizedBox(height: 16),
@@ -213,9 +216,8 @@ class _PrinterSettingsCardState extends State<_PrinterSettingsCard> {
                 const SizedBox(height: 10),
                 Text(
                   l10n.noPrintersFound,
-                  style: AppTextStyles.muted(
-                    AppTextStyles.body,
-                  ).copyWith(fontSize: 12),
+                  style: AppTextStyles.muted(AppTextStyles.body)
+                      .copyWith(fontSize: 12),
                 ),
               ],
             ],

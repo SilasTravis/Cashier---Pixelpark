@@ -5,6 +5,8 @@ import 'package:hive_ce/hive.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 
+import 'package:cashier_app/core/terminal/terminal_heartbeat_service.dart';
+import 'package:cashier_app/core/update/update_failure_log.dart';
 import 'package:cashier_app/core/update/update_service.dart';
 import 'package:cashier_app/features/settings/presentation/bloc/update_cubit.dart';
 import 'package:cashier_app/injector_container.dart' as di;
@@ -92,7 +94,10 @@ void main() {
     // rather than just checking `isRegistered`, so this proves the whole
     // resolve-and-construct path a cashier actually exercises works, not
     // merely that *some* registration exists under the type.
-    final cubit = UpdateCubit(di.sl<UpdateService>());
+    final cubit = UpdateCubit(
+      di.sl<UpdateService>(),
+      failureLog: di.sl<UpdateFailureLog>(),
+    );
     addTearDown(cubit.close);
 
     expect(cubit.state, isA<UpdateIdle>());
@@ -102,4 +107,19 @@ void main() {
     // init()'s. Pending timers would fail this test via flutter_test's
     // automatic leak check when the test body finishes.
   });
+
+  test(
+    'TerminalHeartbeatService resolves without starting its timer',
+    () async {
+      await di.init();
+
+      // Resolving builds it (and the AppModeCubit it listens to), but only
+      // main() calls start(): a periodic timer left behind here would fail
+      // flutter_test's pending-timer check. sl.reset() in tearDown disposes it.
+      final heartbeat = di.sl<TerminalHeartbeatService>();
+
+      expect(heartbeat.buildBody()['appVersion'], '1.0.0');
+      expect(heartbeat.buildBody()['terminalId'], isA<String>());
+    },
+  );
 }

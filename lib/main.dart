@@ -4,6 +4,7 @@ import 'package:window_manager/window_manager.dart';
 import 'app.dart';
 import 'constants/app_constants.dart';
 import 'core/connectivity/connectivity_monitor.dart';
+import 'core/terminal/terminal_heartbeat_service.dart';
 import 'core/theme/nocturne_colors.dart';
 import 'core/update/update_service.dart';
 import 'injector_container.dart' as di;
@@ -13,6 +14,7 @@ void main() async {
   await di.init();
   di.sl<UpdateService>().startBackgroundChecks();
   di.sl<ConnectivityMonitor>().start();
+  di.sl<TerminalHeartbeatService>().start();
 
   await windowManager.ensureInitialized();
   const windowOptions = WindowOptions(
