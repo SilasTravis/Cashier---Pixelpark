@@ -143,6 +143,14 @@ void main() {
       expect(record.message.length, UpdateFailureLog.maxMessageLength);
     });
 
+    test('a non x.y.z version is never recorded — the backend would reject '
+        'the whole heartbeat', () async {
+      await log().record('1.1.0-rc1', StateError('x'));
+      await log().record('2.0', StateError('x'));
+
+      expect(log().current(), isNull);
+    });
+
     test('a newer failure overwrites the older one', () async {
       await log().record('1.0.7', StateError('first'));
       await log().record('1.0.8', StateError('second'));

@@ -79,6 +79,8 @@ class UpdateFailureLog {
   static const int maxMessageLength = 500;
   static const int maxCodeLength = 50;
 
+  static final RegExp _plainVersion = RegExp(r'^\d{1,6}\.\d{1,6}\.\d{1,6}$');
+
   final LocalSource _localSource;
   final String _currentVersion;
   final DateTime Function() _clock;
@@ -86,6 +88,10 @@ class UpdateFailureLog {
   /// Never throws: a broken Hive write must not replace the real update
   /// error the cashier is about to see.
   Future<void> record(String version, Object error) async {
+    // The backend accepts only plain x.y.z here and rejects the WHOLE
+    // heartbeat otherwise — a GitHub tag like `1.1.0-rc1` would silence
+    // this till on the dashboard until it ran that version.
+    if (!_plainVersion.hasMatch(version)) return;
     final code = error is UpdateException ? error.code.name : unexpectedCode;
     final message = error is UpdateException ? error.message : error.toString();
     final record = UpdateFailureRecord(
@@ -106,7 +112,9 @@ class UpdateFailureLog {
     final raw = _localSource.getLastUpdateFailure();
     if (raw == null) return null;
     final record = UpdateFailureRecord.tryParse(raw);
-    if (record != null && isNewerVersion(record.version, _currentVersion)) {
+    if (record != null &&
+        _plainVersion.hasMatch(record.version) &&
+        isNewerVersion(record.version, _currentVersion)) {
       return record;
     }
     // Fire-and-forget: Hive drops the in-memory copy synchronously.
