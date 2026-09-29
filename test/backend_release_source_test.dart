@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:cashier_app/core/network/connectivity_interceptor.dart';
 import 'package:cashier_app/core/update/release_source.dart';
 import 'package:cashier_app/core/update/update_exception.dart';
 import 'package:cashier_app/core/update/update_release.dart';
@@ -93,7 +94,10 @@ void main() {
       'reads the mirror and builds a public download URL on the API origin',
       () async {
         final adapter = _JsonAdapter(_latest());
-        final source = BackendReleaseSource(api: _api(adapter));
+        final source = BackendReleaseSource(
+          api: _api(adapter),
+          hasSession: () => true,
+        );
 
         final release = await source.fetchLatest();
 
@@ -117,6 +121,7 @@ void main() {
     test('is null before the mirror has synced anything', () async {
       final source = BackendReleaseSource(
         api: _api(_JsonAdapter({'latest': null})),
+        hasSession: () => true,
       );
       expect(await source.fetchLatest(), isNull);
     });
@@ -124,6 +129,7 @@ void main() {
     test('fails closed when the mirror sent no valid digest', () async {
       final source = BackendReleaseSource(
         api: _api(_JsonAdapter(_latest(sha256: 'nope'))),
+        hasSession: () => true,
       );
       final release = (await source.fetchLatest())!;
 
@@ -142,9 +148,36 @@ void main() {
     test('an older backend without the mirror surfaces as an error', () async {
       final source = BackendReleaseSource(
         api: _api(_JsonAdapter({'code': 'NOT_FOUND'}, statusCode: 404)),
+        hasSession: () => true,
       );
       expect(source.fetchLatest(), throwsA(isA<DioException>()));
     });
+
+    test('never calls the API without a session, so no 401 ends it', () async {
+      final adapter = _JsonAdapter(_latest());
+      final source = BackendReleaseSource(
+        api: _api(adapter),
+        hasSession: () => false,
+      );
+
+      await expectLater(source.fetchLatest(), throwsA(isA<StateError>()));
+      expect(adapter.requests, isEmpty);
+    });
+
+    test(
+      'marks the check as background for the connectivity monitor',
+      () async {
+        final adapter = _JsonAdapter(_latest());
+        await BackendReleaseSource(
+          api: _api(adapter),
+          hasSession: () => true,
+        ).fetchLatest();
+        expect(
+          adapter.requests.single.extra[ConnectivityInterceptor.backgroundKey],
+          isTrue,
+        );
+      },
+    );
   });
 
   group('FallbackReleaseSource', () {
@@ -192,12 +225,12 @@ void main() {
       },
     );
 
-    test('surfaces the fallback error when both fail', () async {
+    test('surfaces the primary error when both fail', () async {
       final source = FallbackReleaseSource(
-        primary: _FakeSource(error: Exception('primary')),
+        primary: _FakeSource(error: const FormatException('backend')),
         fallback: _FakeSource(error: StateError('github blocked')),
       );
-      expect(source.fetchLatest(), throwsA(isA<StateError>()));
+      expect(source.fetchLatest(), throwsA(isA<FormatException>()));
     });
   });
 }

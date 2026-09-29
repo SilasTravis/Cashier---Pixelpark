@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 
+import '../network/connectivity_interceptor.dart';
+
 import 'update_exception.dart';
 import 'update_release.dart';
 
@@ -156,21 +158,35 @@ Future<void> _downloadReleaseZip(
 /// public and fetched with a separate plain client ([_download]), so the
 /// app client's retry interceptor never re-issues a half-finished download.
 class BackendReleaseSource implements ReleaseSource {
-  BackendReleaseSource({required this._api, Dio? download})
-    : _download = download ?? Dio();
+  BackendReleaseSource({
+    required this._api,
+    required this._hasSession,
+    Dio? download,
+  }) : _download = download ?? Dio();
 
   static const String latestPath = '/v1/pos/app-update/latest';
 
   final Dio _api;
   final Dio _download;
 
+  /// Whether a cashier is signed in. Without a token `latest` would 401,
+  /// and the app client's refresh-on-401 ends the session — resetting the
+  /// login screen under a cashier who is typing into it.
+  final bool Function() _hasSession;
+
   @override
   Future<UpdateRelease?> fetchLatest() async {
+    if (!_hasSession()) {
+      throw StateError('No cashier session - update mirror needs a token');
+    }
     final response = await _api.get<Map<String, dynamic>>(
       latestPath,
       options: Options(
         connectTimeout: GithubReleaseSource._connectTimeout,
         receiveTimeout: GithubReleaseSource._metadataReceiveTimeout,
+        // An update check that fails must never pop the offline prompt:
+        // most of them are the unattended 4-hourly background check.
+        extra: {ConnectivityInterceptor.backgroundKey: true},
       ),
     );
     final data = response.data;
@@ -206,8 +222,9 @@ class BackendReleaseSource implements ReleaseSource {
 }
 
 /// Tries [primary] first and falls back to [fallback] only when [primary]
-/// fails outright (an older backend without the mirror answers 404, or the
-/// API is unreachable). A release found by one source is always downloaded
+/// fails outright (an older backend without the mirror answers 404, the API
+/// is unreachable, or no one is signed in). When both fail, the primary's
+/// error is rethrown. A release found by one source is always downloaded
 /// and verified through that same source.
 class FallbackReleaseSource implements ReleaseSource {
   FallbackReleaseSource({required this.primary, required this.fallback});
@@ -223,9 +240,15 @@ class FallbackReleaseSource implements ReleaseSource {
     ReleaseSource source = primary;
     try {
       release = await primary.fetchLatest();
-    } catch (_) {
+    } catch (primaryError, primaryStack) {
       source = fallback;
-      release = await fallback.fetchLatest();
+      try {
+        release = await fallback.fetchLatest();
+      } catch (_) {
+        // Where the fallback (github.com) is blocked, its error says nothing
+        // useful — the primary's is the one worth showing.
+        Error.throwWithStackTrace(primaryError, primaryStack);
+      }
     }
     if (release != null) _origin[release] = source;
     return release;

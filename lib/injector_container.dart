@@ -72,7 +72,10 @@ Future<void> init() async {
       // Park networks block github.com: the backend mirror comes first,
       // GitHub stays as the fallback for an older backend without it.
       source: FallbackReleaseSource(
-        primary: BackendReleaseSource(api: sl<Dio>()),
+        primary: BackendReleaseSource(
+          api: sl<Dio>(),
+          hasSession: () => sl<LocalSource>().getAccessToken() != null,
+        ),
         fallback: GithubReleaseSource(),
       ),
       currentVersion: packageInfo.version,
