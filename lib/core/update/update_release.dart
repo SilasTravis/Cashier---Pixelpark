@@ -17,7 +17,7 @@ String? parseSha256Digest(String? raw) {
   return _sha256Pattern.hasMatch(token) ? token : null;
 }
 
-/// One published GitHub release, reduced to what the updater needs.
+/// One published release, reduced to what the updater needs.
 class UpdateRelease {
   const UpdateRelease({
     required this.version,
@@ -26,6 +26,7 @@ class UpdateRelease {
     required this.zipSize,
     required this.sha256Url,
     required this.releasePageUrl,
+    this.sha256,
   });
 
   /// Release tag with any leading `v` stripped, e.g. `1.2.3`.
@@ -38,6 +39,10 @@ class UpdateRelease {
   /// verification rather than refusing to update.
   final String? sha256Url;
   final String releasePageUrl;
+
+  /// The digest itself, for sources that return it inline with the release
+  /// (the Pixel Park backend mirror) instead of as a separate asset.
+  final String? sha256;
 
   /// Parses `GET /repos/{owner}/{repo}/releases/latest`. Returns null when
   /// the payload has no tag or no `.zip` asset, which is what a release
@@ -60,7 +65,8 @@ class UpdateRelease {
       zipUrl: zipUrl,
       zipSize: (zip['size'] as num?)?.toInt() ?? 0,
       sha256Url:
-          _assetEndingWith(assets, '.sha256')?['browser_download_url'] as String?,
+          _assetEndingWith(assets, '.sha256')?['browser_download_url']
+              as String?,
       releasePageUrl: (json['html_url'] as String?) ?? '',
     );
   }
@@ -75,4 +81,29 @@ class UpdateRelease {
     }
     return null;
   }
+}
+
+/// Parses `GET /v1/pos/app-update/latest` from the Pixel Park backend, which
+/// mirrors the GitHub releases for park networks that block github.com.
+/// Returns null when the mirror holds no release yet or the payload is
+/// malformed. [downloadBaseUrl] is the API origin the zip is served from.
+UpdateRelease? updateReleaseFromBackendJson(
+  Map<String, dynamic> json, {
+  required String downloadBaseUrl,
+}) {
+  final latest = json['latest'];
+  if (latest is! Map<String, dynamic>) return null;
+  final version = latest['version'];
+  if (version is! String || version.isEmpty) return null;
+  final base = downloadBaseUrl.replaceAll(RegExp(r'/+$'), '');
+  return UpdateRelease(
+    version: version,
+    notes: (latest['notes'] as String?) ?? '',
+    zipUrl: '$base/v1/pos/app-update/${Uri.encodeComponent(version)}/download',
+    zipSize: (latest['zipSize'] as num?)?.toInt() ?? 0,
+    sha256Url: null,
+    sha256: latest['sha256'] as String?,
+    // github.com is exactly what's blocked here — no page worth linking.
+    releasePageUrl: '',
+  );
 }

@@ -69,7 +69,12 @@ Future<void> init() async {
   final packageInfo = await PackageInfo.fromPlatform();
   sl.registerSingleton<UpdateService>(
     UpdateService(
-      source: GithubReleaseSource(),
+      // Park networks block github.com: the backend mirror comes first,
+      // GitHub stays as the fallback for an older backend without it.
+      source: FallbackReleaseSource(
+        primary: BackendReleaseSource(api: sl<Dio>()),
+        fallback: GithubReleaseSource(),
+      ),
       currentVersion: packageInfo.version,
       supportDirectory: getApplicationSupportDirectory,
     ),

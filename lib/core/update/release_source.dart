@@ -121,19 +121,127 @@ class GithubReleaseSource implements ReleaseSource {
     UpdateRelease release,
     String savePath, {
     void Function(int received, int total)? onProgress,
-  }) async {
-    await _dio.download(
-      release.zipUrl,
-      savePath,
+  }) => _downloadReleaseZip(_dio, release, savePath, onProgress: onProgress);
+}
+
+/// Streams [release]'s zip to [savePath] with the shared timeouts. [dio]
+/// must carry no base URL or auth: the zip URL is absolute and public.
+Future<void> _downloadReleaseZip(
+  Dio dio,
+  UpdateRelease release,
+  String savePath, {
+  void Function(int received, int total)? onProgress,
+}) async {
+  await dio.download(
+    release.zipUrl,
+    savePath,
+    options: Options(
+      connectTimeout: GithubReleaseSource._connectTimeout,
+      receiveTimeout: GithubReleaseSource._downloadStallTimeout,
+    ),
+    onReceiveProgress: (received, total) {
+      // GitHub sends Content-Length, but fall back to the asset size from
+      // the API when a proxy strips it, so the progress bar stays useful.
+      onProgress?.call(received, total > 0 ? total : release.zipSize);
+    },
+  );
+}
+
+/// Reads releases from the Pixel Park backend's mirror of the GitHub
+/// releases (`/v1/pos/app-update/*`) — park networks block github.com, but
+/// always reach our own API.
+///
+/// The `latest` check goes through the app's [Dio] ([_api]): it needs the
+/// cashier token and gets its refresh-on-401 for free. The zip itself is
+/// public and fetched with a separate plain client ([_download]), so the
+/// app client's retry interceptor never re-issues a half-finished download.
+class BackendReleaseSource implements ReleaseSource {
+  BackendReleaseSource({required this._api, Dio? download})
+    : _download = download ?? Dio();
+
+  static const String latestPath = '/v1/pos/app-update/latest';
+
+  final Dio _api;
+  final Dio _download;
+
+  @override
+  Future<UpdateRelease?> fetchLatest() async {
+    final response = await _api.get<Map<String, dynamic>>(
+      latestPath,
       options: Options(
-        connectTimeout: _connectTimeout,
-        receiveTimeout: _downloadStallTimeout,
+        connectTimeout: GithubReleaseSource._connectTimeout,
+        receiveTimeout: GithubReleaseSource._metadataReceiveTimeout,
       ),
-      onReceiveProgress: (received, total) {
-        // GitHub sends Content-Length, but fall back to the asset size from
-        // the API when a proxy strips it, so the progress bar stays useful.
-        onProgress?.call(received, total > 0 ? total : release.zipSize);
-      },
+    );
+    final data = response.data;
+    if (data == null) return null;
+    return updateReleaseFromBackendJson(
+      data,
+      downloadBaseUrl: _api.options.baseUrl,
     );
   }
+
+  @override
+  Future<String?> fetchSha256(UpdateRelease release) async {
+    final digest = parseSha256Digest(release.sha256);
+    // The mirror always stores a digest, so a missing one means a broken
+    // payload — fail closed instead of installing unverified.
+    if (digest == null) {
+      throw UpdateException(
+        'The update server sent no valid checksum for version '
+        '${release.version}. Refusing to install an unverified update.',
+        UpdateFailureCode.checksumUnreadable,
+      );
+    }
+    return digest;
+  }
+
+  @override
+  Future<void> downloadZip(
+    UpdateRelease release,
+    String savePath, {
+    void Function(int received, int total)? onProgress,
+  }) =>
+      _downloadReleaseZip(_download, release, savePath, onProgress: onProgress);
+}
+
+/// Tries [primary] first and falls back to [fallback] only when [primary]
+/// fails outright (an older backend without the mirror answers 404, or the
+/// API is unreachable). A release found by one source is always downloaded
+/// and verified through that same source.
+class FallbackReleaseSource implements ReleaseSource {
+  FallbackReleaseSource({required this.primary, required this.fallback});
+
+  final ReleaseSource primary;
+  final ReleaseSource fallback;
+
+  final Expando<ReleaseSource> _origin = Expando('release origin');
+
+  @override
+  Future<UpdateRelease?> fetchLatest() async {
+    UpdateRelease? release;
+    ReleaseSource source = primary;
+    try {
+      release = await primary.fetchLatest();
+    } catch (_) {
+      source = fallback;
+      release = await fallback.fetchLatest();
+    }
+    if (release != null) _origin[release] = source;
+    return release;
+  }
+
+  ReleaseSource _sourceOf(UpdateRelease release) => _origin[release] ?? primary;
+
+  @override
+  Future<String?> fetchSha256(UpdateRelease release) =>
+      _sourceOf(release).fetchSha256(release);
+
+  @override
+  Future<void> downloadZip(
+    UpdateRelease release,
+    String savePath, {
+    void Function(int received, int total)? onProgress,
+  }) =>
+      _sourceOf(release).downloadZip(release, savePath, onProgress: onProgress);
 }
