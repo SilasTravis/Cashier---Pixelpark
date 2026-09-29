@@ -1,3 +1,4 @@
+// Entry point of the Bolajon cashier terminal (Windows POS).
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
