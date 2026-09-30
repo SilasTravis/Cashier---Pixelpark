@@ -17,7 +17,7 @@ class SaleReceiptPrinter {
   static const double _contentWidthMm = 63;
 
   static bool hasPrintableProducts(SaleReceipt receipt) =>
-      receipt.items.any((item) => !_isGateTicket(item.nameSnapshot));
+      receipt.items.isNotEmpty;
 
   /// Printed under the header of a receipt rung up offline, so whoever reads
   /// the paper later knows why it isn't in the server history yet. ASCII
@@ -82,16 +82,13 @@ class SaleReceiptPrinter {
     required String branchName,
     required String cashierName,
   }) async {
-    final items = receipt.items
-        .where((item) => !_isGateTicket(item.nameSnapshot))
-        .toList();
+    final items = receipt.items;
     final grossOfPrinted = items.fold<int>(
       0,
       (sum, item) => sum + item.lineTotalUzs,
     );
-    // The discount is sale-level, not per line — clamp defensively so a
-    // partially-printed item set (gate tickets stripped above) never goes
-    // negative even though goods-only sales never actually mix the two.
+    // The discount is sale-level, not per line — clamp defensively so the
+    // printed total never goes negative.
     final discountUzs = receipt.discountUzs.clamp(0, grossOfPrinted);
     final netOfPrinted = grossOfPrinted - discountUzs;
     final payment = _paymentForPrintedProducts(receipt, netOfPrinted);
@@ -249,9 +246,7 @@ class SaleReceiptPrinter {
 
   static double _receiptHeightMm(SaleReceipt receipt) {
     var height = 98.0;
-    for (final item in receipt.items.where(
-      (item) => !_isGateTicket(item.nameSnapshot),
-    )) {
+    for (final item in receipt.items) {
       final nameLines = (item.nameSnapshot.length / 28).ceil().clamp(1, 3);
       height += 11 + (nameLines - 1) * 5;
     }
@@ -272,15 +267,5 @@ class SaleReceiptPrinter {
     remaining -= card;
     final balance = math.min(receipt.balanceUzs, remaining);
     return (cashUzs: cash, cardUzs: card, balanceUzs: balance);
-  }
-
-  static bool _isGateTicket(String name) {
-    final value = name.trim().toLowerCase();
-    return value.contains('kirish chiptasi') ||
-        value.contains('chiqish chiptasi') ||
-        value.contains('входной билет') ||
-        value.contains('выходной билет') ||
-        value.contains('entry ticket') ||
-        value.contains('exit ticket');
   }
 }

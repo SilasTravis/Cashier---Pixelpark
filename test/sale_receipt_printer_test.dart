@@ -12,7 +12,7 @@ void main() {
     expect(formatReceiptId('abc123'), 'abc123');
   });
 
-  test('gate tickets alone do not produce a product receipt', () {
+  test('every product, gate tickets included, produces a receipt', () {
     final ticketOnly = SaleReceipt(
       id: 'sale-id',
       subtotalUzs: 25000,
@@ -29,7 +29,7 @@ void main() {
         ),
       ],
     );
-    expect(SaleReceiptPrinter.hasPrintableProducts(ticketOnly), isFalse);
+    expect(SaleReceiptPrinter.hasPrintableProducts(ticketOnly), isTrue);
 
     final withProduct = SaleReceipt(
       id: ticketOnly.id,
