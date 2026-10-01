@@ -12,6 +12,7 @@ import '../../../offline/data/offline_store.dart';
 import '../../../offline/presentation/pages/unsynced_sales_page.dart';
 import '../../../pos_account/presentation/pages/pos_account_page.dart';
 import '../../../inside/presentation/pages/inside_page.dart';
+import '../../../market/presentation/pages/market_page.dart';
 import '../../../pos_sale/presentation/pages/pos_sale_page.dart';
 import '../../../sales_history/presentation/pages/sales_history_page.dart';
 import '../../../visit_history/presentation/pages/visit_history_page.dart';
@@ -192,6 +193,7 @@ class _TabContent extends StatelessWidget {
       ShellTab.salesHistory => SalesHistoryPage(onOpenCustomer: onOpenCustomer),
       ShellTab.visitHistory => VisitHistoryPage(onOpenCustomer: onOpenCustomer),
       ShellTab.inside => const InsidePage(),
+      ShellTab.market => const MarketPage(),
       ShellTab.settings => const SettingsPage(),
       ShellTab.unsynced => UnsyncedSalesPage(
         store: sl<OfflineStore>(),

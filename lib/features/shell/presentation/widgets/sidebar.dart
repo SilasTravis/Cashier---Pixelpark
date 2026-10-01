@@ -117,7 +117,7 @@ class Sidebar extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           // Scrolls instead of overflowing: with the Unsynced tab there are
-          // seven tiles, more than fit above the footer at the 600 px
+          // eight tiles, more than fit above the footer at the 600 px
           // minimum window height.
           Expanded(
             child: SingleChildScrollView(

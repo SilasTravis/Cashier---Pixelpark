@@ -43,6 +43,9 @@ void main() {
 
       await tester.tap(find.text(l10n.tabAccount));
       await tester.tap(find.text(l10n.tabSales));
+      // Eight tiles: the last one scrolls into view at the 600 px height.
+      await tester.ensureVisible(find.text(l10n.tabUnsynced));
+      await tester.pumpAndSettle();
       await tester.tap(find.text(l10n.tabUnsynced));
 
       expect(tapped, [ShellTab.posSale, ShellTab.unsynced]);

@@ -2793,6 +2793,246 @@ class AppLocalization {
       args: [],
     );
   }
+
+  /// `Pixel Market orders`
+  String get tabMarket {
+    return Intl.message(
+      'Pixel Market orders',
+      name: 'tabMarket',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Hand over`
+  String get marketGive {
+    return Intl.message('Hand over', name: 'marketGive', desc: '', args: []);
+  }
+
+  /// `Incoming`
+  String get marketIncoming {
+    return Intl.message('Incoming', name: 'marketIncoming', desc: '', args: []);
+  }
+
+  /// `Pickup code`
+  String get marketCodeLabel {
+    return Intl.message(
+      'Pickup code',
+      name: 'marketCodeLabel',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Scan the QR or type the 6-digit code`
+  String get marketCodeHint {
+    return Intl.message(
+      'Scan the QR or type the 6-digit code',
+      name: 'marketCodeHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Find`
+  String get marketCodeFind {
+    return Intl.message('Find', name: 'marketCodeFind', desc: '', args: []);
+  }
+
+  /// `The code must be 6 digits`
+  String get marketCodeInvalid {
+    return Intl.message(
+      'The code must be 6 digits',
+      name: 'marketCodeInvalid',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The request failed — try again`
+  String get marketRequestFailed {
+    return Intl.message(
+      'The request failed — try again',
+      name: 'marketRequestFailed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Scan the QR code in the parent’s app`
+  String get marketScanPrompt {
+    return Intl.message(
+      'Scan the QR code in the parent’s app',
+      name: 'marketScanPrompt',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Order #{number}`
+  String marketOrderNumber(String number) {
+    return Intl.message(
+      'Order #$number',
+      name: 'marketOrderNumber',
+      desc: '',
+      args: [number],
+    );
+  }
+
+  /// `Customer`
+  String get marketCustomer {
+    return Intl.message('Customer', name: 'marketCustomer', desc: '', args: []);
+  }
+
+  /// `New`
+  String get marketStatusPlaced {
+    return Intl.message('New', name: 'marketStatusPlaced', desc: '', args: []);
+  }
+
+  /// `Shop is preparing`
+  String get marketStatusConfirmed {
+    return Intl.message(
+      'Shop is preparing',
+      name: 'marketStatusConfirmed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Sent by the shop`
+  String get marketStatusHandedOver {
+    return Intl.message(
+      'Sent by the shop',
+      name: 'marketStatusHandedOver',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `At the park`
+  String get marketStatusAtBranch {
+    return Intl.message(
+      'At the park',
+      name: 'marketStatusAtBranch',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Picked up`
+  String get marketStatusPickedUp {
+    return Intl.message(
+      'Picked up',
+      name: 'marketStatusPickedUp',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Cancelled`
+  String get marketStatusCancelled {
+    return Intl.message(
+      'Cancelled',
+      name: 'marketStatusCancelled',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Receive`
+  String get marketReceive {
+    return Intl.message('Receive', name: 'marketReceive', desc: '', args: []);
+  }
+
+  /// `Received`
+  String get marketReceived {
+    return Intl.message('Received', name: 'marketReceived', desc: '', args: []);
+  }
+
+  /// `Order received — the parent has been notified`
+  String get marketReceivedToast {
+    return Intl.message(
+      'Order received — the parent has been notified',
+      name: 'marketReceivedToast',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Handed over`
+  String get marketHandOver {
+    return Intl.message(
+      'Handed over',
+      name: 'marketHandOver',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Receive the shop’s sent orders with “Receive” first — only orders at the park are handed over`
+  String get marketUnreceivedHint {
+    return Intl.message(
+      'Receive the shop’s sent orders with “Receive” first — only orders at the park are handed over',
+      name: 'marketUnreceivedHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Handed over!`
+  String get marketHandedTitle {
+    return Intl.message(
+      'Handed over!',
+      name: 'marketHandedTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{count} order(s) handed to the customer`
+  String marketHandedBody(int count) {
+    return Intl.message(
+      '$count order(s) handed to the customer',
+      name: 'marketHandedBody',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `Next customer`
+  String get marketNext {
+    return Intl.message(
+      'Next customer',
+      name: 'marketNext',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{count} item(s)`
+  String marketItemsCount(int count) {
+    return Intl.message(
+      '$count item(s)',
+      name: 'marketItemsCount',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `Total`
+  String get marketTotal {
+    return Intl.message('Total', name: 'marketTotal', desc: '', args: []);
+  }
+
+  /// `No incoming orders yet`
+  String get marketIncomingEmpty {
+    return Intl.message(
+      'No incoming orders yet',
+      name: 'marketIncomingEmpty',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalization> {
