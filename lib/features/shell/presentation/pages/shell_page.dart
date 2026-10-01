@@ -12,6 +12,7 @@ import '../../../offline/data/offline_store.dart';
 import '../../../offline/presentation/pages/unsynced_sales_page.dart';
 import '../../../pos_account/presentation/pages/pos_account_page.dart';
 import '../../../inside/presentation/pages/inside_page.dart';
+import '../../../market/presentation/bloc/market_status_cubit.dart';
 import '../../../market/presentation/pages/market_page.dart';
 import '../../../pos_sale/presentation/pages/pos_sale_page.dart';
 import '../../../sales_history/presentation/pages/sales_history_page.dart';
@@ -41,8 +42,11 @@ class ShellPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => sl<ShiftBloc>()..add(const ShiftStarted()),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => sl<ShiftBloc>()..add(const ShiftStarted())),
+        BlocProvider(create: (_) => sl<MarketStatusCubit>()..start()),
+      ],
       child: const _ShellView(),
     );
   }
@@ -70,8 +74,13 @@ class _ShellViewState extends State<_ShellView> {
   @override
   Widget build(BuildContext context) {
     final mode = context.watch<AppModeCubit>().state;
+    final market = context.watch<MarketStatusCubit>().state;
     final tabs = [
-      ...ShellTab.primary,
+      for (final tab in ShellTab.primary)
+        // Pixel Market only while the backend says so (switch on, or paid
+        // parcels still open here); the open tab is never yanked away.
+        if (tab != ShellTab.market || market.showTab || _tab == ShellTab.market)
+          tab,
       if (mode.queuedCount > 0 || _tab == ShellTab.unsynced) ShellTab.unsynced,
     ];
     final disabled = mode.isOffline
@@ -83,8 +92,10 @@ class _ShellViewState extends State<_ShellView> {
     final tab = disabled.contains(_tab) ? ShellTab.posSale : _tab;
     return BlocListener<AppModeCubit, AppModeState>(
       listenWhen: shiftNeedsRefresh,
-      listener: (context, _) =>
-          context.read<ShiftBloc>().add(const ShiftRefreshed()),
+      listener: (context, state) {
+        context.read<ShiftBloc>().add(const ShiftRefreshed());
+        if (!state.isOffline) context.read<MarketStatusCubit>().refresh();
+      },
       child: ModePromptHost(
         onShowUnsynced: () => setState(() => _tab = ShellTab.unsynced),
         child: Scaffold(
@@ -122,7 +133,10 @@ class _ShellViewState extends State<_ShellView> {
                           selected: tab,
                           tabs: tabs,
                           disabledTabs: disabled,
-                          counts: {ShellTab.unsynced: mode.queuedCount},
+                          counts: {
+                            ShellTab.unsynced: mode.queuedCount,
+                            ShellTab.market: market.openOrders,
+                          },
                           onSelect: (picked) => setState(() {
                             _tab = picked;
                             if (picked == ShellTab.posAccount) {

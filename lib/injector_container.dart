@@ -31,6 +31,7 @@ import 'features/inside/data/inside_repository.dart';
 import 'features/inside/presentation/bloc/inside_cubit.dart';
 import 'features/market/data/market_repository.dart';
 import 'features/market/presentation/bloc/market_incoming_cubit.dart';
+import 'features/market/presentation/bloc/market_status_cubit.dart';
 import 'features/market/presentation/bloc/market_pickup_cubit.dart';
 import 'features/pos_account/data/pos_account_repository_impl.dart';
 import 'features/pos_account/presentation/bloc/pos_account_bloc.dart';
@@ -156,6 +157,7 @@ void _salesHistoryFeature() {
 void _marketFeature() {
   sl.registerFactory<MarketPickupCubit>(() => MarketPickupCubit(sl()));
   sl.registerFactory<MarketIncomingCubit>(() => MarketIncomingCubit(sl()));
+  sl.registerFactory<MarketStatusCubit>(() => MarketStatusCubit(sl()));
   sl.registerLazySingleton<MarketRepository>(() => MarketRepository(sl()));
 }
 

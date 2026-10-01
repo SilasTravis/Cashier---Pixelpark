@@ -9,6 +9,24 @@ class MarketRepository {
   MarketRepository(this.dio);
   final Dio dio;
 
+  /// Whether to show the Pixel Market tab (the Dashboard switch is on, or
+  /// paid parcels for this park are still open) and how many are open.
+  /// Any failure — including a backend that has no market yet — hides it.
+  Future<({bool showTab, int openOrders})> status() async {
+    try {
+      final response = await dio.get('/v1/pos/market/status');
+      final data = response.data;
+      if (data is! Map) return (showTab: false, openOrders: 0);
+      final open = data['openOrders'];
+      return (
+        showTab: data['showTab'] == true,
+        openOrders: open is num ? open.toInt() : 0,
+      );
+    } on DioException {
+      return (showTab: false, openOrders: 0);
+    }
+  }
+
   /// Orders on their way here: `confirmed` (the shop is packing) and
   /// `handed_over` (the shop sent it — can be received).
   Future<List<MarketOrder>> incoming() =>
