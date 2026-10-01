@@ -577,7 +577,7 @@
   "promoCodeNotStarted": "This promo code is not active yet",
   "promoCodeLimitReached": "This promo code has reached its usage limit",
   "promoCodeAlreadyUsedByCustomer": "This customer has already used this promo code",
-  "tabMarket": "Pixel Market orders",
+  "tabMarket": "Pixel Market",
   "marketGive": "Hand over",
   "marketIncoming": "Incoming",
   "marketCodeLabel": "Pickup code",

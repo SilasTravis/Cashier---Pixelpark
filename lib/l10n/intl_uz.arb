@@ -653,7 +653,7 @@
   "promoCodeNotStarted": "Promokod hali amal qilmaydi",
   "promoCodeLimitReached": "Promokoddan foydalanish limiti tugagan",
   "promoCodeAlreadyUsedByCustomer": "Bu mijoz ushbu promokoddan allaqachon foydalangan",
-  "tabMarket": "Pixel Market buyurtmalari",
+  "tabMarket": "Pixel Market",
   "marketGive": "Berish",
   "marketIncoming": "Kelayotgan",
   "marketCodeLabel": "Olish kodi",

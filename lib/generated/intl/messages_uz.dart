@@ -623,9 +623,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "tabAccount": MessageLookupByLibrary.simpleMessage("Hisob va QR"),
     "tabHistory": MessageLookupByLibrary.simpleMessage("Sotuv tarixi"),
     "tabInside": MessageLookupByLibrary.simpleMessage("Park ichida"),
-    "tabMarket": MessageLookupByLibrary.simpleMessage(
-      "Pixel Market buyurtmalari",
-    ),
+    "tabMarket": MessageLookupByLibrary.simpleMessage("Pixel Market"),
     "tabSales": MessageLookupByLibrary.simpleMessage("Savdo"),
     "tabSettings": MessageLookupByLibrary.simpleMessage("Sozlamalar"),
     "tabUnsynced": MessageLookupByLibrary.simpleMessage("Sinxronlanmagan"),

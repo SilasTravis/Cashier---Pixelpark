@@ -625,7 +625,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "tabAccount": MessageLookupByLibrary.simpleMessage("Счёт и QR"),
     "tabHistory": MessageLookupByLibrary.simpleMessage("История продаж"),
     "tabInside": MessageLookupByLibrary.simpleMessage("В парке"),
-    "tabMarket": MessageLookupByLibrary.simpleMessage("Заказы Pixel Market"),
+    "tabMarket": MessageLookupByLibrary.simpleMessage("Pixel Market"),
     "tabSales": MessageLookupByLibrary.simpleMessage("Продажи"),
     "tabSettings": MessageLookupByLibrary.simpleMessage("Настройки"),
     "tabUnsynced": MessageLookupByLibrary.simpleMessage("Не синхронизировано"),

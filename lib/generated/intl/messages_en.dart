@@ -606,7 +606,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "tabAccount": MessageLookupByLibrary.simpleMessage("Account & QR"),
     "tabHistory": MessageLookupByLibrary.simpleMessage("Sales history"),
     "tabInside": MessageLookupByLibrary.simpleMessage("Inside park"),
-    "tabMarket": MessageLookupByLibrary.simpleMessage("Pixel Market orders"),
+    "tabMarket": MessageLookupByLibrary.simpleMessage("Pixel Market"),
     "tabSales": MessageLookupByLibrary.simpleMessage("Sales"),
     "tabSettings": MessageLookupByLibrary.simpleMessage("Settings"),
     "tabUnsynced": MessageLookupByLibrary.simpleMessage("Unsynced"),

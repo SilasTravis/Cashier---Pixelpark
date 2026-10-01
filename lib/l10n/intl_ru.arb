@@ -577,7 +577,7 @@
   "promoCodeNotStarted": "Промокод ещё не действует",
   "promoCodeLimitReached": "Лимит использований промокода исчерпан",
   "promoCodeAlreadyUsedByCustomer": "Этот клиент уже использовал этот промокод",
-  "tabMarket": "Заказы Pixel Market",
+  "tabMarket": "Pixel Market",
   "marketGive": "Выдача",
   "marketIncoming": "В пути",
   "marketCodeLabel": "Код получения",

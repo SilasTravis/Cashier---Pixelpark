@@ -2794,14 +2794,9 @@ class AppLocalization {
     );
   }
 
-  /// `Pixel Market orders`
+  /// `Pixel Market`
   String get tabMarket {
-    return Intl.message(
-      'Pixel Market orders',
-      name: 'tabMarket',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('Pixel Market', name: 'tabMarket', desc: '', args: []);
   }
 
   /// `Hand over`
