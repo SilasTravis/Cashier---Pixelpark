@@ -5,6 +5,7 @@ import 'package:phosphor_icons/phosphor_icons.dart';
 import '../theme/app_text_styles.dart';
 import '../theme/nocturne_colors.dart';
 import '../utils/currency.dart';
+import '../../generated/l10n.dart';
 
 /// How a charge is funded — mirrors the design's `Naqd` / `Karta` / `Aralash`
 /// pills. `cash`/`card` send the whole total to one method with no typing;
@@ -35,9 +36,15 @@ class PaymentSplit {
     required int totalUzs,
     required String cashInput,
     String cardInput = '',
+    // A 100%-off discount is a valid, zero-total sale (see the POS
+    // discounts design doc's "zero-total sales" decision) — the caller
+    // opts in only when a discount is actually selected, so a genuinely
+    // empty cart's zero total stays invalid.
+    bool allowZeroTotal = false,
   }) {
     if (totalUzs <= 0) {
-      return const PaymentSplit(cashUzs: 0, cardUzs: 0, isValid: false);
+      final zeroIsValid = allowZeroTotal && totalUzs == 0;
+      return PaymentSplit(cashUzs: 0, cardUzs: 0, isValid: zeroIsValid);
     }
     switch (method) {
       case PaymentMethod.cash:
@@ -57,17 +64,9 @@ class PaymentSplit {
 }
 
 const _methods = [
-  (method: PaymentMethod.cash, label: 'Naqd', icon: PhosphorIconsRegular.money),
-  (
-    method: PaymentMethod.card,
-    label: 'Karta',
-    icon: PhosphorIconsRegular.creditCard,
-  ),
-  (
-    method: PaymentMethod.split,
-    label: 'Aralash',
-    icon: PhosphorIconsRegular.arrowsLeftRight,
-  ),
+  (method: PaymentMethod.cash, icon: PhosphorIconsRegular.money),
+  (method: PaymentMethod.card, icon: PhosphorIconsRegular.creditCard),
+  (method: PaymentMethod.split, icon: PhosphorIconsRegular.arrowsLeftRight),
 ];
 
 /// The `Naqd` / `Karta` / `Aralash` pill row — equal-width, icon + label,
@@ -84,13 +83,18 @@ class PaymentMethodPills extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
     return Row(
       children: [
         for (final m in _methods) ...[
           if (m.method != _methods.first.method) const SizedBox(width: 6),
           Expanded(
             child: _Pill(
-              label: m.label,
+              label: switch (m.method) {
+                PaymentMethod.cash => l10n.paymentCash,
+                PaymentMethod.card => l10n.paymentCard,
+                PaymentMethod.split => l10n.paymentSplit,
+              },
               icon: m.icon,
               selected: selected == m.method,
               onTap: () => onChanged(m.method),
@@ -144,16 +148,18 @@ class _Pill extends StatelessWidget {
                 color: selected ? NocturneColors.accent : NocturneColors.text,
               ),
               const SizedBox(width: 6),
-              // Flexible + ellipsis: the pills split a row three ways and
-              // must shrink on narrow windows instead of overflowing.
               Flexible(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.body.copyWith(
-                    fontSize: 13,
-                    color: selected ? NocturneColors.accent : NocturneColors.text,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    style: AppTextStyles.body.copyWith(
+                      fontSize: 12,
+                      color: selected
+                          ? NocturneColors.accent
+                          : NocturneColors.text,
+                    ),
                   ),
                 ),
               ),
@@ -187,6 +193,7 @@ class SplitAmountFields extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
     final entered = split.cashUzs + split.cardUzs;
     final remaining = totalUzs - entered;
     return Column(
@@ -201,7 +208,7 @@ class SplitAmountFields extends StatelessWidget {
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 style: AppTextStyles.body,
                 onChanged: (_) => onChanged?.call(),
-                decoration: const InputDecoration(labelText: 'Naqd'),
+                decoration: InputDecoration(labelText: l10n.paymentCash),
               ),
             ),
             const SizedBox(width: 8),
@@ -212,7 +219,7 @@ class SplitAmountFields extends StatelessWidget {
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 style: AppTextStyles.body,
                 onChanged: (_) => onChanged?.call(),
-                decoration: const InputDecoration(labelText: 'Karta'),
+                decoration: InputDecoration(labelText: l10n.paymentCard),
               ),
             ),
           ],
@@ -222,10 +229,10 @@ class SplitAmountFields extends StatelessWidget {
           children: [
             Text(
               remaining == 0
-                  ? 'Summa mos keldi'
+                  ? l10n.paymentMatched
                   : remaining > 0
-                  ? 'Yetmayapti'
-                  : 'Ortiqcha kiritildi',
+                  ? l10n.paymentMissing
+                  : l10n.paymentExcess,
               style: AppTextStyles.body.copyWith(
                 fontSize: 12,
                 color: remaining == 0

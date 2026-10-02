@@ -20,7 +20,10 @@ class AuthRepositoryImpl implements AuthRepository {
     required String password,
   }) async {
     try {
-      final loginResponse = await remoteDataSource.login(username: username, password: password);
+      final loginResponse = await remoteDataSource.login(
+        username: username,
+        password: password,
+      );
       _saveTokens(loginResponse.tokens);
 
       // The login response doesn't include the branch — fetch it once so
@@ -31,7 +34,13 @@ class AuthRepositoryImpl implements AuthRepository {
         AuthSession(cashier: session.cashier, branch: session.branch),
       );
     } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message, code: e.code, statusCode: e.statusCode));
+      return Left(
+        ServerFailure(
+          message: e.message,
+          code: e.code,
+          statusCode: e.statusCode,
+        ),
+      );
     } on NoInternetException {
       return Left(NoInternetFailure());
     }
@@ -42,9 +51,17 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       final session = await remoteDataSource.getMe();
       _saveSession(session);
-      return Right(AuthSession(cashier: session.cashier, branch: session.branch));
+      return Right(
+        AuthSession(cashier: session.cashier, branch: session.branch),
+      );
     } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message, code: e.code, statusCode: e.statusCode));
+      return Left(
+        ServerFailure(
+          message: e.message,
+          code: e.code,
+          statusCode: e.statusCode,
+        ),
+      );
     } on NoInternetException {
       return Left(NoInternetFailure());
     }

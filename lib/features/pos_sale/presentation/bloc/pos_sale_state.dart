@@ -7,9 +7,13 @@ class PosSaleState extends Equatable {
     this.selectedCategory,
     this.searchQuery = '',
     this.cart = const {},
+    this.discounts = const [],
+    this.selectedDiscountId,
     this.isCheckingOut = false,
     this.errorMessage,
+    this.errorCode,
     this.lastReceipt,
+    this.offlineMode = false,
   });
 
   final bool isLoadingProducts;
@@ -22,25 +26,57 @@ class PosSaleState extends Equatable {
 
   /// productId → qty.
   final Map<String, int> cart;
+
+  /// Active discount catalog (`GET /v1/pos/discounts`) — best-effort, like
+  /// products: empty on fetch failure, which just hides the picker.
+  final List<Discount> discounts;
+
+  /// At most one discount per receipt. Reset whenever the cart is cleared,
+  /// a checkout succeeds, or the server reports it is no longer available.
+  final String? selectedDiscountId;
   final bool isCheckingOut;
   final String? errorMessage;
+
+  /// Machine-readable code paired with [errorMessage] — same reset-on-every-
+  /// copyWith lifecycle (not `?? this.errorCode`), so it never lingers past
+  /// the action that set it. Lets the widget react to a specific failure
+  /// (`DISCOUNT_NOT_AVAILABLE`) without parsing the localized message text.
+  final String? errorCode;
   final SaleReceipt? lastReceipt;
 
+  /// Offline mode: sales are queued locally; offline-only plan items show.
+  final bool offlineMode;
+
+  /// What this mode may sell: offline-only items (VIP / hourly plans sold
+  /// without a QR) exist only in offline mode.
+  List<Product> get sellableProducts => offlineMode
+      ? products
+      : products.where((product) => !product.offlineOnly).toList();
+
   List<String> get categories =>
-      products.map((p) => p.category).toSet().toList()..sort();
+      sellableProducts.map((p) => p.category).toSet().toList()..sort();
+
+  Discount? get selectedDiscount => selectedDiscountId == null
+      ? null
+      : discounts.where((d) => d.id == selectedDiscountId).firstOrNull;
 
   List<Product> get visibleProducts {
     final query = searchQuery.trim().toLowerCase();
-    return products.where((p) {
+    return sellableProducts.where((p) {
+      final normalizedCategory = p.category.trim().toLowerCase();
       final matchesCategory =
-          selectedCategory == null || p.category == selectedCategory;
-      final matchesQuery = query.isEmpty || p.name.toLowerCase().contains(query);
+          selectedCategory == null ||
+          normalizedCategory == selectedCategory!.trim().toLowerCase();
+      final matchesQuery =
+          query.isEmpty ||
+          p.name.toLowerCase().contains(query) ||
+          normalizedCategory.contains(query);
       return matchesCategory && matchesQuery;
     }).toList();
   }
 
   List<CartLine> get cartLines {
-    final byId = {for (final product in products) product.id: product};
+    final byId = {for (final product in sellableProducts) product.id: product};
     return [
       for (final entry in cart.entries)
         if (byId[entry.key] case final product?)
@@ -48,8 +84,20 @@ class PosSaleState extends Equatable {
     ];
   }
 
-  int get subtotalUzs =>
-      cartLines.fold(0, (sum, line) => sum + line.lineTotalUzs);
+  /// Undiscounted sum of line totals (was named `subtotalUzs` before this
+  /// feature — every call site has been checked and updated; see
+  /// `cart_panel.dart`).
+  int get grossUzs => cartLines.fold(0, (sum, line) => sum + line.lineTotalUzs);
+
+  /// PREVIEW ONLY (see `Discount.appliedDiscountUzs` doc comment) — the
+  /// printed receipt / history / shift totals always come from the
+  /// server's response instead.
+  int get discountUzs => selectedDiscount?.appliedDiscountUzs(grossUzs) ?? 0;
+
+  /// Net total shown on-screen and used to size the payment split. Can be
+  /// exactly 0 when a discount is applied — that is a valid checkout (see
+  /// `PaymentSplit.compute`'s `allowZeroTotal`).
+  int get totalUzs => grossUzs - discountUzs;
 
   PosSaleState copyWith({
     bool? isLoadingProducts,
@@ -58,10 +106,15 @@ class PosSaleState extends Equatable {
     bool clearCategory = false,
     String? searchQuery,
     Map<String, int>? cart,
+    List<Discount>? discounts,
+    String? selectedDiscountId,
+    bool clearSelectedDiscountId = false,
     bool? isCheckingOut,
     String? errorMessage,
+    String? errorCode,
     SaleReceipt? lastReceipt,
     bool clearLastReceipt = false,
+    bool? offlineMode,
   }) {
     return PosSaleState(
       isLoadingProducts: isLoadingProducts ?? this.isLoadingProducts,
@@ -71,9 +124,15 @@ class PosSaleState extends Equatable {
           : (selectedCategory ?? this.selectedCategory),
       searchQuery: searchQuery ?? this.searchQuery,
       cart: cart ?? this.cart,
+      discounts: discounts ?? this.discounts,
+      selectedDiscountId: clearSelectedDiscountId
+          ? null
+          : (selectedDiscountId ?? this.selectedDiscountId),
       isCheckingOut: isCheckingOut ?? this.isCheckingOut,
       errorMessage: errorMessage,
+      errorCode: errorCode,
       lastReceipt: clearLastReceipt ? null : (lastReceipt ?? this.lastReceipt),
+      offlineMode: offlineMode ?? this.offlineMode,
     );
   }
 
@@ -84,8 +143,12 @@ class PosSaleState extends Equatable {
     selectedCategory,
     searchQuery,
     cart,
+    discounts,
+    selectedDiscountId,
     isCheckingOut,
     errorMessage,
+    errorCode,
     lastReceipt,
+    offlineMode,
   ];
 }

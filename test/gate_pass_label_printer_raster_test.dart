@@ -27,34 +27,40 @@ PdfRasterBase _fakeRaster(int width, int height) {
 }
 
 void main() {
-  test('rasterizedLabelPdf builds an image-only PDF with no soft mask',
-      () async {
-    final bytes = await GatePassLabelPrinter.rasterizedLabelPdf(
-      Stream.fromIterable([_fakeRaster(46, 32), _fakeRaster(46, 32)]),
-    );
+  test(
+    'rasterizedLabelPdf builds an image-only PDF with no soft mask',
+    () async {
+      final bytes = await GatePassLabelPrinter.rasterizedLabelPdf(
+        Stream.fromIterable([_fakeRaster(46, 32), _fakeRaster(46, 32)]),
+      );
 
-    expect(bytes, isNotNull);
-    final pdf = latin1.decode(bytes!);
-    expect(pdf, startsWith('%PDF'));
-    // Two pages, one per sticker.
-    expect('/Type /Page '.allMatches(pdf).length +
-        '/Type /Page\n'.allMatches(pdf).length +
-        '/Type/Page'.allMatches(pdf).length,
-        greaterThanOrEqualTo(2));
-    // The embedded raster must be opaque: a soft mask means the alpha
-    // channel leaked through and Windows GDI printing would need
-    // AlphaBlend again.
-    expect(pdf.contains('/SMask'), isFalse);
-    // Page is the physical 58×40mm label (in points: ~164.4 × ~113.4).
-    expect(pdf, contains('164.4'));
-    expect(pdf, contains('113.3'));
-  });
+      expect(bytes, isNotNull);
+      final pdf = latin1.decode(bytes!);
+      expect(pdf, startsWith('%PDF'));
+      // Two pages, one per sticker.
+      expect(
+        '/Type /Page '.allMatches(pdf).length +
+            '/Type /Page\n'.allMatches(pdf).length +
+            '/Type/Page'.allMatches(pdf).length,
+        greaterThanOrEqualTo(2),
+      );
+      // The embedded raster must be opaque: a soft mask means the alpha
+      // channel leaked through and Windows GDI printing would need
+      // AlphaBlend again.
+      expect(pdf.contains('/SMask'), isFalse);
+      // Page is the physical 58×40mm label (in points: ~164.4 × ~113.4).
+      expect(pdf, contains('164.4'));
+      expect(pdf, contains('113.3'));
+    },
+  );
 
-  test('rasterizedLabelPdf returns null when rasterization yields no pages',
-      () async {
-    final bytes = await GatePassLabelPrinter.rasterizedLabelPdf(
-      const Stream.empty(),
-    );
-    expect(bytes, isNull);
-  });
+  test(
+    'rasterizedLabelPdf returns null when rasterization yields no pages',
+    () async {
+      final bytes = await GatePassLabelPrinter.rasterizedLabelPdf(
+        const Stream.empty(),
+      );
+      expect(bytes, isNull);
+    },
+  );
 }

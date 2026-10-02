@@ -4,7 +4,9 @@ import 'package:phosphor_icons/phosphor_icons.dart';
 
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
+import '../../../../core/utils/responsive.dart';
 import '../bloc/pos_account_bloc.dart';
+import '../../../../generated/l10n.dart';
 
 const _keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'];
 
@@ -48,7 +50,15 @@ class PhoneKeypad extends StatelessWidget {
                       state.phoneDigits.isEmpty
                           ? '+998'
                           : _formatPhone(state.phoneDigits),
-                      style: AppTextStyles.h4,
+                      maxLines: 1,
+                      softWrap: false,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.h4.copyWith(
+                        fontSize:
+                            breakpointOfContext(context) == Breakpoint.compact
+                            ? 16
+                            : null,
+                      ),
                     ),
                   ),
                   if (state.isSearching)
@@ -91,8 +101,7 @@ class PhoneKeypad extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              "Raqamni kiritganda o'ngda natija chiqadi. Mijozni bosib, "
-              "tafsilotlarni ochasiz.",
+              AppLocalization.of(context).keypadHint,
               style: AppTextStyles.body.copyWith(
                 fontSize: 11,
                 color: NocturneColors.text.withValues(alpha: 0.45),

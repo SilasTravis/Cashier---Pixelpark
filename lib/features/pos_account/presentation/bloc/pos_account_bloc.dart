@@ -4,7 +4,9 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/error/failure.dart';
+import '../../../../core/local_source/local_source.dart';
 import '../../../products/domain/product.dart';
+import '../../../pos_sale/domain/discount.dart';
 import '../../data/pos_account_remote_data_source.dart' show CheckoutLine;
 import '../../data/pos_account_repository_impl.dart';
 import '../../domain/active_pass.dart';
@@ -13,20 +15,28 @@ import '../../domain/kids_plan.dart';
 import '../../domain/parent_pass.dart';
 import '../../domain/playing_child.dart';
 import '../../domain/pos_entry.dart';
+import '../../domain/promo_code_check.dart';
+import '../../../../core/utils/promo_code.dart';
 
 part 'pos_account_event.dart';
 part 'pos_account_state.dart';
 
 class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
-  PosAccountBloc(this._repository) : super(const PosAccountState()) {
+  PosAccountBloc(this._repository, [this._localSource])
+    : super(const PosAccountState()) {
     on<PosAccountDigitPressed>(_onDigitPressed);
     on<PosAccountBackspacePressed>(_onBackspacePressed);
     on<PosAccountSearchRequested>(_onSearchRequested);
+    on<PosAccountQueryChanged>(_onQueryChanged);
     on<PosAccountRecentCustomersRequested>(_onRecentCustomersRequested);
+    on<PosAccountMoreCustomersRequested>(_onMoreCustomersRequested);
     on<PosAccountCustomerSelected>(_onCustomerSelected);
     on<PosAccountSelectionCleared>(_onSelectionCleared);
+    on<PosAccountCustomerRefreshRequested>(_onCustomerRefreshRequested);
     on<PosAccountNewCustomerRequested>(_onNewCustomerRequested);
     on<PosAccountChildAddRequested>(_onChildAddRequested);
+    on<PosAccountCustomerNameUpdateRequested>(_onCustomerNameUpdateRequested);
+    on<PosAccountChildNameUpdateRequested>(_onChildNameUpdateRequested);
     on<PosAccountTopupRequested>(_onTopupRequested);
     on<PosAccountParentQrRequested>(_onParentQrRequested);
     on<PosAccountParentQrAcknowledged>(_onParentQrAcknowledged);
@@ -37,9 +47,22 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     on<PosAccountPlayingRequested>(_onPlayingRequested);
     on<PosAccountActivePassesRequested>(_onActivePassesRequested);
     on<PosAccountCheckoutRequested>(_onCheckoutRequested);
+    on<PosAccountConfigRequested>(_onConfigRequested);
+    on<PosAccountDiscountsRequested>(_onDiscountsRequested);
+    on<PosAccountPromoCodeSubmitted>(_onPromoCodeSubmitted);
+    on<_PosAccountPromoCodeRechecked>(_onPromoCodeRechecked);
+    on<PosAccountPromoCodeCleared>(
+      (event, emit) =>
+          emit(state.copyWith(clearPromo: true, clearPromoError: true)),
+    );
   }
 
   final PosAccountRepository _repository;
+
+  /// Bumped by every promo verify, so a stale answer only clears the busy
+  /// flag when no newer verify started after it.
+  int _promoRequest = 0;
+  final LocalSource? _localSource;
 
   static const _maxPhoneDigits = 9;
   static const _minSearchDigits = 7;
@@ -55,6 +78,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     emit(
       state.copyWith(
         phoneDigits: state.phoneDigits + event.digit,
+        searchQuery: state.phoneDigits + event.digit,
         errorMessage: null,
       ),
     );
@@ -69,6 +93,10 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     emit(
       state.copyWith(
         phoneDigits: state.phoneDigits.substring(
+          0,
+          state.phoneDigits.length - 1,
+        ),
+        searchQuery: state.phoneDigits.substring(
           0,
           state.phoneDigits.length - 1,
         ),
@@ -90,6 +118,23 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     );
   }
 
+  void _onQueryChanged(
+    PosAccountQueryChanged event,
+    Emitter<PosAccountState> emit,
+  ) {
+    _debounce?.cancel();
+    final query = event.query.trimLeft();
+    emit(state.copyWith(searchQuery: query));
+    if (query.trim().length < 2) {
+      emit(state.copyWith(results: const [], isSearching: false));
+      return;
+    }
+    _debounce = Timer(
+      _searchDebounce,
+      () => add(const PosAccountSearchRequested()),
+    );
+  }
+
   @override
   Future<void> close() {
     _debounce?.cancel();
@@ -100,7 +145,8 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     PosAccountSearchRequested event,
     Emitter<PosAccountState> emit,
   ) async {
-    if (state.phoneDigits.length < _minSearchDigits) return;
+    final query = state.searchQuery.trim();
+    if (query.length < 2) return;
     emit(
       state.copyWith(
         isSearching: true,
@@ -110,7 +156,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
         clearSelected: true,
       ),
     );
-    final result = await _repository.searchCustomers(state.phoneDigits);
+    final result = await _repository.searchCustomers(query);
     result.fold(
       (failure) => emit(
         state.copyWith(isSearching: false, errorMessage: _messageOf(failure)),
@@ -128,10 +174,21 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     PosAccountRecentCustomersRequested event,
     Emitter<PosAccountState> emit,
   ) async {
+    final cached = _readCustomerHistory();
+    if (cached.isNotEmpty) {
+      emit(state.copyWith(customerHistory: cached));
+      await _refreshCachedHistory(cached, emit);
+    }
     try {
       final result = await _repository.searchCustomers('');
       result.fold((failure) {}, (customers) {
-        emit(state.copyWith(recentCustomers: customers.take(10).toList()));
+        emit(
+          state.copyWith(
+            recentCustomers: customers,
+            customerPage: 1,
+            hasMoreCustomers: customers.length == 50,
+          ),
+        );
       });
     } catch (_) {
       // Best-effort — an unexpected response shape here must never surface
@@ -139,19 +196,180 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     }
   }
 
+  Future<void> _onMoreCustomersRequested(
+    PosAccountMoreCustomersRequested event,
+    Emitter<PosAccountState> emit,
+  ) async {
+    if (state.isLoadingMoreCustomers || !state.hasMoreCustomers) return;
+    final nextPage = state.customerPage + 1;
+    emit(state.copyWith(isLoadingMoreCustomers: true));
+    final result = await _repository.searchCustomers('', page: nextPage);
+    result.fold(
+      (_) => emit(state.copyWith(isLoadingMoreCustomers: false)),
+      (customers) => emit(
+        state.copyWith(
+          recentCustomers: [...state.recentCustomers, ...customers],
+          customerPage: nextPage,
+          hasMoreCustomers: customers.length == 50,
+          isLoadingMoreCustomers: false,
+        ),
+      ),
+    );
+  }
+
   Future<void> _onCustomerSelected(
     PosAccountCustomerSelected event,
     Emitter<PosAccountState> emit,
   ) async {
+    final history = [
+      event.customer,
+      ...state.customerHistory.where((item) => item.id != event.customer.id),
+    ].take(10).toList();
+    final keepPromo = _keepsPromoFor(event.customer);
     emit(
       state.copyWith(
         selectedCustomer: event.customer,
+        customerHistory: history,
         playing: [],
         activePasses: [],
+        clearPromo: !keepPromo,
+        clearPromoError: !keepPromo,
       ),
     );
+    unawaited(_persistCustomerHistory(history));
     add(const PosAccountPlayingRequested());
     add(const PosAccountActivePassesRequested());
+    if (keepPromo && state.promo!.isBlogger) {
+      add(const _PosAccountPromoCodeRechecked());
+    }
+  }
+
+  /// Whether `state.promo` survives opening [customer]. A partner code
+  /// belongs to exactly one customer — kept only when that customer is the
+  /// one being opened (the scan-to-open path). A blogger code has no owner:
+  /// one accepted on the search screen rides into whichever customer is
+  /// opened (or created) next; switching from one customer to another
+  /// drops it, like a partner code.
+  bool _keepsPromoFor(Customer customer) {
+    final promo = state.promo;
+    if (promo == null) return false;
+    if (promo.isBlogger) {
+      final current = state.selectedCustomer;
+      return current == null || current.id == customer.id;
+    }
+    return promo.owner?.id == customer.id;
+  }
+
+  List<Customer> _readCustomerHistory() {
+    try {
+      return (_localSource?.getCustomerSearchHistory() ?? const [])
+          .map(_customerFromJson)
+          .whereType<Customer>()
+          .take(10)
+          .toList(growable: false);
+    } catch (_) {
+      // A record written by an older app version must never break the page.
+      return const [];
+    }
+  }
+
+  Future<void> _persistCustomerHistory(List<Customer> customers) async {
+    try {
+      await _localSource?.setCustomerSearchHistory(
+        customers.take(10).map(_customerToJson).toList(growable: false),
+      );
+    } catch (_) {
+      // Search remains fully usable if local disk/Hive is unavailable.
+    }
+  }
+
+  Future<void> _refreshCachedHistory(
+    List<Customer> cached,
+    Emitter<PosAccountState> emit,
+  ) async {
+    final refreshedById = <int, Customer>{};
+    await Future.wait(
+      cached.map((snapshot) async {
+        final result = await _repository.searchCustomers(snapshot.phoneNumber);
+        result.fold((_) {}, (customers) {
+          for (final customer in customers) {
+            if (customer.id == snapshot.id) {
+              refreshedById[snapshot.id] = customer;
+              break;
+            }
+          }
+        });
+      }),
+    );
+    if (refreshedById.isEmpty || emit.isDone) return;
+
+    // Preserve any selection made while refresh calls were in flight and
+    // only replace matching snapshots with their fresh server versions.
+    final history = state.customerHistory
+        .map((item) => refreshedById[item.id] ?? item)
+        .toList(growable: false);
+    emit(state.copyWith(customerHistory: history));
+    await _persistCustomerHistory(history);
+  }
+
+  Map<String, dynamic> _customerToJson(Customer customer) => {
+    'id': customer.id,
+    'phoneNumber': customer.phoneNumber,
+    'firstName': customer.firstName,
+    'lastName': customer.lastName,
+    'balance': customer.balance,
+    'children': [
+      for (final child in customer.children)
+        {
+          'id': child.id,
+          'firstName': child.firstName,
+          'lastName': child.lastName,
+          'birthDate': child.birthDate.toIso8601String(),
+        },
+    ],
+  };
+
+  Customer? _customerFromJson(Map<String, dynamic> json) {
+    final id = json['id'];
+    final phone = json['phoneNumber'];
+    final firstName = json['firstName'];
+    final balance = json['balance'];
+    final rawChildren = json['children'];
+    if (id is! int ||
+        phone is! String ||
+        firstName is! String ||
+        balance is! int ||
+        rawChildren is! List) {
+      return null;
+    }
+    final children = <Child>[];
+    for (final raw in rawChildren.whereType<Map>()) {
+      final child = Map<String, dynamic>.from(raw);
+      final childId = child['id'];
+      final childFirstName = child['firstName'];
+      final birthDate = DateTime.tryParse(child['birthDate']?.toString() ?? '');
+      if (childId is! String ||
+          childFirstName is! String ||
+          birthDate == null) {
+        continue;
+      }
+      children.add(
+        Child(
+          id: childId,
+          firstName: childFirstName,
+          lastName: child['lastName'] as String?,
+          birthDate: birthDate,
+        ),
+      );
+    }
+    return Customer(
+      id: id,
+      phoneNumber: phone,
+      firstName: firstName,
+      lastName: json['lastName'] as String?,
+      balance: balance,
+      children: children,
+    );
   }
 
   void _onSelectionCleared(
@@ -159,7 +377,48 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     Emitter<PosAccountState> emit,
   ) {
     emit(
-      PosAccountState(recentCustomers: state.recentCustomers, plans: state.plans),
+      PosAccountState(
+        recentCustomers: state.recentCustomers,
+        customerHistory: state.customerHistory,
+        customerPage: state.customerPage,
+        hasMoreCustomers: state.hasMoreCustomers,
+        plans: state.plans,
+        companionPriceUzs: state.companionPriceUzs,
+        discounts: state.discounts,
+        entryDiscounts: state.entryDiscounts,
+      ),
+    );
+  }
+
+  Future<void> _onCustomerRefreshRequested(
+    PosAccountCustomerRefreshRequested event,
+    Emitter<PosAccountState> emit,
+  ) async {
+    if (state.isBusy) return;
+    final current = state.selectedCustomer;
+    if (current == null || state.isBusy) return;
+    emit(state.copyWith(isBusy: true, errorMessage: null));
+    final result = await _repository.searchCustomers(current.phoneNumber);
+    await result.fold(
+      (failure) async => emit(
+        state.copyWith(isBusy: false, errorMessage: _messageOf(failure)),
+      ),
+      (customers) async {
+        Customer? refreshed;
+        for (final customer in customers) {
+          if (customer.id == current.id) {
+            refreshed = customer;
+            break;
+          }
+        }
+        if (refreshed == null) {
+          emit(state.copyWith(isBusy: false));
+          return;
+        }
+        await _replaceCustomer(refreshed, emit);
+        add(const PosAccountPlayingRequested());
+        add(const PosAccountActivePassesRequested());
+      },
     );
   }
 
@@ -167,6 +426,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     PosAccountNewCustomerRequested event,
     Emitter<PosAccountState> emit,
   ) async {
+    if (state.isBusy) return;
     emit(state.copyWith(isBusy: true, errorMessage: null));
     final result = await _repository.createCustomer(
       // Existing customers are stored as `+998XXXXXXXXX` — sending the bare
@@ -180,13 +440,19 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
         state.copyWith(isBusy: false, errorMessage: _messageOf(failure)),
       ),
       (customer) {
+        final keepPromo = _keepsPromoFor(customer);
         emit(
           state.copyWith(
             isBusy: false,
             selectedCustomer: customer,
             results: [customer],
+            clearPromo: !keepPromo,
+            clearPromoError: !keepPromo,
           ),
         );
+        if (keepPromo && state.promo!.isBlogger) {
+          add(const _PosAccountPromoCodeRechecked());
+        }
       },
     );
   }
@@ -195,6 +461,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     PosAccountChildAddRequested event,
     Emitter<PosAccountState> emit,
   ) async {
+    if (state.isBusy) return;
     final customer = state.selectedCustomer;
     if (customer == null) return;
     emit(state.copyWith(isBusy: true, errorMessage: null));
@@ -219,10 +486,85 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     );
   }
 
+  Future<void> _onCustomerNameUpdateRequested(
+    PosAccountCustomerNameUpdateRequested event,
+    Emitter<PosAccountState> emit,
+  ) async {
+    if (state.isBusy) return;
+    final current = state.selectedCustomer;
+    if (current == null || event.fullName.trim().isEmpty) return;
+    emit(state.copyWith(isBusy: true, errorMessage: null));
+    final result = await _repository.updateCustomerName(
+      customerId: current.id,
+      fullName: event.fullName,
+    );
+    await result.fold(
+      (failure) async => emit(
+        state.copyWith(isBusy: false, errorMessage: _messageOf(failure)),
+      ),
+      (updated) async => _replaceCustomer(updated, emit),
+    );
+  }
+
+  Future<void> _onChildNameUpdateRequested(
+    PosAccountChildNameUpdateRequested event,
+    Emitter<PosAccountState> emit,
+  ) async {
+    if (state.isBusy) return;
+    final current = state.selectedCustomer;
+    if (current == null || event.fullName.trim().isEmpty) return;
+    emit(state.copyWith(isBusy: true, errorMessage: null));
+    final result = await _repository.updateChildName(
+      customerId: current.id,
+      childId: event.childId,
+      fullName: event.fullName,
+    );
+    await result.fold(
+      (failure) async => emit(
+        state.copyWith(isBusy: false, errorMessage: _messageOf(failure)),
+      ),
+      (child) async {
+        final updated = current.copyWith(
+          children: [
+            for (final item in current.children)
+              if (item.id == child.id) child else item,
+          ],
+        );
+        await _replaceCustomer(updated, emit);
+      },
+    );
+  }
+
+  Future<void> _replaceCustomer(
+    Customer updated,
+    Emitter<PosAccountState> emit,
+  ) async {
+    List<Customer> replace(List<Customer> values) => [
+      for (final item in values)
+        if (item.id == updated.id) updated else item,
+    ];
+    final history = replace(state.customerHistory);
+    emit(
+      state.copyWith(
+        isBusy: false,
+        selectedCustomer: updated,
+        results: replace(state.results),
+        recentCustomers: replace(state.recentCustomers),
+        customerHistory: history,
+      ),
+    );
+    await _persistCustomerHistory(history);
+  }
+
   Future<void> _onTopupRequested(
     PosAccountTopupRequested event,
     Emitter<PosAccountState> emit,
   ) async {
+    // Two taps in one frame both reached the repository, so a
+    // balance top-up went through several times. The button is
+    // disabled by `isBusy`, but only from the NEXT rebuild — the
+    // guard has to live here, where the state is already set.
+    if (state.isBusy) return;
     final customer = state.selectedCustomer;
     if (customer == null) return;
     emit(state.copyWith(isBusy: true, errorMessage: null));
@@ -231,6 +573,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
       amountUzs: event.amountUzs,
       cashUzs: event.cashUzs,
       cardUzs: event.cardUzs,
+      requestId: event.requestId,
     );
     result.fold(
       (failure) => emit(
@@ -249,6 +592,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     PosAccountParentQrRequested event,
     Emitter<PosAccountState> emit,
   ) async {
+    if (state.isBusy) return;
     final customer = state.selectedCustomer;
     if (customer == null) return;
     emit(state.copyWith(isBusy: true, errorMessage: null));
@@ -285,6 +629,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     PosAccountPlanEntryRequested event,
     Emitter<PosAccountState> emit,
   ) async {
+    if (state.isBusy) return;
     final customer = state.selectedCustomer;
     if (customer == null) return;
     emit(state.copyWith(isBusy: true, errorMessage: null));
@@ -365,9 +710,17 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     PosAccountCheckoutRequested event,
     Emitter<PosAccountState> emit,
   ) async {
+    if (state.isBusy) return;
     final customer = state.selectedCustomer;
     if (customer == null) return;
-    emit(state.copyWith(isBusy: true, errorMessage: null));
+    emit(
+      state.copyWith(
+        isBusy: true,
+        errorMessage: null,
+        errorCode: null,
+        clearPromoError: true,
+      ),
+    );
     final result = await _repository.planEntryCheckout(
       customerId: customer.id,
       planKey: event.planKey,
@@ -375,21 +728,82 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
       products: event.products,
       cashUzs: event.cashUzs,
       cardUzs: event.cardUzs,
+      entryDiscounts: event.entryDiscounts,
+      companions: event.companions,
+      discountId: event.discountId,
+      promoCode: event.promoCode,
     );
     result.fold(
-      (failure) => emit(
-        state.copyWith(isBusy: false, errorMessage: _messageOf(failure)),
-      ),
-      (entryResult) {
+      (failure) {
+        final code = failure is ServerFailure ? failure.code : null;
+        final promoError = code?.startsWith('PROMO_CODE_') ?? false;
+        // The code itself was refused (used, expired, someone else's…):
+        // drop it so the cashier rescans. A `PROMO_CODE_CHILD_*` refusal is
+        // about the picked child — the code stays for another child.
+        // Nothing was charged either way — the claim runs first.
+        final promoRefused =
+            promoError && !(code?.startsWith('PROMO_CODE_CHILD_') ?? false);
         emit(
           state.copyWith(
             isBusy: false,
+            errorMessage: _messageOf(failure),
+            errorCode: code,
+            clearPromo: promoRefused,
+            promoErrorCode: promoError ? code : null,
+            promoErrorMessage: promoError ? _messageOf(failure) : null,
+          ),
+        );
+        // The picked GOODS discount was disabled/deleted between fetch and
+        // checkout — never silently charge full price. The widget clears
+        // its local selection on this code; refetch so it has a fresh
+        // catalog to re-pick from. (This is the only discount check that
+        // can fail the WHOLE request — an entry discount is resolved
+        // per-child instead, see the `failures` branch below.)
+        if (code == 'DISCOUNT_NOT_AVAILABLE') {
+          add(const PosAccountDiscountsRequested(force: true));
+        }
+      },
+      (entryResult) {
+        // `released` = no pass took the code (the promo child failed, e.g.
+        // already had a pass today) and the server made it usable again —
+        // keep it on screen for another child, with the reason under it.
+        final promoOutcome = entryResult.promoCode;
+        final promoReleased = promoOutcome != null && !promoOutcome.applied;
+        final releaseReason = promoReleased
+            ? entryResult.failures
+                      .where((f) => f.childId == promoOutcome.childId)
+                      .firstOrNull
+                      ?.message ??
+                  promoOutcome.reasonCode
+            : null;
+        emit(
+          state.copyWith(
+            isBusy: false,
+            clearPromo: !promoReleased,
+            clearPromoError: true,
+            promoErrorCode: promoReleased ? 'PROMO_CODE_RELEASED' : null,
+            promoErrorMessage: releaseReason,
             lastEntryResult: entryResult,
             selectedCustomer: entryResult.balance == null
                 ? customer
                 : customer.copyWith(balance: entryResult.balance!),
           ),
         );
+        // A child's entry discount was unavailable/mismatched (per-child
+        // failure, not a whole-request error) — refetch so the catalog is
+        // fresh next time the cashier picks one.
+        if (entryResult.failures.any(
+          (f) =>
+              f.code == 'DISCOUNT_NOT_AVAILABLE' ||
+              f.code == 'GATE_PASS_DISCOUNT_CONFLICT',
+        )) {
+          add(
+            const PosAccountDiscountsRequested(
+              scope: DiscountScope.entry,
+              force: true,
+            ),
+          );
+        }
         // Fresh entries mean fresh inside-children rows and badges.
         add(const PosAccountPlayingRequested());
         add(const PosAccountActivePassesRequested());
@@ -401,6 +815,180 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
         }
       },
     );
+  }
+
+  Future<void> _onConfigRequested(
+    PosAccountConfigRequested event,
+    Emitter<PosAccountState> emit,
+  ) async {
+    final result = await _repository.fetchCompanionPriceUzs();
+    // Best-effort like plans/products: on failure (or an older backend
+    // without the endpoint) the compiled-in default price stays.
+    result.fold((failure) {}, (price) {
+      emit(state.copyWith(companionPriceUzs: price));
+    });
+  }
+
+  Future<void> _onDiscountsRequested(
+    PosAccountDiscountsRequested event,
+    Emitter<PosAccountState> emit,
+  ) async {
+    final held = event.scope == DiscountScope.entry
+        ? state.entryDiscounts
+        : state.discounts;
+    if (held.isNotEmpty && !event.force) return;
+    final result = await _repository.fetchDiscounts(scope: event.scope);
+    // Best-effort like plans/products/config: on failure (or an older
+    // backend without the endpoint) the picker just stays hidden.
+    result.fold((failure) {}, (discounts) {
+      emit(
+        event.scope == DiscountScope.entry
+            ? state.copyWith(entryDiscounts: discounts)
+            : state.copyWith(discounts: discounts),
+      );
+    });
+  }
+
+  Future<void> _onPromoCodeSubmitted(
+    PosAccountPromoCodeSubmitted event,
+    Emitter<PosAccountState> emit,
+  ) async {
+    if (state.isCheckingPromo) return;
+    final code = normalizePromoCode(event.rawCode);
+    // A re-scan of the code already applied is a no-op, not a new request.
+    if (state.promo?.code == code) return;
+    final kind = classifyPromoCode(code);
+    if (kind == null) {
+      // Rejected locally — a mistyped partner code (Luhn) or anything that
+      // is neither shape never costs a request.
+      emit(
+        state.copyWith(
+          clearPromoError: true,
+          promoErrorCode: 'PROMO_CODE_INVALID_FORMAT',
+        ),
+      );
+      return;
+    }
+    _promoRequest++;
+    emit(state.copyWith(isCheckingPromo: true, clearPromoError: true));
+    // A blogger code is once per customer — with one open, the server says
+    // up front if they already redeemed it. Partner codes are matched to
+    // their owner here instead (and the owner opened).
+    final checkedFor = kind == PromoCodeKind.blogger
+        ? state.selectedCustomer?.id
+        : null;
+    final verified = await _repository.verifyPromoCode(
+      code,
+      customerId: checkedFor,
+    );
+    await verified.fold(
+      (failure) async => emit(
+        state.copyWith(
+          isCheckingPromo: false,
+          promoErrorCode: failure is ServerFailure ? failure.code : null,
+          promoErrorMessage: _messageOf(failure),
+        ),
+      ),
+      (check) async {
+        if (check.isBlogger) {
+          // No owner to open: applied to the open customer, or held on the
+          // search screen until the cashier opens/creates one (then
+          // re-checked for that customer — see _keepsPromoFor).
+          emit(state.copyWith(isCheckingPromo: false, promo: check));
+          // The cashier opened another customer while this was in flight:
+          // the answer was for the previous one (or for nobody) — ask again
+          // for the customer now on screen.
+          final now = state.selectedCustomer?.id;
+          if (now != null && now != checkedFor) {
+            add(const _PosAccountPromoCodeRechecked());
+          }
+          return;
+        }
+        final owner = check.owner;
+        if (owner == null) {
+          emit(
+            state.copyWith(
+              isCheckingPromo: false,
+              promoErrorCode: 'PROMO_CODE_WRONG_CUSTOMER',
+            ),
+          );
+          return;
+        }
+        if (state.selectedCustomer?.id == owner.id) {
+          emit(state.copyWith(isCheckingPromo: false, promo: check));
+          return;
+        }
+        // The code is someone else's (or nobody is open yet): open its
+        // owner — only their children can use it.
+        final found = await _repository.searchCustomers(owner.phoneNumber);
+        found.fold(
+          (failure) => emit(
+            state.copyWith(
+              isCheckingPromo: false,
+              promoErrorMessage: _messageOf(failure),
+            ),
+          ),
+          (customers) {
+            final match = customers
+                .where((customer) => customer.id == owner.id)
+                .firstOrNull;
+            if (match == null) {
+              emit(
+                state.copyWith(
+                  isCheckingPromo: false,
+                  promoErrorCode: 'PROMO_CODE_OWNER_NOT_FOUND',
+                ),
+              );
+              return;
+            }
+            emit(state.copyWith(isCheckingPromo: false, promo: check));
+            add(PosAccountCustomerSelected(match));
+          },
+        );
+      },
+    );
+  }
+
+  /// Re-verifies a held blogger code for the customer it just rode into, so
+  /// a code they already redeemed (`PROMO_CODE_ALREADY_USED_BY_CUSTOMER`) is
+  /// refused right away rather than at the checkout.
+  Future<void> _onPromoCodeRechecked(
+    _PosAccountPromoCodeRechecked event,
+    Emitter<PosAccountState> emit,
+  ) async {
+    final promo = state.promo;
+    final customer = state.selectedCustomer;
+    if (promo == null || !promo.isBlogger || customer == null) return;
+    final request = ++_promoRequest;
+    emit(state.copyWith(isCheckingPromo: true, clearPromoError: true));
+    final verified = await _repository.verifyPromoCode(
+      promo.code,
+      customerId: customer.id,
+    );
+    // The cashier moved on (other customer, ✕, another code) meanwhile —
+    // this answer is about a code/customer pair no longer on screen. The
+    // busy flag is only ours to clear if no newer check started since.
+    if (state.selectedCustomer?.id != customer.id ||
+        state.promo?.code != promo.code) {
+      if (request == _promoRequest) {
+        emit(state.copyWith(isCheckingPromo: false));
+      }
+      return;
+    }
+    verified.fold((failure) {
+      final code = failure is ServerFailure ? failure.code : null;
+      // Refused by the server → dropped with the reason. A network hiccup
+      // keeps it: the checkout claims it atomically and stays the judge.
+      final refused = code?.startsWith('PROMO_CODE_') ?? false;
+      emit(
+        state.copyWith(
+          isCheckingPromo: false,
+          clearPromo: refused,
+          promoErrorCode: code,
+          promoErrorMessage: _messageOf(failure),
+        ),
+      );
+    }, (check) => emit(state.copyWith(isCheckingPromo: false, promo: check)));
   }
 
   String _messageOf(Failure failure) {

@@ -1,4 +1,5 @@
 import 'package:hive_ce/hive.dart';
+import 'package:uuid/uuid.dart';
 
 import 'app_keys.dart';
 
@@ -29,6 +30,10 @@ class LocalSource {
   }
 
   String? getAccessToken() => box.get(AppKeys.accessToken) as String?;
+
+  /// Fires on every write or delete of the access token — login, refresh,
+  /// logout. Listeners re-read [getAccessToken] to see which it was.
+  Stream<void> watchAccessToken() => box.watch(key: AppKeys.accessToken);
 
   void setRefreshToken(String? value) {
     if (value == null) return;
@@ -64,4 +69,81 @@ class LocalSource {
   }
 
   String? getApiBaseUrl() => box.get(AppKeys.apiBaseUrl) as String?;
+
+  Future<void> setLanguageCode(String value) async {
+    await box.put(AppKeys.languageCode, value);
+  }
+
+  String getLanguageCode() =>
+      box.get(AppKeys.languageCode, defaultValue: 'uz') as String;
+
+  Future<void> setQrPrinterName(String? value) async {
+    if (value == null) return box.delete(AppKeys.qrPrinterName);
+    await box.put(AppKeys.qrPrinterName, value);
+  }
+
+  String? getQrPrinterName() => box.get(AppKeys.qrPrinterName) as String?;
+
+  Future<void> setReceiptPrinterName(String? value) async {
+    if (value == null) return box.delete(AppKeys.receiptPrinterName);
+    await box.put(AppKeys.receiptPrinterName, value);
+  }
+
+  String? getReceiptPrinterName() =>
+      box.get(AppKeys.receiptPrinterName) as String?;
+
+  /// This installation's terminal id — a UUID v4 generated on first call
+  /// and kept for good. It lives in this box (not the app folder), so a
+  /// self-update, which replaces the app folder, keeps it; and it is not in
+  /// [clearSession]'s key list, so a logout or another cashier signing in
+  /// keeps it too. One id = one till, whoever is signed in on it.
+  String getTerminalId() {
+    final stored = box.get(AppKeys.terminalId);
+    if (stored is String && stored.isNotEmpty) return stored;
+    final generated = const Uuid().v4();
+    // Not awaited: Hive updates its in-memory copy synchronously, so the
+    // next read already sees the id even before the disk write lands.
+    box.put(AppKeys.terminalId, generated);
+    return generated;
+  }
+
+  /// Raw map written by `UpdateFailureLog`; the log owns its schema.
+  Map<String, dynamic>? getLastUpdateFailure() {
+    final raw = box.get(AppKeys.lastUpdateFailure);
+    return raw is Map ? Map<String, dynamic>.from(raw) : null;
+  }
+
+  Future<void> setLastUpdateFailure(Map<String, dynamic>? value) async {
+    if (value == null) return box.delete(AppKeys.lastUpdateFailure);
+    await box.put(AppKeys.lastUpdateFailure, value);
+  }
+
+  String? _customerSearchHistoryKey() {
+    final cashierId = getCashierId();
+    final branchId = getBranchId();
+    if (cashierId == null || branchId == null) return null;
+    return '${AppKeys.customerSearchHistory}:$cashierId:$branchId';
+  }
+
+  /// JSON-compatible customer snapshots, scoped to the signed-in cashier
+  /// and branch. The feature owns their schema; LocalSource only persists
+  /// the raw maps in the existing Hive box.
+  List<Map<String, dynamic>> getCustomerSearchHistory() {
+    final key = _customerSearchHistoryKey();
+    if (key == null) return const [];
+    final raw = box.get(key);
+    if (raw is! List) return const [];
+    return raw
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList(growable: false);
+  }
+
+  Future<void> setCustomerSearchHistory(
+    List<Map<String, dynamic>> customers,
+  ) async {
+    final key = _customerSearchHistoryKey();
+    if (key == null) return;
+    await box.put(key, customers);
+  }
 }

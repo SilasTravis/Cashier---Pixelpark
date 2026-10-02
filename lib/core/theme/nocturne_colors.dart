@@ -35,6 +35,9 @@ abstract final class NocturneColors {
   /// colors without hunting through every screen.
   static const Color danger = Color(0xFF8C2F3C);
   static const Color success = accent400;
+
+  /// Offline-mode amber — the banner and "waiting" chips.
+  static const Color warning = Color(0xFFF5A524);
 }
 
 /// Border radii — `--radius-sm/md/lg`.

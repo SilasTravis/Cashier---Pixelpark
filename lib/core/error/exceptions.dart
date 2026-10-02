@@ -15,8 +15,9 @@ class ServerException implements Exception {
     final rawMessage = map['message'];
     String message;
     if (rawMessage is Map) {
-      message = (rawMessage['uz'] ?? rawMessage['en'] ?? "Nimadir noto'g'ri ketdi")
-          .toString();
+      message =
+          (rawMessage['uz'] ?? rawMessage['en'] ?? "Nimadir noto'g'ri ketdi")
+              .toString();
     } else if (rawMessage is String) {
       message = rawMessage;
     } else {

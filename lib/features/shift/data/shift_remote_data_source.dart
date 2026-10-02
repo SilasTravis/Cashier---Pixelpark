@@ -24,10 +24,7 @@ class ShiftRemoteDataSourceImpl implements ShiftRemoteDataSource {
 
   @override
   Future<Shift> closeShift({String? closingNote}) => _request(
-    () => dio.post(
-      '/v1/pos/shifts/close',
-      data: {'closingNote': ?closingNote},
-    ),
+    () => dio.post('/v1/pos/shifts/close', data: {'closingNote': ?closingNote}),
   );
 
   @override
@@ -63,6 +60,9 @@ class ShiftRemoteDataSourceImpl implements ShiftRemoteDataSource {
         cashUzs: totals['cashUzs'] as int,
         cardUzs: totals['cardUzs'] as int,
         topupUzs: totals['topupUzs'] as int,
+        balanceSalesUzs: (totals['balanceSalesUzs'] as int?) ?? 0,
+        refundedUzs: (totals['refundedUzs'] as int?) ?? 0,
+        discountUzs: (totals['discountUzs'] as int?) ?? 0,
       ),
     );
   }

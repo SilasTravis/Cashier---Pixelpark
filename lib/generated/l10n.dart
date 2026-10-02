@@ -89,11 +89,2941 @@ class AppLocalization {
     return Intl.message('Kirish', name: 'loginButton', desc: '', args: []);
   }
 
-  /// `Login yoki parol noto'g'ri`
+  /// `Incorrect username or password`
   String get loginError {
     return Intl.message(
-      'Login yoki parol noto\'g\'ri',
+      'Incorrect username or password',
       name: 'loginError',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Enter your username and password to access the register`
+  String get loginSubtitle {
+    return Intl.message(
+      'Enter your username and password to access the register',
+      name: 'loginSubtitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Language`
+  String get language {
+    return Intl.message('Language', name: 'language', desc: '', args: []);
+  }
+
+  /// `Uzbek`
+  String get languageUzbek {
+    return Intl.message('Uzbek', name: 'languageUzbek', desc: '', args: []);
+  }
+
+  /// `Russian`
+  String get languageRussian {
+    return Intl.message('Russian', name: 'languageRussian', desc: '', args: []);
+  }
+
+  /// `Account & QR`
+  String get tabAccount {
+    return Intl.message('Account & QR', name: 'tabAccount', desc: '', args: []);
+  }
+
+  /// `Sales`
+  String get tabSales {
+    return Intl.message('Sales', name: 'tabSales', desc: '', args: []);
+  }
+
+  /// `Sales history`
+  String get tabHistory {
+    return Intl.message(
+      'Sales history',
+      name: 'tabHistory',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Entry/exit history`
+  String get tabVisitHistory {
+    return Intl.message(
+      'Entry/exit history',
+      name: 'tabVisitHistory',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Search by child, parent or phone`
+  String get visitHistorySearchHint {
+    return Intl.message(
+      'Search by child, parent or phone',
+      name: 'visitHistorySearchHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Current shift only`
+  String get currentShiftOnly {
+    return Intl.message(
+      'Current shift only',
+      name: 'currentShiftOnly',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Entries`
+  String get visitEntries {
+    return Intl.message('Entries', name: 'visitEntries', desc: '', args: []);
+  }
+
+  /// `Exits`
+  String get visitExits {
+    return Intl.message('Exits', name: 'visitExits', desc: '', args: []);
+  }
+
+  /// `Still inside`
+  String get visitStillInside {
+    return Intl.message(
+      'Still inside',
+      name: 'visitStillInside',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Inside`
+  String get visitInside {
+    return Intl.message('Inside', name: 'visitInside', desc: '', args: []);
+  }
+
+  /// `Entered`
+  String get visitEntered {
+    return Intl.message('Entered', name: 'visitEntered', desc: '', args: []);
+  }
+
+  /// `Exited`
+  String get visitExited {
+    return Intl.message('Exited', name: 'visitExited', desc: '', args: []);
+  }
+
+  /// `Manually exited`
+  String get visitManualExit {
+    return Intl.message(
+      'Manually exited',
+      name: 'visitManualExit',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No entries or exits in the current shift`
+  String get visitHistoryEmpty {
+    return Intl.message(
+      'No entries or exits in the current shift',
+      name: 'visitHistoryEmpty',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Settings`
+  String get tabSettings {
+    return Intl.message('Settings', name: 'tabSettings', desc: '', args: []);
+  }
+
+  /// `Receipt`
+  String get cartTitle {
+    return Intl.message('Receipt', name: 'cartTitle', desc: '', args: []);
+  }
+
+  /// `Clear`
+  String get cartClear {
+    return Intl.message('Clear', name: 'cartClear', desc: '', args: []);
+  }
+
+  /// `Clear cart`
+  String get cartClearTitle {
+    return Intl.message(
+      'Clear cart',
+      name: 'cartClearTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `All products will be removed from the cart. Continue?`
+  String get cartClearMessage {
+    return Intl.message(
+      'All products will be removed from the cart. Continue?',
+      name: 'cartClearMessage',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Cart is empty`
+  String get cartEmpty {
+    return Intl.message('Cart is empty', name: 'cartEmpty', desc: '', args: []);
+  }
+
+  /// `Discount`
+  String get discount {
+    return Intl.message('Discount', name: 'discount', desc: '', args: []);
+  }
+
+  /// `No discount`
+  String get noDiscount {
+    return Intl.message('No discount', name: 'noDiscount', desc: '', args: []);
+  }
+
+  /// `The discount is no longer available — pick again`
+  String get discountUnavailableMessage {
+    return Intl.message(
+      'The discount is no longer available — pick again',
+      name: 'discountUnavailableMessage',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `All`
+  String get categoryAll {
+    return Intl.message('All', name: 'categoryAll', desc: '', args: []);
+  }
+
+  /// `Product name or category`
+  String get productSearchHint {
+    return Intl.message(
+      'Product name or category',
+      name: 'productSearchHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Total`
+  String get total {
+    return Intl.message('Total', name: 'total', desc: '', args: []);
+  }
+
+  /// `Pay`
+  String get pay {
+    return Intl.message('Pay', name: 'pay', desc: '', args: []);
+  }
+
+  /// `Cash`
+  String get paymentCash {
+    return Intl.message('Cash', name: 'paymentCash', desc: '', args: []);
+  }
+
+  /// `Card`
+  String get paymentCard {
+    return Intl.message('Card', name: 'paymentCard', desc: '', args: []);
+  }
+
+  /// `Split`
+  String get paymentSplit {
+    return Intl.message('Split', name: 'paymentSplit', desc: '', args: []);
+  }
+
+  /// `Amount matched`
+  String get paymentMatched {
+    return Intl.message(
+      'Amount matched',
+      name: 'paymentMatched',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Amount remaining`
+  String get paymentMissing {
+    return Intl.message(
+      'Amount remaining',
+      name: 'paymentMissing',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Amount exceeds total`
+  String get paymentExcess {
+    return Intl.message(
+      'Amount exceeds total',
+      name: 'paymentExcess',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Cancel`
+  String get cancel {
+    return Intl.message('Cancel', name: 'cancel', desc: '', args: []);
+  }
+
+  /// `Close`
+  String get close {
+    return Intl.message('Close', name: 'close', desc: '', args: []);
+  }
+
+  /// `Refresh`
+  String get refresh {
+    return Intl.message('Refresh', name: 'refresh', desc: '', args: []);
+  }
+
+  /// `Shift revenue`
+  String get shiftRevenue {
+    return Intl.message(
+      'Shift revenue',
+      name: 'shiftRevenue',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Receipt`
+  String get receipt {
+    return Intl.message('Receipt', name: 'receipt', desc: '', args: []);
+  }
+
+  /// `Print receipt`
+  String get printReceipt {
+    return Intl.message(
+      'Print receipt',
+      name: 'printReceipt',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Printing…`
+  String get printing {
+    return Intl.message('Printing…', name: 'printing', desc: '', args: []);
+  }
+
+  /// `Receipt could not be printed. Check the printer.`
+  String get receiptPrintFailed {
+    return Intl.message(
+      'Receipt could not be printed. Check the printer.',
+      name: 'receiptPrintFailed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Today`
+  String get historyToday {
+    return Intl.message('Today', name: 'historyToday', desc: '', args: []);
+  }
+
+  /// `7 days`
+  String get history7Days {
+    return Intl.message('7 days', name: 'history7Days', desc: '', args: []);
+  }
+
+  /// `30 days`
+  String get history30Days {
+    return Intl.message('30 days', name: 'history30Days', desc: '', args: []);
+  }
+
+  /// `This year`
+  String get historyYear {
+    return Intl.message('This year', name: 'historyYear', desc: '', args: []);
+  }
+
+  /// `Date range`
+  String get historyDateRange {
+    return Intl.message(
+      'Date range',
+      name: 'historyDateRange',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Product`
+  String get historyProduct {
+    return Intl.message('Product', name: 'historyProduct', desc: '', args: []);
+  }
+
+  /// `All products`
+  String get historyAllProducts {
+    return Intl.message(
+      'All products',
+      name: 'historyAllProducts',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No sales in this period`
+  String get historyEmpty {
+    return Intl.message(
+      'No sales in this period',
+      name: 'historyEmpty',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Sales`
+  String get historySales {
+    return Intl.message('Sales', name: 'historySales', desc: '', args: []);
+  }
+
+  /// `{count}`
+  String historyCount(int count) {
+    return Intl.message(
+      '$count',
+      name: 'historyCount',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `Choose sales period`
+  String get historyChoosePeriod {
+    return Intl.message(
+      'Choose sales period',
+      name: 'historyChoosePeriod',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Select`
+  String get historyChoose {
+    return Intl.message('Select', name: 'historyChoose', desc: '', args: []);
+  }
+
+  /// `Product sale`
+  String get saleGoods {
+    return Intl.message('Product sale', name: 'saleGoods', desc: '', args: []);
+  }
+
+  /// `Entry ticket`
+  String get saleGatePass {
+    return Intl.message(
+      'Entry ticket',
+      name: 'saleGatePass',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Account top-up`
+  String get saleTopup {
+    return Intl.message(
+      'Account top-up',
+      name: 'saleTopup',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Sale`
+  String get saleGeneric {
+    return Intl.message('Sale', name: 'saleGeneric', desc: '', args: []);
+  }
+
+  /// `Cash: {value}`
+  String paymentCashValue(String value) {
+    return Intl.message(
+      'Cash: $value',
+      name: 'paymentCashValue',
+      desc: '',
+      args: [value],
+    );
+  }
+
+  /// `Card: {value}`
+  String paymentCardValue(String value) {
+    return Intl.message(
+      'Card: $value',
+      name: 'paymentCardValue',
+      desc: '',
+      args: [value],
+    );
+  }
+
+  /// `Balance-funded sales`
+  String get paymentBalance {
+    return Intl.message(
+      'Balance-funded sales',
+      name: 'paymentBalance',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Balance: {value}`
+  String paymentBalanceValue(String value) {
+    return Intl.message(
+      'Balance: $value',
+      name: 'paymentBalanceValue',
+      desc: '',
+      args: [value],
+    );
+  }
+
+  /// `Branch`
+  String get branch {
+    return Intl.message('Branch', name: 'branch', desc: '', args: []);
+  }
+
+  /// `Version`
+  String get version {
+    return Intl.message('Version', name: 'version', desc: '', args: []);
+  }
+
+  /// `Log out`
+  String get logout {
+    return Intl.message('Log out', name: 'logout', desc: '', args: []);
+  }
+
+  /// `Printers`
+  String get printerSettings {
+    return Intl.message(
+      'Printers',
+      name: 'printerSettings',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `QR and label printer`
+  String get qrPrinter {
+    return Intl.message(
+      'QR and label printer',
+      name: 'qrPrinter',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Product receipt printer`
+  String get receiptPrinter {
+    return Intl.message(
+      'Product receipt printer',
+      name: 'receiptPrinter',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Automatic — Godex`
+  String get automaticGodex {
+    return Intl.message(
+      'Automatic — Godex',
+      name: 'automaticGodex',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Automatic — SLK`
+  String get automaticSewoo {
+    return Intl.message(
+      'Automatic — SLK',
+      name: 'automaticSewoo',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No installed Windows printers found`
+  String get noPrintersFound {
+    return Intl.message(
+      'No installed Windows printers found',
+      name: 'noPrintersFound',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Cash desk`
+  String get cashDesk {
+    return Intl.message('Cash desk', name: 'cashDesk', desc: '', args: []);
+  }
+
+  /// `Cash desk · {name}`
+  String cashDeskCashier(String name) {
+    return Intl.message(
+      'Cash desk · $name',
+      name: 'cashDeskCashier',
+      desc: '',
+      args: [name],
+    );
+  }
+
+  /// `Open menu`
+  String get menuOpen {
+    return Intl.message('Open menu', name: 'menuOpen', desc: '', args: []);
+  }
+
+  /// `Close menu`
+  String get menuClose {
+    return Intl.message('Close menu', name: 'menuClose', desc: '', args: []);
+  }
+
+  /// `Close shift`
+  String get shiftClose {
+    return Intl.message('Close shift', name: 'shiftClose', desc: '', args: []);
+  }
+
+  /// `Shift opened at {time}`
+  String shiftOpenedAt(String time) {
+    return Intl.message(
+      'Shift opened at $time',
+      name: 'shiftOpenedAt',
+      desc: '',
+      args: [time],
+    );
+  }
+
+  /// `Start shift`
+  String get shiftStart {
+    return Intl.message('Start shift', name: 'shiftStart', desc: '', args: []);
+  }
+
+  /// `Enter the opening cash amount in the register`
+  String get shiftStartHint {
+    return Intl.message(
+      'Enter the opening cash amount in the register',
+      name: 'shiftStartHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Opening cash (UZS)`
+  String get shiftOpeningCash {
+    return Intl.message(
+      'Opening cash (UZS)',
+      name: 'shiftOpeningCash',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Open shift`
+  String get shiftOpen {
+    return Intl.message('Open shift', name: 'shiftOpen', desc: '', args: []);
+  }
+
+  /// `Shift closed`
+  String get shiftClosed {
+    return Intl.message(
+      'Shift closed',
+      name: 'shiftClosed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Receipt count`
+  String get receiptCount {
+    return Intl.message(
+      'Receipt count',
+      name: 'receiptCount',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Balance-funded sales (not income)`
+  String get balanceSalesNotIncome {
+    return Intl.message(
+      'Balance-funded sales (not income)',
+      name: 'balanceSalesNotIncome',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Total shift income`
+  String get shiftTotalIncome {
+    return Intl.message(
+      'Total shift income',
+      name: 'shiftTotalIncome',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Enter a phone number to find a customer`
+  String get findCustomerHint {
+    return Intl.message(
+      'Enter a phone number to find a customer',
+      name: 'findCustomerHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Recent customers`
+  String get recentCustomers {
+    return Intl.message(
+      'Recent customers',
+      name: 'recentCustomers',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Search history`
+  String get searchHistory {
+    return Intl.message(
+      'Search history',
+      name: 'searchHistory',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `All customers`
+  String get allCustomers {
+    return Intl.message(
+      'All customers',
+      name: 'allCustomers',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Search by name or the last phone digits`
+  String get customerDirectorySearchHint {
+    return Intl.message(
+      'Search by name or the last phone digits',
+      name: 'customerDirectorySearchHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Search results`
+  String get searchResult {
+    return Intl.message(
+      'Search results',
+      name: 'searchResult',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{count} customers`
+  String customerCount(int count) {
+    return Intl.message(
+      '$count customers',
+      name: 'customerCount',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `{count} children`
+  String childCount(int count) {
+    return Intl.message(
+      '$count children',
+      name: 'childCount',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `Number not found`
+  String get phoneNotFound {
+    return Intl.message(
+      'Number not found',
+      name: 'phoneNotFound',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No account exists for +998 {phone}.`
+  String accountNotFoundForPhone(String phone) {
+    return Intl.message(
+      'No account exists for +998 $phone.',
+      name: 'accountNotFoundForPhone',
+      desc: '',
+      args: [phone],
+    );
+  }
+
+  /// `Add customer`
+  String get addCustomer {
+    return Intl.message(
+      'Add customer',
+      name: 'addCustomer',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Full name`
+  String get fullName {
+    return Intl.message('Full name', name: 'fullName', desc: '', args: []);
+  }
+
+  /// `Save`
+  String get save {
+    return Intl.message('Save', name: 'save', desc: '', args: []);
+  }
+
+  /// `Parent QR`
+  String get parentQr {
+    return Intl.message('Parent QR', name: 'parentQr', desc: '', args: []);
+  }
+
+  /// `Balance`
+  String get balance {
+    return Intl.message('Balance', name: 'balance', desc: '', args: []);
+  }
+
+  /// `Children`
+  String get children {
+    return Intl.message('Children', name: 'children', desc: '', args: []);
+  }
+
+  /// `selected: {count}`
+  String selectedCount(int count) {
+    return Intl.message(
+      'selected: $count',
+      name: 'selectedCount',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `no children`
+  String get noChildren {
+    return Intl.message('no children', name: 'noChildren', desc: '', args: []);
+  }
+
+  /// `Select for QR`
+  String get selectForQr {
+    return Intl.message(
+      'Select for QR',
+      name: 'selectForQr',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Quick add`
+  String get quickAdd {
+    return Intl.message('Quick add', name: 'quickAdd', desc: '', args: []);
+  }
+
+  /// `Child name`
+  String get childName {
+    return Intl.message('Child name', name: 'childName', desc: '', args: []);
+  }
+
+  /// `Add`
+  String get add {
+    return Intl.message('Add', name: 'add', desc: '', args: []);
+  }
+
+  /// `Tariff`
+  String get tariff {
+    return Intl.message('Tariff', name: 'tariff', desc: '', args: []);
+  }
+
+  /// `No tariffs found.`
+  String get tariffNotFound {
+    return Intl.message(
+      'No tariffs found.',
+      name: 'tariffNotFound',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Products`
+  String get products {
+    return Intl.message('Products', name: 'products', desc: '', args: []);
+  }
+
+  /// `{price} each — unrestricted like parent QR`
+  String companionDescription(String price) {
+    return Intl.message(
+      '$price each — unrestricted like parent QR',
+      name: 'companionDescription',
+      desc: '',
+      args: [price],
+    );
+  }
+
+  /// `«{name}» already has an active VIP tariff — no second charge.`
+  String vipAlreadyActive(String name) {
+    return Intl.message(
+      '«$name» already has an active VIP tariff — no second charge.',
+      name: 'vipAlreadyActive',
+      desc: '',
+      args: [name],
+    );
+  }
+
+  /// `VIP tariff`
+  String get vipTariff {
+    return Intl.message('VIP tariff', name: 'vipTariff', desc: '', args: []);
+  }
+
+  /// `The VIP tariff is debited from the balance immediately when printed.`
+  String get vipChargedImmediately {
+    return Intl.message(
+      'The VIP tariff is debited from the balance immediately when printed.',
+      name: 'vipChargedImmediately',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Pay from balance`
+  String get payFromBalance {
+    return Intl.message(
+      'Pay from balance',
+      name: 'payFromBalance',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Current balance: {value}`
+  String currentBalanceValue(String value) {
+    return Intl.message(
+      'Current balance: $value',
+      name: 'currentBalanceValue',
+      desc: '',
+      args: [value],
+    );
+  }
+
+  /// `Insufficient balance — at least {value} must be paid.`
+  String balanceInsufficient(String value) {
+    return Intl.message(
+      'Insufficient balance — at least $value must be paid.',
+      name: 'balanceInsufficient',
+      desc: '',
+      args: [value],
+    );
+  }
+
+  /// `Payment amount`
+  String get paymentAmount {
+    return Intl.message(
+      'Payment amount',
+      name: 'paymentAmount',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `At least {value} — excess remains on the balance`
+  String paymentMinimumHint(String value) {
+    return Intl.message(
+      'At least $value — excess remains on the balance',
+      name: 'paymentMinimumHint',
+      desc: '',
+      args: [value],
+    );
+  }
+
+  /// `Also print parent QR`
+  String get printParentQr {
+    return Intl.message(
+      'Also print parent QR',
+      name: 'printParentQr',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Free — unrestricted entry and exit`
+  String get unlimitedFreeEntry {
+    return Intl.message(
+      'Free — unrestricted entry and exit',
+      name: 'unlimitedFreeEntry',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Currently inside`
+  String get currentlyInside {
+    return Intl.message(
+      'Currently inside',
+      name: 'currentlyInside',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{plan} · entered {time} · {minutes} min`
+  String enteredAtMinutes(String plan, String time, int minutes) {
+    return Intl.message(
+      '$plan · entered $time · $minutes min',
+      name: 'enteredAtMinutes',
+      desc: '',
+      args: [plan, time, minutes],
+    );
+  }
+
+  /// `Total bill`
+  String get totalBill {
+    return Intl.message('Total bill', name: 'totalBill', desc: '', args: []);
+  }
+
+  /// `Insufficient balance — top up at least {value} to exit.`
+  String exitBalanceInsufficient(String value) {
+    return Intl.message(
+      'Insufficient balance — top up at least $value to exit.',
+      name: 'exitBalanceInsufficient',
+      desc: '',
+      args: [value],
+    );
+  }
+
+  /// `Free`
+  String get free {
+    return Intl.message('Free', name: 'free', desc: '', args: []);
+  }
+
+  /// `Available only on the birthday`
+  String get birthdayFreeOnlyToday {
+    return Intl.message(
+      'Available only on the birthday',
+      name: 'birthdayFreeOnlyToday',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Top up balance`
+  String get topupBalance {
+    return Intl.message(
+      'Top up balance',
+      name: 'topupBalance',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Amount`
+  String get amount {
+    return Intl.message('Amount', name: 'amount', desc: '', args: []);
+  }
+
+  /// `New balance`
+  String get newBalance {
+    return Intl.message('New balance', name: 'newBalance', desc: '', args: []);
+  }
+
+  /// `Top up`
+  String get topup {
+    return Intl.message('Top up', name: 'topup', desc: '', args: []);
+  }
+
+  /// `Sticker was not printed — check the printer`
+  String get stickerPrintFailed {
+    return Intl.message(
+      'Sticker was not printed — check the printer',
+      name: 'stickerPrintFailed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Failed to enter: {message}`
+  String entryFailed(String message) {
+    return Intl.message(
+      'Failed to enter: $message',
+      name: 'entryFailed',
+      desc: '',
+      args: [message],
+    );
+  }
+
+  /// `Switch tariff`
+  String get planSwitch {
+    return Intl.message(
+      'Switch tariff',
+      name: 'planSwitch',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Switch to the «{plan}» tariff? The old sticker will be cancelled and a new QR printed.`
+  String planSwitchQuestion(String plan) {
+    return Intl.message(
+      'Switch to the «$plan» tariff? The old sticker will be cancelled and a new QR printed.',
+      name: 'planSwitchQuestion',
+      desc: '',
+      args: [plan],
+    );
+  }
+
+  /// `Switch to the «{plan}» tariff? The {plan} price ({price}) will be debited immediately. The old sticker will be cancelled and a new QR printed.`
+  String planSwitchVipQuestion(String plan, String price) {
+    return Intl.message(
+      'Switch to the «$plan» tariff? The $plan price ($price) will be debited immediately. The old sticker will be cancelled and a new QR printed.',
+      name: 'planSwitchVipQuestion',
+      desc: '',
+      args: [plan, price],
+    );
+  }
+
+  /// `«{child}» is on the «{plan}» tariff today{inside}.`
+  String currentPlanToday(String child, String plan, String inside) {
+    return Intl.message(
+      '«$child» is on the «$plan» tariff today$inside.',
+      name: 'currentPlanToday',
+      desc: '',
+      args: [child, plan, inside],
+    );
+  }
+
+  /// ` (currently inside)`
+  String get insideSuffix {
+    return Intl.message(
+      ' (currently inside)',
+      name: 'insideSuffix',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `This tariff cannot be downgraded — if the sticker was lost, reprint the current tariff.`
+  String get downgradeForbidden {
+    return Intl.message(
+      'This tariff cannot be downgraded — if the sticker was lost, reprint the current tariff.',
+      name: 'downgradeForbidden',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{value} will be debited for time already played.`
+  String accruedDue(String value) {
+    return Intl.message(
+      '$value will be debited for time already played.',
+      name: 'accruedDue',
+      desc: '',
+      args: [value],
+    );
+  }
+
+  /// `Reprint`
+  String get reprint {
+    return Intl.message('Reprint', name: 'reprint', desc: '', args: []);
+  }
+
+  /// `Switch and print`
+  String get switchAndPrint {
+    return Intl.message(
+      'Switch and print',
+      name: 'switchAndPrint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Enter a number to see results on the right. Select a customer to open details.`
+  String get keypadHint {
+    return Intl.message(
+      'Enter a number to see results on the right. Select a customer to open details.',
+      name: 'keypadHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Product not found`
+  String get productNotFound {
+    return Intl.message(
+      'Product not found',
+      name: 'productNotFound',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Nothing is due now — played time will be debited from the balance at exit.`
+  String get noPaymentNow {
+    return Intl.message(
+      'Nothing is due now — played time will be debited from the balance at exit.',
+      name: 'noPaymentNow',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Pay and print`
+  String get paymentAndPrint {
+    return Intl.message(
+      'Pay and print',
+      name: 'paymentAndPrint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Enter`
+  String get enter {
+    return Intl.message('Enter', name: 'enter', desc: '', args: []);
+  }
+
+  /// `Enter ({count})`
+  String enterCount(int count) {
+    return Intl.message(
+      'Enter ($count)',
+      name: 'enterCount',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `{value} / day`
+  String pricePerDay(String value) {
+    return Intl.message(
+      '$value / day',
+      name: 'pricePerDay',
+      desc: '',
+      args: [value],
+    );
+  }
+
+  /// `from {value} / min`
+  String priceFromPerMinute(String value) {
+    return Intl.message(
+      'from $value / min',
+      name: 'priceFromPerMinute',
+      desc: '',
+      args: [value],
+    );
+  }
+
+  /// `Inside park`
+  String get tabInside {
+    return Intl.message('Inside park', name: 'tabInside', desc: '', args: []);
+  }
+
+  /// `Search by child, parent or phone`
+  String get insideSearchHint {
+    return Intl.message(
+      'Search by child, parent or phone',
+      name: 'insideSearchHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Inside: {count}`
+  String insideCount(int count) {
+    return Intl.message(
+      'Inside: $count',
+      name: 'insideCount',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `There are no children inside the park`
+  String get insideEmpty {
+    return Intl.message(
+      'There are no children inside the park',
+      name: 'insideEmpty',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No child matches your search`
+  String get insideSearchEmpty {
+    return Intl.message(
+      'No child matches your search',
+      name: 'insideSearchEmpty',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Entered at`
+  String get enteredAt {
+    return Intl.message('Entered at', name: 'enteredAt', desc: '', args: []);
+  }
+
+  /// `Elapsed`
+  String get elapsedTime {
+    return Intl.message('Elapsed', name: 'elapsedTime', desc: '', args: []);
+  }
+
+  /// `{count} min`
+  String minutesCount(int count) {
+    return Intl.message(
+      '$count min',
+      name: 'minutesCount',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `Current charge`
+  String get accruedAmount {
+    return Intl.message(
+      'Current charge',
+      name: 'accruedAmount',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Mark as exited`
+  String get markExited {
+    return Intl.message(
+      'Mark as exited',
+      name: 'markExited',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Lost QR code?`
+  String get manualExitTitle {
+    return Intl.message(
+      'Lost QR code?',
+      name: 'manualExitTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{child} will be marked as exited now. The visit will close at {amount} and be debited from the parent's balance. Continue?`
+  String manualExitQuestion(String child, String amount) {
+    return Intl.message(
+      '$child will be marked as exited now. The visit will close at $amount and be debited from the parent\'s balance. Continue?',
+      name: 'manualExitQuestion',
+      desc: '',
+      args: [child, amount],
+    );
+  }
+
+  /// `The child was successfully marked as exited`
+  String get manualExitSucceeded {
+    return Intl.message(
+      'The child was successfully marked as exited',
+      name: 'manualExitSucceeded',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Update`
+  String get updateTitle {
+    return Intl.message('Update', name: 'updateTitle', desc: '', args: []);
+  }
+
+  /// `Check for updates`
+  String get updateCheck {
+    return Intl.message(
+      'Check for updates',
+      name: 'updateCheck',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `You're on the latest version`
+  String get updateUpToDate {
+    return Intl.message(
+      'You\'re on the latest version',
+      name: 'updateUpToDate',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `New version available: {version}`
+  String updateAvailable(String version) {
+    return Intl.message(
+      'New version available: $version',
+      name: 'updateAvailable',
+      desc: '',
+      args: [version],
+    );
+  }
+
+  /// `Download & install`
+  String get updateDownload {
+    return Intl.message(
+      'Download & install',
+      name: 'updateDownload',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Downloading…`
+  String get updateDownloading {
+    return Intl.message(
+      'Downloading…',
+      name: 'updateDownloading',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Update ready`
+  String get updateReady {
+    return Intl.message(
+      'Update ready',
+      name: 'updateReady',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Restart now`
+  String get updateRestart {
+    return Intl.message(
+      'Restart now',
+      name: 'updateRestart',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Update the app`
+  String get updateConfirmTitle {
+    return Intl.message(
+      'Update the app',
+      name: 'updateConfirmTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The app will close and reopen on the new version. Your shift stays open. Continue?`
+  String get updateConfirmMessage {
+    return Intl.message(
+      'The app will close and reopen on the new version. Your shift stays open. Continue?',
+      name: 'updateConfirmMessage',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Continue`
+  String get updateConfirm {
+    return Intl.message('Continue', name: 'updateConfirm', desc: '', args: []);
+  }
+
+  /// `Cancel`
+  String get updateCancel {
+    return Intl.message('Cancel', name: 'updateCancel', desc: '', args: []);
+  }
+
+  /// `Update failed`
+  String get updateFailed {
+    return Intl.message(
+      'Update failed',
+      name: 'updateFailed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Update failed. Check the internet connection and try again.`
+  String get updateFailedGeneric {
+    return Intl.message(
+      'Update failed. Check the internet connection and try again.',
+      name: 'updateFailedGeneric',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `To download manually:`
+  String get updateManualHint {
+    return Intl.message(
+      'To download manually:',
+      name: 'updateManualHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Automatic updates work on Windows only`
+  String get updateWindowsOnly {
+    return Intl.message(
+      'Automatic updates work on Windows only',
+      name: 'updateWindowsOnly',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The downloaded file failed its checksum check`
+  String get updateFailureChecksumMismatch {
+    return Intl.message(
+      'The downloaded file failed its checksum check',
+      name: 'updateFailureChecksumMismatch',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Could not read the published checksum — refusing to install an unverified update`
+  String get updateFailureChecksumUnreadable {
+    return Intl.message(
+      'Could not read the published checksum — refusing to install an unverified update',
+      name: 'updateFailureChecksumUnreadable',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The downloaded archive is missing the app program`
+  String get updateFailureExecutableMissing {
+    return Intl.message(
+      'The downloaded archive is missing the app program',
+      name: 'updateFailureExecutableMissing',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The update did not unpack completely. The download was discarded — please try again`
+  String get updateFailureIncompleteExtraction {
+    return Intl.message(
+      'The update did not unpack completely. The download was discarded — please try again',
+      name: 'updateFailureIncompleteExtraction',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Account top-up details`
+  String get topupDetails {
+    return Intl.message(
+      'Account top-up details',
+      name: 'topupDetails',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Account owner`
+  String get accountOwner {
+    return Intl.message(
+      'Account owner',
+      name: 'accountOwner',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Open customer profile`
+  String get openCustomerProfile {
+    return Intl.message(
+      'Open customer profile',
+      name: 'openCustomerProfile',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Transaction ID`
+  String get transactionId {
+    return Intl.message(
+      'Transaction ID',
+      name: 'transactionId',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Phone number`
+  String get phoneNumber {
+    return Intl.message(
+      'Phone number',
+      name: 'phoneNumber',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Date`
+  String get date {
+    return Intl.message('Date', name: 'date', desc: '', args: []);
+  }
+
+  /// `Entry and exit details`
+  String get visitDetails {
+    return Intl.message(
+      'Entry and exit details',
+      name: 'visitDetails',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Account ID`
+  String get accountId {
+    return Intl.message('Account ID', name: 'accountId', desc: '', args: []);
+  }
+
+  /// `Child in this visit`
+  String get visitChild {
+    return Intl.message(
+      'Child in this visit',
+      name: 'visitChild',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Refund`
+  String get refundAction {
+    return Intl.message('Refund', name: 'refundAction', desc: '', args: []);
+  }
+
+  /// `Refund payment`
+  String get refundTitle {
+    return Intl.message(
+      'Refund payment',
+      name: 'refundTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Original payment`
+  String get refundOriginalAmount {
+    return Intl.message(
+      'Original payment',
+      name: 'refundOriginalAmount',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Refunded`
+  String get refundAlreadyAmount {
+    return Intl.message(
+      'Refunded',
+      name: 'refundAlreadyAmount',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Remaining amount`
+  String get refundRemainingAmount {
+    return Intl.message(
+      'Remaining amount',
+      name: 'refundRemainingAmount',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Refund method`
+  String get refundMethod {
+    return Intl.message(
+      'Refund method',
+      name: 'refundMethod',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Amount to refund`
+  String get refundAmount {
+    return Intl.message(
+      'Amount to refund',
+      name: 'refundAmount',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Select all`
+  String get refundMax {
+    return Intl.message('Select all', name: 'refundMax', desc: '', args: []);
+  }
+
+  /// `Refund reason`
+  String get refundReason {
+    return Intl.message(
+      'Refund reason',
+      name: 'refundReason',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `For example: returned item or incorrect order`
+  String get refundReasonHint {
+    return Intl.message(
+      'For example: returned item or incorrect order',
+      name: 'refundReasonHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The reason must contain at least 5 characters`
+  String get refundReasonValidation {
+    return Intl.message(
+      'The reason must contain at least 5 characters',
+      name: 'refundReasonValidation',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `A card refund must also be completed on the payment terminal. This action does not automatically reverse the terminal transaction.`
+  String get refundCardWarning {
+    return Intl.message(
+      'A card refund must also be completed on the payment terminal. This action does not automatically reverse the terminal transaction.',
+      name: 'refundCardWarning',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Confirm refund`
+  String get refundConfirmTitle {
+    return Intl.message(
+      'Confirm refund',
+      name: 'refundConfirmTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{amount} will be refunded via {method}. This action is permanently stored in the audit history.`
+  String refundConfirmMessage(String amount, String method) {
+    return Intl.message(
+      '$amount will be refunded via $method. This action is permanently stored in the audit history.',
+      name: 'refundConfirmMessage',
+      desc: '',
+      args: [amount, method],
+    );
+  }
+
+  /// `{amount} was refunded successfully`
+  String refundSuccess(String amount) {
+    return Intl.message(
+      '$amount was refunded successfully',
+      name: 'refundSuccess',
+      desc: '',
+      args: [amount],
+    );
+  }
+
+  /// `Partially refunded`
+  String get refundPartialBadge {
+    return Intl.message(
+      'Partially refunded',
+      name: 'refundPartialBadge',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Fully refunded`
+  String get refundFullBadge {
+    return Intl.message(
+      'Fully refunded',
+      name: 'refundFullBadge',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Refund history`
+  String get refundHistory {
+    return Intl.message(
+      'Refund history',
+      name: 'refundHistory',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{date} · {name}`
+  String refundAuditBy(String date, String name) {
+    return Intl.message(
+      '$date · $name',
+      name: 'refundAuditBy',
+      desc: '',
+      args: [date, name],
+    );
+  }
+
+  /// `To balance`
+  String get refundBalanceMethod {
+    return Intl.message(
+      'To balance',
+      name: 'refundBalanceMethod',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Customer balance: {balance}`
+  String refundCustomerBalance(Object balance) {
+    return Intl.message(
+      'Customer balance: $balance',
+      name: 'refundCustomerBalance',
+      desc: '',
+      args: [balance],
+    );
+  }
+
+  /// `Reversing a top-up takes the money back off the balance, so you cannot return more than it still holds.`
+  String get refundBalanceLimitNote {
+    return Intl.message(
+      'Reversing a top-up takes the money back off the balance, so you cannot return more than it still holds.',
+      name: 'refundBalanceLimitNote',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Select the passes being handed back`
+  String get refundSelectPasses {
+    return Intl.message(
+      'Select the passes being handed back',
+      name: 'refundSelectPasses',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Used`
+  String get refundPassUsed {
+    return Intl.message('Used', name: 'refundPassUsed', desc: '', args: []);
+  }
+
+  /// `Voided`
+  String get refundPassVoided {
+    return Intl.message('Voided', name: 'refundPassVoided', desc: '', args: []);
+  }
+
+  /// `No refundable passes remain on this receipt`
+  String get refundNoRefundablePasses {
+    return Intl.message(
+      'No refundable passes remain on this receipt',
+      name: 'refundNoRefundablePasses',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Selected passes total`
+  String get refundSelectedPassesTotal {
+    return Intl.message(
+      'Selected passes total',
+      name: 'refundSelectedPassesTotal',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Select at least one pass`
+  String get refundSelectPassesValidation {
+    return Intl.message(
+      'Select at least one pass',
+      name: 'refundSelectPassesValidation',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Refunded`
+  String get refundedTotal {
+    return Intl.message('Refunded', name: 'refundedTotal', desc: '', args: []);
+  }
+
+  /// `Correct payment method`
+  String get correctPaymentAction {
+    return Intl.message(
+      'Correct payment method',
+      name: 'correctPaymentAction',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Correct payment method`
+  String get correctPaymentTitle {
+    return Intl.message(
+      'Correct payment method',
+      name: 'correctPaymentTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The receipt total does not change. Only which column the money sits in — cash or card — is corrected, so the shift cash-up matches the drawer.`
+  String get correctPaymentHint {
+    return Intl.message(
+      'The receipt total does not change. Only which column the money sits in — cash or card — is corrected, so the shift cash-up matches the drawer.',
+      name: 'correctPaymentHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Recorded wrongly as`
+  String get correctPaymentFrom {
+    return Intl.message(
+      'Recorded wrongly as',
+      name: 'correctPaymentFrom',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Correct method`
+  String get correctPaymentTo {
+    return Intl.message(
+      'Correct method',
+      name: 'correctPaymentTo',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Amount to move`
+  String get correctPaymentAmount {
+    return Intl.message(
+      'Amount to move',
+      name: 'correctPaymentAmount',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Reason for the correction`
+  String get correctPaymentReason {
+    return Intl.message(
+      'Reason for the correction',
+      name: 'correctPaymentReason',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `For example: money taken in cash, rung up as card`
+  String get correctPaymentReasonHint {
+    return Intl.message(
+      'For example: money taken in cash, rung up as card',
+      name: 'correctPaymentReasonHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Result: cash {cash}, card {card}`
+  String correctPaymentResult(Object cash, Object card) {
+    return Intl.message(
+      'Result: cash $cash, card $card',
+      name: 'correctPaymentResult',
+      desc: '',
+      args: [cash, card],
+    );
+  }
+
+  /// `Confirm the correction`
+  String get correctPaymentConfirmTitle {
+    return Intl.message(
+      'Confirm the correction',
+      name: 'correctPaymentConfirmTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{amount} moves from {from} to {to}. The change is kept in the audit history.`
+  String correctPaymentConfirmMessage(Object amount, Object from, Object to) {
+    return Intl.message(
+      '$amount moves from $from to $to. The change is kept in the audit history.',
+      name: 'correctPaymentConfirmMessage',
+      desc: '',
+      args: [amount, from, to],
+    );
+  }
+
+  /// `Payment method corrected`
+  String get correctPaymentSuccess {
+    return Intl.message(
+      'Payment method corrected',
+      name: 'correctPaymentSuccess',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Payment method corrections`
+  String get correctPaymentHistory {
+    return Intl.message(
+      'Payment method corrections',
+      name: 'correctPaymentHistory',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{amount}: {from} → {to}`
+  String correctPaymentAudit(Object amount, Object from, Object to) {
+    return Intl.message(
+      '$amount: $from → $to',
+      name: 'correctPaymentAudit',
+      desc: '',
+      args: [amount, from, to],
+    );
+  }
+
+  /// `A receipt with a refund cannot have its payment method corrected`
+  String get correctPaymentUnavailable {
+    return Intl.message(
+      'A receipt with a refund cannot have its payment method corrected',
+      name: 'correctPaymentUnavailable',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Edit`
+  String get editSaleAction {
+    return Intl.message('Edit', name: 'editSaleAction', desc: '', args: []);
+  }
+
+  /// `Edit receipt`
+  String get editSaleTitle {
+    return Intl.message(
+      'Edit receipt',
+      name: 'editSaleTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Enter the correct total and the correct payment method. The steps are worked out for you: a changed method moves the columns, a lower total hands back the difference.`
+  String get editSaleHint {
+    return Intl.message(
+      'Enter the correct total and the correct payment method. The steps are worked out for you: a changed method moves the columns, a lower total hands back the difference.',
+      name: 'editSaleHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Now: {cash} cash + {card} card`
+  String editSaleCurrent(Object cash, Object card) {
+    return Intl.message(
+      'Now: $cash cash + $card card',
+      name: 'editSaleCurrent',
+      desc: '',
+      args: [cash, card],
+    );
+  }
+
+  /// `Correct total`
+  String get editSaleTotal {
+    return Intl.message(
+      'Correct total',
+      name: 'editSaleTotal',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Correct payment method`
+  String get editSaleMethod {
+    return Intl.message(
+      'Correct payment method',
+      name: 'editSaleMethod',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Reason for the edit`
+  String get editSaleReason {
+    return Intl.message(
+      'Reason for the edit',
+      name: 'editSaleReason',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `For example: wrong amount typed, money taken in cash`
+  String get editSaleReasonHint {
+    return Intl.message(
+      'For example: wrong amount typed, money taken in cash',
+      name: 'editSaleReasonHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `What will happen`
+  String get editSalePlanTitle {
+    return Intl.message(
+      'What will happen',
+      name: 'editSalePlanTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{amount} moves from {from} to {to}`
+  String editSalePlanCorrection(Object amount, Object from, Object to) {
+    return Intl.message(
+      '$amount moves from $from to $to',
+      name: 'editSalePlanCorrection',
+      desc: '',
+      args: [amount, from, to],
+    );
+  }
+
+  /// `{amount} is handed back to the customer in {method}`
+  String editSalePlanRefund(Object amount, Object method) {
+    return Intl.message(
+      '$amount is handed back to the customer in $method',
+      name: 'editSalePlanRefund',
+      desc: '',
+      args: [amount, method],
+    );
+  }
+
+  /// `Nothing changes — the receipt already says this`
+  String get editSalePlanNoop {
+    return Intl.message(
+      'Nothing changes — the receipt already says this',
+      name: 'editSalePlanNoop',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The total cannot go up. If more money was taken, ring it up as its own payment.`
+  String get editSaleBlockedIncrease {
+    return Intl.message(
+      'The total cannot go up. If more money was taken, ring it up as its own payment.',
+      name: 'editSaleBlockedIncrease',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Money has been handed back on this receipt, so the payment method can no longer change. Only the total can come down.`
+  String get editSaleBlockedMethod {
+    return Intl.message(
+      'Money has been handed back on this receipt, so the payment method can no longer change. Only the total can come down.',
+      name: 'editSaleBlockedMethod',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The customer's balance no longer holds that much — it cannot be returned.`
+  String get editSaleBlockedBalance {
+    return Intl.message(
+      'The customer\'s balance no longer holds that much — it cannot be returned.',
+      name: 'editSaleBlockedBalance',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `This receipt cannot be edited here.`
+  String get editSaleBlockedNotEditable {
+    return Intl.message(
+      'This receipt cannot be edited here.',
+      name: 'editSaleBlockedNotEditable',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Receipt edited`
+  String get editSaleSuccess {
+    return Intl.message(
+      'Receipt edited',
+      name: 'editSaleSuccess',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The edit did not finish. Reopen the receipt and edit again — only what is still missing will run.`
+  String get editSalePartialFailure {
+    return Intl.message(
+      'The edit did not finish. Reopen the receipt and edit again — only what is still missing will run.',
+      name: 'editSalePartialFailure',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Confirm the top-up`
+  String get topupConfirmTitle {
+    return Intl.message(
+      'Confirm the top-up',
+      name: 'topupConfirmTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Customer`
+  String get topupConfirmCustomer {
+    return Intl.message(
+      'Customer',
+      name: 'topupConfirmCustomer',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Top-up amount`
+  String get topupConfirmAmount {
+    return Intl.message(
+      'Top-up amount',
+      name: 'topupConfirmAmount',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `New balance`
+  String get topupConfirmNewBalance {
+    return Intl.message(
+      'New balance',
+      name: 'topupConfirmNewBalance',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Top up`
+  String get topupConfirmAction {
+    return Intl.message(
+      'Top up',
+      name: 'topupConfirmAction',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Once confirmed the amount is credited to the customer's balance. If it is wrong, the receipt can be put right with Edit.`
+  String get topupConfirmWarning {
+    return Intl.message(
+      'Once confirmed the amount is credited to the customer\'s balance. If it is wrong, the receipt can be put right with Edit.',
+      name: 'topupConfirmWarning',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Payment method`
+  String get topupConfirmMethod {
+    return Intl.message(
+      'Payment method',
+      name: 'topupConfirmMethod',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No internet connection`
+  String get offlinePromptTitle {
+    return Intl.message(
+      'No internet connection',
+      name: 'offlinePromptTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The connection to the server was lost. Switch to offline mode and keep selling? Sales are saved on this till and sent to the server when the internet is back.`
+  String get offlinePromptBody {
+    return Intl.message(
+      'The connection to the server was lost. Switch to offline mode and keep selling? Sales are saved on this till and sent to the server when the internet is back.',
+      name: 'offlinePromptBody',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Yes, go offline`
+  String get offlinePromptAccept {
+    return Intl.message(
+      'Yes, go offline',
+      name: 'offlinePromptAccept',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No`
+  String get offlinePromptDecline {
+    return Intl.message('No', name: 'offlinePromptDecline', desc: '', args: []);
+  }
+
+  /// `Internet is back`
+  String get onlinePromptTitle {
+    return Intl.message(
+      'Internet is back',
+      name: 'onlinePromptTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Switch to online mode and sync {count} sales?`
+  String onlinePromptBody(int count) {
+    return Intl.message(
+      'Switch to online mode and sync $count sales?',
+      name: 'onlinePromptBody',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `Yes, sync`
+  String get onlinePromptAccept {
+    return Intl.message(
+      'Yes, sync',
+      name: 'onlinePromptAccept',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Later`
+  String get onlinePromptLater {
+    return Intl.message('Later', name: 'onlinePromptLater', desc: '', args: []);
+  }
+
+  /// `OFFLINE · {count} sales waiting`
+  String offlineBanner(int count) {
+    return Intl.message(
+      'OFFLINE · $count sales waiting',
+      name: 'offlineBanner',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `Syncing…`
+  String get offlineBannerSyncing {
+    return Intl.message(
+      'Syncing…',
+      name: 'offlineBannerSyncing',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Check connection`
+  String get checkOnline {
+    return Intl.message(
+      'Check connection',
+      name: 'checkOnline',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Still no internet`
+  String get stillOffline {
+    return Intl.message(
+      'Still no internet',
+      name: 'stillOffline',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Sync result`
+  String get syncResultTitle {
+    return Intl.message(
+      'Sync result',
+      name: 'syncResultTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{synced} sales synced, {failed} failed.`
+  String syncResultBody(int synced, int failed) {
+    return Intl.message(
+      '$synced sales synced, $failed failed.',
+      name: 'syncResultBody',
+      desc: '',
+      args: [synced, failed],
+    );
+  }
+
+  /// `Could not sync: {reason}. Staying offline.`
+  String syncTransportFailed(String reason) {
+    return Intl.message(
+      'Could not sync: $reason. Staying offline.',
+      name: 'syncTransportFailed',
+      desc: '',
+      args: [reason],
+    );
+  }
+
+  /// `View`
+  String get syncViewFailures {
+    return Intl.message('View', name: 'syncViewFailures', desc: '', args: []);
+  }
+
+  /// `Needs internet`
+  String get needsInternet {
+    return Intl.message(
+      'Needs internet',
+      name: 'needsInternet',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Unsynced`
+  String get tabUnsynced {
+    return Intl.message('Unsynced', name: 'tabUnsynced', desc: '', args: []);
+  }
+
+  /// `All sales are synced`
+  String get unsyncedEmpty {
+    return Intl.message(
+      'All sales are synced',
+      name: 'unsyncedEmpty',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `For a failed sale, call support and read them the code.`
+  String get unsyncedHint {
+    return Intl.message(
+      'For a failed sale, call support and read them the code.',
+      name: 'unsyncedHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Waiting`
+  String get unsyncedPending {
+    return Intl.message('Waiting', name: 'unsyncedPending', desc: '', args: []);
+  }
+
+  /// `Failed`
+  String get unsyncedFailed {
+    return Intl.message('Failed', name: 'unsyncedFailed', desc: '', args: []);
+  }
+
+  /// `Code: {code}`
+  String unsyncedSupportCode(String code) {
+    return Intl.message(
+      'Code: $code',
+      name: 'unsyncedSupportCode',
+      desc: '',
+      args: [code],
+    );
+  }
+
+  /// `Code copied`
+  String get unsyncedCodeCopied {
+    return Intl.message(
+      'Code copied',
+      name: 'unsyncedCodeCopied',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Retry`
+  String get unsyncedRetry {
+    return Intl.message('Retry', name: 'unsyncedRetry', desc: '', args: []);
+  }
+
+  /// `Resend all`
+  String get unsyncedRetryAll {
+    return Intl.message(
+      'Resend all',
+      name: 'unsyncedRetryAll',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Switch to online mode to resend`
+  String get unsyncedRetryNeedsOnline {
+    return Intl.message(
+      'Switch to online mode to resend',
+      name: 'unsyncedRetryNeedsOnline',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Not synced`
+  String get notSyncedBadge {
+    return Intl.message(
+      'Not synced',
+      name: 'notSyncedBadge',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Offline mode: only sales not yet synced are shown`
+  String get historyOfflineNotice {
+    return Intl.message(
+      'Offline mode: only sales not yet synced are shown',
+      name: 'historyOfflineNotice',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{count} sales are not synced. Sync them in online mode before signing out.`
+  String logoutBlockedUnsynced(int count) {
+    return Intl.message(
+      '$count sales are not synced. Sync them in online mode before signing out.',
+      name: 'logoutBlockedUnsynced',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `{count} sales failed to sync. Contact support before closing the shift.`
+  String closeShiftUnsyncedWarning(int count) {
+    return Intl.message(
+      '$count sales failed to sync. Contact support before closing the shift.',
+      name: 'closeShiftUnsyncedWarning',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `A shift can't be closed in offline mode`
+  String get closeShiftOffline {
+    return Intl.message(
+      'A shift can\'t be closed in offline mode',
+      name: 'closeShiftOffline',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{count} sales failed to sync. They stay saved on this till. Sign out anyway?`
+  String logoutFailedSalesConfirm(int count) {
+    return Intl.message(
+      '$count sales failed to sync. They stay saved on this till. Sign out anyway?',
+      name: 'logoutFailedSalesConfirm',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `Sign out anyway`
+  String get logoutAnyway {
+    return Intl.message(
+      'Sign out anyway',
+      name: 'logoutAnyway',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Promo code`
+  String get promoCode {
+    return Intl.message('Promo code', name: 'promoCode', desc: '', args: []);
+  }
+
+  /// `Scan or type the code`
+  String get promoCodeHint {
+    return Intl.message(
+      'Scan or type the code',
+      name: 'promoCodeHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Check`
+  String get promoCodeCheck {
+    return Intl.message('Check', name: 'promoCodeCheck', desc: '', args: []);
+  }
+
+  /// `Invalid promo code — check the code`
+  String get promoCodeInvalid {
+    return Intl.message(
+      'Invalid promo code — check the code',
+      name: 'promoCodeInvalid',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The promo code owner was not found`
+  String get promoCodeOwnerNotFound {
+    return Intl.message(
+      'The promo code owner was not found',
+      name: 'promoCodeOwnerNotFound',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `This promo code belongs to another customer`
+  String get promoCodeWrongCustomer {
+    return Intl.message(
+      'This promo code belongs to another customer',
+      name: 'promoCodeWrongCustomer',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `For child`
+  String get promoCodeForChild {
+    return Intl.message(
+      'For child',
+      name: 'promoCodeForChild',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Select a child for the promo code`
+  String get promoCodeNoChild {
+    return Intl.message(
+      'Select a child for the promo code',
+      name: 'promoCodeNoChild',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Remove promo code`
+  String get promoCodeRemove {
+    return Intl.message(
+      'Remove promo code',
+      name: 'promoCodeRemove',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Promo code not applied, code returned: {reason}`
+  String promoCodeReleased(String reason) {
+    return Intl.message(
+      'Promo code not applied, code returned: $reason',
+      name: 'promoCodeReleased',
+      desc: '',
+      args: [reason],
+    );
+  }
+
+  /// `Blogger`
+  String get promoCodeBlogger {
+    return Intl.message(
+      'Blogger',
+      name: 'promoCodeBlogger',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Blogger promo code {code} accepted — select a customer`
+  String promoCodeBloggerPending(String code) {
+    return Intl.message(
+      'Blogger promo code $code accepted — select a customer',
+      name: 'promoCodeBloggerPending',
+      desc: '',
+      args: [code],
+    );
+  }
+
+  /// `This promo code is not active yet`
+  String get promoCodeNotStarted {
+    return Intl.message(
+      'This promo code is not active yet',
+      name: 'promoCodeNotStarted',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `This promo code has reached its usage limit`
+  String get promoCodeLimitReached {
+    return Intl.message(
+      'This promo code has reached its usage limit',
+      name: 'promoCodeLimitReached',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `This customer has already used this promo code`
+  String get promoCodeAlreadyUsedByCustomer {
+    return Intl.message(
+      'This customer has already used this promo code',
+      name: 'promoCodeAlreadyUsedByCustomer',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Pixel Market`
+  String get tabMarket {
+    return Intl.message('Pixel Market', name: 'tabMarket', desc: '', args: []);
+  }
+
+  /// `Hand over`
+  String get marketGive {
+    return Intl.message('Hand over', name: 'marketGive', desc: '', args: []);
+  }
+
+  /// `Incoming`
+  String get marketIncoming {
+    return Intl.message('Incoming', name: 'marketIncoming', desc: '', args: []);
+  }
+
+  /// `Pickup code`
+  String get marketCodeLabel {
+    return Intl.message(
+      'Pickup code',
+      name: 'marketCodeLabel',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Scan the QR or type the 6-digit code`
+  String get marketCodeHint {
+    return Intl.message(
+      'Scan the QR or type the 6-digit code',
+      name: 'marketCodeHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Find`
+  String get marketCodeFind {
+    return Intl.message('Find', name: 'marketCodeFind', desc: '', args: []);
+  }
+
+  /// `The code must be 6 digits`
+  String get marketCodeInvalid {
+    return Intl.message(
+      'The code must be 6 digits',
+      name: 'marketCodeInvalid',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The request failed — try again`
+  String get marketRequestFailed {
+    return Intl.message(
+      'The request failed — try again',
+      name: 'marketRequestFailed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Scan the QR code in the parent’s app`
+  String get marketScanPrompt {
+    return Intl.message(
+      'Scan the QR code in the parent’s app',
+      name: 'marketScanPrompt',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Order #{number}`
+  String marketOrderNumber(String number) {
+    return Intl.message(
+      'Order #$number',
+      name: 'marketOrderNumber',
+      desc: '',
+      args: [number],
+    );
+  }
+
+  /// `Customer`
+  String get marketCustomer {
+    return Intl.message('Customer', name: 'marketCustomer', desc: '', args: []);
+  }
+
+  /// `New`
+  String get marketStatusPlaced {
+    return Intl.message('New', name: 'marketStatusPlaced', desc: '', args: []);
+  }
+
+  /// `Shop is preparing`
+  String get marketStatusConfirmed {
+    return Intl.message(
+      'Shop is preparing',
+      name: 'marketStatusConfirmed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Sent by the shop`
+  String get marketStatusHandedOver {
+    return Intl.message(
+      'Sent by the shop',
+      name: 'marketStatusHandedOver',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `At the park`
+  String get marketStatusAtBranch {
+    return Intl.message(
+      'At the park',
+      name: 'marketStatusAtBranch',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Picked up`
+  String get marketStatusPickedUp {
+    return Intl.message(
+      'Picked up',
+      name: 'marketStatusPickedUp',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Cancelled`
+  String get marketStatusCancelled {
+    return Intl.message(
+      'Cancelled',
+      name: 'marketStatusCancelled',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Receive`
+  String get marketReceive {
+    return Intl.message('Receive', name: 'marketReceive', desc: '', args: []);
+  }
+
+  /// `Received`
+  String get marketReceived {
+    return Intl.message('Received', name: 'marketReceived', desc: '', args: []);
+  }
+
+  /// `Order received — the parent has been notified`
+  String get marketReceivedToast {
+    return Intl.message(
+      'Order received — the parent has been notified',
+      name: 'marketReceivedToast',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Handed over`
+  String get marketHandOver {
+    return Intl.message(
+      'Handed over',
+      name: 'marketHandOver',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Receive the shop’s sent orders with “Receive” first — only orders at the park are handed over`
+  String get marketUnreceivedHint {
+    return Intl.message(
+      'Receive the shop’s sent orders with “Receive” first — only orders at the park are handed over',
+      name: 'marketUnreceivedHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Handed over!`
+  String get marketHandedTitle {
+    return Intl.message(
+      'Handed over!',
+      name: 'marketHandedTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{count} order(s) handed to the customer`
+  String marketHandedBody(int count) {
+    return Intl.message(
+      '$count order(s) handed to the customer',
+      name: 'marketHandedBody',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `Next customer`
+  String get marketNext {
+    return Intl.message(
+      'Next customer',
+      name: 'marketNext',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{count} item(s)`
+  String marketItemsCount(int count) {
+    return Intl.message(
+      '$count item(s)',
+      name: 'marketItemsCount',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `Total`
+  String get marketTotal {
+    return Intl.message('Total', name: 'marketTotal', desc: '', args: []);
+  }
+
+  /// `No incoming orders yet`
+  String get marketIncomingEmpty {
+    return Intl.message(
+      'No incoming orders yet',
+      name: 'marketIncomingEmpty',
       desc: '',
       args: [],
     );
@@ -106,6 +3036,7 @@ class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalization> {
   List<Locale> get supportedLocales {
     return const <Locale>[
       Locale.fromSubtags(languageCode: 'en'),
+      Locale.fromSubtags(languageCode: 'ru'),
       Locale.fromSubtags(languageCode: 'uz'),
     ];
   }

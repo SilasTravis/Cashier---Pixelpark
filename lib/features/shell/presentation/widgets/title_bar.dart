@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:phosphor_icons/phosphor_icons.dart';
+import '../../../../generated/l10n.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../../../../core/theme/nocturne_colors.dart';
@@ -65,7 +66,7 @@ class _TitleBarState extends State<TitleBar> with WindowListener {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'Bolajon — kassa',
+                      AppLocalization.of(context).appTitle,
                       style: TextStyle(
                         fontSize: 12,
                         color: NocturneColors.text.withValues(alpha: 0.6),

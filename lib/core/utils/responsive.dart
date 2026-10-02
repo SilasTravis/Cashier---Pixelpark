@@ -25,7 +25,11 @@ double scaleForWidth(double width, double at1440) {
 }
 
 class ResponsivePanel {
-  const ResponsivePanel({required this.compact, required this.standard, required this.wide});
+  const ResponsivePanel({
+    required this.compact,
+    required this.standard,
+    required this.wide,
+  });
 
   final double compact;
   final double standard;

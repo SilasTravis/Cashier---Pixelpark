@@ -10,6 +10,9 @@ class ActivePass extends Equatable {
     required this.planLabel,
     required this.expiresAt,
     required this.dueTodayUzs,
+    this.freeReason,
+    this.discountId,
+    this.discountName,
   });
 
   final String childId;
@@ -22,6 +25,15 @@ class ActivePass extends Equatable {
   /// reads out when a parent asks "qancha bo'ldi?".
   final int dueTodayUzs;
 
+  /// LEGACY (read-only) — set only for a pre-discount-catalog free pass.
+  final String? freeReason;
+
+  /// The entry discount applied to this pass, if any — replaces [freeReason]
+  /// for new passes. `discountName` is the badge label; `discountId` isn't
+  /// shown but lets the picker pre-select the same discount on re-entry.
+  final String? discountId;
+  final String? discountName;
+
   @override
   List<Object?> get props => [
     childId,
@@ -29,5 +41,8 @@ class ActivePass extends Equatable {
     planLabel,
     expiresAt,
     dueTodayUzs,
+    freeReason,
+    discountId,
+    discountName,
   ];
 }

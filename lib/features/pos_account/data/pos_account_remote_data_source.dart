@@ -2,12 +2,15 @@ import 'package:dio/dio.dart';
 
 import '../../../core/error/exceptions.dart';
 import '../../products/domain/product.dart';
+import '../../pos_sale/domain/discount.dart';
+import '../../pos_sale/domain/sale_receipt.dart';
 import '../domain/active_pass.dart';
 import '../domain/customer.dart';
 import '../domain/kids_plan.dart';
 import '../domain/parent_pass.dart';
 import '../domain/playing_child.dart';
 import '../domain/pos_entry.dart';
+import '../domain/promo_code_check.dart';
 
 /// One product line of a combined checkout: `qty` pieces of `productId`.
 typedef CheckoutLine = ({String productId, int qty});
@@ -20,7 +23,7 @@ class TopupResult {
 }
 
 abstract class PosAccountRemoteDataSource {
-  Future<List<Customer>> searchCustomers(String phone);
+  Future<List<Customer>> searchCustomers(String query, {int page = 1});
 
   Future<Customer> createCustomer({
     required String phoneNumber,
@@ -34,11 +37,25 @@ abstract class PosAccountRemoteDataSource {
     required String birthDate,
   });
 
+  Future<Customer> updateCustomerName({
+    required int customerId,
+    required String fullName,
+  }) => throw UnsupportedError('Customer name update is not implemented');
+
+  Future<Child> updateChildName({
+    required int customerId,
+    required String childId,
+    required String fullName,
+  }) => throw UnsupportedError('Child name update is not implemented');
+
+  /// [requestId] keys the top-up server-side: delivering the same request
+  /// twice records ONE, so a retry after a lost response cannot charge again.
   Future<TopupResult> topup({
     required int customerId,
     required int amountUzs,
     required int cashUzs,
     required int cardUzs,
+    required String requestId,
   });
 
   Future<List<KidsPlan>> listPlans();
@@ -67,7 +84,12 @@ abstract class PosAccountRemoteDataSource {
 
   /// The one-stop checkout: collected cash/card top the balance up, the
   /// products are debited FROM the balance, and the day passes are issued —
-  /// the plan itself is billed at exit, not here.
+  /// the plan itself is billed at exit, not here. [entryDiscounts] maps
+  /// childId → an entry-scoped `Discount.id` (absent = billed normally;
+  /// 100% reproduces the old free-pass behavior); [companions] mints that
+  /// many paid HAMROH stickers from the balance. [discountId] applies ONLY
+  /// to the goods leg (`products`) — never to the plan/VIP or companion
+  /// legs; omitted from the request entirely when null.
   Future<PosEntryResult> planEntryCheckout({
     required int customerId,
     required String planKey,
@@ -75,6 +97,29 @@ abstract class PosAccountRemoteDataSource {
     required List<CheckoutLine> products,
     required int cashUzs,
     required int cardUzs,
+    Map<String, String> entryDiscounts = const {},
+    int companions = 0,
+    String? discountId,
+    ({String code, String childId})? promoCode,
+  });
+
+  /// `POST /v1/pos/promo-codes/verify` — what a promo code is worth and,
+  /// for a partner code, whose it is. Read-only; [code] is normalised. Pass
+  /// [customerId] for a blogger code with a customer open — the server then
+  /// refuses one that customer already redeemed
+  /// (`PROMO_CODE_ALREADY_USED_BY_CUSTOMER`).
+  Future<PromoCodeCheck> verifyPromoCode(String code, {int? customerId});
+
+  /// Server-owned terminal pricing (currently the HAMROH companion price) —
+  /// so a price change never needs an app re-release.
+  Future<int> fetchCompanionPriceUzs();
+
+  /// Active discount catalog — same endpoint and best-effort contract as
+  /// `PosSaleRemoteDataSource.fetchDiscounts`: a failure just hides the
+  /// picker, it never blocks the plan-entry checkout. [scope] selects the
+  /// goods-cart catalog (default) or the per-child entry catalog.
+  Future<List<Discount>> fetchDiscounts({
+    DiscountScope scope = DiscountScope.goods,
   });
 }
 
@@ -84,14 +129,15 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
   final Dio dio;
 
   @override
-  Future<List<Customer>> searchCustomers(String phone) async {
-    // An empty phone means "no filter" (used for the default recent-
-    // customers list) — omit the query param entirely rather than sending
-    // `phone=`, since the backend 400s on an empty value.
+  Future<List<Customer>> searchCustomers(String query, {int page = 1}) async {
     final response = await _request(
       () => dio.get(
         '/v1/pos/customers',
-        queryParameters: phone.isEmpty ? null : {'phone': phone},
+        queryParameters: {
+          if (query.trim().isNotEmpty) 'query': query.trim(),
+          'page': page,
+          'limit': 50,
+        },
       ),
     );
     return (response as List)
@@ -134,16 +180,51 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
   }
 
   @override
+  Future<Customer> updateCustomerName({
+    required int customerId,
+    required String fullName,
+  }) async {
+    final response = await _request(
+      () => dio.patch(
+        '/v1/pos/customers/$customerId',
+        data: {'fullName': fullName.trim()},
+      ),
+    );
+    return _customerFromJson(response as Map<String, dynamic>);
+  }
+
+  @override
+  Future<Child> updateChildName({
+    required int customerId,
+    required String childId,
+    required String fullName,
+  }) async {
+    final response = await _request(
+      () => dio.patch(
+        '/v1/pos/customers/$customerId/children/$childId',
+        data: {'fullName': fullName.trim()},
+      ),
+    );
+    return _childFromJson(response as Map<String, dynamic>);
+  }
+
+  @override
   Future<TopupResult> topup({
     required int customerId,
     required int amountUzs,
     required int cashUzs,
     required int cardUzs,
+    required String requestId,
   }) async {
     final response = await _request(
       () => dio.post(
         '/v1/pos/customers/$customerId/topup',
-        data: {'amountUzs': amountUzs, 'cashUzs': cashUzs, 'cardUzs': cardUzs},
+        data: {
+          'amountUzs': amountUzs,
+          'cashUzs': cashUzs,
+          'cardUzs': cardUzs,
+          'requestId': requestId,
+        },
       ),
     );
     final map = response as Map<String, dynamic>;
@@ -224,9 +305,7 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
       () => dio.get('/v1/pos/customers/$customerId/active-passes'),
     );
     return (response as List)
-        .map(
-          (json) => _activePassFromJson(json as Map<String, dynamic>),
-        )
+        .map((json) => _activePassFromJson(json as Map<String, dynamic>))
         .toList();
   }
 
@@ -251,6 +330,9 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
       expiresAt: DateTime.parse(json['expiresAt'] as String).toLocal(),
       // Absent on older backends — badge simply shows 0 until redeploy.
       dueTodayUzs: json['dueTodayUzs'] as int? ?? 0,
+      freeReason: json['freeReason'] as String?,
+      discountId: json['discountId'] as String?,
+      discountName: json['discountName'] as String?,
     );
   }
 
@@ -263,6 +345,8 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
       enteredAt: DateTime.parse(json['enteredAt'] as String).toLocal(),
       minutes: json['minutes'] as int,
       dueUzs: json['dueUzs'] as int,
+      discountId: json['discountId'] as String?,
+      discountName: json['discountName'] as String?,
     );
   }
 
@@ -274,6 +358,10 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
     required List<CheckoutLine> products,
     required int cashUzs,
     required int cardUzs,
+    Map<String, String> entryDiscounts = const {},
+    int companions = 0,
+    String? discountId,
+    ({String code, String childId})? promoCode,
   }) async {
     final response = await _request(
       () => dio.post(
@@ -287,6 +375,16 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
           ],
           'cashUzs': cashUzs,
           'cardUzs': cardUzs,
+          // Omitted when unused so older backends never see the field.
+          if (entryDiscounts.isNotEmpty)
+            'entryDiscounts': [
+              for (final entry in entryDiscounts.entries)
+                {'childId': entry.key, 'discountId': entry.value},
+            ],
+          if (companions > 0) 'companions': companions,
+          'discountId': ?discountId,
+          if (promoCode != null)
+            'promoCode': {'code': promoCode.code, 'childId': promoCode.childId},
         },
       ),
     );
@@ -299,16 +397,63 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
       failures: (map['failures'] as List)
           .map((json) => _posEntryFailureFromJson(json as Map<String, dynamic>))
           .toList(),
+      // Absent on older backends — parsed defensively as "none".
+      companionPasses: ((map['companionPasses'] as List?) ?? const [])
+          .map((json) => _companionPassFromJson(json as Map<String, dynamic>))
+          .toList(),
       balance: map['balance'] as int?,
+      productSale: map['productSale'] == null
+          ? null
+          : SaleReceipt.fromJson(map['productSale'] as Map<String, dynamic>),
+      productsTotalUzs: (map['productsTotalUzs'] as int?) ?? 0,
+      promoCode: map['promoCode'] == null
+          ? null
+          : PromoCodeOutcome.fromJson(map['promoCode'] as Map<String, dynamic>),
     );
+  }
+
+  @override
+  Future<PromoCodeCheck> verifyPromoCode(String code, {int? customerId}) async {
+    final response = await _request(
+      () => dio.post(
+        '/v1/pos/promo-codes/verify',
+        data: {'code': code, 'customerId': ?customerId},
+      ),
+    );
+    return PromoCodeCheck.fromJson(code, response as Map<String, dynamic>);
+  }
+
+  @override
+  Future<List<Discount>> fetchDiscounts({
+    DiscountScope scope = DiscountScope.goods,
+  }) async {
+    final response = await _request(
+      () => dio.get('/v1/pos/discounts', queryParameters: {'scope': scope.key}),
+    );
+    return (response as List)
+        .map((json) => Discount.fromJson(json as Map<String, dynamic>))
+        .toList();
+  }
+
+  CompanionPass _companionPassFromJson(Map<String, dynamic> json) {
+    return CompanionPass(
+      code: json['code'] as String,
+      expiresAt: json['expiresAt'] == null
+          ? null
+          : DateTime.parse(json['expiresAt'] as String).toLocal(),
+    );
+  }
+
+  @override
+  Future<int> fetchCompanionPriceUzs() async {
+    final response = await _request(() => dio.get('/v1/pos/config'));
+    return (response as Map<String, dynamic>)['companionPriceUzs'] as int;
   }
 
   /// Absent on older backends — parsed defensively as "no conflicts".
   List<PosEntryConflict> _conflictsFromJson(Map<String, dynamic> map) {
     return ((map['conflicts'] as List?) ?? const [])
-        .map(
-          (json) => _posEntryConflictFromJson(json as Map<String, dynamic>),
-        )
+        .map((json) => _posEntryConflictFromJson(json as Map<String, dynamic>))
         .toList();
   }
 
@@ -394,6 +539,10 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
           "VIP uchun balans yetarli emas — avval to'lov qabul qiling",
         'PLAN_SWITCH_BALANCE_INSUFFICIENT' =>
           "Balans yetarli emas — avval balansni to'ldiring",
+        'GATE_PASS_DISCOUNT_CONFLICT' =>
+          "Bu bolada allaqachon boshqa chegirma bilan faol propusk mavjud",
+        'PROMO_CODE_CHILD_HAS_PASS' =>
+          "Promokod faqat yangi propuskka qo'llanadi — bolada bugun propusk bor",
         _ => json['message'] as String,
       },
     );

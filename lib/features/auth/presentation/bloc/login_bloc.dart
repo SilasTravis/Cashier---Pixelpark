@@ -15,7 +15,10 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
 
   final LoginUseCase _loginUseCase;
 
-  Future<void> _onSubmitted(LoginSubmitted event, Emitter<LoginState> emit) async {
+  Future<void> _onSubmitted(
+    LoginSubmitted event,
+    Emitter<LoginState> emit,
+  ) async {
     emit(state.copyWith(isLoading: true, errorMessage: null));
     final result = await _loginUseCase(
       LoginParams(username: event.username, password: event.password),

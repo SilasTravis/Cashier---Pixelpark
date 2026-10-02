@@ -1,18 +1,38 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive_ce/hive.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'constants/app_constants.dart';
+import 'core/connectivity/connectivity_monitor.dart';
 import 'core/local_source/local_source.dart';
+import 'core/localization/locale_cubit.dart';
 import 'core/network/api_client.dart';
 import 'core/network/token_refresher.dart';
-import 'core/update/update_checker.dart';
+import 'core/offline/app_mode_cubit.dart';
+import 'core/terminal/terminal_heartbeat_service.dart';
+import 'core/update/release_source.dart';
+import 'core/update/update_failure_log.dart';
+import 'core/update/update_service.dart';
 import 'features/auth/data/datasources/auth_remote_data_source.dart';
 import 'features/auth/data/repositories/auth_repository_impl.dart';
 import 'features/auth/domain/repositories/auth_repository.dart';
 import 'features/auth/domain/usecases/login_usecase.dart';
 import 'features/auth/presentation/bloc/login_bloc.dart';
+import 'features/offline/application/offline_checkout.dart';
+import 'features/offline/application/offline_sync_service.dart';
+import 'features/offline/data/offline_store.dart';
+import 'features/offline/data/offline_sync_remote_data_source.dart';
 import 'features/pos_account/data/pos_account_remote_data_source.dart';
+import 'features/inside/data/inside_repository.dart';
+import 'features/inside/presentation/bloc/inside_cubit.dart';
+import 'features/market/data/market_repository.dart';
+import 'features/market/presentation/bloc/market_incoming_cubit.dart';
+import 'features/market/presentation/bloc/market_status_cubit.dart';
+import 'features/market/presentation/bloc/market_pickup_cubit.dart';
 import 'features/pos_account/data/pos_account_repository_impl.dart';
 import 'features/pos_account/presentation/bloc/pos_account_bloc.dart';
 import 'features/pos_sale/data/pos_sale_remote_data_source.dart';
@@ -21,9 +41,14 @@ import 'features/pos_sale/presentation/bloc/pos_sale_bloc.dart';
 import 'features/products/data/products_remote_data_source.dart';
 import 'features/products/data/products_repository_impl.dart';
 import 'features/products/presentation/bloc/products_bloc.dart';
+import 'features/sales_history/data/sales_history_remote_data_source.dart';
+import 'features/sales_history/data/sales_history_repository.dart';
+import 'features/sales_history/presentation/bloc/sales_history_bloc.dart';
 import 'features/shift/data/shift_remote_data_source.dart';
 import 'features/shift/data/shift_repository_impl.dart';
 import 'features/shift/presentation/bloc/shift_bloc.dart';
+import 'features/visit_history/data/visit_history_repository.dart';
+import 'features/visit_history/presentation/bloc/visit_history_cubit.dart';
 
 final GetIt sl = GetIt.instance;
 
@@ -31,19 +56,109 @@ Future<void> init() async {
   await _initHive();
 
   sl.registerLazySingleton<TokenRefresher>(() => TokenRefresher(sl()));
-  sl.registerLazySingleton<Dio>(() => buildDio(sl(), sl()));
-
-  sl.registerLazySingleton<UpdateChecker>(
-    () => UpdateChecker(
-      isSafeToApply: () => sl<LocalSource>().getAccessToken() == null,
+  sl.registerLazySingleton<ConnectivityMonitor>(
+    () => ConnectivityMonitor(
+      probe: httpHealthProbe(
+        () =>
+            sl<LocalSource>().getApiBaseUrl() ?? AppConstants.defaultApiBaseUrl,
+      ),
+    ),
+  );
+  sl.registerLazySingleton<Dio>(
+    () => buildDio(
+      sl(),
+      sl(),
+      onConnectionFailure: sl<ConnectivityMonitor>().reportRequestFailure,
     ),
   );
 
+  // Read once at startup: the version is fixed for the process lifetime, and
+  // reading it eagerly keeps every consumer synchronous.
+  final packageInfo = await PackageInfo.fromPlatform();
+  sl.registerSingleton<UpdateService>(
+    UpdateService(
+      // Park networks block github.com: the backend mirror comes first,
+      // GitHub stays as the fallback for an older backend without it.
+      source: FallbackReleaseSource(
+        primary: BackendReleaseSource(
+          api: sl<Dio>(),
+          hasSession: () => sl<LocalSource>().getAccessToken() != null,
+        ),
+        fallback: GithubReleaseSource(),
+      ),
+      currentVersion: packageInfo.version,
+      supportDirectory: getApplicationSupportDirectory,
+    ),
+  );
+
+  sl.registerSingleton<UpdateFailureLog>(
+    UpdateFailureLog(localSource: sl(), currentVersion: packageInfo.version),
+  );
+
+  sl.registerFactory<LocaleCubit>(() => LocaleCubit(sl()));
+
   _authFeature();
+  _offlineFeature();
   _shiftFeature();
   _productsFeature();
   _posAccountFeature();
   _posSaleFeature();
+  _salesHistoryFeature();
+  _insideFeature();
+  _marketFeature();
+  _visitHistoryFeature();
+  _terminalFeature(packageInfo.version);
+}
+
+/// Lazy and not started here: `main()` starts it, so `init()` in tests
+/// never leaves a periodic timer behind. `sl.reset()` disposes it.
+void _terminalFeature(String appVersion) {
+  sl.registerLazySingleton<TerminalHeartbeatService>(
+    () => TerminalHeartbeatService(
+      api: sl<Dio>(),
+      hasSession: () => sl<LocalSource>().getAccessToken() != null,
+      sessionChanges: sl<LocalSource>().watchAccessToken(),
+      terminalId: sl<LocalSource>().getTerminalId,
+      appVersion: appVersion,
+      modeState: () => sl<AppModeCubit>().state,
+      modeStates: sl<AppModeCubit>().stream,
+      // Every cashier's queue on this till, failed sales included.
+      unsyncedSales: () => sl<OfflineStore>().sales().length,
+      lastUpdateFailure: sl<UpdateFailureLog>().current,
+      hostname: () => Platform.localHostname,
+      osVersion: () => Platform.operatingSystemVersion,
+    ),
+    dispose: (service) => service.dispose(),
+  );
+}
+
+void _visitHistoryFeature() {
+  sl.registerFactory<VisitHistoryCubit>(() => VisitHistoryCubit(sl()));
+  sl.registerLazySingleton<VisitHistoryRepository>(
+    () => VisitHistoryRepository(sl()),
+  );
+}
+
+void _insideFeature() {
+  sl.registerFactory<InsideCubit>(() => InsideCubit(sl()));
+  sl.registerLazySingleton<InsideRepository>(() => InsideRepository(sl()));
+}
+
+void _salesHistoryFeature() {
+  sl.registerFactory<SalesHistoryBloc>(() => SalesHistoryBloc(sl(), sl()));
+  sl.registerLazySingleton<SalesHistoryRepository>(
+    () => SalesHistoryRepository(sl()),
+  );
+  sl.registerLazySingleton<SalesHistoryRemoteDataSource>(
+    () => SalesHistoryRemoteDataSource(sl()),
+  );
+}
+
+void _marketFeature() {
+  sl.registerFactory<MarketPickupCubit>(() => MarketPickupCubit(sl()));
+  sl.registerFactory<MarketIncomingCubit>(() => MarketIncomingCubit(sl()));
+  sl.registerFactory<MarketStatusCubit>(() => MarketStatusCubit(sl()));
+  sl.registerLazySingleton<MarketRepository>(() => MarketRepository(sl()));
 }
 
 Future<void> _initHive() async {
@@ -51,6 +166,30 @@ Future<void> _initHive() async {
   Hive.init(dir.path);
   final box = await Hive.openBox<dynamic>('cashier_app_box');
   sl.registerSingleton<LocalSource>(LocalSource(box));
+
+  // Separate box: logout's clearSession() must never touch queued sales.
+  final offlineBox = await Hive.openBox<dynamic>(OfflineStore.boxName);
+  sl.registerSingleton<OfflineStore>(OfflineStore(offlineBox));
+}
+
+void _offlineFeature() {
+  sl.registerLazySingleton<OfflineSyncRemoteDataSource>(
+    () => OfflineSyncRemoteDataSourceImpl(sl()),
+  );
+  sl.registerLazySingleton<OfflineSyncService>(
+    () =>
+        OfflineSyncService(sl(), sl(), () => sl<LocalSource>().getCashierId()),
+  );
+  // App-wide, like the connection itself — survives login/logout routes.
+  sl.registerLazySingleton<AppModeCubit>(
+    () => AppModeCubit(
+      connectivity: sl<ConnectivityMonitor>().events,
+      checkNow: sl<ConnectivityMonitor>().checkNow,
+      store: sl(),
+      sync: sl<OfflineSyncService>().sync,
+      currentCashierId: () => sl<LocalSource>().getCashierId(),
+    ),
+  );
 }
 
 void _authFeature() {
@@ -70,7 +209,9 @@ void _authFeature() {
 void _shiftFeature() {
   sl.registerFactory<ShiftBloc>(() => ShiftBloc(sl()));
 
-  sl.registerLazySingleton<ShiftRepository>(() => ShiftRepository(sl()));
+  sl.registerLazySingleton<ShiftRepository>(
+    () => ShiftRepository(sl(), sl(), sl()),
+  );
 
   sl.registerLazySingleton<ShiftRemoteDataSource>(
     () => ShiftRemoteDataSourceImpl(sl()),
@@ -80,7 +221,9 @@ void _shiftFeature() {
 void _productsFeature() {
   sl.registerFactory<ProductsBloc>(() => ProductsBloc(sl()));
 
-  sl.registerLazySingleton<ProductsRepository>(() => ProductsRepository(sl()));
+  sl.registerLazySingleton<ProductsRepository>(
+    () => ProductsRepository(sl(), sl(), sl()),
+  );
 
   sl.registerLazySingleton<ProductsRemoteDataSource>(
     () => ProductsRemoteDataSourceImpl(sl()),
@@ -88,7 +231,7 @@ void _productsFeature() {
 }
 
 void _posAccountFeature() {
-  sl.registerFactory<PosAccountBloc>(() => PosAccountBloc(sl()));
+  sl.registerFactory<PosAccountBloc>(() => PosAccountBloc(sl(), sl()));
 
   sl.registerLazySingleton<PosAccountRepository>(
     () => PosAccountRepository(sl()),
@@ -100,9 +243,19 @@ void _posAccountFeature() {
 }
 
 void _posSaleFeature() {
-  sl.registerFactory<PosSaleBloc>(() => PosSaleBloc(sl(), sl()));
+  sl.registerFactory<PosSaleBloc>(
+    () => PosSaleBloc(
+      sl(),
+      sl(),
+      sl(),
+      offlineMode: sl<OfflineStore>().isOfflineMode,
+    ),
+  );
+  sl.registerLazySingleton<OfflineCheckout>(() => OfflineCheckout(sl(), sl()));
 
-  sl.registerLazySingleton<PosSaleRepository>(() => PosSaleRepository(sl()));
+  sl.registerLazySingleton<PosSaleRepository>(
+    () => PosSaleRepository(sl(), sl()),
+  );
 
   sl.registerLazySingleton<PosSaleRemoteDataSource>(
     () => PosSaleRemoteDataSourceImpl(sl()),

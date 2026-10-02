@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/offline/app_mode_cubit.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
 import '../../../shift/domain/shift.dart';
 import '../../../shift/presentation/bloc/shift_bloc.dart';
+import '../../../../generated/l10n.dart';
 
 Future<void> showCloseShiftDialog(BuildContext context, Shift shift) {
   final bloc = context.read<ShiftBloc>();
@@ -12,6 +14,7 @@ Future<void> showCloseShiftDialog(BuildContext context, Shift shift) {
     context: context,
     barrierDismissible: true,
     builder: (dialogContext) {
+      final l10n = AppLocalization.of(dialogContext);
       return BlocProvider.value(
         value: bloc,
         child: BlocListener<ShiftBloc, ShiftState>(
@@ -21,7 +24,7 @@ Future<void> showCloseShiftDialog(BuildContext context, Shift shift) {
           listener: (context, state) => Navigator.of(dialogContext).pop(),
           child: AlertDialog(
             backgroundColor: NocturneColors.surface,
-            title: const Text('Smenani yopish', style: AppTextStyles.h4),
+            title: Text(l10n.shiftClose, style: AppTextStyles.h4),
             content: SizedBox(
               width: 320,
               child: Column(
@@ -29,19 +32,67 @@ Future<void> showCloseShiftDialog(BuildContext context, Shift shift) {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _SummaryRow(
-                    label: 'Cheklar soni',
+                    label: l10n.receiptCount,
                     value: '${shift.totals.salesCount}',
                   ),
-                  _SummaryRow(label: 'Naqd', value: _uzs(shift.totals.cashUzs)),
                   _SummaryRow(
-                    label: 'Karta',
+                    label: l10n.paymentCash,
+                    value: _uzs(shift.totals.cashUzs),
+                  ),
+                  _SummaryRow(
+                    label: l10n.paymentCard,
                     value: _uzs(shift.totals.cardUzs),
                   ),
+                  _SummaryRow(
+                    label: l10n.balanceSalesNotIncome,
+                    value: _uzs(shift.totals.balanceSalesUzs),
+                  ),
+                  // Cash/card above already reflect the discounted (net)
+                  // amounts — this is purely informational, "how much was
+                  // given away".
+                  if (shift.totals.discountUzs > 0)
+                    _SummaryRow(
+                      label: l10n.discount,
+                      value: '−${_uzs(shift.totals.discountUzs)}',
+                    ),
+                  // Cash and card above are already net of this; showing it
+                  // explains the gap when the cashier counts the drawer.
+                  if (shift.totals.refundedUzs > 0)
+                    _SummaryRow(
+                      label: l10n.refundedTotal,
+                      value: '−${_uzs(shift.totals.refundedUzs)}',
+                    ),
                   const Divider(height: 20),
                   _SummaryRow(
-                    label: 'Jami smena tushumi',
+                    label: l10n.shiftTotalIncome,
                     value: _uzs(shift.totals.grandTotalUzs),
                     emphasize: true,
+                  ),
+                  if (context.read<AppModeCubit>().state.failedCount
+                      case final failed when failed > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Text(
+                        l10n.closeShiftUnsyncedWarning(failed),
+                        style: AppTextStyles.body.copyWith(
+                          color: NocturneColors.warning,
+                        ),
+                      ),
+                    ),
+                  // Shows OFFLINE_SALES_PENDING (and any other close error),
+                  // which used to fail silently in this dialog.
+                  BlocBuilder<ShiftBloc, ShiftState>(
+                    builder: (context, state) => state.errorMessage == null
+                        ? const SizedBox.shrink()
+                        : Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: Text(
+                              state.errorMessage!,
+                              style: AppTextStyles.body.copyWith(
+                                color: NocturneColors.danger,
+                              ),
+                            ),
+                          ),
                   ),
                 ],
               ),
@@ -49,7 +100,7 @@ Future<void> showCloseShiftDialog(BuildContext context, Shift shift) {
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(),
-                child: const Text('Bekor qilish'),
+                child: Text(l10n.cancel),
               ),
               BlocBuilder<ShiftBloc, ShiftState>(
                 builder: (context, state) {
@@ -65,7 +116,7 @@ Future<void> showCloseShiftDialog(BuildContext context, Shift shift) {
                             height: 16,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text('Yopish'),
+                        : Text(l10n.close),
                   );
                 },
               ),

@@ -5,5 +5,607 @@
   "loginUsername": "Login",
   "loginPassword": "Parol",
   "loginButton": "Kirish",
-  "loginError": "Login yoki parol noto'g'ri"
+  "loginError": "Incorrect username or password",
+  "loginSubtitle": "Enter your username and password to access the register",
+  "language": "Language",
+  "languageUzbek": "Uzbek",
+  "languageRussian": "Russian",
+  "tabAccount": "Account & QR",
+  "tabSales": "Sales",
+  "tabHistory": "Sales history",
+  "tabVisitHistory": "Entry/exit history",
+  "visitHistorySearchHint": "Search by child, parent or phone",
+  "currentShiftOnly": "Current shift only",
+  "visitEntries": "Entries",
+  "visitExits": "Exits",
+  "visitStillInside": "Still inside",
+  "visitInside": "Inside",
+  "visitEntered": "Entered",
+  "visitExited": "Exited",
+  "visitManualExit": "Manually exited",
+  "visitHistoryEmpty": "No entries or exits in the current shift",
+  "tabSettings": "Settings",
+  "cartTitle": "Receipt",
+  "cartClear": "Clear",
+  "cartClearTitle": "Clear cart",
+  "cartClearMessage": "All products will be removed from the cart. Continue?",
+  "cartEmpty": "Cart is empty",
+  "discount": "Discount",
+  "noDiscount": "No discount",
+  "discountUnavailableMessage": "The discount is no longer available — pick again",
+  "categoryAll": "All",
+  "productSearchHint": "Product name or category",
+  "total": "Total",
+  "pay": "Pay",
+  "paymentCash": "Cash",
+  "paymentCard": "Card",
+  "paymentSplit": "Split",
+  "paymentMatched": "Amount matched",
+  "paymentMissing": "Amount remaining",
+  "paymentExcess": "Amount exceeds total",
+  "cancel": "Cancel",
+  "close": "Close",
+  "refresh": "Refresh",
+  "shiftRevenue": "Shift revenue",
+  "receipt": "Receipt",
+  "printReceipt": "Print receipt",
+  "printing": "Printing…",
+  "receiptPrintFailed": "Receipt could not be printed. Check the printer.",
+  "historyToday": "Today",
+  "history7Days": "7 days",
+  "history30Days": "30 days",
+  "historyYear": "This year",
+  "historyDateRange": "Date range",
+  "historyProduct": "Product",
+  "historyAllProducts": "All products",
+  "historyEmpty": "No sales in this period",
+  "historySales": "Sales",
+  "historyCount": "{count}",
+  "@historyCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "historyChoosePeriod": "Choose sales period",
+  "historyChoose": "Select",
+  "saleGoods": "Product sale",
+  "saleGatePass": "Entry ticket",
+  "saleTopup": "Account top-up",
+  "saleGeneric": "Sale",
+  "paymentCashValue": "Cash: {value}",
+  "@paymentCashValue": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentCardValue": "Card: {value}",
+  "@paymentCardValue": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentBalance": "Balance-funded sales",
+  "paymentBalanceValue": "Balance: {value}",
+  "@paymentBalanceValue": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "branch": "Branch",
+  "version": "Version",
+  "logout": "Log out",
+  "printerSettings": "Printers",
+  "qrPrinter": "QR and label printer",
+  "receiptPrinter": "Product receipt printer",
+  "automaticGodex": "Automatic — Godex",
+  "automaticSewoo": "Automatic — SLK",
+  "noPrintersFound": "No installed Windows printers found",
+  "cashDesk": "Cash desk",
+  "cashDeskCashier": "Cash desk · {name}",
+  "@cashDeskCashier": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "menuOpen": "Open menu",
+  "menuClose": "Close menu",
+  "shiftClose": "Close shift",
+  "shiftOpenedAt": "Shift opened at {time}",
+  "@shiftOpenedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "shiftStart": "Start shift",
+  "shiftStartHint": "Enter the opening cash amount in the register",
+  "shiftOpeningCash": "Opening cash (UZS)",
+  "shiftOpen": "Open shift",
+  "shiftClosed": "Shift closed",
+  "receiptCount": "Receipt count",
+  "balanceSalesNotIncome": "Balance-funded sales (not income)",
+  "shiftTotalIncome": "Total shift income",
+  "findCustomerHint": "Enter a phone number to find a customer",
+  "recentCustomers": "Recent customers",
+  "searchHistory": "Search history",
+  "allCustomers": "All customers",
+  "customerDirectorySearchHint": "Search by name or the last phone digits",
+  "searchResult": "Search results",
+  "customerCount": "{count} customers",
+  "@customerCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "childCount": "{count} children",
+  "@childCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "phoneNotFound": "Number not found",
+  "accountNotFoundForPhone": "No account exists for +998 {phone}.",
+  "@accountNotFoundForPhone": {
+    "placeholders": {
+      "phone": {
+        "type": "String"
+      }
+    }
+  },
+  "addCustomer": "Add customer",
+  "fullName": "Full name",
+  "save": "Save",
+  "parentQr": "Parent QR",
+  "balance": "Balance",
+  "children": "Children",
+  "selectedCount": "selected: {count}",
+  "@selectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noChildren": "no children",
+  "selectForQr": "Select for QR",
+  "quickAdd": "Quick add",
+  "childName": "Child name",
+  "add": "Add",
+  "tariff": "Tariff",
+  "tariffNotFound": "No tariffs found.",
+  "products": "Products",
+  "companionDescription": "{price} each — unrestricted like parent QR",
+  "@companionDescription": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "vipAlreadyActive": "«{name}» already has an active VIP tariff — no second charge.",
+  "@vipAlreadyActive": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "vipTariff": "VIP tariff",
+  "vipChargedImmediately": "The VIP tariff is debited from the balance immediately when printed.",
+  "payFromBalance": "Pay from balance",
+  "currentBalanceValue": "Current balance: {value}",
+  "@currentBalanceValue": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "balanceInsufficient": "Insufficient balance — at least {value} must be paid.",
+  "@balanceInsufficient": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentAmount": "Payment amount",
+  "paymentMinimumHint": "At least {value} — excess remains on the balance",
+  "@paymentMinimumHint": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "printParentQr": "Also print parent QR",
+  "unlimitedFreeEntry": "Free — unrestricted entry and exit",
+  "currentlyInside": "Currently inside",
+  "enteredAtMinutes": "{plan} · entered {time} · {minutes} min",
+  "@enteredAtMinutes": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "totalBill": "Total bill",
+  "exitBalanceInsufficient": "Insufficient balance — top up at least {value} to exit.",
+  "@exitBalanceInsufficient": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "free": "Free",
+  "birthdayFreeOnlyToday": "Available only on the birthday",
+  "topupBalance": "Top up balance",
+  "amount": "Amount",
+  "newBalance": "New balance",
+  "topup": "Top up",
+  "stickerPrintFailed": "Sticker was not printed — check the printer",
+  "entryFailed": "Failed to enter: {message}",
+  "@entryFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "planSwitch": "Switch tariff",
+  "planSwitchQuestion": "Switch to the «{plan}» tariff? The old sticker will be cancelled and a new QR printed.",
+  "@planSwitchQuestion": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
+  "planSwitchVipQuestion": "Switch to the «{plan}» tariff? The {plan} price ({price}) will be debited immediately. The old sticker will be cancelled and a new QR printed.",
+  "@planSwitchVipQuestion": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "currentPlanToday": "«{child}» is on the «{plan}» tariff today{inside}.",
+  "@currentPlanToday": {
+    "placeholders": {
+      "child": {
+        "type": "String"
+      },
+      "plan": {
+        "type": "String"
+      },
+      "inside": {
+        "type": "String"
+      }
+    }
+  },
+  "insideSuffix": " (currently inside)",
+  "downgradeForbidden": "This tariff cannot be downgraded — if the sticker was lost, reprint the current tariff.",
+  "accruedDue": "{value} will be debited for time already played.",
+  "@accruedDue": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "reprint": "Reprint",
+  "switchAndPrint": "Switch and print",
+  "keypadHint": "Enter a number to see results on the right. Select a customer to open details.",
+  "productNotFound": "Product not found",
+  "noPaymentNow": "Nothing is due now — played time will be debited from the balance at exit.",
+  "paymentAndPrint": "Pay and print",
+  "enter": "Enter",
+  "enterCount": "Enter ({count})",
+  "@enterCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pricePerDay": "{value} / day",
+  "@pricePerDay": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "priceFromPerMinute": "from {value} / min",
+  "@priceFromPerMinute": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "tabInside": "Inside park",
+  "insideSearchHint": "Search by child, parent or phone",
+  "insideCount": "Inside: {count}",
+  "@insideCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "insideEmpty": "There are no children inside the park",
+  "insideSearchEmpty": "No child matches your search",
+  "enteredAt": "Entered at",
+  "elapsedTime": "Elapsed",
+  "minutesCount": "{count} min",
+  "@minutesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "accruedAmount": "Current charge",
+  "markExited": "Mark as exited",
+  "manualExitTitle": "Lost QR code?",
+  "manualExitQuestion": "{child} will be marked as exited now. The visit will close at {amount} and be debited from the parent's balance. Continue?",
+  "@manualExitQuestion": {
+    "placeholders": {
+      "child": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "manualExitSucceeded": "The child was successfully marked as exited",
+  "updateTitle": "Update",
+  "updateCheck": "Check for updates",
+  "updateUpToDate": "You're on the latest version",
+  "updateAvailable": "New version available: {version}",
+  "@updateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateDownload": "Download & install",
+  "updateDownloading": "Downloading…",
+  "updateReady": "Update ready",
+  "updateRestart": "Restart now",
+  "updateConfirmTitle": "Update the app",
+  "updateConfirmMessage": "The app will close and reopen on the new version. Your shift stays open. Continue?",
+  "updateConfirm": "Continue",
+  "updateCancel": "Cancel",
+  "updateFailed": "Update failed",
+  "updateFailedGeneric": "Update failed. Check the internet connection and try again.",
+  "updateManualHint": "To download manually:",
+  "updateWindowsOnly": "Automatic updates work on Windows only",
+  "updateFailureChecksumMismatch": "The downloaded file failed its checksum check",
+  "updateFailureChecksumUnreadable": "Could not read the published checksum — refusing to install an unverified update",
+  "updateFailureExecutableMissing": "The downloaded archive is missing the app program",
+  "updateFailureIncompleteExtraction": "The update did not unpack completely. The download was discarded — please try again",
+  "topupDetails": "Account top-up details",
+  "accountOwner": "Account owner",
+  "openCustomerProfile": "Open customer profile",
+  "transactionId": "Transaction ID",
+  "phoneNumber": "Phone number",
+  "date": "Date",
+  "visitDetails": "Entry and exit details",
+  "accountId": "Account ID",
+  "visitChild": "Child in this visit",
+  "refundAction": "Refund",
+  "refundTitle": "Refund payment",
+  "refundOriginalAmount": "Original payment",
+  "refundAlreadyAmount": "Refunded",
+  "refundRemainingAmount": "Remaining amount",
+  "refundMethod": "Refund method",
+  "refundAmount": "Amount to refund",
+  "refundMax": "Select all",
+  "refundReason": "Refund reason",
+  "refundReasonHint": "For example: returned item or incorrect order",
+  "refundReasonValidation": "The reason must contain at least 5 characters",
+  "refundCardWarning": "A card refund must also be completed on the payment terminal. This action does not automatically reverse the terminal transaction.",
+  "refundConfirmTitle": "Confirm refund",
+  "refundConfirmMessage": "{amount} will be refunded via {method}. This action is permanently stored in the audit history.",
+  "@refundConfirmMessage": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "method": {
+        "type": "String"
+      }
+    }
+  },
+  "refundSuccess": "{amount} was refunded successfully",
+  "@refundSuccess": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "refundPartialBadge": "Partially refunded",
+  "refundFullBadge": "Fully refunded",
+  "refundHistory": "Refund history",
+  "refundAuditBy": "{date} · {name}",
+  "@refundAuditBy": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "refundBalanceMethod": "To balance",
+  "refundCustomerBalance": "Customer balance: {balance}",
+  "refundBalanceLimitNote": "Reversing a top-up takes the money back off the balance, so you cannot return more than it still holds.",
+  "refundSelectPasses": "Select the passes being handed back",
+  "refundPassUsed": "Used",
+  "refundPassVoided": "Voided",
+  "refundNoRefundablePasses": "No refundable passes remain on this receipt",
+  "refundSelectedPassesTotal": "Selected passes total",
+  "refundSelectPassesValidation": "Select at least one pass",
+  "refundedTotal": "Refunded",
+  "correctPaymentAction": "Correct payment method",
+  "correctPaymentTitle": "Correct payment method",
+  "correctPaymentHint": "The receipt total does not change. Only which column the money sits in — cash or card — is corrected, so the shift cash-up matches the drawer.",
+  "correctPaymentFrom": "Recorded wrongly as",
+  "correctPaymentTo": "Correct method",
+  "correctPaymentAmount": "Amount to move",
+  "correctPaymentReason": "Reason for the correction",
+  "correctPaymentReasonHint": "For example: money taken in cash, rung up as card",
+  "correctPaymentResult": "Result: cash {cash}, card {card}",
+  "correctPaymentConfirmTitle": "Confirm the correction",
+  "correctPaymentConfirmMessage": "{amount} moves from {from} to {to}. The change is kept in the audit history.",
+  "correctPaymentSuccess": "Payment method corrected",
+  "correctPaymentHistory": "Payment method corrections",
+  "correctPaymentAudit": "{amount}: {from} → {to}",
+  "correctPaymentUnavailable": "A receipt with a refund cannot have its payment method corrected",
+  "editSaleAction": "Edit",
+  "editSaleTitle": "Edit receipt",
+  "editSaleHint": "Enter the correct total and the correct payment method. The steps are worked out for you: a changed method moves the columns, a lower total hands back the difference.",
+  "editSaleCurrent": "Now: {cash} cash + {card} card",
+  "editSaleTotal": "Correct total",
+  "editSaleMethod": "Correct payment method",
+  "editSaleReason": "Reason for the edit",
+  "editSaleReasonHint": "For example: wrong amount typed, money taken in cash",
+  "editSalePlanTitle": "What will happen",
+  "editSalePlanCorrection": "{amount} moves from {from} to {to}",
+  "editSalePlanRefund": "{amount} is handed back to the customer in {method}",
+  "editSalePlanNoop": "Nothing changes — the receipt already says this",
+  "editSaleBlockedIncrease": "The total cannot go up. If more money was taken, ring it up as its own payment.",
+  "editSaleBlockedMethod": "Money has been handed back on this receipt, so the payment method can no longer change. Only the total can come down.",
+  "editSaleBlockedBalance": "The customer's balance no longer holds that much — it cannot be returned.",
+  "editSaleBlockedNotEditable": "This receipt cannot be edited here.",
+  "editSaleSuccess": "Receipt edited",
+  "editSalePartialFailure": "The edit did not finish. Reopen the receipt and edit again — only what is still missing will run.",
+  "topupConfirmTitle": "Confirm the top-up",
+  "topupConfirmCustomer": "Customer",
+  "topupConfirmAmount": "Top-up amount",
+  "topupConfirmNewBalance": "New balance",
+  "topupConfirmAction": "Top up",
+  "topupConfirmWarning": "Once confirmed the amount is credited to the customer's balance. If it is wrong, the receipt can be put right with Edit.",
+  "topupConfirmMethod": "Payment method",
+  "offlinePromptTitle": "No internet connection",
+  "offlinePromptBody": "The connection to the server was lost. Switch to offline mode and keep selling? Sales are saved on this till and sent to the server when the internet is back.",
+  "offlinePromptAccept": "Yes, go offline",
+  "offlinePromptDecline": "No",
+  "onlinePromptTitle": "Internet is back",
+  "onlinePromptBody": "Switch to online mode and sync {count} sales?",
+  "@onlinePromptBody": { "placeholders": { "count": { "type": "int" } } },
+  "onlinePromptAccept": "Yes, sync",
+  "onlinePromptLater": "Later",
+  "offlineBanner": "OFFLINE · {count} sales waiting",
+  "@offlineBanner": { "placeholders": { "count": { "type": "int" } } },
+  "offlineBannerSyncing": "Syncing…",
+  "checkOnline": "Check connection",
+  "stillOffline": "Still no internet",
+  "syncResultTitle": "Sync result",
+  "syncResultBody": "{synced} sales synced, {failed} failed.",
+  "@syncResultBody": { "placeholders": { "synced": { "type": "int" }, "failed": { "type": "int" } } },
+  "syncTransportFailed": "Could not sync: {reason}. Staying offline.",
+  "@syncTransportFailed": { "placeholders": { "reason": { "type": "String" } } },
+  "syncViewFailures": "View",
+  "needsInternet": "Needs internet",
+  "tabUnsynced": "Unsynced",
+  "unsyncedEmpty": "All sales are synced",
+  "unsyncedHint": "For a failed sale, call support and read them the code.",
+  "unsyncedPending": "Waiting",
+  "unsyncedFailed": "Failed",
+  "unsyncedSupportCode": "Code: {code}",
+  "@unsyncedSupportCode": { "placeholders": { "code": { "type": "String" } } },
+  "unsyncedCodeCopied": "Code copied",
+  "unsyncedRetry": "Retry",
+  "unsyncedRetryAll": "Resend all",
+  "unsyncedRetryNeedsOnline": "Switch to online mode to resend",
+  "notSyncedBadge": "Not synced",
+  "historyOfflineNotice": "Offline mode: only sales not yet synced are shown",
+  "logoutBlockedUnsynced": "{count} sales are not synced. Sync them in online mode before signing out.",
+  "@logoutBlockedUnsynced": { "placeholders": { "count": { "type": "int" } } },
+  "closeShiftUnsyncedWarning": "{count} sales failed to sync. Contact support before closing the shift.",
+  "@closeShiftUnsyncedWarning": { "placeholders": { "count": { "type": "int" } } },
+  "closeShiftOffline": "A shift can't be closed in offline mode",
+  "logoutFailedSalesConfirm": "{count} sales failed to sync. They stay saved on this till. Sign out anyway?",
+  "@logoutFailedSalesConfirm": { "placeholders": { "count": { "type": "int" } } },
+  "logoutAnyway": "Sign out anyway",
+  "promoCode": "Promo code",
+  "promoCodeHint": "Scan or type the code",
+  "promoCodeCheck": "Check",
+  "promoCodeInvalid": "Invalid promo code — check the code",
+  "promoCodeOwnerNotFound": "The promo code owner was not found",
+  "promoCodeWrongCustomer": "This promo code belongs to another customer",
+  "promoCodeForChild": "For child",
+  "promoCodeNoChild": "Select a child for the promo code",
+  "promoCodeRemove": "Remove promo code",
+  "promoCodeReleased": "Promo code not applied, code returned: {reason}",
+  "@promoCodeReleased": { "placeholders": { "reason": { "type": "String" } } },
+  "promoCodeBlogger": "Blogger",
+  "promoCodeBloggerPending": "Blogger promo code {code} accepted — select a customer",
+  "@promoCodeBloggerPending": { "placeholders": { "code": { "type": "String" } } },
+  "promoCodeNotStarted": "This promo code is not active yet",
+  "promoCodeLimitReached": "This promo code has reached its usage limit",
+  "promoCodeAlreadyUsedByCustomer": "This customer has already used this promo code",
+  "tabMarket": "Pixel Market",
+  "marketGive": "Hand over",
+  "marketIncoming": "Incoming",
+  "marketCodeLabel": "Pickup code",
+  "marketCodeHint": "Scan the QR or type the 6-digit code",
+  "marketCodeFind": "Find",
+  "marketCodeInvalid": "The code must be 6 digits",
+  "marketRequestFailed": "The request failed — try again",
+  "marketScanPrompt": "Scan the QR code in the parent’s app",
+  "marketOrderNumber": "Order #{number}",
+  "@marketOrderNumber": { "placeholders": { "number": { "type": "String" } } },
+  "marketCustomer": "Customer",
+  "marketStatusPlaced": "New",
+  "marketStatusConfirmed": "Shop is preparing",
+  "marketStatusHandedOver": "Sent by the shop",
+  "marketStatusAtBranch": "At the park",
+  "marketStatusPickedUp": "Picked up",
+  "marketStatusCancelled": "Cancelled",
+  "marketReceive": "Receive",
+  "marketReceived": "Received",
+  "marketReceivedToast": "Order received — the parent has been notified",
+  "marketHandOver": "Handed over",
+  "marketUnreceivedHint": "Receive the shop’s sent orders with “Receive” first — only orders at the park are handed over",
+  "marketHandedTitle": "Handed over!",
+  "marketHandedBody": "{count} order(s) handed to the customer",
+  "@marketHandedBody": { "placeholders": { "count": { "type": "int" } } },
+  "marketNext": "Next customer",
+  "marketItemsCount": "{count} item(s)",
+  "@marketItemsCount": { "placeholders": { "count": { "type": "int" } } },
+  "marketTotal": "Total",
+  "marketIncomingEmpty": "No incoming orders yet"
 }

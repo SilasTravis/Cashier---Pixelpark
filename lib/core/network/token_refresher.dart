@@ -44,7 +44,8 @@ class TokenRefresher {
     }
 
     try {
-      final baseUrl = localSource.getApiBaseUrl() ?? AppConstants.defaultApiBaseUrl;
+      final baseUrl =
+          localSource.getApiBaseUrl() ?? AppConstants.defaultApiBaseUrl;
       final response = await _dio.post(
         '$baseUrl/v1/cashier/auth/refresh',
         data: {'refreshToken': refreshToken},

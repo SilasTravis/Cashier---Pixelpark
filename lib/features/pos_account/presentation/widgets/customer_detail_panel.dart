@@ -2,22 +2,39 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:phosphor_icons/phosphor_icons.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../../core/printing/gate_pass_label_printer.dart';
+import '../../../../core/local_source/local_source.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
 import '../../../../core/utils/currency.dart';
+import '../../../../core/widgets/discount_picker.dart';
 import '../../../../core/widgets/payment_method_selector.dart';
+import '../../../../core/widgets/promo_code_field.dart';
+import '../../../pos_sale/presentation/widgets/receipt_dialog.dart';
+import '../../../pos_sale/domain/discount.dart';
+import '../../../pos_sale/domain/sale_receipt.dart';
+import '../../../../injector_container.dart';
 import '../../../products/domain/product.dart';
 import '../../domain/active_pass.dart';
 import '../../domain/customer.dart';
 import '../../domain/kids_plan.dart';
 import '../../domain/playing_child.dart';
+import '../../domain/pos_entry.dart';
+import '../../domain/promo_code_check.dart';
+import 'confirm_topup_dialog.dart';
 import '../bloc/pos_account_bloc.dart';
 import 'plan_conflict_dialog.dart';
 import 'plan_entry_printing.dart';
+import 'promo_code_error.dart';
+import '../../../../generated/l10n.dart';
 
 const _quickTopupAmounts = [10000, 20000, 50000, 100000];
+
+/// Sentinel for the 3-dots menu's "Bekor qilish" item — see the
+/// PopupMenuButton note in [_ChildRow].
+const _clearEntryDiscount = Object();
 
 /// The center pane once a customer is selected — a summary strip (back,
 /// avatar, name, balance) then two cards side by side (wrapping on narrow
@@ -33,6 +50,19 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
   final Set<String> _selectedChildIds = {};
   KidsPlan? _selectedPlan;
 
+  /// childId → an entry-scoped `Discount.id` — optional, picked from the
+  /// row's 3-dots menu. Only the picks of SELECTED children are sent with
+  /// the checkout.
+  final Map<String, String> _childEntryDiscountIds = {};
+
+  /// The cashier's "Qaysi bolaga" pick for the verified partner promo code
+  /// (`state.promo`) — null (or deselected) falls back to the first
+  /// selected child without a pass today; see `promoChildId` in build.
+  String? _promoChildId;
+
+  /// Paid HAMROH companion stickers to buy with this checkout.
+  int _companions = 0;
+
   bool _addingChild = false;
   final _childNameController = TextEditingController();
 
@@ -46,6 +76,11 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
 
   /// productId → qty of the extra goods (socks etc.) sold with this entry.
   final Map<String, int> _cart = {};
+
+  /// Applies ONLY to the goods cart above — never the VIP/plan price or the
+  /// HAMROH companion price. Reset on cart-owning context changes: customer
+  /// switch, checkout, or the server reporting it is no longer available.
+  String? _selectedDiscountId;
 
   /// "Balansdan yechish" — only offered while the balance covers the cart.
   bool _payFromBalance = true;
@@ -71,9 +106,41 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
     super.dispose();
   }
 
+  /// Confirms before crediting, then mints the idempotency key for that one
+  /// confirmed top-up. The key is what makes a retried request — a lost
+  /// response, a flaky link — record one top-up instead of two.
+  Future<void> _confirmAndTopup(
+    BuildContext context, {
+    required Customer customer,
+    required int amountUzs,
+    required PaymentSplit split,
+    required PaymentMethod method,
+  }) async {
+    final confirmed = await showConfirmTopupDialog(
+      context,
+      customer: customer,
+      amountUzs: amountUzs,
+      cashUzs: split.cashUzs,
+      cardUzs: split.cardUzs,
+      method: method,
+    );
+    if (confirmed != true || !context.mounted) return;
+    context.read<PosAccountBloc>().add(
+      PosAccountTopupRequested(
+        amountUzs: amountUzs,
+        cashUzs: split.cashUzs,
+        cardUzs: split.cardUzs,
+        requestId: const Uuid().v4(),
+      ),
+    );
+  }
+
   void _resetFor(Customer? customer) {
     _selectedChildIds.clear();
     _selectedPlan = null;
+    _childEntryDiscountIds.clear();
+    _promoChildId = null;
+    _companions = 0;
     _addingChild = false;
     _childNameController.clear();
     _printParentQr = true;
@@ -82,6 +149,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
     _topupCashController.clear();
     _topupCardController.clear();
     _cart.clear();
+    _selectedDiscountId = null;
     _payFromBalance = true;
     _payMethod = PaymentMethod.cash;
     _payEdited = false;
@@ -104,8 +172,14 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
           listenWhen: (previous, current) =>
               previous.lastEntryResult != current.lastEntryResult &&
               current.lastEntryResult != null,
-          listener: (context, state) {
+          listener: (context, state) async {
             final result = state.lastEntryResult!;
+            final productReceipt =
+                result.productSale ?? _legacyProductReceipt(result, state);
+            if (productReceipt != null) {
+              await printSaleReceiptDirect(context, productReceipt);
+              if (!context.mounted) return;
+            }
             final childNames = {
               for (final child
                   in state.selectedCustomer?.children ?? const <Child>[])
@@ -143,22 +217,44 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
           listener: (context, state) {
             final pass = state.lastParentPass!;
             final messenger = ScaffoldMessenger.of(context);
-            GatePassLabelPrinter.printDirect([
-              (qrData: pass.code, name: pass.customerName, invertName: true),
-            ]).then((ok) {
+            final printFailedMessage = AppLocalization.of(
+              context,
+            ).stickerPrintFailed;
+            GatePassLabelPrinter.printDirect(
+              [(qrData: pass.code, name: pass.customerName, invertName: true)],
+              preferredPrinterName: sl<LocalSource>().getQrPrinterName(),
+            ).then((ok) {
               if (ok) return;
               messenger.showSnackBar(
-                const SnackBar(
+                SnackBar(
                   backgroundColor: NocturneColors.surface,
                   content: Text(
-                    'Stiker chop etilmadi — printerni tekshiring',
-                    style: TextStyle(color: NocturneColors.danger),
+                    printFailedMessage,
+                    style: const TextStyle(color: NocturneColors.danger),
                   ),
                 ),
               );
             });
             context.read<PosAccountBloc>().add(
               const PosAccountParentQrAcknowledged(),
+            );
+          },
+        ),
+        // The picked discount was disabled/deleted between fetch and
+        // checkout — the bloc already refetches the catalog; the local
+        // pick just needs clearing so the cashier re-selects from it.
+        BlocListener<PosAccountBloc, PosAccountState>(
+          listenWhen: (previous, current) =>
+              current.errorCode == 'DISCOUNT_NOT_AVAILABLE' &&
+              previous.errorCode != current.errorCode,
+          listener: (context, state) {
+            setState(() => _selectedDiscountId = null);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  AppLocalization.of(context).discountUnavailableMessage,
+                ),
+              ),
             );
           },
         ),
@@ -187,11 +283,60 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               for (final id in _selectedChildIds)
                 if (activePlanByChild[id] == _selectedPlan!.key) id,
           };
+          // The partner promo code discounts ONE selected child. A child
+          // with a pass today can't take it — the backend would fail that
+          // child (a plain re-print included) rather than burn the code —
+          // so the default skips those, and with none left the code stays
+          // unsent until the cashier selects a child who can.
+          final promo = state.promo;
+          final passChildIds = {for (final p in state.activePasses) p.childId};
+          final selectedChildren = [
+            for (final child in customer.children)
+              if (_selectedChildIds.contains(child.id)) child,
+          ];
+          final promoChildId = promo == null
+              ? null
+              : _selectedChildIds.contains(_promoChildId)
+              ? _promoChildId
+              : selectedChildren
+                    .where((c) => !passChildIds.contains(c.id))
+                    .firstOrNull
+                    ?.id;
+
+          // A child with an entry discount pays the VIP price net of it — a
+          // 100% discount (PREVIEW ONLY, same formula as the backend) zeroes
+          // it exactly like the old free-reason flow did. The promo child's
+          // discount is the code's tier, replacing any 3-dots pick.
+          Discount? entryDiscountFor(String childId) {
+            if (childId == promoChildId) return promo!.discount;
+            final id = _childEntryDiscountIds[childId];
+            if (id == null) return null;
+            return state.entryDiscounts.where((d) => d.id == id).firstOrNull;
+          }
+
           final vipTotal = _selectedPlan?.kind == KidsPlanKind.flatDay
-              ? (_selectedPlan!.flatUzs ?? 0) *
-                    (_selectedChildIds.length - alreadyOnSelectedPlan.length)
+              ? _selectedChildIds
+                    .where((id) => !alreadyOnSelectedPlan.contains(id))
+                    .fold<int>(0, (sum, id) {
+                      final flat = _selectedPlan!.flatUzs ?? 0;
+                      final discount = entryDiscountFor(id);
+                      final discountUzs =
+                          discount?.appliedDiscountUzs(flat) ?? 0;
+                      return sum + (flat - discountUzs);
+                    })
               : 0;
-          final neededTotal = cartTotal + vipTotal;
+          final companionsTotal = _companions * state.companionPriceUzs;
+          // Discount applies ONLY to the goods cart — never to vipTotal or
+          // companionsTotal (see the design doc's decision #1 scope note).
+          final selectedDiscount = _selectedDiscountId == null
+              ? null
+              : state.discounts
+                    .where((d) => d.id == _selectedDiscountId)
+                    .firstOrNull;
+          final cartDiscountUzs =
+              selectedDiscount?.appliedDiscountUzs(cartTotal) ?? 0;
+          final netCartTotal = cartTotal - cartDiscountUzs;
+          final neededTotal = netCartTotal + vipTotal + companionsTotal;
           final shortfall = neededTotal - customer.balance;
           final balanceCovers = shortfall <= 0;
           // Money must be collected when the balance can't cover the total,
@@ -238,7 +383,8 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
             cashInput: _topupCashController.text,
             cardInput: _topupCardController.text,
           );
-          final canTopup = !state.isBusy && topupAmount > 0 && topupSplit.isValid;
+          final canTopup =
+              !state.isBusy && topupAmount > 0 && topupSplit.isValid;
 
           return SingleChildScrollView(
             child: Column(
@@ -247,6 +393,12 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                 _SummaryStrip(
                   customer: customer,
                   isBusy: state.isBusy,
+                  onRename: (name) => context.read<PosAccountBloc>().add(
+                    PosAccountCustomerNameUpdateRequested(name),
+                  ),
+                  onRefresh: () => context.read<PosAccountBloc>().add(
+                    const PosAccountCustomerRefreshRequested(),
+                  ),
                   onParentQr: () => context.read<PosAccountBloc>().add(
                     const PosAccountParentQrRequested(),
                   ),
@@ -255,12 +407,11 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                // Children/checkout and top-up side by side on a roomy
-                // window; stacked when the detail area is too narrow for
-                // both cards to breathe (small cashier screens, ~800px
-                // windows) — each card needs ~320px of usable width.
-                _TwoCardLayout(
-                  first: _ChildrenCard(
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _ChildrenCard(
                         customer: customer,
                         plans: state.plans,
                         isLoadingPlans: state.isLoadingPlans,
@@ -271,6 +422,23 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                               ? _selectedChildIds.remove(id)
                               : _selectedChildIds.add(id),
                         ),
+                        onRenameChild: (id, name) => context
+                            .read<PosAccountBloc>()
+                            .add(PosAccountChildNameUpdateRequested(id, name)),
+                        entryDiscounts: state.entryDiscounts,
+                        childEntryDiscountIds: _childEntryDiscountIds,
+                        promoChildId: promoChildId,
+                        promoLabel: promo == null
+                            ? null
+                            : promoCodeLabel(promo),
+                        onChildEntryDiscountChanged: (id, discountId) =>
+                            setState(() {
+                              if (discountId == null) {
+                                _childEntryDiscountIds.remove(id);
+                              } else {
+                                _childEntryDiscountIds[id] = discountId;
+                              }
+                            }),
                         addingChild: _addingChild,
                         onStartAddChild: () =>
                             setState(() => _addingChild = true),
@@ -297,10 +465,53 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                         selectedPlan: _selectedPlan,
                         onSelectPlan: (p) => setState(() => _selectedPlan = p),
                         checkout: _CheckoutSection(
-                          products: state.products,
+                          // Products are sold from the dedicated "Savdo" tab
+                          // only — never shown/sellable from this per-child
+                          // plan-entry checkout. Passing an empty list (not
+                          // touching `_CheckoutSection` itself) keeps every
+                          // downstream total/discount/payment computation
+                          // working exactly as it already does for an empty
+                          // cart, so nothing else changes.
+                          products: const [],
+                          promoSection: _PromoSection(
+                            promo: promo,
+                            isChecking: state.isCheckingPromo,
+                            errorText: promoCodeErrorText(
+                              AppLocalization.of(context),
+                              state,
+                            ),
+                            label: promo == null ? null : promoCodeLabel(promo),
+                            selectedChildren: selectedChildren,
+                            passChildIds: passChildIds,
+                            promoChildId: promoChildId,
+                            onSubmit: (raw) => context
+                                .read<PosAccountBloc>()
+                                .add(PosAccountPromoCodeSubmitted(raw)),
+                            onChildPicked: (id) =>
+                                setState(() => _promoChildId = id),
+                            onClear: () => context.read<PosAccountBloc>().add(
+                              const PosAccountPromoCodeCleared(),
+                            ),
+                          ),
                           cart: _cart,
                           cartTotal: cartTotal,
+                          discounts: state.discounts,
+                          selectedDiscount: selectedDiscount,
+                          cartDiscountUzs: cartDiscountUzs,
+                          onDiscountChanged: (discount) => setState(
+                            () => _selectedDiscountId = discount?.id,
+                          ),
                           vipTotal: vipTotal,
+                          companions: _companions,
+                          companionPriceUzs: state.companionPriceUzs,
+                          companionsTotal: companionsTotal,
+                          onCompanionAdd: () =>
+                              setState(() => _companions += 1),
+                          onCompanionRemove: () => setState(
+                            () => _companions = _companions > 0
+                                ? _companions - 1
+                                : 0,
+                          ),
                           neededTotal: neededTotal,
                           balance: customer.balance,
                           balanceCovers: balanceCovers,
@@ -323,9 +534,8 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                           paySplit: paySplit,
                           payAmount: payAmount,
                           onChanged: () => setState(() {}),
-                          onAdd: (id) => setState(
-                            () => _cart[id] = (_cart[id] ?? 0) + 1,
-                          ),
+                          onAdd: (id) =>
+                              setState(() => _cart[id] = (_cart[id] ?? 0) + 1),
                           onRemove: (id) => setState(() {
                             final qty = (_cart[id] ?? 0) - 1;
                             if (qty <= 0) {
@@ -350,6 +560,17 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                               planKey: _selectedPlan!.key,
                               childIds: _selectedChildIds.toList(),
                               withParentQr: _printParentQr,
+                              entryDiscounts: {
+                                for (final entry
+                                    in _childEntryDiscountIds.entries)
+                                  if (_selectedChildIds.contains(entry.key) &&
+                                      entry.key != promoChildId)
+                                    entry.key: entry.value,
+                              },
+                              promoCode: promoChildId == null
+                                  ? null
+                                  : (code: promo!.code, childId: promoChildId),
+                              companions: _companions,
                               products: [
                                 for (final line in _cart.entries)
                                   (productId: line.key, qty: line.value),
@@ -360,30 +581,37 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                               cardUzs: requiredPayment == 0
                                   ? 0
                                   : paySplit.cardUzs,
+                              discountId: _selectedDiscountId,
                             ),
                           ),
                         ),
                       ),
-                  second: _BalanceCard(
-                    customer: customer,
-                    amountController: _topupAmountController,
-                    onAmountChanged: () => setState(() {}),
-                    method: _topupMethod,
-                    onMethodChanged: (m) => setState(() => _topupMethod = m),
-                    cashController: _topupCashController,
-                    cardController: _topupCardController,
-                    split: topupSplit,
-                    amount: topupAmount,
-                    canTopup: canTopup,
-                    isBusy: state.isBusy,
-                    onTopup: () => context.read<PosAccountBloc>().add(
-                      PosAccountTopupRequested(
-                        amountUzs: topupAmount,
-                        cashUzs: topupSplit.cashUzs,
-                        cardUzs: topupSplit.cardUzs,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _BalanceCard(
+                        customer: customer,
+                        amountController: _topupAmountController,
+                        onAmountChanged: () => setState(() {}),
+                        method: _topupMethod,
+                        onMethodChanged: (m) =>
+                            setState(() => _topupMethod = m),
+                        cashController: _topupCashController,
+                        cardController: _topupCardController,
+                        split: topupSplit,
+                        amount: topupAmount,
+                        canTopup: canTopup,
+                        isBusy: state.isBusy,
+                        onTopup: () => _confirmAndTopup(
+                          context,
+                          customer: customer,
+                          amountUzs: topupAmount,
+                          split: topupSplit,
+                          method: _topupMethod,
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
                 if (state.playing.isNotEmpty) ...[
                   const SizedBox(height: 12),
@@ -412,39 +640,36 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
       ),
     );
   }
-}
 
-/// Side-by-side on a roomy window, stacked when narrow. Below
-/// [_stackBelow] each Expanded half would drop under ~320px and the
-/// cards' inner rows (tariff pills, child rows, payment fields) stop
-/// fitting — stacking gives every card the full width instead.
-class _TwoCardLayout extends StatelessWidget {
-  const _TwoCardLayout({required this.first, required this.second});
-
-  static const double _stackBelow = 660;
-
-  final Widget first;
-  final Widget second;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth < _stackBelow) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [first, const SizedBox(height: 12), second],
-          );
-        }
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(child: first),
-            const SizedBox(width: 12),
-            Expanded(child: second),
-          ],
-        );
-      },
+  SaleReceipt? _legacyProductReceipt(
+    PosEntryResult result,
+    PosAccountState state,
+  ) {
+    if (result.productsTotalUzs <= 0 || _cart.isEmpty) return null;
+    final productsById = {
+      for (final product in state.products) product.id: product,
+    };
+    final items = <SaleReceiptItem>[
+      for (final line in _cart.entries)
+        if (productsById[line.key] case final product?)
+          SaleReceiptItem(
+            productId: product.id,
+            nameSnapshot: product.name,
+            priceSnapshotUzs: product.priceUzs,
+            qty: line.value,
+            lineTotalUzs: product.priceUzs * line.value,
+          ),
+    ];
+    if (items.isEmpty) return null;
+    final now = DateTime.now();
+    return SaleReceipt(
+      id: 'account-${state.selectedCustomer?.id ?? 0}-${now.millisecondsSinceEpoch}',
+      subtotalUzs: result.productsTotalUzs,
+      cashUzs: 0,
+      cardUzs: 0,
+      balanceUzs: result.productsTotalUzs,
+      createdAt: now,
+      items: items,
     );
   }
 }
@@ -463,9 +688,153 @@ class _Card extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.lg),
         boxShadow: AppShadow.sm,
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        child,
-      ]),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [child],
+      ),
+    );
+  }
+}
+
+class _InlineEditableName extends StatefulWidget {
+  const _InlineEditableName({
+    required this.value,
+    required this.style,
+    required this.onSave,
+    this.enabled = true,
+  });
+
+  final String value;
+  final TextStyle style;
+  final ValueChanged<String> onSave;
+  final bool enabled;
+
+  @override
+  State<_InlineEditableName> createState() => _InlineEditableNameState();
+}
+
+class _InlineEditableNameState extends State<_InlineEditableName> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+  bool _editing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value);
+    _focusNode = FocusNode();
+  }
+
+  @override
+  void didUpdateWidget(covariant _InlineEditableName oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_editing && oldWidget.value != widget.value) {
+      _controller.text = widget.value;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _start() {
+    if (!widget.enabled) return;
+    setState(() => _editing = true);
+    _controller.text = widget.value;
+    _controller.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: _controller.text.length,
+    );
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _focusNode.requestFocus(),
+    );
+  }
+
+  void _cancel() {
+    _controller.text = widget.value;
+    setState(() => _editing = false);
+  }
+
+  void _save() {
+    final value = _controller.text.trim().replaceAll(RegExp(r'\s+'), ' ');
+    if (value.isEmpty) return;
+    setState(() => _editing = false);
+    if (value != widget.value.trim()) widget.onSave(value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
+    if (!_editing) {
+      return Tooltip(
+        message: l10n.fullName,
+        child: InkWell(
+          onTap: _start,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 3),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Text(
+                    widget.value,
+                    style: widget.style,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (widget.enabled) ...[
+                  const SizedBox(width: 6),
+                  Icon(
+                    PhosphorIconsRegular.pencilSimple,
+                    size: 14,
+                    color: NocturneColors.text.withValues(alpha: 0.45),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    return SizedBox(
+      height: 38,
+      child: TextField(
+        controller: _controller,
+        focusNode: _focusNode,
+        autofocus: true,
+        maxLength: 150,
+        textInputAction: TextInputAction.done,
+        style: widget.style,
+        onSubmitted: (_) => _save(),
+        inputFormatters: [FilteringTextInputFormatter.deny(RegExp(r'[\r\n]'))],
+        decoration: InputDecoration(
+          counterText: '',
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 10,
+            vertical: 8,
+          ),
+          suffixIconConstraints: const BoxConstraints(minWidth: 68),
+          suffixIcon: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                tooltip: l10n.cancel,
+                onPressed: _cancel,
+                icon: const Icon(PhosphorIconsRegular.x, size: 16),
+              ),
+              IconButton(
+                tooltip: l10n.save,
+                onPressed: _save,
+                icon: const Icon(PhosphorIconsRegular.check, size: 16),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -475,6 +844,8 @@ class _SummaryStrip extends StatelessWidget {
     required this.customer,
     required this.isBusy,
     required this.onParentQr,
+    required this.onRename,
+    required this.onRefresh,
     required this.onBack,
   });
 
@@ -484,88 +855,26 @@ class _SummaryStrip extends StatelessWidget {
   /// Prints the customer's free parent QR — the ruleless both-direction
   /// day sticker for the accompanying adult.
   final VoidCallback onParentQr;
+  final ValueChanged<String> onRename;
+  final VoidCallback onRefresh;
   final VoidCallback onBack;
 
   String _initials(String value) {
     final trimmed = value.trim();
     if (trimmed.isEmpty) return '?';
-    return trimmed.split(RegExp(r'\s+')).take(2).map((p) => p[0].toUpperCase()).join();
+    return trimmed
+        .split(RegExp(r'\s+'))
+        .take(2)
+        .map((p) => p[0].toUpperCase())
+        .join();
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
     final displayName = customer.fullName.isEmpty
         ? customer.phoneNumber
         : customer.fullName;
-
-    final identity = <Widget>[
-      SizedBox(
-        width: 36,
-        height: 36,
-        child: OutlinedButton(
-          onPressed: onBack,
-          style: OutlinedButton.styleFrom(padding: EdgeInsets.zero),
-          child: const Icon(PhosphorIconsRegular.arrowLeft, size: 16),
-        ),
-      ),
-      const SizedBox(width: 12),
-      CircleAvatar(
-        radius: 22,
-        backgroundColor: NocturneColors.accent900,
-        child: Text(
-          _initials(displayName),
-          style: const TextStyle(
-            color: NocturneColors.accent300,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-      const SizedBox(width: 12),
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              displayName,
-              style: AppTextStyles.h4,
-              overflow: TextOverflow.ellipsis,
-            ),
-            Text(
-              customer.phoneNumber,
-              style: AppTextStyles.muted(
-                AppTextStyles.body,
-              ).copyWith(fontSize: 12),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    ];
-
-    final qrButton = OutlinedButton.icon(
-      onPressed: isBusy ? null : onParentQr,
-      icon: const Icon(PhosphorIconsRegular.qrCode, size: 16),
-      label: const Text('Ota-ona QR'),
-    );
-
-    final balance = Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          'Balans',
-          style: AppTextStyles.kicker.copyWith(
-            color: NocturneColors.text.withValues(alpha: 0.45),
-          ),
-        ),
-        Text(
-          formatUzs(customer.balance),
-          style: AppTextStyles.h4.copyWith(color: NocturneColors.accent300),
-        ),
-      ],
-    );
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
       decoration: BoxDecoration(
@@ -573,38 +882,93 @@ class _SummaryStrip extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.lg),
         boxShadow: AppShadow.sm,
       ),
-      // One line when everything fits; on narrow windows the QR button
-      // and balance drop to a second line instead of overflowing.
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          if (constraints.maxWidth < 480) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Row(
+        children: [
+          SizedBox(
+            width: 36,
+            height: 36,
+            child: OutlinedButton(
+              onPressed: onBack,
+              style: OutlinedButton.styleFrom(padding: EdgeInsets.zero),
+              child: const Icon(PhosphorIconsRegular.arrowLeft, size: 16),
+            ),
+          ),
+          const SizedBox(width: 12),
+          CircleAvatar(
+            radius: 22,
+            backgroundColor: NocturneColors.accent900,
+            child: Text(
+              _initials(displayName),
+              style: const TextStyle(
+                color: NocturneColors.accent300,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Row(children: identity),
-                const SizedBox(height: 10),
-                // Wrap, not Row: on a truly cramped strip the balance
-                // drops under the QR button instead of overflowing.
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 8,
-                  alignment: WrapAlignment.spaceBetween,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [qrButton, balance],
+                _InlineEditableName(
+                  value: displayName,
+                  enabled: !isBusy && customer.fullName.isNotEmpty,
+                  style: AppTextStyles.h4,
+                  onSave: onRename,
+                ),
+                Text(
+                  customer.phoneNumber,
+                  style: AppTextStyles.muted(
+                    AppTextStyles.body,
+                  ).copyWith(fontSize: 12),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
-            );
-          }
-          return Row(
+            ),
+          ),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 38,
+            height: 38,
+            child: IconButton(
+              tooltip: l10n.refresh,
+              onPressed: isBusy ? null : onRefresh,
+              icon: isBusy
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(PhosphorIconsRegular.arrowsClockwise, size: 18),
+            ),
+          ),
+          const SizedBox(width: 8),
+          OutlinedButton.icon(
+            onPressed: isBusy ? null : onParentQr,
+            icon: const Icon(PhosphorIconsRegular.qrCode, size: 16),
+            label: Text(l10n.parentQr),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              ...identity,
-              const SizedBox(width: 12),
-              qrButton,
-              const SizedBox(width: 12),
-              balance,
+              Text(
+                l10n.balance,
+                style: AppTextStyles.kicker.copyWith(
+                  color: NocturneColors.text.withValues(alpha: 0.45),
+                ),
+              ),
+              Text(
+                formatUzs(customer.balance),
+                style: AppTextStyles.h4.copyWith(
+                  color: NocturneColors.accent300,
+                ),
+              ),
             ],
-          );
-        },
+          ),
+        ],
       ),
     );
   }
@@ -618,6 +982,12 @@ class _ChildrenCard extends StatelessWidget {
     required this.activePasses,
     required this.selectedChildIds,
     required this.onToggleChild,
+    required this.onRenameChild,
+    required this.entryDiscounts,
+    required this.childEntryDiscountIds,
+    required this.onChildEntryDiscountChanged,
+    required this.promoChildId,
+    required this.promoLabel,
     required this.addingChild,
     required this.onStartAddChild,
     required this.onCancelAddChild,
@@ -641,6 +1011,22 @@ class _ChildrenCard extends StatelessWidget {
   final List<ActivePass> activePasses;
   final Set<String> selectedChildIds;
   final ValueChanged<String> onToggleChild;
+  final void Function(String childId, String fullName) onRenameChild;
+
+  /// Active ENTRY-scoped discount catalog — the row's 3-dots menu picks
+  /// from this list; empty hides the menu (best-effort catalog fetch).
+  final List<Discount> entryDiscounts;
+
+  /// Optional per-child entry discount picked from the row's 3-dots menu —
+  /// null discountId in the callback clears the child's pick.
+  final Map<String, String> childEntryDiscountIds;
+  final void Function(String childId, String? discountId)
+  onChildEntryDiscountChanged;
+
+  /// The child the verified promo code discounts, and its chip text —
+  /// both null without a code.
+  final String? promoChildId;
+  final String? promoLabel;
   final bool addingChild;
   final VoidCallback onStartAddChild;
   final VoidCallback onCancelAddChild;
@@ -656,11 +1042,11 @@ class _ChildrenCard extends StatelessWidget {
   /// Standard only: nothing is due at the register — billing happens at
   /// exit by played time. VIP gets NO note here: it is debited immediately
   /// at printing, and the checkout section already says so.
-  String _noPaymentNote() =>
-      "Hozir hech narsa to'lanmaydi — chiqishda balansdan vaqtiga qarab yechiladi.";
+  String _noPaymentNote(AppLocalization l10n) => l10n.noPaymentNow;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
     final selCount = selectedChildIds.length;
     final passByChildId = {for (final pass in activePasses) pass.childId: pass};
     return _Card(
@@ -669,21 +1055,17 @@ class _ChildrenCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text('Farzandlar', style: AppTextStyles.h5),
+              Text(l10n.children, style: AppTextStyles.h5),
               const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  selCount > 0
-                      ? 'tanlangan: $selCount'
-                      : customer.children.isEmpty
-                      ? "farzand yo'q"
-                      : 'QR uchun tanlang',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.muted(
-                    AppTextStyles.body,
-                  ).copyWith(fontSize: 11),
-                ),
+              Text(
+                selCount > 0
+                    ? l10n.selectedCount(selCount)
+                    : customer.children.isEmpty
+                    ? l10n.noChildren
+                    : l10n.selectForQr,
+                style: AppTextStyles.muted(
+                  AppTextStyles.body,
+                ).copyWith(fontSize: 11),
               ),
             ],
           ),
@@ -696,6 +1078,12 @@ class _ChildrenCard extends StatelessWidget {
                 activePass: passByChildId[child.id],
                 selected: selectedChildIds.contains(child.id),
                 onToggle: () => onToggleChild(child.id),
+                onRename: (name) => onRenameChild(child.id, name),
+                entryDiscounts: entryDiscounts,
+                selectedDiscountId: childEntryDiscountIds[child.id],
+                onEntryDiscountChanged: (discountId) =>
+                    onChildEntryDiscountChanged(child.id, discountId),
+                promoLabel: child.id == promoChildId ? promoLabel : null,
               ),
             ),
           if (!addingChild)
@@ -704,7 +1092,7 @@ class _ChildrenCard extends StatelessWidget {
               child: TextButton.icon(
                 onPressed: onStartAddChild,
                 icon: const Icon(PhosphorIconsRegular.plus, size: 14),
-                label: const Text("Tez qo'shish"),
+                label: Text(l10n.quickAdd),
               ),
             )
           else
@@ -728,9 +1116,7 @@ class _ChildrenCard extends StatelessWidget {
                           onSubmitted: (_) {
                             if (canSubmit) onSubmitAddChild();
                           },
-                          decoration: const InputDecoration(
-                            hintText: 'Bola ismi',
-                          ),
+                          decoration: InputDecoration(hintText: l10n.childName),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -739,7 +1125,7 @@ class _ChildrenCard extends StatelessWidget {
                         child: FilledButton.icon(
                           onPressed: canSubmit ? onSubmitAddChild : null,
                           icon: const Icon(PhosphorIconsRegular.plus, size: 14),
-                          label: const Text("Qo'shish"),
+                          label: Text(l10n.add),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -747,7 +1133,7 @@ class _ChildrenCard extends StatelessWidget {
                         height: 42,
                         child: OutlinedButton(
                           onPressed: onCancelAddChild,
-                          child: const Text('Bekor qilish'),
+                          child: Text(l10n.cancel),
                         ),
                       ),
                     ],
@@ -756,7 +1142,7 @@ class _ChildrenCard extends StatelessWidget {
               ),
             ),
           const SizedBox(height: 12),
-          Text('Tarif', style: AppTextStyles.body.copyWith(fontSize: 12)),
+          Text(l10n.tariff, style: AppTextStyles.body.copyWith(fontSize: 12)),
           const SizedBox(height: 6),
           if (isLoadingPlans)
             const Padding(
@@ -777,7 +1163,7 @@ class _ChildrenCard extends StatelessWidget {
                 border: Border.all(color: NocturneColors.divider),
               ),
               child: Text(
-                'Tarif topilmadi.',
+                l10n.tariffNotFound,
                 style: AppTextStyles.body.copyWith(
                   fontSize: 12,
                   color: NocturneColors.text.withValues(alpha: 0.55),
@@ -809,7 +1195,7 @@ class _ChildrenCard extends StatelessWidget {
                 color: NocturneColors.bg,
               ),
               child: Text(
-                _noPaymentNote(),
+                _noPaymentNote(l10n),
                 style: AppTextStyles.body.copyWith(
                   fontSize: 12,
                   color: NocturneColors.text.withValues(alpha: 0.6),
@@ -834,9 +1220,19 @@ class _ChildrenCard extends StatelessWidget {
 class _CheckoutSection extends StatelessWidget {
   const _CheckoutSection({
     required this.products,
+    required this.promoSection,
     required this.cart,
     required this.cartTotal,
+    required this.discounts,
+    required this.selectedDiscount,
+    required this.cartDiscountUzs,
+    required this.onDiscountChanged,
     required this.vipTotal,
+    required this.companions,
+    required this.companionPriceUzs,
+    required this.companionsTotal,
+    required this.onCompanionAdd,
+    required this.onCompanionRemove,
     required this.neededTotal,
     required this.balance,
     required this.balanceCovers,
@@ -865,12 +1261,37 @@ class _CheckoutSection extends StatelessWidget {
   });
 
   final List<Product> products;
+
+  /// The "Promokod" field, or the verified code's chip + child picker.
+  final Widget promoSection;
   final Map<String, int> cart;
   final int cartTotal;
 
+  /// Active discount catalog — empty hides the picker entirely (best-effort
+  /// fetch, same contract as `products`/`plans`).
+  final List<Discount> discounts;
+
+  /// The cashier's pick, scoped to THIS cart only — never applied to
+  /// [vipTotal] or [companionsTotal].
+  final Discount? selectedDiscount;
+
+  /// PREVIEW ONLY (see `Discount.appliedDiscountUzs`) — how much of
+  /// [cartTotal] the pick above takes off.
+  final int cartDiscountUzs;
+  final ValueChanged<Discount?> onDiscountChanged;
+
   /// VIP flat price × newly-covered children — debited from the balance
-  /// the moment the stickers print. 0 for Standard.
+  /// the moment the stickers print. 0 for Standard. Children with a
+  /// free-entry reason are already excluded.
   final int vipTotal;
+
+  /// Paid HAMROH companion stickers: qty, unit price (server-owned), and
+  /// their subtotal — joins [neededTotal] and the normal payment flow.
+  final int companions;
+  final int companionPriceUzs;
+  final int companionsTotal;
+  final VoidCallback onCompanionAdd;
+  final VoidCallback onCompanionRemove;
   final int neededTotal;
   final int balance;
   final bool balanceCovers;
@@ -907,11 +1328,12 @@ class _CheckoutSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (products.isNotEmpty) ...[
-          Text('Mahsulotlar', style: AppTextStyles.body.copyWith(fontSize: 12)),
+          Text(l10n.products, style: AppTextStyles.body.copyWith(fontSize: 12)),
           const SizedBox(height: 6),
           Wrap(
             spacing: 8,
@@ -927,26 +1349,134 @@ class _CheckoutSection extends StatelessWidget {
             ],
           ),
         ],
+        if (discounts.isNotEmpty && cart.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Text(
+                l10n.discount,
+                style: AppTextStyles.body.copyWith(fontSize: 12),
+              ),
+              const Spacer(),
+              DiscountPicker(
+                discounts: discounts,
+                selectedDiscount: selectedDiscount,
+                onChanged: onDiscountChanged,
+              ),
+            ],
+          ),
+          if (selectedDiscount != null && cartDiscountUzs > 0)
+            DiscountSummaryRow(
+              name: selectedDiscount!.name,
+              amountUzs: cartDiscountUzs,
+            ),
+        ],
+        const SizedBox(height: 10),
+        promoSection,
+        const SizedBox(height: 10),
+        // Paid HAMROH companion sticker — parent-QR door semantics, minted
+        // by the same checkout and settled through the same payment flow.
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(
+              color: companions > 0
+                  ? NocturneColors.accent
+                  : NocturneColors.divider,
+            ),
+            color: companions > 0
+                ? NocturneColors.accent.withValues(alpha: 0.08)
+                : Colors.transparent,
+          ),
+          child: Row(
+            children: [
+              Icon(
+                PhosphorIconsRegular.usersThree,
+                size: 16,
+                color: companions > 0
+                    ? NocturneColors.accent
+                    : NocturneColors.text,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'HAMROH QR',
+                      style: AppTextStyles.body.copyWith(
+                        fontSize: 13,
+                        color: companions > 0
+                            ? NocturneColors.accent
+                            : NocturneColors.text,
+                      ),
+                    ),
+                    Text(
+                      l10n.companionDescription(formatUzs(companionPriceUzs)),
+                      style: AppTextStyles.muted(
+                        AppTextStyles.body,
+                      ).copyWith(fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+              if (companions > 0) ...[
+                _StepButton(
+                  icon: PhosphorIconsRegular.minus,
+                  onTap: onCompanionRemove,
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Text('$companions', style: AppTextStyles.h5),
+                ),
+              ],
+              _StepButton(
+                icon: PhosphorIconsRegular.plus,
+                onTap: onCompanionAdd,
+              ),
+            ],
+          ),
+        ),
         for (final name in alreadyVipNames)
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text(
-              "«$name» allaqachon faol VIP tarifda — qayta to'lov olinmaydi.",
+              l10n.vipAlreadyActive(name),
               style: AppTextStyles.muted(
                 AppTextStyles.body,
               ).copyWith(fontSize: 11),
             ),
           ),
-        if (neededTotal > 0) ...[
+        if (neededTotal > 0 || cartDiscountUzs > 0) ...[
           const SizedBox(height: 12),
-          if (cartTotal > 0 && vipTotal > 0) ...[
-            _TotalRow(label: 'Mahsulotlar', amount: cartTotal),
-            _TotalRow(label: 'VIP tarif', amount: vipTotal),
+          if ([
+                    cartTotal,
+                    vipTotal,
+                    companionsTotal,
+                  ].where((amount) => amount > 0).length >
+                  1 ||
+              cartDiscountUzs > 0) ...[
+            if (cartTotal > 0)
+              _TotalRow(label: l10n.products, amount: cartTotal),
+            if (cartDiscountUzs > 0)
+              _TotalRow(
+                label: '${l10n.discount} (${selectedDiscount!.name})',
+                amount: -cartDiscountUzs,
+              ),
+            if (vipTotal > 0)
+              _TotalRow(label: l10n.vipTariff, amount: vipTotal),
+            if (companionsTotal > 0)
+              _TotalRow(
+                label: 'HAMROH QR ×$companions',
+                amount: companionsTotal,
+              ),
             const SizedBox(height: 4),
           ],
           Row(
             children: [
-              Text('Jami', style: AppTextStyles.muted(AppTextStyles.body)),
+              Text(l10n.total, style: AppTextStyles.muted(AppTextStyles.body)),
               const Spacer(),
               Text(formatUzs(neededTotal), style: AppTextStyles.h5),
             ],
@@ -955,7 +1485,7 @@ class _CheckoutSection extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 2),
               child: Text(
-                "VIP tarif puli chop etilganda balansdan darhol yechiladi.",
+                l10n.vipChargedImmediately,
                 style: AppTextStyles.muted(
                   AppTextStyles.body,
                 ).copyWith(fontSize: 11),
@@ -970,11 +1500,11 @@ class _CheckoutSection extends StatelessWidget {
               contentPadding: EdgeInsets.zero,
               activeThumbColor: NocturneColors.accent,
               title: Text(
-                'Balansdan yechish',
+                l10n.payFromBalance,
                 style: AppTextStyles.body.copyWith(fontSize: 13),
               ),
               subtitle: Text(
-                'Joriy balans: ${formatUzs(balance)}',
+                l10n.currentBalanceValue(formatUzs(balance)),
                 style: AppTextStyles.muted(
                   AppTextStyles.body,
                 ).copyWith(fontSize: 11),
@@ -989,8 +1519,7 @@ class _CheckoutSection extends StatelessWidget {
                 border: Border.all(color: NocturneColors.accent),
               ),
               child: Text(
-                'Balansdan yechishga yetarli emas — '
-                "kamida ${formatUzs(shortfall)} to'lov kerak.",
+                l10n.balanceInsufficient(formatUzs(shortfall)),
                 style: AppTextStyles.body.copyWith(fontSize: 12),
               ),
             ),
@@ -1000,19 +1529,24 @@ class _CheckoutSection extends StatelessWidget {
               controller: payAmountController,
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              style: AppTextStyles.body.copyWith(fontFamily: null, fontSize: 16),
+              style: AppTextStyles.body.copyWith(
+                fontFamily: null,
+                fontSize: 16,
+              ),
               onChanged: (_) {
                 onPayAmountEdited();
                 onChanged();
               },
               decoration: InputDecoration(
-                labelText: "To'lov summasi",
-                helperText:
-                    "Kamida ${formatUzs(requiredPayment)} — ortig'i balansda qoladi",
+                labelText: l10n.paymentAmount,
+                helperText: l10n.paymentMinimumHint(formatUzs(requiredPayment)),
               ),
             ),
             const SizedBox(height: 8),
-            PaymentMethodPills(selected: payMethod, onChanged: onPayMethodChanged),
+            PaymentMethodPills(
+              selected: payMethod,
+              onChanged: onPayMethodChanged,
+            ),
             if (payMethod == PaymentMethod.split) ...[
               const SizedBox(height: 8),
               SplitAmountFields(
@@ -1037,11 +1571,11 @@ class _CheckoutSection extends StatelessWidget {
             contentPadding: EdgeInsets.zero,
             activeThumbColor: NocturneColors.accent,
             title: Text(
-              'Ota-ona QR ham chop etish',
+              l10n.printParentQr,
               style: AppTextStyles.body.copyWith(fontSize: 13),
             ),
             subtitle: Text(
-              'Bepul — kirish-chiqishga cheklovsiz',
+              l10n.unlimitedFreeEntry,
               style: AppTextStyles.muted(
                 AppTextStyles.body,
               ).copyWith(fontSize: 11),
@@ -1067,14 +1601,216 @@ class _CheckoutSection extends StatelessWidget {
                   ),
             label: Text(
               neededTotal > 0
-                  ? "To'lov va chop etish"
+                  ? l10n.paymentAndPrint
                   : selectedChildCount > 0
-                  ? 'Kirish ($selectedChildCount)'
-                  : 'Kirish',
+                  ? l10n.enterCount(selectedChildCount)
+                  : l10n.enter,
             ),
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The checkout's promo code (partner or blogger): the "Promokod" field
+/// until a code is verified, then its chip — partner, tier, discount (plus a
+/// "Blogger · ALI20" tag for a blogger code) — with the child it
+/// goes to ("Qaysi bolaga") and ✕ to drop it. The code is only claimed when
+/// the checkout runs.
+class _PromoSection extends StatelessWidget {
+  const _PromoSection({
+    required this.promo,
+    required this.isChecking,
+    required this.errorText,
+    required this.label,
+    required this.selectedChildren,
+    required this.passChildIds,
+    required this.promoChildId,
+    required this.onSubmit,
+    required this.onChildPicked,
+    required this.onClear,
+  });
+
+  final PromoCodeCheck? promo;
+  final bool isChecking;
+  final String? errorText;
+  final String? label;
+
+  /// Selected children in the card's order — the picker's choices.
+  final List<Child> selectedChildren;
+
+  /// Children holding a pass today — the code can't go to them.
+  final Set<String> passChildIds;
+  final String? promoChildId;
+  final ValueChanged<String> onSubmit;
+  final ValueChanged<String> onChildPicked;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
+    if (promo == null) {
+      return PromoCodeField(
+        busy: isChecking,
+        errorText: errorText,
+        onSubmit: onSubmit,
+      );
+    }
+    final promoChild = selectedChildren
+        .where((c) => c.id == promoChildId)
+        .firstOrNull;
+    final childStyle = AppTextStyles.body.copyWith(fontSize: 12);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: NocturneColors.accent),
+        color: NocturneColors.accent.withValues(alpha: 0.08),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Icon(
+                promo!.isBlogger
+                    ? PhosphorIconsRegular.megaphone
+                    : PhosphorIconsRegular.qrCode,
+                size: 16,
+                color: NocturneColors.accent,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // A blogger code is typed, reusable and ownerless — name
+                    // it so the cashier can read back what was entered.
+                    if (promo!.isBlogger)
+                      Text(
+                        '${l10n.promoCodeBlogger} · ${promo!.code}',
+                        style: AppTextStyles.muted(
+                          AppTextStyles.body,
+                        ).copyWith(fontSize: 11),
+                      ),
+                    Text(
+                      label!,
+                      style: AppTextStyles.body.copyWith(
+                        fontSize: 13,
+                        color: NocturneColors.accent,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                tooltip: l10n.promoCodeRemove,
+                visualDensity: VisualDensity.compact,
+                onPressed: onClear,
+                icon: const Icon(
+                  PhosphorIconsRegular.x,
+                  size: 16,
+                  color: NocturneColors.danger,
+                ),
+              ),
+            ],
+          ),
+          if (promoChild == null)
+            Text(
+              l10n.promoCodeNoChild,
+              style: AppTextStyles.muted(
+                AppTextStyles.body,
+              ).copyWith(fontSize: 11),
+            )
+          else
+            Row(
+              children: [
+                Text(
+                  '${l10n.promoCodeForChild}: ',
+                  style: AppTextStyles.muted(
+                    AppTextStyles.body,
+                  ).copyWith(fontSize: 12),
+                ),
+                if (selectedChildren.length == 1)
+                  Flexible(
+                    child: Text(
+                      promoChild.fullName,
+                      overflow: TextOverflow.ellipsis,
+                      style: childStyle,
+                    ),
+                  )
+                else
+                  Flexible(
+                    child: PopupMenuButton<String>(
+                      tooltip: l10n.promoCodeForChild,
+                      color: NocturneColors.surface,
+                      onSelected: onChildPicked,
+                      itemBuilder: (context) => [
+                        for (final child in selectedChildren)
+                          PopupMenuItem<String>(
+                            value: child.id,
+                            // A child with a pass today would only get the
+                            // code refused (and returned) by the server.
+                            enabled: !passChildIds.contains(child.id),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  child.id == promoChildId
+                                      ? PhosphorIconsRegular.checkCircle
+                                      : PhosphorIconsRegular.circle,
+                                  size: 16,
+                                  color: child.id == promoChildId
+                                      ? NocturneColors.accent
+                                      : NocturneColors.text,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  child.fullName,
+                                  style: AppTextStyles.body.copyWith(
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              promoChild.fullName,
+                              overflow: TextOverflow.ellipsis,
+                              style: childStyle,
+                            ),
+                          ),
+                          const Icon(
+                            PhosphorIconsRegular.caretDown,
+                            size: 14,
+                            color: NocturneColors.text,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          if (errorText != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 4, right: 8),
+              child: Text(
+                errorText!,
+                style: const TextStyle(
+                  color: NocturneColors.danger,
+                  fontSize: 11,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -1093,7 +1829,9 @@ class _TotalRow extends StatelessWidget {
         children: [
           Text(
             label,
-            style: AppTextStyles.muted(AppTextStyles.body).copyWith(fontSize: 12),
+            style: AppTextStyles.muted(
+              AppTextStyles.body,
+            ).copyWith(fontSize: 12),
           ),
           const Spacer(),
           Text(
@@ -1171,10 +1909,7 @@ class _ProductChip extends StatelessWidget {
               ),
               if (selected) ...[
                 const SizedBox(width: 8),
-                _StepButton(
-                  icon: PhosphorIconsRegular.minus,
-                  onTap: onRemove,
-                ),
+                _StepButton(icon: PhosphorIconsRegular.minus, onTap: onRemove),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Text('$qty', style: AppTextStyles.h5),
@@ -1229,6 +1964,7 @@ class _PlayingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
     final totalDue = rows.fold<int>(0, (sum, row) => sum + row.dueUzs);
     final short = totalDue - balance;
     return _Card(
@@ -1237,10 +1973,10 @@ class _PlayingCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text('Hozir ichkarida', style: AppTextStyles.h5),
+              Text(l10n.currentlyInside, style: AppTextStyles.h5),
               const SizedBox(width: 8),
               Text(
-                '${rows.length} bola',
+                l10n.childCount(rows.length),
                 style: AppTextStyles.muted(
                   AppTextStyles.body,
                 ).copyWith(fontSize: 11),
@@ -1253,8 +1989,11 @@ class _PlayingCard extends StatelessWidget {
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                   ),
-                  icon: const Icon(PhosphorIconsRegular.arrowsClockwise, size: 13),
-                  label: const Text('Yangilash'),
+                  icon: const Icon(
+                    PhosphorIconsRegular.arrowsClockwise,
+                    size: 13,
+                  ),
+                  label: Text(l10n.refresh),
                 ),
               ),
             ],
@@ -1281,9 +2020,11 @@ class _PlayingCard extends StatelessWidget {
                           style: AppTextStyles.body.copyWith(fontSize: 14),
                         ),
                         Text(
-                          '${row.planName} · '
-                          'kirdi ${row.enteredAt.hour.toString().padLeft(2, '0')}:${row.enteredAt.minute.toString().padLeft(2, '0')} · '
-                          '${row.minutes} daq',
+                          l10n.enteredAtMinutes(
+                            row.planName,
+                            '${row.enteredAt.hour.toString().padLeft(2, '0')}:${row.enteredAt.minute.toString().padLeft(2, '0')}',
+                            row.minutes,
+                          ),
                           style: AppTextStyles.muted(
                             AppTextStyles.body,
                           ).copyWith(fontSize: 11),
@@ -1291,7 +2032,22 @@ class _PlayingCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Text(formatUzs(row.dueUzs), style: AppTextStyles.h5),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(formatUzs(row.dueUzs), style: AppTextStyles.h5),
+                      if (row.discountName != null)
+                        Text(
+                          '${l10n.discount}: ${row.discountName}',
+                          style: AppTextStyles.muted(AppTextStyles.body)
+                              .copyWith(
+                                fontSize: 10,
+                                color: NocturneColors.accent,
+                              ),
+                        ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -1299,7 +2055,7 @@ class _PlayingCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                'Jami hisob',
+                l10n.totalBill,
                 style: AppTextStyles.muted(AppTextStyles.body),
               ),
               const Spacer(),
@@ -1317,7 +2073,7 @@ class _PlayingCard extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
-                "Balans yetarli emas — chiqish uchun kamida ${formatUzs(short)} to'ldirish kerak.",
+                l10n.exitBalanceInsufficient(formatUzs(short)),
                 style: AppTextStyles.body.copyWith(
                   fontSize: 12,
                   color: NocturneColors.danger,
@@ -1336,6 +2092,11 @@ class _ChildRow extends StatelessWidget {
     required this.activePass,
     required this.selected,
     required this.onToggle,
+    required this.onRename,
+    required this.entryDiscounts,
+    required this.selectedDiscountId,
+    required this.onEntryDiscountChanged,
+    this.promoLabel,
   });
 
   final Child child;
@@ -1346,9 +2107,28 @@ class _ChildRow extends StatelessWidget {
   final ActivePass? activePass;
   final bool selected;
   final VoidCallback onToggle;
+  final ValueChanged<String> onRename;
+
+  /// Active ENTRY-scoped discount catalog — the menu below picks from this
+  /// list instead of the old hardcoded `FreeReason` enum.
+  final List<Discount> entryDiscounts;
+
+  /// This checkout's entry-discount pick for the child, or null (bills
+  /// normally). Chosen from the 3-dots menu; null in the callback clears.
+  final String? selectedDiscountId;
+  final ValueChanged<String?> onEntryDiscountChanged;
+
+  /// Set on the child the partner promo code discounts — shown instead of
+  /// the 3-dots pick (the code's tier replaces it), and the menu is hidden.
+  final String? promoLabel;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
+    final hasPromo = promoLabel != null;
+    final selectedDiscount = selectedDiscountId == null || hasPromo
+        ? null
+        : entryDiscounts.where((d) => d.id == selectedDiscountId).firstOrNull;
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
       decoration: BoxDecoration(
@@ -1361,30 +2141,76 @@ class _ChildRow extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              child.fullName,
+            child: _InlineEditableName(
+              value: child.fullName,
               style: AppTextStyles.body.copyWith(fontSize: 14),
+              onSave: onRename,
             ),
           ),
-          if (activePass != null) ...[
-            // Flexible + ellipsis so the badge shrinks on narrow windows
-            // instead of pushing the row into an overflow.
+          if (hasPromo) ...[
             Flexible(
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: NocturneColors.accent900,
+                  color: NocturneColors.accent.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(AppRadius.sm),
+                  border: Border.all(color: NocturneColors.accent),
                 ),
-                child: Text(
-                  '${activePass!.planLabel} · '
-                  '${formatUzs(activePass!.dueTodayUzs)}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.body.copyWith(
-                    fontSize: 11,
-                    color: NocturneColors.accent300,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      PhosphorIconsRegular.qrCode,
+                      size: 12,
+                      color: NocturneColors.accent,
+                    ),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        promoLabel!,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.body.copyWith(
+                          fontSize: 11,
+                          color: NocturneColors.accent,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+          if (selectedDiscount != null) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: NocturneColors.accent.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+                border: Border.all(color: NocturneColors.accent),
+              ),
+              child: Text(
+                '${l10n.discount}: ${selectedDiscount.name}',
+                style: AppTextStyles.body.copyWith(
+                  fontSize: 11,
+                  color: NocturneColors.accent,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+          if (activePass != null) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: NocturneColors.accent900,
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              child: Text(
+                '${activePass!.planLabel} · ${_activePassBadge(l10n, activePass!)}',
+                style: AppTextStyles.body.copyWith(
+                  fontSize: 11,
+                  color: NocturneColors.accent300,
                 ),
               ),
             ),
@@ -1403,15 +2229,93 @@ class _ChildRow extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 12),
               ),
               icon: Icon(
-                selected ? PhosphorIconsRegular.check : PhosphorIconsRegular.plus,
+                selected
+                    ? PhosphorIconsRegular.check
+                    : PhosphorIconsRegular.plus,
                 size: 15,
               ),
               label: const Text('QR'),
             ),
           ),
+          if (!hasPromo &&
+              (entryDiscounts.isNotEmpty || selectedDiscountId != null)) ...[
+            const SizedBox(width: 4),
+            // `Object` values: a null-valued PopupMenuItem never reaches
+            // onSelected (Flutter reads it as a cancel), so clearing uses
+            // the `_clearEntryDiscount` sentinel instead.
+            PopupMenuButton<Object>(
+              tooltip: l10n.discount,
+              icon: const Icon(
+                PhosphorIconsRegular.dotsThreeVertical,
+                size: 18,
+                color: NocturneColors.text,
+              ),
+              color: NocturneColors.surface,
+              onSelected: (value) =>
+                  onEntryDiscountChanged(value is Discount ? value.id : null),
+              itemBuilder: (context) => [
+                for (final discount in entryDiscounts)
+                  PopupMenuItem<Object>(
+                    value: discount,
+                    child: Row(
+                      children: [
+                        Icon(
+                          selectedDiscountId == discount.id
+                              ? PhosphorIconsRegular.checkCircle
+                              : PhosphorIconsRegular.circle,
+                          size: 16,
+                          color: selectedDiscountId == discount.id
+                              ? NocturneColors.accent
+                              : NocturneColors.text,
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            '${discount.name} '
+                            '(${discount.kind == DiscountKind.percent ? '${discount.value}%' : formatUzs(discount.value)})',
+                            style: AppTextStyles.body.copyWith(fontSize: 13),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                if (selectedDiscountId != null)
+                  PopupMenuItem<Object>(
+                    value: _clearEntryDiscount,
+                    child: Row(
+                      children: [
+                        const Icon(
+                          PhosphorIconsRegular.x,
+                          size: 16,
+                          color: NocturneColors.danger,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          l10n.cancel,
+                          style: AppTextStyles.body.copyWith(
+                            fontSize: 13,
+                            color: NocturneColors.danger,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  /// LEGACY passes show the raw free-reason label; new passes show the
+  /// discount name when fully free, or the running due amount otherwise (a
+  /// partial discount is already netted into `dueTodayUzs` server-side).
+  String _activePassBadge(AppLocalization l10n, ActivePass pass) {
+    if (pass.freeReason != null) return l10n.free;
+    if (pass.dueTodayUzs == 0 && pass.discountName != null) return l10n.free;
+    return formatUzs(pass.dueTodayUzs);
   }
 }
 
@@ -1430,12 +2334,12 @@ class _TariffPill extends StatelessWidget {
       ? PhosphorIconsRegular.crownSimple
       : PhosphorIconsRegular.ticket;
 
-  String get _priceLabel => plan.kind == KidsPlanKind.flatDay
-      ? '${formatUzs(plan.flatUzs ?? 0)} / kun'
-      : '${formatUzs(plan.firstMinuteUzs ?? 0)} / daq dan';
-
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
+    final priceLabel = plan.kind == KidsPlanKind.flatDay
+        ? l10n.pricePerDay(formatUzs(plan.flatUzs ?? 0))
+        : l10n.priceFromPerMinute(formatUzs(plan.firstMinuteUzs ?? 0));
     return Material(
       color: selected
           ? NocturneColors.accent.withValues(alpha: 0.12)
@@ -1453,7 +2357,7 @@ class _TariffPill extends StatelessWidget {
             ),
           ),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisSize: MainAxisSize.max,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
@@ -1462,10 +2366,7 @@ class _TariffPill extends StatelessWidget {
                 color: selected ? NocturneColors.accent : NocturneColors.text,
               ),
               const SizedBox(width: 8),
-              // Flexible + ellipsis: the pill lives in an Expanded half of
-              // a Row and must degrade gracefully instead of overflowing
-              // when a narrow window squeezes it.
-              Flexible(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
@@ -1482,15 +2383,16 @@ class _TariffPill extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      _priceLabel,
+                      priceLabel,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppTextStyles.body.copyWith(
                         fontSize: 11,
-                        color: (selected
-                                ? NocturneColors.accent
-                                : NocturneColors.text)
-                            .withValues(alpha: 0.7),
+                        color:
+                            (selected
+                                    ? NocturneColors.accent
+                                    : NocturneColors.text)
+                                .withValues(alpha: 0.7),
                       ),
                     ),
                   ],
@@ -1535,15 +2437,18 @@ class _BalanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
     return _Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text("Balansni to'ldirish", style: AppTextStyles.h5),
+          Text(l10n.topupBalance, style: AppTextStyles.h5),
           const SizedBox(height: 4),
           Text(
-            'Joriy balans: ${formatUzs(customer.balance)}',
-            style: AppTextStyles.muted(AppTextStyles.body).copyWith(fontSize: 12),
+            l10n.currentBalanceValue(formatUzs(customer.balance)),
+            style: AppTextStyles.muted(
+              AppTextStyles.body,
+            ).copyWith(fontSize: 12),
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -1566,7 +2471,7 @@ class _BalanceCard extends StatelessWidget {
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             style: AppTextStyles.body.copyWith(fontFamily: null, fontSize: 18),
             onChanged: (_) => onAmountChanged(),
-            decoration: const InputDecoration(labelText: 'Summa'),
+            decoration: InputDecoration(labelText: l10n.amount),
           ),
           const SizedBox(height: 10),
           PaymentMethodPills(selected: method, onChanged: onMethodChanged),
@@ -1583,18 +2488,15 @@ class _BalanceCard extends StatelessWidget {
           const SizedBox(height: 10),
           Row(
             children: [
-              // Label yields (ellipsis) so the amount — the number the
-              // cashier actually reads — always stays whole.
-              Expanded(
-                child: Text(
-                  'Yangi balans',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.muted(AppTextStyles.body),
-                ),
+              Text(
+                l10n.newBalance,
+                style: AppTextStyles.muted(AppTextStyles.body),
               ),
-              const SizedBox(width: 8),
-              Text(formatUzs(customer.balance + amount), style: AppTextStyles.h5),
+              const Spacer(),
+              Text(
+                formatUzs(customer.balance + amount),
+                style: AppTextStyles.h5,
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -1609,7 +2511,7 @@ class _BalanceCard extends StatelessWidget {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(PhosphorIconsRegular.wallet, size: 18),
-              label: const Text("To'ldirish"),
+              label: Text(l10n.topup),
             ),
           ),
         ],

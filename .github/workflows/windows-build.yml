@@ -11,6 +11,9 @@ env:
   # main builds against production; every other ref against stage.
   API_BASE_URL: ${{ github.ref == 'refs/heads/main' && 'https://api.pixelpark.uz/api' || 'https://test.api.pixelpark.uz/api' }}
 
+permissions:
+  contents: write
+
 jobs:
   analyze:
     runs-on: windows-latest
@@ -25,13 +28,28 @@ jobs:
           flutter-version: 3.44.8
       - run: flutter pub get
       - run: flutter analyze
+      # The suite is the only thing guarding several invariants that no
+      # static check can see - notably that the release job below still
+      # publishes draft-first, and that the updater's rollback chain holds.
+      # Without this step those tests never run on a PR that breaks them.
+      - run: flutter test
 
   build_windows:
     runs-on: windows-latest
     needs: analyze
     if: github.event_name != 'pull_request'
+    # Serialize per ref: two overlapping main pushes at the same pubspec
+    # version would both read exists=false and both try to publish, and the
+    # loser fails with a 422 for a condition that isn't an error.
+    concurrency:
+      group: release-${{ github.ref }}
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history + tags: the release step needs them to detect an
+          # already-published version and to build notes since the last tag.
+          fetch-depth: 0
       - uses: subosito/flutter-action@v2
         with:
           # Pinned, not "stable": phosphor_flutter 2.1.0 (latest on pub.dev)
@@ -47,3 +65,114 @@ jobs:
           name: cashier_app-windows-${{ github.sha }}
           path: build/windows/x64/runner/Release/
           retention-days: 30
+
+      # ---- Release (main only) ----
+      # The Actions artifact above stays for stage builds; only main
+      # publishes a release the app can download without logging in.
+      - name: Read version from pubspec
+        id: version
+        if: github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          version=$(grep -m1 '^version:' pubspec.yaml | sed 's/^version:[[:space:]]*//' | cut -d'+' -f1 | tr -d '[:space:]')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Pubspec version: $version"
+
+      - name: Check whether this version was already released
+        id: tag
+        if: github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          # --verify --quiet against refs/tags/ specifically: a bare
+          # `git rev-parse v1.0.0` also resolves branches and remote-tracking
+          # refs, so a branch named v1.0.0 would silently suppress releases
+          # forever while logging that the tag exists.
+          if git rev-parse --verify --quiet "refs/tags/v$VERSION" >/dev/null; then
+            echo "Tag v$VERSION already exists - skipping release."
+            echo "Bump version: in pubspec.yaml to publish a new one."
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Package the release zip
+        if: github.ref == 'refs/heads/main' && steps.tag.outputs.exists == 'false'
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          # ${env:VERSION}, not $env:VERSION - a dot is a legal character
+          # in an environment variable name, so "$env:VERSION.zip" risks
+          # being read as the variable "VERSION.zip" (empty) rather than
+          # VERSION followed by a literal ".zip".
+          $zip = "cashier_app-windows-v${env:VERSION}.zip"
+          # Wildcard so the exe sits at the zip root, not inside a folder -
+          # the updater extracts straight over the install directory.
+          Compress-Archive -Path "build/windows/x64/runner/Release/*" -DestinationPath $zip -CompressionLevel Optimal
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
+          Set-Content -Path "$zip.sha256" -Value $hash -NoNewline
+          Write-Host "sha256: $hash"
+
+      - name: Build release notes
+        if: github.ref == 'refs/heads/main' && steps.tag.outputs.exists == 'false'
+        shell: bash
+        run: |
+          prev=$(git describe --tags --abbrev=0 2>/dev/null || true)
+          if [ -n "$prev" ]; then
+            git log --pretty='- %s' "$prev"..HEAD > RELEASE_NOTES.md
+          else
+            git log --pretty='- %s' -n 20 > RELEASE_NOTES.md
+          fi
+          [ -s RELEASE_NOTES.md ] || echo "- No changes recorded." > RELEASE_NOTES.md
+          cat RELEASE_NOTES.md
+
+      - name: Publish the release
+        if: github.ref == 'refs/heads/main' && steps.tag.outputs.exists == 'false'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          v="$VERSION"
+          # Published in two steps, draft first.
+          #
+          # `gh release create` creates the release and *then* uploads the
+          # assets. A release that is live during that window serves the zip
+          # with no .sha256 next to it, and the app reads a missing .sha256
+          # as "this release was published without one" - verification
+          # skipped, install proceeds. If the second upload then fails
+          # outright, the tag exists, the tag-exists check above suppresses
+          # every retry, and that release stays permanently unverifiable on
+          # every till. /releases/latest excludes drafts, so a draft is
+          # never observed at all.
+          #
+          # A run that dies between the two steps leaves only a draft.
+          # `shell: bash` means `set -e`, so a failed upload never reaches
+          # the publish line.
+          #
+          # Reclaim such a draft first: a draft reserves the tag *name*
+          # without creating the tag, so the tag-exists check cannot see it
+          # and `gh release create` would fail with "already exists" on
+          # every later run. This step only runs when the tag does not
+          # exist, and a published release always has one, so nothing
+          # reachable here can be a real release.
+          gh release delete "v$v" --yes 2>/dev/null || true
+
+          # --target pins the tag to the commit this run built. Without it
+          # the API tags the default branch's HEAD at call time, so a commit
+          # landing during the ~15min Windows build would get the tag while
+          # the attached zip holds the older build - and the tag-exists check
+          # would then skip that newer commit's release forever.
+          gh release create "v$v" \
+            "cashier_app-windows-v$v.zip" \
+            "cashier_app-windows-v$v.zip.sha256" \
+            --target "$GITHUB_SHA" \
+            --title "v$v" \
+            --notes-file RELEASE_NOTES.md \
+            --draft
+
+          # Both assets are arguments above, so reaching this line means
+          # both uploads succeeded. Publishing creates the tag at --target.
+          gh release edit "v$v" --draft=false

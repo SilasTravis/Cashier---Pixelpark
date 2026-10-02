@@ -24,10 +24,23 @@ class PosAccountSearchRequested extends PosAccountEvent {
   const PosAccountSearchRequested();
 }
 
+class PosAccountQueryChanged extends PosAccountEvent {
+  const PosAccountQueryChanged(this.query);
+
+  final String query;
+
+  @override
+  List<Object?> get props => [query];
+}
+
 /// Fired once on page load — populates the browsable "latest customers"
 /// list shown before the cashier has typed a phone number.
 class PosAccountRecentCustomersRequested extends PosAccountEvent {
   const PosAccountRecentCustomersRequested();
+}
+
+class PosAccountMoreCustomersRequested extends PosAccountEvent {
+  const PosAccountMoreCustomersRequested();
 }
 
 class PosAccountCustomerSelected extends PosAccountEvent {
@@ -41,6 +54,10 @@ class PosAccountCustomerSelected extends PosAccountEvent {
 
 class PosAccountSelectionCleared extends PosAccountEvent {
   const PosAccountSelectionCleared();
+}
+
+class PosAccountCustomerRefreshRequested extends PosAccountEvent {
+  const PosAccountCustomerRefreshRequested();
 }
 
 class PosAccountNewCustomerRequested extends PosAccountEvent {
@@ -69,19 +86,39 @@ class PosAccountChildAddRequested extends PosAccountEvent {
   List<Object?> get props => [firstName, lastName, birthDate];
 }
 
+class PosAccountCustomerNameUpdateRequested extends PosAccountEvent {
+  const PosAccountCustomerNameUpdateRequested(this.fullName);
+  final String fullName;
+  @override
+  List<Object?> get props => [fullName];
+}
+
+class PosAccountChildNameUpdateRequested extends PosAccountEvent {
+  const PosAccountChildNameUpdateRequested(this.childId, this.fullName);
+  final String childId;
+  final String fullName;
+  @override
+  List<Object?> get props => [childId, fullName];
+}
+
 class PosAccountTopupRequested extends PosAccountEvent {
   const PosAccountTopupRequested({
     required this.amountUzs,
     required this.cashUzs,
     required this.cardUzs,
+    required this.requestId,
   });
 
   final int amountUzs;
   final int cashUzs;
   final int cardUzs;
 
+  /// Minted once per confirmed top-up, so the server records ONE even if the
+  /// request is delivered twice — a retry after a lost response, say.
+  final String requestId;
+
   @override
-  List<Object?> get props => [amountUzs, cashUzs, cardUzs];
+  List<Object?> get props => [amountUzs, cashUzs, cardUzs, requestId];
 }
 
 /// Fired once on page load, alongside [PosAccountRecentCustomersRequested]
@@ -145,6 +182,10 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
     required this.cashUzs,
     required this.cardUzs,
     this.withParentQr = false,
+    this.entryDiscounts = const {},
+    this.companions = 0,
+    this.discountId,
+    this.promoCode,
   });
 
   final String planKey;
@@ -156,6 +197,23 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
   /// Also issue + print the free parent QR after a successful entry.
   final bool withParentQr;
 
+  /// childId → an entry-scoped `Discount.id` — that child's pass is
+  /// discounted (100% reproduces the old free-pass behavior) and the
+  /// catalog name is recorded for statistics.
+  final Map<String, String> entryDiscounts;
+
+  /// Paid HAMROH stickers to buy (companion price each, from the balance).
+  final int companions;
+
+  /// Applies ONLY to [products] (the goods leg) — never to the plan/VIP or
+  /// companion price. Null when no discount is selected.
+  final String? discountId;
+
+  /// A verified partner promo code and the ONE child it discounts (that
+  /// child is left out of [entryDiscounts]). Claimed server-side before any
+  /// money moves.
+  final ({String code, String childId})? promoCode;
+
   @override
   List<Object?> get props => [
     planKey,
@@ -164,7 +222,34 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
     cashUzs,
     cardUzs,
     withParentQr,
+    entryDiscounts,
+    companions,
+    discountId,
+    promoCode,
   ];
+}
+
+/// Fired once on page load — pulls server-owned pricing (HAMROH price).
+class PosAccountConfigRequested extends PosAccountEvent {
+  const PosAccountConfigRequested();
+}
+
+/// Fired once on page load (once per [scope]) — the active discount catalog
+/// for the goods-cart picker (`DiscountScope.goods`) or the per-child entry
+/// picker (`DiscountScope.entry`); [force] re-fetches even if a (possibly
+/// stale) list is already held, used after a `DISCOUNT_NOT_AVAILABLE` /
+/// `GATE_PASS_DISCOUNT_CONFLICT` checkout failure.
+class PosAccountDiscountsRequested extends PosAccountEvent {
+  const PosAccountDiscountsRequested({
+    this.scope = DiscountScope.goods,
+    this.force = false,
+  });
+
+  final DiscountScope scope;
+  final bool force;
+
+  @override
+  List<Object?> get props => [scope, force];
 }
 
 /// Cashier tapped "Ota-ona QR" — issue (or re-issue) the free parent
@@ -176,4 +261,27 @@ class PosAccountParentQrRequested extends PosAccountEvent {
 /// UI has printed the parent sticker — clear it from state.
 class PosAccountParentQrAcknowledged extends PosAccountEvent {
   const PosAccountParentQrAcknowledged();
+}
+
+/// A promo code was scanned (the gun types it + Enter) or typed — verify
+/// it; for a partner code, open its owner's account when another (or no)
+/// customer is on screen; a blogger code applies to the open customer or
+/// waits for one to be opened.
+class PosAccountPromoCodeSubmitted extends PosAccountEvent {
+  const PosAccountPromoCodeSubmitted(this.rawCode);
+
+  final String rawCode;
+
+  @override
+  List<Object?> get props => [rawCode];
+}
+
+class PosAccountPromoCodeCleared extends PosAccountEvent {
+  const PosAccountPromoCodeCleared();
+}
+
+/// Internal: a held blogger code rode into a freshly opened/created
+/// customer — verify it again with that customer's id.
+class _PosAccountPromoCodeRechecked extends PosAccountEvent {
+  const _PosAccountPromoCodeRechecked();
 }

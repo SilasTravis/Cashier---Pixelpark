@@ -13,6 +13,8 @@ class PlayingChild extends Equatable {
     required this.enteredAt,
     required this.minutes,
     required this.dueUzs,
+    this.discountId,
+    this.discountName,
   });
 
   final String childId;
@@ -23,7 +25,14 @@ class PlayingChild extends Equatable {
   final String planKind;
   final DateTime enteredAt;
   final int minutes;
+
+  /// Already net of the pass's own entry discount, if any.
   final int dueUzs;
+
+  /// The entry discount applied to this pass, if any — so the cashier can
+  /// see WHY [dueUzs] is what it is instead of just a bare number.
+  final String? discountId;
+  final String? discountName;
 
   @override
   List<Object?> get props => [
@@ -34,5 +43,7 @@ class PlayingChild extends Equatable {
     enteredAt,
     minutes,
     dueUzs,
+    discountId,
+    discountName,
   ];
 }

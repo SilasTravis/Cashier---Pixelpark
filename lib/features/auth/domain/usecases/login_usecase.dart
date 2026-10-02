@@ -23,6 +23,9 @@ class LoginUseCase implements UseCase<AuthSession, LoginParams> {
 
   @override
   Future<Either<Failure, AuthSession>> call(LoginParams params) {
-    return repository.login(username: params.username, password: params.password);
+    return repository.login(
+      username: params.username,
+      password: params.password,
+    );
   }
 }
