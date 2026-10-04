@@ -10,14 +10,18 @@ class PosEntry extends Equatable {
     required this.childId,
     required this.token,
     required this.expiresAt,
+    this.durationMinutes,
   });
 
   final String childId;
   final String token;
   final DateTime? expiresAt;
 
+  /// 1 soat stickers only: the plan's duration, printed on the name line.
+  final int? durationMinutes;
+
   @override
-  List<Object?> get props => [childId, token, expiresAt];
+  List<Object?> get props => [childId, token, expiresAt, durationMinutes];
 }
 
 /// One child that failed to enter — surfaced alongside any successes in the

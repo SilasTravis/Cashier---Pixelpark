@@ -8,6 +8,18 @@ import '../../domain/pos_entry.dart';
 import '../../../../injector_container.dart';
 import '../../../../generated/l10n.dart';
 
+/// The name line of a child's gate-pass sticker. A time-limited (1 soat)
+/// sticker leads with its duration so door staff can tell it from an
+/// all-day Standard/VIP sticker at a glance; every other sticker is exactly
+/// the child's name, as before. The label printer itself is untouched.
+String stickerNameFor(String childName, int? durationMinutes) {
+  if (durationMinutes == null) return childName;
+  final tag = durationMinutes % 60 == 0
+      ? '${durationMinutes ~/ 60} SOAT'
+      : '$durationMinutes DAQ';
+  return childName.isEmpty ? tag : '$tag · $childName';
+}
+
 /// Fires gate-pass label printing the instant entry is confirmed — no
 /// preview step, no dialog. Any child who couldn't enter (e.g. already
 /// inside) still isn't dropped silently: it surfaces as a SnackBar instead
@@ -26,7 +38,10 @@ void printPlanEntryLabels(
       for (final entry in result.entries)
         (
           qrData: entry.token,
-          name: childNamesById[entry.childId] ?? '',
+          name: stickerNameFor(
+            childNamesById[entry.childId] ?? '',
+            entry.durationMinutes,
+          ),
           invertName: false,
         ),
       for (final companion in result.companionPasses)

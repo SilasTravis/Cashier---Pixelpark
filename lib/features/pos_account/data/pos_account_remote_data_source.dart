@@ -236,7 +236,11 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
 
   @override
   Future<List<KidsPlan>> listPlans() async {
-    final response = await _request(() => dio.get('/v1/pos/plans'));
+    // `kinds=flat_hour` opts in to the 1 soat plan. The backend hides it
+    // from builds that don't ask — they would sell it as Standard.
+    final response = await _request(
+      () => dio.get('/v1/pos/plans', queryParameters: {'kinds': 'flat_hour'}),
+    );
     return (response as List)
         .map((json) => _kidsPlanFromJson(json as Map<String, dynamic>))
         .toList();
@@ -249,6 +253,9 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
     required List<String> childIds,
     bool replacePlan = false,
   }) async {
+    // No `kinds` opt-in here: this route only re-prints a live pass or
+    // switches TO VIP (conflict dialog). A fresh 1 soat sale always goes
+    // through `planEntryCheckout`; the backend refuses one here.
     final response = await _request(
       () => dio.post(
         '/v1/pos/customers/$customerId/plan-entry',
@@ -366,6 +373,10 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
     final response = await _request(
       () => dio.post(
         '/v1/pos/customers/$customerId/plan-entry-checkout',
+        // The same opt-in as `listPlans`: without it the backend refuses a
+        // fresh 1 soat sale (KIDS_PLAN_NOT_FOUND). It only gates opt-in
+        // kinds — Standard/VIP checkouts are unaffected.
+        queryParameters: {'kinds': 'flat_hour'},
         data: {
           'planKey': planKey,
           'childIds': childIds,
@@ -507,13 +518,16 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
     return KidsPlan(
       key: json['key'] as String,
       name: json['name'] as String,
-      kind: json['kind'] == 'flat_day'
-          ? KidsPlanKind.flatDay
-          : KidsPlanKind.perMinuteTiers,
+      kind: switch (json['kind']) {
+        'flat_day' => KidsPlanKind.flatDay,
+        'flat_hour' => KidsPlanKind.flatHour,
+        _ => KidsPlanKind.perMinuteTiers,
+      },
       firstMinuteUzs: json['firstMinuteUzs'] as int?,
       secondMinuteUzs: json['secondMinuteUzs'] as int?,
       extraMinuteUzs: json['extraMinuteUzs'] as int?,
       flatUzs: json['flatUzs'] as int?,
+      durationMinutes: json['durationMinutes'] as int?,
     );
   }
 
@@ -524,6 +538,7 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
       expiresAt: json['expiresAt'] == null
           ? null
           : DateTime.parse(json['expiresAt'] as String),
+      durationMinutes: json['durationMinutes'] as int?,
     );
   }
 
