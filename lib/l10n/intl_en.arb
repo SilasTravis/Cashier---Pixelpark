@@ -207,6 +207,16 @@
   },
   "vipTariff": "VIP tariff",
   "vipChargedImmediately": "The VIP tariff is debited from the balance immediately when printed.",
+  "hourAlreadyActive": "«{name}» already has an active 1 hour tariff — no second charge.",
+  "@hourAlreadyActive": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "hourTariff": "1 hour tariff",
+  "hourChargedImmediately": "The 1 hour tariff is debited from the balance immediately when printed.",
   "payFromBalance": "Pay from balance",
   "currentBalanceValue": "Current balance: {value}",
   "@currentBalanceValue": {
@@ -335,6 +345,14 @@
   },
   "pricePerDay": "{value} / day",
   "@pricePerDay": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "pricePerHour": "{value} / hour",
+  "@pricePerHour": {
     "placeholders": {
       "value": {
         "type": "String"

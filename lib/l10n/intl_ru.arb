@@ -207,6 +207,16 @@
   },
   "vipTariff": "VIP-тариф",
   "vipChargedImmediately": "Стоимость VIP-тарифа списывается с баланса сразу при печати.",
+  "hourAlreadyActive": "«{name}» уже на активном тарифе «1 час» — повторная оплата не взимается.",
+  "@hourAlreadyActive": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "hourTariff": "Тариф «1 час»",
+  "hourChargedImmediately": "Стоимость тарифа «1 час» списывается с баланса сразу при печати.",
   "payFromBalance": "Списать с баланса",
   "currentBalanceValue": "Текущий баланс: {value}",
   "@currentBalanceValue": {
@@ -335,6 +345,14 @@
   },
   "pricePerDay": "{value} / день",
   "@pricePerDay": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "pricePerHour": "{value} / час",
+  "@pricePerHour": {
     "placeholders": {
       "value": {
         "type": "String"

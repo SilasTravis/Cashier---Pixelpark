@@ -984,6 +984,36 @@ class AppLocalization {
     );
   }
 
+  /// `«{name}» already has an active 1 hour tariff — no second charge.`
+  String hourAlreadyActive(String name) {
+    return Intl.message(
+      '«$name» already has an active 1 hour tariff — no second charge.',
+      name: 'hourAlreadyActive',
+      desc: '',
+      args: [name],
+    );
+  }
+
+  /// `1 hour tariff`
+  String get hourTariff {
+    return Intl.message(
+      '1 hour tariff',
+      name: 'hourTariff',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The 1 hour tariff is debited from the balance immediately when printed.`
+  String get hourChargedImmediately {
+    return Intl.message(
+      'The 1 hour tariff is debited from the balance immediately when printed.',
+      name: 'hourChargedImmediately',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Pay from balance`
   String get payFromBalance {
     return Intl.message(
@@ -1294,6 +1324,16 @@ class AppLocalization {
     return Intl.message(
       '$value / day',
       name: 'pricePerDay',
+      desc: '',
+      args: [value],
+    );
+  }
+
+  /// `{value} / hour`
+  String pricePerHour(String value) {
+    return Intl.message(
+      '$value / hour',
+      name: 'pricePerHour',
       desc: '',
       args: [value],
     );

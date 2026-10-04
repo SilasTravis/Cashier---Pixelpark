@@ -270,16 +270,16 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
             (sum, line) =>
                 sum + (productsById[line.key]?.priceUzs ?? 0) * line.value,
           );
-          // VIP is debited from the balance at issuance (register prepay);
-          // Standard has no upfront tariff — it bills per exit by actual
-          // minutes. Children already holding today's pass on the SAME
-          // flat-day plan are not charged again — the backend just
+          // VIP and 1 soat are debited from the balance at issuance
+          // (register prepay); Standard has no upfront tariff — it bills per
+          // exit by actual minutes. Children already holding a live pass on
+          // the SAME prepaid plan are not charged again — the backend just
           // re-returns their pass.
           final activePlanByChild = {
             for (final p in state.activePasses) p.childId: p.planKey,
           };
           final alreadyOnSelectedPlan = <String>{
-            if (_selectedPlan?.kind == KidsPlanKind.flatDay)
+            if (_selectedPlan?.isPrepaid ?? false)
               for (final id in _selectedChildIds)
                 if (activePlanByChild[id] == _selectedPlan!.key) id,
           };
@@ -303,10 +303,10 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                     .firstOrNull
                     ?.id;
 
-          // A child with an entry discount pays the VIP price net of it — a
-          // 100% discount (PREVIEW ONLY, same formula as the backend) zeroes
-          // it exactly like the old free-reason flow did. The promo child's
-          // discount is the code's tier, replacing any 3-dots pick.
+          // A child with an entry discount pays the VIP / 1 soat price net of
+          // it — a 100% discount (PREVIEW ONLY, same formula as the backend)
+          // zeroes it exactly like the old free-reason flow did. The promo
+          // child's discount is the code's tier, replacing any 3-dots pick.
           Discount? entryDiscountFor(String childId) {
             if (childId == promoChildId) return promo!.discount;
             final id = _childEntryDiscountIds[childId];
@@ -314,7 +314,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
             return state.entryDiscounts.where((d) => d.id == id).firstOrNull;
           }
 
-          final vipTotal = _selectedPlan?.kind == KidsPlanKind.flatDay
+          final vipTotal = (_selectedPlan?.isPrepaid ?? false)
               ? _selectedChildIds
                     .where((id) => !alreadyOnSelectedPlan.contains(id))
                     .fold<int>(0, (sum, id) {
@@ -502,6 +502,8 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                             () => _selectedDiscountId = discount?.id,
                           ),
                           vipTotal: vipTotal,
+                          isHourPlan:
+                              _selectedPlan?.kind == KidsPlanKind.flatHour,
                           companions: _companions,
                           companionPriceUzs: state.companionPriceUzs,
                           companionsTotal: companionsTotal,
@@ -1000,9 +1002,9 @@ class _ChildrenCard extends StatelessWidget {
 
   final Customer customer;
 
-  /// Standard/VIP — always exactly these two once loaded (seeded on the
-  /// backend). Standard starts a visit billed from the customer's balance
-  /// at exit; VIP is debited from the balance immediately at printing.
+  /// Standard/VIP, plus 1 soat when the backend has it switched on.
+  /// Standard starts a visit billed from the customer's balance at exit;
+  /// VIP and 1 soat are debited from the balance immediately at printing.
   final List<KidsPlan> plans;
   final bool isLoadingPlans;
 
@@ -1040,8 +1042,8 @@ class _ChildrenCard extends StatelessWidget {
   final Widget checkout;
 
   /// Standard only: nothing is due at the register — billing happens at
-  /// exit by played time. VIP gets NO note here: it is debited immediately
-  /// at printing, and the checkout section already says so.
+  /// exit by played time. VIP / 1 soat get NO note here: they are debited
+  /// immediately at printing, and the checkout section already says so.
   String _noPaymentNote(AppLocalization l10n) => l10n.noPaymentNow;
 
   @override
@@ -1185,8 +1187,7 @@ class _ChildrenCard extends StatelessWidget {
                 ],
               ],
             ),
-          if (selectedPlan != null &&
-              selectedPlan!.kind != KidsPlanKind.flatDay) ...[
+          if (selectedPlan != null && !selectedPlan!.isPrepaid) ...[
             const SizedBox(height: 10),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -1216,7 +1217,8 @@ class _ChildrenCard extends StatelessWidget {
 /// The money model mirrors the backend's plan-entry checkout: everything
 /// flows through the balance. Collected cash/card is credited to the
 /// balance first, then products are debited from it; the Standard tariff
-/// bills per exit, while VIP is debited from the balance at issuance.
+/// bills per exit, while VIP / 1 soat are debited from the balance at
+/// issuance.
 class _CheckoutSection extends StatelessWidget {
   const _CheckoutSection({
     required this.products,
@@ -1228,6 +1230,7 @@ class _CheckoutSection extends StatelessWidget {
     required this.cartDiscountUzs,
     required this.onDiscountChanged,
     required this.vipTotal,
+    required this.isHourPlan,
     required this.companions,
     required this.companionPriceUzs,
     required this.companionsTotal,
@@ -1280,10 +1283,15 @@ class _CheckoutSection extends StatelessWidget {
   final int cartDiscountUzs;
   final ValueChanged<Discount?> onDiscountChanged;
 
-  /// VIP flat price × newly-covered children — debited from the balance
-  /// the moment the stickers print. 0 for Standard. Children with a
+  /// VIP / 1 soat flat price × newly-covered children — debited from the
+  /// balance the moment the stickers print. 0 for Standard. Children with a
   /// free-entry reason are already excluded.
   final int vipTotal;
+
+  /// The prepaid plan picked is 1 soat, not VIP — only swaps the wording
+  /// of the [vipTotal] row, its "debited immediately" note and the
+  /// "no second charge" notes; VIP keeps its exact copy.
+  final bool isHourPlan;
 
   /// Paid HAMROH companion stickers: qty, unit price (server-owned), and
   /// their subtotal — joins [neededTotal] and the normal payment flow.
@@ -1315,7 +1323,7 @@ class _CheckoutSection extends StatelessWidget {
   final ValueChanged<String> onRemove;
   final int selectedChildCount;
 
-  /// Selected children already on today's selected flat-day plan — shown
+  /// Selected children already on the selected prepaid plan — shown
   /// as "no second charge" notes and excluded from [vipTotal].
   final List<String> alreadyVipNames;
 
@@ -1443,7 +1451,9 @@ class _CheckoutSection extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text(
-              l10n.vipAlreadyActive(name),
+              isHourPlan
+                  ? l10n.hourAlreadyActive(name)
+                  : l10n.vipAlreadyActive(name),
               style: AppTextStyles.muted(
                 AppTextStyles.body,
               ).copyWith(fontSize: 11),
@@ -1466,7 +1476,10 @@ class _CheckoutSection extends StatelessWidget {
                 amount: -cartDiscountUzs,
               ),
             if (vipTotal > 0)
-              _TotalRow(label: l10n.vipTariff, amount: vipTotal),
+              _TotalRow(
+                label: isHourPlan ? l10n.hourTariff : l10n.vipTariff,
+                amount: vipTotal,
+              ),
             if (companionsTotal > 0)
               _TotalRow(
                 label: 'HAMROH QR ×$companions',
@@ -1485,7 +1498,9 @@ class _CheckoutSection extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 2),
               child: Text(
-                l10n.vipChargedImmediately,
+                isHourPlan
+                    ? l10n.hourChargedImmediately
+                    : l10n.vipChargedImmediately,
                 style: AppTextStyles.muted(
                   AppTextStyles.body,
                 ).copyWith(fontSize: 11),
@@ -2330,16 +2345,22 @@ class _TariffPill extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  IconData get _icon => plan.kind == KidsPlanKind.flatDay
-      ? PhosphorIconsRegular.crownSimple
-      : PhosphorIconsRegular.ticket;
+  IconData get _icon => switch (plan.kind) {
+    KidsPlanKind.flatDay => PhosphorIconsRegular.crownSimple,
+    KidsPlanKind.flatHour => PhosphorIconsRegular.timer,
+    KidsPlanKind.perMinuteTiers => PhosphorIconsRegular.ticket,
+  };
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalization.of(context);
-    final priceLabel = plan.kind == KidsPlanKind.flatDay
-        ? l10n.pricePerDay(formatUzs(plan.flatUzs ?? 0))
-        : l10n.priceFromPerMinute(formatUzs(plan.firstMinuteUzs ?? 0));
+    final priceLabel = switch (plan.kind) {
+      KidsPlanKind.flatDay => l10n.pricePerDay(formatUzs(plan.flatUzs ?? 0)),
+      KidsPlanKind.flatHour => l10n.pricePerHour(formatUzs(plan.flatUzs ?? 0)),
+      KidsPlanKind.perMinuteTiers => l10n.priceFromPerMinute(
+        formatUzs(plan.firstMinuteUzs ?? 0),
+      ),
+    };
     return Material(
       color: selected
           ? NocturneColors.accent.withValues(alpha: 0.12)

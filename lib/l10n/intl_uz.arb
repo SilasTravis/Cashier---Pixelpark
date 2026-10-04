@@ -207,6 +207,16 @@
   },
   "vipTariff": "VIP tarif",
   "vipChargedImmediately": "VIP tarif puli chop etilganda balansdan darhol yechiladi.",
+  "hourAlreadyActive": "«{name}» allaqachon faol 1 soat tarifda — qayta to‘lov olinmaydi.",
+  "@hourAlreadyActive": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "hourTariff": "1 soat tarif",
+  "hourChargedImmediately": "1 soat tarif puli chop etilganda balansdan darhol yechiladi.",
   "payFromBalance": "Balansdan yechish",
   "currentBalanceValue": "Joriy balans: {value}",
   "@currentBalanceValue": {
@@ -335,6 +345,14 @@
   },
   "pricePerDay": "{value} / kun",
   "@pricePerDay": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "pricePerHour": "{value} / soat",
+  "@pricePerHour": {
     "placeholders": {
       "value": {
         "type": "String"
