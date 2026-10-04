@@ -204,6 +204,10 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                     requestedPlan?.kind == KidsPlanKind.flatDay
                     ? requestedPlan?.flatUzs
                     : null,
+                hourPlanKeys: {
+                  for (final p in state.plans)
+                    if (p.kind == KidsPlanKind.flatHour) p.key,
+                },
               );
             }
           },
@@ -274,14 +278,24 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
           // (register prepay); Standard has no upfront tariff — it bills per
           // exit by actual minutes. Children already holding a live pass on
           // the SAME prepaid plan are not charged again — the backend just
-          // re-returns their pass.
+          // re-returns their pass. A live VIP pass also covers a 1 soat
+          // sale: the backend re-prints the VIP sticker and charges nothing
+          // (spec decision 7, VIP → hour).
           final activePlanByChild = {
             for (final p in state.activePasses) p.childId: p.planKey,
           };
+          final vipPlanKeys = {
+            for (final p in state.plans)
+              if (p.kind == KidsPlanKind.flatDay) p.key,
+          };
+          final hourSelected = _selectedPlan?.kind == KidsPlanKind.flatHour;
           final alreadyOnSelectedPlan = <String>{
             if (_selectedPlan?.isPrepaid ?? false)
               for (final id in _selectedChildIds)
-                if (activePlanByChild[id] == _selectedPlan!.key) id,
+                if (activePlanByChild[id] == _selectedPlan!.key ||
+                    (hourSelected &&
+                        vipPlanKeys.contains(activePlanByChild[id])))
+                  id,
           };
           // The partner promo code discounts ONE selected child. A child
           // with a pass today can't take it — the backend would fail that
@@ -502,8 +516,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                             () => _selectedDiscountId = discount?.id,
                           ),
                           vipTotal: vipTotal,
-                          isHourPlan:
-                              _selectedPlan?.kind == KidsPlanKind.flatHour,
+                          isHourPlan: hourSelected,
                           companions: _companions,
                           companionPriceUzs: state.companionPriceUzs,
                           companionsTotal: companionsTotal,
@@ -549,7 +562,18 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                           selectedChildCount: _selectedChildIds.length,
                           alreadyVipNames: [
                             for (final child in customer.children)
-                              if (alreadyOnSelectedPlan.contains(child.id))
+                              if (alreadyOnSelectedPlan.contains(child.id) &&
+                                  vipPlanKeys.contains(
+                                    activePlanByChild[child.id],
+                                  ))
+                                child.fullName,
+                          ],
+                          alreadyHourNames: [
+                            for (final child in customer.children)
+                              if (alreadyOnSelectedPlan.contains(child.id) &&
+                                  !vipPlanKeys.contains(
+                                    activePlanByChild[child.id],
+                                  ))
                                 child.fullName,
                           ],
                           printParentQr: _printParentQr,
@@ -1256,6 +1280,7 @@ class _CheckoutSection extends StatelessWidget {
     required this.onRemove,
     required this.selectedChildCount,
     required this.alreadyVipNames,
+    required this.alreadyHourNames,
     required this.printParentQr,
     required this.onPrintParentQrChanged,
     required this.canSubmit,
@@ -1323,9 +1348,12 @@ class _CheckoutSection extends StatelessWidget {
   final ValueChanged<String> onRemove;
   final int selectedChildCount;
 
-  /// Selected children already on the selected prepaid plan — shown
-  /// as "no second charge" notes and excluded from [vipTotal].
+  /// Selected children already covered by a live pass on the selected
+  /// prepaid plan (or, for 1 soat, by a live VIP pass) — shown as "no second
+  /// charge" notes and excluded from [vipTotal]. Split by the pass they
+  /// hold so each note names the right tariff.
   final List<String> alreadyVipNames;
+  final List<String> alreadyHourNames;
 
   /// The free parent sticker rides along with the checkout print.
   final bool printParentQr;
@@ -1451,9 +1479,17 @@ class _CheckoutSection extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text(
-              isHourPlan
-                  ? l10n.hourAlreadyActive(name)
-                  : l10n.vipAlreadyActive(name),
+              l10n.vipAlreadyActive(name),
+              style: AppTextStyles.muted(
+                AppTextStyles.body,
+              ).copyWith(fontSize: 11),
+            ),
+          ),
+        for (final name in alreadyHourNames)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              l10n.hourAlreadyActive(name),
               style: AppTextStyles.muted(
                 AppTextStyles.body,
               ).copyWith(fontSize: 11),

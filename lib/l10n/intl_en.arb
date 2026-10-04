@@ -304,6 +304,7 @@
       }
     }
   },
+  "planSwitchHourToVipNote": "The 1 hour tariff price is not refunded.",
   "currentPlanToday": "«{child}» is on the «{plan}» tariff today{inside}.",
   "@currentPlanToday": {
     "placeholders": {

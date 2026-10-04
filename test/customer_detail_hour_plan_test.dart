@@ -9,13 +9,29 @@ import 'package:cashier_app/features/pos_account/domain/active_pass.dart';
 import 'package:cashier_app/features/pos_account/domain/customer.dart';
 import 'package:cashier_app/features/pos_account/domain/kids_plan.dart';
 import 'package:cashier_app/features/pos_account/domain/playing_child.dart';
+import 'package:cashier_app/features/pos_account/domain/pos_entry.dart';
 import 'package:cashier_app/features/pos_account/presentation/bloc/pos_account_bloc.dart';
 import 'package:cashier_app/features/pos_account/presentation/widgets/customer_detail_panel.dart';
 
 class _FakeRemote implements PosAccountRemoteDataSource {
-  _FakeRemote({this.activePasses = const []});
+  _FakeRemote({this.activePasses = const [], this.checkoutResult});
 
   final List<ActivePass> activePasses;
+  final PosEntryResult? checkoutResult;
+
+  @override
+  Future<PosEntryResult> planEntryCheckout({
+    required int customerId,
+    required String planKey,
+    required List<String> childIds,
+    required List<CheckoutLine> products,
+    required int cashUzs,
+    required int cardUzs,
+    Map<String, String> entryDiscounts = const {},
+    int companions = 0,
+    String? discountId,
+    ({String code, String childId})? promoCode,
+  }) async => checkoutResult!;
 
   @override
   Future<List<KidsPlan>> listPlans() async => const [
@@ -64,6 +80,7 @@ Future<PosAccountBloc> _pumpPanel(
   WidgetTester tester, {
   int balance = 0,
   List<ActivePass> activePasses = const [],
+  PosEntryResult? checkoutResult,
 }) async {
   tester.view.physicalSize = const Size(1600, 1200);
   tester.view.devicePixelRatio = 1.0;
@@ -71,7 +88,12 @@ Future<PosAccountBloc> _pumpPanel(
 
   final bloc =
       PosAccountBloc(
-          PosAccountRepository(_FakeRemote(activePasses: activePasses)),
+          PosAccountRepository(
+            _FakeRemote(
+              activePasses: activePasses,
+              checkoutResult: checkoutResult,
+            ),
+          ),
         )
         ..add(const PosAccountPlansRequested())
         ..add(
@@ -210,4 +232,129 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('a child on a live VIP pass sold 1 soat is not charged', (
+    tester,
+  ) async {
+    // Spec decision 7: VIP → hour re-prints the VIP sticker, no charge.
+    await _pumpPanel(tester, activePasses: [_livePass('vip', 'VIP', 75000)]);
+
+    await _pickChildAndPlan(tester, '1 soat');
+
+    expect(find.widgetWithText(TextField, '50000'), findsNothing);
+    expect(
+      find.text('«Aziza» already has an active VIP tariff — no second charge.'),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        '«Aziza» already has an active 1 hour tariff — no second charge.',
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets('a child on a live VIP pass sold VIP keeps today\'s note', (
+    tester,
+  ) async {
+    await _pumpPanel(tester, activePasses: [_livePass('vip', 'VIP', 75000)]);
+
+    await _pickChildAndPlan(tester, 'VIP');
+
+    expect(find.widgetWithText(TextField, '75000'), findsNothing);
+    expect(
+      find.text('«Aziza» already has an active VIP tariff — no second charge.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a child on a live 1 soat pass sold VIP is still charged', (
+    tester,
+  ) async {
+    await _pumpPanel(
+      tester,
+      activePasses: [_livePass('hour', '1 soat', 50000)],
+    );
+
+    await _pickChildAndPlan(tester, 'VIP');
+
+    expect(find.widgetWithText(TextField, '75000'), findsOneWidget);
+  });
+
+  testWidgets('the hour → VIP conflict from the panel says no refund', (
+    tester,
+  ) async {
+    await _pumpPanel(
+      tester,
+      activePasses: [_livePass('hour', '1 soat', 50000)],
+      checkoutResult: const PosEntryResult(
+        entries: [],
+        failures: [],
+        conflicts: [
+          PosEntryConflict(
+            childId: 'child-1',
+            currentPlanKey: 'hour',
+            currentPlanLabel: '1 soat',
+            requestedPlanKey: 'vip',
+            isInside: false,
+            accruedDueUzs: 0,
+            switchable: true,
+          ),
+        ],
+      ),
+    );
+
+    await _pickChildAndPlan(tester, 'VIP');
+    await tester.tap(find.text('Pay and print'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('The 1 hour tariff price is not refunded.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('the Standart → VIP conflict from the panel has no hour note', (
+    tester,
+  ) async {
+    await _pumpPanel(
+      tester,
+      activePasses: [_livePass('standard', 'Standart', 0)],
+      checkoutResult: const PosEntryResult(
+        entries: [],
+        failures: [],
+        conflicts: [
+          PosEntryConflict(
+            childId: 'child-1',
+            currentPlanKey: 'standard',
+            currentPlanLabel: 'Standart',
+            requestedPlanKey: 'vip',
+            isInside: false,
+            accruedDueUzs: 0,
+            switchable: true,
+          ),
+        ],
+      ),
+    );
+
+    await _pickChildAndPlan(tester, 'VIP');
+    await tester.tap(find.text('Pay and print'));
+    await tester.pumpAndSettle();
+
+    // The dialog is up (VIP prepay question) but without the hour note.
+    expect(find.textContaining('75 000'), findsWidgets);
+    expect(
+      find.textContaining('The 1 hour tariff price is not refunded.'),
+      findsNothing,
+    );
+  });
 }
+
+ActivePass _livePass(String planKey, String label, int dueTodayUzs) =>
+    ActivePass(
+      childId: 'child-1',
+      planKey: planKey,
+      planLabel: label,
+      expiresAt: DateTime.now().add(const Duration(minutes: 30)),
+      dueTodayUzs: dueTodayUzs,
+    );

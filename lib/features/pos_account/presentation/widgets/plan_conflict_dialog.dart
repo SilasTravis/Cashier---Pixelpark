@@ -31,6 +31,11 @@ Future<void> showPlanConflictDialog(
   /// refuses the switch unless the balance already covers it, so the
   /// modal says so before the cashier confirms.
   int? requestedPlanFlatUzs,
+
+  /// Keys of the 1 soat (`flat_hour`) plans. A switchable conflict whose
+  /// CURRENT plan is one of them is a live hour → VIP upgrade: the row adds
+  /// that the hour price is not refunded. Empty leaves every row as before.
+  Set<String> hourPlanKeys = const {},
 }) {
   final bloc = context.read<PosAccountBloc>();
   final switchable = conflicts.where((c) => c.switchable).toList();
@@ -56,6 +61,7 @@ Future<void> showPlanConflictDialog(
                   conflict: conflict,
                   childName:
                       childNamesById[conflict.childId] ?? conflict.childId,
+                  fromHourPlan: hourPlanKeys.contains(conflict.currentPlanKey),
                 ),
                 const SizedBox(height: 8),
               ],
@@ -123,10 +129,17 @@ Future<void> showPlanConflictDialog(
 }
 
 class _ConflictRow extends StatelessWidget {
-  const _ConflictRow({required this.conflict, required this.childName});
+  const _ConflictRow({
+    required this.conflict,
+    required this.childName,
+    required this.fromHourPlan,
+  });
 
   final PosEntryConflict conflict;
   final String childName;
+
+  /// The child's live pass is a 1 soat one.
+  final bool fromHourPlan;
 
   @override
   Widget build(BuildContext context) {
@@ -140,6 +153,9 @@ class _ConflictRow extends StatelessWidget {
       if (!conflict.switchable) l10n.downgradeForbidden,
       if (conflict.switchable && conflict.accruedDueUzs > 0)
         l10n.accruedDue(formatUzs(conflict.accruedDueUzs)),
+      // Live hour → VIP is an upgrade at the full VIP price; the hour pass
+      // is expired, nothing refunded (backend only offers switches TO VIP).
+      if (conflict.switchable && fromHourPlan) l10n.planSwitchHourToVipNote,
     ];
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),

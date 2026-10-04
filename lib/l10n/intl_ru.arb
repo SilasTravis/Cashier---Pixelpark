@@ -304,6 +304,7 @@
       }
     }
   },
+  "planSwitchHourToVipNote": "Стоимость тарифа «1 час» не возвращается.",
   "currentPlanToday": "Сегодня «{child}» на тарифе «{plan}»{inside}.",
   "@currentPlanToday": {
     "placeholders": {

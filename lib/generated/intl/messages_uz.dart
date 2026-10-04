@@ -418,6 +418,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "phoneNotFound": MessageLookupByLibrary.simpleMessage("Bu raqam topilmadi"),
     "phoneNumber": MessageLookupByLibrary.simpleMessage("Telefon raqami"),
     "planSwitch": MessageLookupByLibrary.simpleMessage("Reja almashtirish"),
+    "planSwitchHourToVipNote": MessageLookupByLibrary.simpleMessage(
+      "1 soat tarif puli qaytarilmaydi.",
+    ),
     "planSwitchQuestion": m33,
     "planSwitchVipQuestion": m34,
     "priceFromPerMinute": m35,

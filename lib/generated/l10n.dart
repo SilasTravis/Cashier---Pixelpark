@@ -1209,6 +1209,16 @@ class AppLocalization {
     );
   }
 
+  /// `The 1 hour tariff price is not refunded.`
+  String get planSwitchHourToVipNote {
+    return Intl.message(
+      'The 1 hour tariff price is not refunded.',
+      name: 'planSwitchHourToVipNote',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `«{child}» is on the «{plan}» tariff today{inside}.`
   String currentPlanToday(String child, String plan, String inside) {
     return Intl.message(

@@ -432,6 +432,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "phoneNotFound": MessageLookupByLibrary.simpleMessage("Номер не найден"),
     "phoneNumber": MessageLookupByLibrary.simpleMessage("Номер телефона"),
     "planSwitch": MessageLookupByLibrary.simpleMessage("Смена тарифа"),
+    "planSwitchHourToVipNote": MessageLookupByLibrary.simpleMessage(
+      "Стоимость тарифа «1 час» не возвращается.",
+    ),
     "planSwitchQuestion": m33,
     "planSwitchVipQuestion": m34,
     "priceFromPerMinute": m35,

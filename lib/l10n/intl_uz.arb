@@ -304,6 +304,7 @@
       }
     }
   },
+  "planSwitchHourToVipNote": "1 soat tarif puli qaytarilmaydi.",
   "currentPlanToday": "«{child}» bugun «{plan}» rejasida{inside}.",
   "@currentPlanToday": {
     "placeholders": {
