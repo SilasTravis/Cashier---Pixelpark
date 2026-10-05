@@ -14,12 +14,14 @@ void main() {
     final bytes = await ChildTicketPrinter.buildPdf(
       const [
         (
+          qrData: 'gate-pass-token',
           childName: 'Алишер',
           planName: 'VIP 2 soat',
           priceUzs: 85000,
           ticketId: '35b4fb47',
         ),
         (
+          qrData: 'gate-pass-token',
           childName: 'Muhammadaminxon',
           planName: 'Standart',
           priceUzs: null,
@@ -33,6 +35,7 @@ void main() {
     final one = await ChildTicketPrinter.buildPdf(
       const [
         (
+          qrData: 'gate-pass-token',
           childName: 'Ali',
           planName: 'Standart',
           priceUzs: 1000,

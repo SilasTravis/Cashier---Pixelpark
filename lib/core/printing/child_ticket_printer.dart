@@ -7,17 +7,21 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 /// One child's entry ticket: who, which plan, what it costs. [priceUzs] is
-/// null for per-minute plans (no fixed price at entry).
+/// null for per-minute plans (no fixed price at entry). [qrData] is the same
+/// gate-pass token the Godex sticker would carry, so the door scanner reads
+/// the paper ticket exactly like the sticker.
 typedef ChildTicketEntry = ({
+  String qrData,
   String childName,
   String planName,
   int? priceUzs,
   String ticketId,
 });
 
-/// Text-only entry ticket for the thermal RECEIPT printer — the fallback
+/// Paper entry ticket for the thermal RECEIPT printer — the fallback
 /// when no Godex label printer is available to print the gate-pass sticker.
-/// Black on white only (1-bit thermal), one compact page per child, laid out
+/// Black on white only (1-bit thermal), one page per child with the entry QR
+/// under the plan line, laid out
 /// with the same paper geometry as [SaleReceiptPrinter] so it lands centred
 /// on the SLK roll.
 ///
@@ -29,7 +33,11 @@ class ChildTicketPrinter {
   static const double _rightPaddingMm = 13;
   static const double _verticalPaddingMm = 3;
   static const double _contentWidthMm = 63;
-  static const double _pageHeightMm = 40;
+  static const double _pageHeightMm = 82;
+
+  /// Big enough for the door scanner at arm's length; the SLK prints the
+  /// modules as crisp 1-bit dots.
+  static const double _qrSizeMm = 32;
 
   static Future<bool> printDirect(
     List<ChildTicketEntry> entries, {
@@ -110,9 +118,16 @@ class ChildTicketPrinter {
                     crossAxisAlignment: pw.CrossAxisAlignment.end,
                     children: [
                       pw.Expanded(
-                        child: pw.Text(
-                          asciiText(entry.planName).toUpperCase(),
-                          style: pw.TextStyle(font: bold, fontSize: 13),
+                        // One line, shrunk to fit: a wrapped plan name would
+                        // push the header and footer off the fixed page.
+                        child: pw.FittedBox(
+                          fit: pw.BoxFit.scaleDown,
+                          alignment: pw.Alignment.centerLeft,
+                          child: pw.Text(
+                            asciiText(entry.planName).toUpperCase(),
+                            maxLines: 1,
+                            style: pw.TextStyle(font: bold, fontSize: 13),
+                          ),
                         ),
                       ),
                       pw.SizedBox(width: 6),
@@ -124,10 +139,22 @@ class ChildTicketPrinter {
                       ),
                     ],
                   ),
+                  // White quiet zone around the QR, so the scanner can
+                  // find it next to the black text.
+                  pw.SizedBox(height: 7),
+                  pw.Center(
+                    child: pw.BarcodeWidget(
+                      barcode: pw.Barcode.qrCode(),
+                      data: entry.qrData,
+                      width: _qrSizeMm * PdfPageFormat.mm,
+                      height: _qrSizeMm * PdfPageFormat.mm,
+                      drawText: false,
+                    ),
+                  ),
                   pw.Divider(
                     borderStyle: pw.BorderStyle.dashed,
                     thickness: 1,
-                    height: 8,
+                    height: 14,
                   ),
                   pw.Text(
                     '${entry.ticketId}   $stamp',

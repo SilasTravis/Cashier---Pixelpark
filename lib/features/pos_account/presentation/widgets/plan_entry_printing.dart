@@ -29,7 +29,8 @@ String stickerNameFor(String childName, int? durationMinutes) {
 /// (inverted name strip).
 ///
 /// When the label printer can't take the job (no Godex), each child's entry
-/// falls back to a text ticket (name, plan, price) on the receipt printer.
+/// falls back to a ticket (name, plan, price and the same entry QR) on the
+/// receipt printer.
 void printPlanEntryLabels(
   BuildContext context,
   PosEntryResult result,
@@ -64,6 +65,7 @@ void printPlanEntryLabels(
             [
               for (final entry in result.entries)
                 (
+                  qrData: entry.token,
                   childName: childNamesById[entry.childId] ?? '',
                   planName: planName ?? '',
                   priceUzs: planPriceUzs,
