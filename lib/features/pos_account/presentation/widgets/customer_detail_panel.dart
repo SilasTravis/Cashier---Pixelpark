@@ -185,7 +185,15 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                   in state.selectedCustomer?.children ?? const <Child>[])
                 child.id: child.fullName,
             };
-            printPlanEntryLabels(context, result, childNames);
+            printPlanEntryLabels(
+              context,
+              result,
+              childNames,
+              planName: _selectedPlan?.name,
+              planPriceUzs: _selectedPlan?.kind == KidsPlanKind.flatDay
+                  ? _selectedPlan?.flatUzs
+                  : null,
+            );
             context.read<PosAccountBloc>().add(
               const PosAccountEntryAcknowledged(),
             );
