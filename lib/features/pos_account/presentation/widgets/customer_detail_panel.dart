@@ -284,17 +284,22 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
           final activePlanByChild = {
             for (final p in state.activePasses) p.childId: p.planKey,
           };
-          final vipPlanKeys = {
+          // Plans whose live pass covers a 1 soat sale: every unlimited day
+          // pass (built-in VIP and VIP-style custom day plans) and any
+          // VIP-flagged flat plan. Resolved by kind/flag, never by one key.
+          final coveringPlanKeys = {
             for (final p in state.plans)
-              if (p.kind == KidsPlanKind.flatDay) p.key,
+              if (p.kind == KidsPlanKind.flatDay || (p.isVip && p.isPrepaid))
+                p.key,
           };
+          final plansByKey = {for (final p in state.plans) p.key: p};
           final hourSelected = _selectedPlan?.kind == KidsPlanKind.flatHour;
           final alreadyOnSelectedPlan = <String>{
             if (_selectedPlan?.isPrepaid ?? false)
               for (final id in _selectedChildIds)
                 if (activePlanByChild[id] == _selectedPlan!.key ||
                     (hourSelected &&
-                        vipPlanKeys.contains(activePlanByChild[id])))
+                        coveringPlanKeys.contains(activePlanByChild[id])))
                   id,
           };
           // The partner promo code discounts ONE selected child. A child
@@ -516,8 +521,13 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                             () => _selectedDiscountId = discount?.id,
                           ),
                           vipTotal: vipTotal,
-                          isHourPlan: hourSelected,
-                          hourPlan: hourSelected ? _selectedPlan : null,
+                          // Everything but the built-in VIP is labelled by its
+                          // own name (1 soat, custom hour or custom day).
+                          hourPlan:
+                              (_selectedPlan?.isPrepaid ?? false) &&
+                                  _selectedPlan!.key != 'vip'
+                              ? _selectedPlan
+                              : null,
                           companions: _companions,
                           companionPriceUzs: state.companionPriceUzs,
                           companionsTotal: companionsTotal,
@@ -561,21 +571,16 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                             }
                           }),
                           selectedChildCount: _selectedChildIds.length,
-                          alreadyVipNames: [
+                          alreadyNotes: [
                             for (final child in customer.children)
-                              if (alreadyOnSelectedPlan.contains(child.id) &&
-                                  vipPlanKeys.contains(
-                                    activePlanByChild[child.id],
-                                  ))
-                                child.fullName,
-                          ],
-                          alreadyHourNames: [
-                            for (final child in customer.children)
-                              if (alreadyOnSelectedPlan.contains(child.id) &&
-                                  !vipPlanKeys.contains(
-                                    activePlanByChild[child.id],
-                                  ))
-                                child.fullName,
+                              if (alreadyOnSelectedPlan.contains(child.id))
+                                _alreadyActiveNote(
+                                  AppLocalization.of(context),
+                                  child.fullName,
+                                  _selectedPlan!,
+                                  activePlanByChild[child.id],
+                                  plansByKey,
+                                ),
                           ],
                           printParentQr: _printParentQr,
                           onPrintParentQrChanged: (v) =>
@@ -1264,7 +1269,6 @@ class _CheckoutSection extends StatelessWidget {
     required this.cartDiscountUzs,
     required this.onDiscountChanged,
     required this.vipTotal,
-    required this.isHourPlan,
     required this.hourPlan,
     required this.companions,
     required this.companionPriceUzs,
@@ -1290,8 +1294,7 @@ class _CheckoutSection extends StatelessWidget {
     required this.onAdd,
     required this.onRemove,
     required this.selectedChildCount,
-    required this.alreadyVipNames,
-    required this.alreadyHourNames,
+    required this.alreadyNotes,
     required this.printParentQr,
     required this.onPrintParentQrChanged,
     required this.canSubmit,
@@ -1327,7 +1330,6 @@ class _CheckoutSection extends StatelessWidget {
   /// The prepaid plan picked is 1 soat, not VIP — only swaps the wording
   /// of the [vipTotal] row, its "debited immediately" note and the
   /// "no second charge" notes; VIP keeps its exact copy.
-  final bool isHourPlan;
 
   /// The selected flat_hour plan (built-in `hour` or a custom one) — its
   /// name labels the total and the hint; null when none is selected.
@@ -1371,8 +1373,7 @@ class _CheckoutSection extends StatelessWidget {
   /// prepaid plan (or, for 1 soat, by a live VIP pass) — shown as "no second
   /// charge" notes and excluded from [vipTotal]. Split by the pass they
   /// hold so each note names the right tariff.
-  final List<String> alreadyVipNames;
-  final List<String> alreadyHourNames;
+  final List<String> alreadyNotes;
 
   /// The free parent sticker rides along with the checkout print.
   final bool printParentQr;
@@ -1494,23 +1495,11 @@ class _CheckoutSection extends StatelessWidget {
             ],
           ),
         ),
-        for (final name in alreadyVipNames)
+        for (final note in alreadyNotes)
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text(
-              l10n.vipAlreadyActive(name),
-              style: AppTextStyles.muted(
-                AppTextStyles.body,
-              ).copyWith(fontSize: 11),
-            ),
-          ),
-        for (final name in alreadyHourNames)
-          Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Text(
-              _isBuiltInHour
-                  ? l10n.hourAlreadyActive(name)
-                  : l10n.planAlreadyActive(name, hourPlan!.name),
+              note,
               style: AppTextStyles.muted(
                 AppTextStyles.body,
               ).copyWith(fontSize: 11),
@@ -1534,7 +1523,7 @@ class _CheckoutSection extends StatelessWidget {
               ),
             if (vipTotal > 0)
               _TotalRow(
-                label: isHourPlan
+                label: hourPlan != null
                     ? (_isBuiltInHour ? l10n.hourTariff : hourPlan!.name)
                     : l10n.vipTariff,
                 amount: vipTotal,
@@ -1557,7 +1546,7 @@ class _CheckoutSection extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 2),
               child: Text(
-                isHourPlan
+                hourPlan != null
                     ? (_isBuiltInHour
                           ? l10n.hourChargedImmediately
                           : l10n.planChargedImmediately(hourPlan!.name))
@@ -2393,6 +2382,23 @@ class _ChildRow extends StatelessWidget {
     if (pass.dueTodayUzs == 0 && pass.discountName != null) return l10n.free;
     return formatUzs(pass.dueTodayUzs);
   }
+}
+
+/// "Already on a pass — no second charge" line for a child who holds a live
+/// pass on the selected plan, or on a covering VIP/day pass. The built-in
+/// VIP and 1 soat keep their own wording; any other plan is named.
+String _alreadyActiveNote(
+  AppLocalization l10n,
+  String childName,
+  KidsPlan selected,
+  String? activeKey,
+  Map<String, KidsPlan> plansByKey,
+) {
+  final holdKey = activeKey ?? selected.key;
+  if (holdKey == 'vip') return l10n.vipAlreadyActive(childName);
+  if (holdKey == 'hour') return l10n.hourAlreadyActive(childName);
+  final name = (holdKey == selected.key ? selected : plansByKey[holdKey])?.name;
+  return l10n.planAlreadyActive(childName, name ?? holdKey);
 }
 
 class _TariffPill extends StatelessWidget {

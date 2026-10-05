@@ -171,7 +171,134 @@ const _short = KidsPlan(
   durationMinutes: 30,
 );
 
+const _weekend = KidsPlan(
+  key: 'c-ef56',
+  name: 'Weekend pass',
+  kind: KidsPlanKind.flatDay,
+  firstMinuteUzs: null,
+  secondMinuteUzs: null,
+  extraMinuteUzs: null,
+  flatUzs: 150000,
+  isVip: true,
+);
+
+void _multiDayTests() {
+  testWidgets('a custom day plan gets its own pill, name, price and badge', (
+    tester,
+  ) async {
+    await _pumpPanel(tester, extraPlans: [_weekend]);
+
+    expect(find.text('Weekend pass'), findsOneWidget);
+    expect(find.text("150 000 so'm / day"), findsOneWidget);
+    expect(find.text("75 000 so'm / day"), findsOneWidget);
+    // Built-in VIP pill + the custom plan's VIP badge.
+    expect(find.text('VIP'), findsNWidgets(2));
+  });
+
+  testWidgets('selling a custom day plan charges its price and name', (
+    tester,
+  ) async {
+    await _pumpPanel(tester, extraPlans: [_weekend]);
+
+    await _pickChildAndPlan(tester, 'Weekend pass');
+
+    expect(find.widgetWithText(TextField, '150000'), findsOneWidget);
+    expect(
+      find.text(
+        'The «Weekend pass» tariff is debited from the balance immediately when printed.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        'The VIP tariff is debited from the balance immediately when printed.',
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets('a live custom day pass is not charged again for itself', (
+    tester,
+  ) async {
+    await _pumpPanel(
+      tester,
+      extraPlans: [_weekend],
+      activePasses: [_livePass('c-ef56', 'Weekend pass', 150000)],
+    );
+
+    await _pickChildAndPlan(tester, 'Weekend pass');
+
+    expect(find.widgetWithText(TextField, '150000'), findsNothing);
+    expect(
+      find.text(
+        '«Aziza» already has an active «Weekend pass» tariff — no second charge.',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a live custom day pass covers a 1 soat sale', (tester) async {
+    await _pumpPanel(
+      tester,
+      extraPlans: [_weekend],
+      activePasses: [_livePass('c-ef56', 'Weekend pass', 150000)],
+    );
+
+    await _pickChildAndPlan(tester, '1 soat');
+
+    expect(find.widgetWithText(TextField, '50000'), findsNothing);
+    expect(
+      find.text(
+        '«Aziza» already has an active «Weekend pass» tariff — no second charge.',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a live VIP-flagged hour plan covers a 1 soat sale', (
+    tester,
+  ) async {
+    await _pumpPanel(
+      tester,
+      extraPlans: [_birthday],
+      activePasses: [_livePass('c-ab12', 'Birthday 90 min', 120000)],
+    );
+
+    await _pickChildAndPlan(tester, '1 soat');
+
+    expect(find.widgetWithText(TextField, '50000'), findsNothing);
+  });
+
+  testWidgets('a live non-VIP custom hour pass does not cover a 1 soat sale', (
+    tester,
+  ) async {
+    await _pumpPanel(
+      tester,
+      extraPlans: [_short],
+      activePasses: [_livePass('c-cd34', 'Quick 30', 30000)],
+    );
+
+    await _pickChildAndPlan(tester, '1 soat');
+
+    expect(find.widgetWithText(TextField, '50000'), findsOneWidget);
+  });
+
+  testWidgets('a live built-in VIP is still charged when selling the custom '
+      'day plan', (tester) async {
+    await _pumpPanel(
+      tester,
+      extraPlans: [_weekend],
+      activePasses: [_livePass('vip', 'VIP', 75000)],
+    );
+
+    await _pickChildAndPlan(tester, 'Weekend pass');
+
+    expect(find.widgetWithText(TextField, '150000'), findsOneWidget);
+  });
+}
+
 void main() {
+  _multiDayTests();
   testWidgets('custom plans each get a pill with duration, price, VIP badge', (
     tester,
   ) async {
