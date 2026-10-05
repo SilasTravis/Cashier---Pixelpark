@@ -69,6 +69,21 @@ void main() {
     },
   );
 
+  test('parses custom flat_hour plans with isVip defaulting to false', () async {
+    final adapter = _CapturingAdapter(
+      '[{"key":"c-ab12","name":"Birthday 90 min","kind":"flat_hour","flatUzs":120000,"durationMinutes":90,"isVip":true},'
+      '{"key":"c-cd34","name":"Quick 30","kind":"flat_hour","flatUzs":30000,"durationMinutes":30}]',
+    );
+    final plans = await PosAccountRemoteDataSourceImpl(
+      Dio()..httpClientAdapter = adapter,
+    ).listPlans();
+
+    expect(plans.map((p) => p.isVip).toList(), [true, false]);
+    expect(plans.first.durationMinutes, 90);
+    expect(plans.first.kind, KidsPlanKind.flatHour);
+    expect(plans.last.name, 'Quick 30');
+  });
+
   test('an unknown kind still falls back to Standard, as before', () async {
     final adapter = _CapturingAdapter(
       '[{"key":"x","name":"X","kind":"something_new","flatUzs":1}]',

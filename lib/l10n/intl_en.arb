@@ -217,6 +217,25 @@
   },
   "hourTariff": "1 hour tariff",
   "hourChargedImmediately": "The 1 hour tariff is debited from the balance immediately when printed.",
+  "planAlreadyActive": "«{name}» already has an active «{plan}» tariff — no second charge.",
+  "@planAlreadyActive": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
+  "planChargedImmediately": "The «{plan}» tariff is debited from the balance immediately when printed.",
+  "@planChargedImmediately": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
   "payFromBalance": "Pay from balance",
   "currentBalanceValue": "Current balance: {value}",
   "@currentBalanceValue": {

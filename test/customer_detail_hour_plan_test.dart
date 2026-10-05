@@ -14,7 +14,13 @@ import 'package:cashier_app/features/pos_account/presentation/bloc/pos_account_b
 import 'package:cashier_app/features/pos_account/presentation/widgets/customer_detail_panel.dart';
 
 class _FakeRemote implements PosAccountRemoteDataSource {
-  _FakeRemote({this.activePasses = const [], this.checkoutResult});
+  _FakeRemote({
+    this.activePasses = const [],
+    this.checkoutResult,
+    this.extraPlans = const [],
+  });
+
+  final List<KidsPlan> extraPlans;
 
   final List<ActivePass> activePasses;
   final PosEntryResult? checkoutResult;
@@ -34,7 +40,7 @@ class _FakeRemote implements PosAccountRemoteDataSource {
   }) async => checkoutResult!;
 
   @override
-  Future<List<KidsPlan>> listPlans() async => const [
+  Future<List<KidsPlan>> listPlans() async => [
     KidsPlan(
       key: 'standard',
       name: 'Standart',
@@ -63,6 +69,7 @@ class _FakeRemote implements PosAccountRemoteDataSource {
       flatUzs: 50000,
       durationMinutes: 60,
     ),
+    ...extraPlans,
   ];
 
   @override
@@ -81,6 +88,7 @@ Future<PosAccountBloc> _pumpPanel(
   int balance = 0,
   List<ActivePass> activePasses = const [],
   PosEntryResult? checkoutResult,
+  List<KidsPlan> extraPlans = const [],
 }) async {
   tester.view.physicalSize = const Size(1600, 1200);
   tester.view.devicePixelRatio = 1.0;
@@ -92,6 +100,7 @@ Future<PosAccountBloc> _pumpPanel(
             _FakeRemote(
               activePasses: activePasses,
               checkoutResult: checkoutResult,
+              extraPlans: extraPlans,
             ),
           ),
         )
@@ -140,7 +149,61 @@ Future<void> _pickChildAndPlan(WidgetTester tester, String planName) async {
 
 // The test MaterialApp resolves to the first supported locale (en), so the
 // copy asserted below is the English ARB text.
+const _birthday = KidsPlan(
+  key: 'c-ab12',
+  name: 'Birthday 90 min',
+  kind: KidsPlanKind.flatHour,
+  firstMinuteUzs: null,
+  secondMinuteUzs: null,
+  extraMinuteUzs: null,
+  flatUzs: 120000,
+  durationMinutes: 90,
+  isVip: true,
+);
+const _short = KidsPlan(
+  key: 'c-cd34',
+  name: 'Quick 30',
+  kind: KidsPlanKind.flatHour,
+  firstMinuteUzs: null,
+  secondMinuteUzs: null,
+  extraMinuteUzs: null,
+  flatUzs: 30000,
+  durationMinutes: 30,
+);
+
 void main() {
+  testWidgets('custom plans each get a pill with duration, price, VIP badge', (
+    tester,
+  ) async {
+    await _pumpPanel(tester, extraPlans: [_birthday, _short]);
+
+    expect(find.text('Birthday 90 min'), findsOneWidget);
+    expect(find.text("90 min · 120 000 so'm"), findsOneWidget);
+    expect(find.text('Quick 30'), findsOneWidget);
+    expect(find.text("30 min · 30 000 so'm"), findsOneWidget);
+    // Only the VIP-flagged custom plan carries a badge (plus the VIP plan).
+    expect(find.text('VIP'), findsNWidgets(2));
+    // Built-in pills unchanged.
+    expect(find.text("50 000 so'm / hour"), findsOneWidget);
+  });
+
+  testWidgets('a custom plan is prepaid and labelled by its own name', (
+    tester,
+  ) async {
+    await _pumpPanel(tester, extraPlans: [_short]);
+
+    await _pickChildAndPlan(tester, 'Quick 30');
+
+    expect(find.widgetWithText(TextField, '30000'), findsOneWidget);
+    expect(
+      find.text(
+        'The «Quick 30» tariff is debited from the balance immediately when printed.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('1 hour tariff'), findsNothing);
+  });
+
   testWidgets('shows a third "1 soat" pill next to the unchanged two', (
     tester,
   ) async {

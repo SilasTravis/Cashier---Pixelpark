@@ -1014,6 +1014,26 @@ class AppLocalization {
     );
   }
 
+  /// `«{name}» already has an active «{plan}» tariff — no second charge.`
+  String planAlreadyActive(String name, String plan) {
+    return Intl.message(
+      '«$name» already has an active «$plan» tariff — no second charge.',
+      name: 'planAlreadyActive',
+      desc: '',
+      args: [name, plan],
+    );
+  }
+
+  /// `The «{plan}» tariff is debited from the balance immediately when printed.`
+  String planChargedImmediately(String plan) {
+    return Intl.message(
+      'The «$plan» tariff is debited from the balance immediately when printed.',
+      name: 'planChargedImmediately',
+      desc: '',
+      args: [plan],
+    );
+  }
+
   /// `Pay from balance`
   String get payFromBalance {
     return Intl.message(

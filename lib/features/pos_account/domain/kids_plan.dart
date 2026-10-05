@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-/// A Standard/VIP/1 soat tariff — not a POS product. `kind` decides how the
+/// A Standard/VIP/1 soat or admin-created custom tariff — not a POS product. `kind` decides how the
 /// cashier's "Farzandlar" card behaves:
 /// - `flatDay` (VIP) and `flatHour` (1 soat) are prepaid sales (pick, pay,
 ///   print). A 1 soat sticker admits for [KidsPlan.durationMinutes] from its
@@ -20,6 +20,7 @@ class KidsPlan extends Equatable {
     required this.extraMinuteUzs,
     required this.flatUzs,
     this.durationMinutes,
+    this.isVip = false,
   });
 
   final String key;
@@ -32,6 +33,10 @@ class KidsPlan extends Equatable {
 
   /// 1 soat only: minutes the sticker admits from its first entry.
   final int? durationMinutes;
+
+  /// Admin-created custom plan flagged VIP — purely a badge/accent; the
+  /// pass still behaves per [kind].
+  final bool isVip;
 
   /// Paid at the register (VIP, 1 soat) — the price must be on the balance
   /// before the sticker prints.
@@ -48,5 +53,6 @@ class KidsPlan extends Equatable {
     extraMinuteUzs,
     flatUzs,
     durationMinutes,
+    isVip,
   ];
 }

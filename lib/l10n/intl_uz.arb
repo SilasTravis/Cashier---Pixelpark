@@ -217,6 +217,25 @@
   },
   "hourTariff": "1 soat tarif",
   "hourChargedImmediately": "1 soat tarif puli chop etilganda balansdan darhol yechiladi.",
+  "planAlreadyActive": "«{name}» allaqachon faol «{plan}» tarifda — qayta to‘lov olinmaydi.",
+  "@planAlreadyActive": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
+  "planChargedImmediately": "«{plan}» tarif puli chop etilganda balansdan darhol yechiladi.",
+  "@planChargedImmediately": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
   "payFromBalance": "Balansdan yechish",
   "currentBalanceValue": "Joriy balans: {value}",
   "@currentBalanceValue": {

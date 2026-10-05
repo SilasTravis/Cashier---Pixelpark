@@ -217,6 +217,25 @@
   },
   "hourTariff": "Тариф «1 час»",
   "hourChargedImmediately": "Стоимость тарифа «1 час» списывается с баланса сразу при печати.",
+  "planAlreadyActive": "У «{name}» уже действует тариф «{plan}» — повторная оплата не взимается.",
+  "@planAlreadyActive": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
+  "planChargedImmediately": "Тариф «{plan}» списывается с баланса сразу при печати.",
+  "@planChargedImmediately": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
   "payFromBalance": "Списать с баланса",
   "currentBalanceValue": "Текущий баланс: {value}",
   "@currentBalanceValue": {

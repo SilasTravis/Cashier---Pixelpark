@@ -236,7 +236,7 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
 
   @override
   Future<List<KidsPlan>> listPlans() async {
-    // `kinds=flat_hour` opts in to the 1 soat plan. The backend hides it
+    // `kinds=flat_hour` opts in to the 1 soat and custom flat_hour plans. The backend hides them
     // from builds that don't ask — they would sell it as Standard.
     final response = await _request(
       () => dio.get('/v1/pos/plans', queryParameters: {'kinds': 'flat_hour'}),
@@ -528,6 +528,7 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
       extraMinuteUzs: json['extraMinuteUzs'] as int?,
       flatUzs: json['flatUzs'] as int?,
       durationMinutes: json['durationMinutes'] as int?,
+      isVip: json['isVip'] == true,
     );
   }
 

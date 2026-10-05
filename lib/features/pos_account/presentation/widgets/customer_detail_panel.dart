@@ -517,6 +517,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                           ),
                           vipTotal: vipTotal,
                           isHourPlan: hourSelected,
+                          hourPlan: hourSelected ? _selectedPlan : null,
                           companions: _companions,
                           companionPriceUzs: state.companionPriceUzs,
                           companionsTotal: companionsTotal,
@@ -1197,19 +1198,28 @@ class _ChildrenCard extends StatelessWidget {
               ),
             )
           else
-            Row(
-              children: [
-                for (final plan in plans) ...[
-                  if (plan.key != plans.first.key) const SizedBox(width: 8),
-                  Expanded(
-                    child: _TariffPill(
-                      plan: plan,
-                      selected: selectedPlan?.key == plan.key,
-                      onTap: () => onSelectPlan(plan),
-                    ),
-                  ),
-                ],
-              ],
+            LayoutBuilder(
+              builder: (context, constraints) {
+                // Up to 3 pills per row; any number of custom plans wrap.
+                final perRow = plans.length < 3 ? plans.length : 3;
+                final width =
+                    (constraints.maxWidth - 8 * (perRow - 1)) / perRow;
+                return Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final plan in plans)
+                      SizedBox(
+                        width: width,
+                        child: _TariffPill(
+                          plan: plan,
+                          selected: selectedPlan?.key == plan.key,
+                          onTap: () => onSelectPlan(plan),
+                        ),
+                      ),
+                  ],
+                );
+              },
             ),
           if (selectedPlan != null && !selectedPlan!.isPrepaid) ...[
             const SizedBox(height: 10),
@@ -1255,6 +1265,7 @@ class _CheckoutSection extends StatelessWidget {
     required this.onDiscountChanged,
     required this.vipTotal,
     required this.isHourPlan,
+    required this.hourPlan,
     required this.companions,
     required this.companionPriceUzs,
     required this.companionsTotal,
@@ -1317,6 +1328,14 @@ class _CheckoutSection extends StatelessWidget {
   /// of the [vipTotal] row, its "debited immediately" note and the
   /// "no second charge" notes; VIP keeps its exact copy.
   final bool isHourPlan;
+
+  /// The selected flat_hour plan (built-in `hour` or a custom one) — its
+  /// name labels the total and the hint; null when none is selected.
+  final KidsPlan? hourPlan;
+
+  /// The shipped "1 soat" plan keeps its localized wording; custom plans
+  /// are labelled by their own name.
+  bool get _isBuiltInHour => hourPlan == null || hourPlan!.key == 'hour';
 
   /// Paid HAMROH companion stickers: qty, unit price (server-owned), and
   /// their subtotal — joins [neededTotal] and the normal payment flow.
@@ -1489,7 +1508,9 @@ class _CheckoutSection extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text(
-              l10n.hourAlreadyActive(name),
+              _isBuiltInHour
+                  ? l10n.hourAlreadyActive(name)
+                  : l10n.planAlreadyActive(name, hourPlan!.name),
               style: AppTextStyles.muted(
                 AppTextStyles.body,
               ).copyWith(fontSize: 11),
@@ -1513,7 +1534,9 @@ class _CheckoutSection extends StatelessWidget {
               ),
             if (vipTotal > 0)
               _TotalRow(
-                label: isHourPlan ? l10n.hourTariff : l10n.vipTariff,
+                label: isHourPlan
+                    ? (_isBuiltInHour ? l10n.hourTariff : hourPlan!.name)
+                    : l10n.vipTariff,
                 amount: vipTotal,
               ),
             if (companionsTotal > 0)
@@ -1535,7 +1558,9 @@ class _CheckoutSection extends StatelessWidget {
               padding: const EdgeInsets.only(top: 2),
               child: Text(
                 isHourPlan
-                    ? l10n.hourChargedImmediately
+                    ? (_isBuiltInHour
+                          ? l10n.hourChargedImmediately
+                          : l10n.planChargedImmediately(hourPlan!.name))
                     : l10n.vipChargedImmediately,
                 style: AppTextStyles.muted(
                   AppTextStyles.body,
@@ -2383,7 +2408,10 @@ class _TariffPill extends StatelessWidget {
 
   IconData get _icon => switch (plan.kind) {
     KidsPlanKind.flatDay => PhosphorIconsRegular.crownSimple,
-    KidsPlanKind.flatHour => PhosphorIconsRegular.timer,
+    KidsPlanKind.flatHour =>
+      plan.isVip
+          ? PhosphorIconsRegular.crownSimple
+          : PhosphorIconsRegular.timer,
     KidsPlanKind.perMinuteTiers => PhosphorIconsRegular.ticket,
   };
 
@@ -2392,7 +2420,11 @@ class _TariffPill extends StatelessWidget {
     final l10n = AppLocalization.of(context);
     final priceLabel = switch (plan.kind) {
       KidsPlanKind.flatDay => l10n.pricePerDay(formatUzs(plan.flatUzs ?? 0)),
-      KidsPlanKind.flatHour => l10n.pricePerHour(formatUzs(plan.flatUzs ?? 0)),
+      KidsPlanKind.flatHour =>
+        plan.durationMinutes == null || plan.durationMinutes == 60
+            ? l10n.pricePerHour(formatUzs(plan.flatUzs ?? 0))
+            : '${l10n.minutesCount(plan.durationMinutes!)} · '
+                  '${formatUzs(plan.flatUzs ?? 0)}',
       KidsPlanKind.perMinuteTiers => l10n.priceFromPerMinute(
         formatUzs(plan.firstMinuteUzs ?? 0),
       ),
@@ -2428,16 +2460,45 @@ class _TariffPill extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      plan.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.body.copyWith(
-                        fontSize: 13,
-                        color: selected
-                            ? NocturneColors.accent
-                            : NocturneColors.text,
-                      ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            plan.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.body.copyWith(
+                              fontSize: 13,
+                              color: selected
+                                  ? NocturneColors.accent
+                                  : NocturneColors.text,
+                            ),
+                          ),
+                        ),
+                        if (plan.isVip) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 5,
+                              vertical: 1,
+                            ),
+                            decoration: BoxDecoration(
+                              color: NocturneColors.accent.withValues(
+                                alpha: 0.2,
+                              ),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'VIP',
+                              style: AppTextStyles.body.copyWith(
+                                fontSize: 9,
+                                color: NocturneColors.accent,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     Text(
                       priceLabel,
