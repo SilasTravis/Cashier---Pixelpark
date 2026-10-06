@@ -1189,6 +1189,16 @@ class AppLocalization {
     );
   }
 
+  /// `QR printer not found, so the QR code was printed with the receipt`
+  String get qrPrinterFallbackNotice {
+    return Intl.message(
+      'QR printer not found, so the QR code was printed with the receipt',
+      name: 'qrPrinterFallbackNotice',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Failed to enter: {message}`
   String entryFailed(String message) {
     return Intl.message(

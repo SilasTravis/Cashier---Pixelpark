@@ -295,6 +295,7 @@
   "newBalance": "Yangi balans",
   "topup": "To‘ldirish",
   "stickerPrintFailed": "Stiker chop etilmadi — printerni tekshiring",
+  "qrPrinterFallbackNotice": "QR printer topilmagani sababli QR kod chek bilan birga chiqarildi",
   "entryFailed": "Kirmadi: {message}",
   "@entryFailed": {
     "placeholders": {

@@ -481,6 +481,9 @@ class MessageLookup extends MessageLookupByLibrary {
       "Bu promokod boshqa mijozga tegishli",
     ),
     "qrPrinter": MessageLookupByLibrary.simpleMessage("QR va stiker printeri"),
+    "qrPrinterFallbackNotice": MessageLookupByLibrary.simpleMessage(
+      "QR printer topilmagani sababli QR kod chek bilan birga chiqarildi",
+    ),
     "quickAdd": MessageLookupByLibrary.simpleMessage("Tez qo‘shish"),
     "receipt": MessageLookupByLibrary.simpleMessage("Chek"),
     "receiptCount": MessageLookupByLibrary.simpleMessage("Cheklar soni"),

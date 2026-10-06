@@ -295,6 +295,7 @@
   "newBalance": "Новый баланс",
   "topup": "Пополнить",
   "stickerPrintFailed": "Стикер не напечатан — проверьте принтер",
+  "qrPrinterFallbackNotice": "QR-принтер не найден, поэтому QR-код напечатан вместе с чеком",
   "entryFailed": "Не вошли: {message}",
   "@entryFailed": {
     "placeholders": {

@@ -18,6 +18,8 @@ void main() {
           childName: 'Алишер',
           planName: 'VIP 2 soat',
           priceUzs: 85000,
+          discountUzs: 85000,
+          discountName: 'Tugʻilgan kun',
           ticketId: '35b4fb47',
         ),
         (
@@ -25,6 +27,8 @@ void main() {
           childName: 'Muhammadaminxon',
           planName: 'Standart',
           priceUzs: null,
+          discountUzs: 0,
+          discountName: null,
           ticketId: 'abc12345',
         ),
       ],
@@ -32,18 +36,17 @@ void main() {
       now: DateTime(2026, 10, 5, 14, 32),
     );
     expect(String.fromCharCodes(bytes.take(4)), '%PDF');
-    final one = await ChildTicketPrinter.buildPdf(
-      const [
-        (
-          qrData: 'gate-pass-token',
-          childName: 'Ali',
-          planName: 'Standart',
-          priceUzs: 1000,
-          ticketId: 'abc12345',
-        ),
-      ],
-      branchName: 'Megaplanet',
-    );
+    final one = await ChildTicketPrinter.buildPdf(const [
+      (
+        qrData: 'gate-pass-token',
+        childName: 'Ali',
+        planName: 'Standart',
+        priceUzs: 1000,
+        discountUzs: 0,
+        discountName: null,
+        ticketId: 'abc12345',
+      ),
+    ], branchName: 'Megaplanet');
     expect(bytes.length, greaterThan(one.length));
   });
 }
