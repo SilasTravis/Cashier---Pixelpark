@@ -107,14 +107,19 @@ class _FakeRemote implements PosAccountRemoteDataSource {
     int companions = 0,
     String? discountId,
     ({String code, String childId})? promoCode,
+    bool replacePlan = false,
   }) async {
     lastPromoCode = promoCode;
     lastEntryDiscounts = entryDiscounts;
+    lastReplacePlan = replacePlan;
+    checkoutCalls++;
     if (checkoutError != null) throw checkoutError!;
     return checkoutResult!;
   }
 
   List<ActivePass> activePasses = const [];
+  bool? lastReplacePlan;
+  int checkoutCalls = 0;
 
   @override
   Future<List<ActivePass>> listActivePasses(int customerId) async =>
@@ -173,15 +178,15 @@ Customer _customer(int id, String phone) => Customer(
   children: const [],
 );
 
-PromoCodeCheck _check({int ownerId = 7}) => PromoCodeCheck(
+PromoCodeCheck _check({int ownerId = 7, int percent = 30}) => PromoCodeCheck(
   code: _code,
   partnerName: 'Fonus',
   tierName: 'Premium',
-  discount: const Discount(
+  discount: Discount(
     id: 'discount-1',
     name: 'Fonus · Premium',
     kind: DiscountKind.percent,
-    value: 30,
+    value: percent,
     scope: DiscountScope.entry,
   ),
   expiresAt: DateTime(2026, 9, 28, 12),
@@ -672,15 +677,16 @@ void main() {
     Future<void> pumpPanel(
       WidgetTester tester,
       _FakeRemote remote,
-      List<Child> children,
-    ) async {
+      List<Child> children, {
+      int percent = 30,
+    }) async {
       // The panel is a desktop two-column layout — give it desktop room.
       tester.view.physicalSize = const Size(1600, 1400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
 
       remote
-        ..check = _check()
+        ..check = _check(percent: percent)
         ..checkoutResult = const PosEntryResult(
           entries: [],
           failures: [],
@@ -823,11 +829,120 @@ void main() {
 
       await scan(tester);
 
-      // Its re-print must not fail over the code — which stays unsent.
-      expect(find.text('Promokod uchun bolani tanlang'), findsOneWidget);
+      // Its re-print must not fail over the code — which stays unsent,
+      // and the cashier is told why.
+      expect(
+        find.text(
+          'Bu bolada bugun faol propusk bor — promokod faqat yangi kirishga '
+          'yoki VIP’ga o‘tishga qo‘llanadi',
+        ),
+        findsOneWidget,
+      );
       await tester.tap(find.text('Kirish (1)'));
       await tester.pumpAndSettle();
       expect(remote.lastPromoCode, isNull);
+    });
+
+    testWidgets('a 100% code shows its own row and a "Bepul" total', (
+      tester,
+    ) async {
+      final remote = _FakeRemote();
+      await pumpPanel(tester, remote, [
+        child('child-1', 'Aziza'),
+      ], percent: 100);
+      await tester.tap(find.text('QR'));
+      await tester.pump();
+      await tester.tap(find.text('VIP'));
+      await tester.pumpAndSettle();
+
+      await scan(tester);
+
+      expect(find.text('Promokod (Fonus · Premium · −100%)'), findsOneWidget);
+      expect(find.text('Bepul'), findsOneWidget);
+      // Nothing is owed — no payment field.
+      expect(find.text('To‘lov summasi'), findsNothing);
+    });
+
+    testWidgets('a Standard pass upgrading to VIP takes the code', (
+      tester,
+    ) async {
+      final remote = _FakeRemote()
+        ..activePasses = [
+          ActivePass(
+            childId: 'child-1',
+            planKey: 'standard',
+            planLabel: 'Standart',
+            expiresAt: DateTime(2026, 9, 28, 22),
+            dueTodayUzs: 0,
+          ),
+        ];
+      await pumpPanel(tester, remote, [child('child-1', 'Aziza')]);
+      await tester.tap(find.text('QR'));
+      await tester.pump();
+      await tester.tap(find.text('VIP'));
+      await tester.pumpAndSettle();
+
+      await scan(tester);
+
+      // 75 000 − 30% = 52 500 due for the upgrade.
+      expect(find.widgetWithText(TextField, '52500'), findsOneWidget);
+      await tester.tap(find.text('To‘lov va chop etish'));
+      await tester.pumpAndSettle();
+      expect(remote.lastPromoCode, (code: _code, childId: 'child-1'));
+      expect(remote.lastReplacePlan, isFalse);
+    });
+
+    testWidgets('confirming the switch re-runs the checkout with the code', (
+      tester,
+    ) async {
+      final remote = _FakeRemote()
+        ..activePasses = [
+          ActivePass(
+            childId: 'child-1',
+            planKey: 'standard',
+            planLabel: 'Standart',
+            expiresAt: DateTime(2026, 9, 28, 22),
+            dueTodayUzs: 0,
+          ),
+        ];
+      await pumpPanel(tester, remote, [
+        child('child-1', 'Aziza'),
+      ], percent: 100);
+      // The first checkout only hits the switch conflict — the server
+      // released the code, which stays on screen.
+      remote.checkoutResult = const PosEntryResult(
+        entries: [],
+        failures: [],
+        conflicts: [
+          PosEntryConflict(
+            childId: 'child-1',
+            currentPlanKey: 'standard',
+            currentPlanLabel: 'Standart',
+            requestedPlanKey: 'vip',
+            isInside: false,
+            accruedDueUzs: 0,
+            switchable: true,
+          ),
+        ],
+        promoCode: PromoCodeOutcome(applied: false, childId: 'child-1'),
+      );
+      await tester.tap(find.text('QR'));
+      await tester.pump();
+      await tester.tap(find.text('VIP'));
+      await tester.pumpAndSettle();
+      await scan(tester);
+      expect(find.text('Bepul'), findsOneWidget);
+
+      await tester.tap(find.text('Kirish (1)'));
+      await tester.pumpAndSettle();
+      expect(remote.checkoutCalls, 1);
+
+      await tester.tap(find.text('Almashtirish va chop etish'));
+      await tester.pumpAndSettle();
+
+      expect(remote.checkoutCalls, 2);
+      expect(remote.lastReplacePlan, isTrue);
+      expect(remote.lastPromoCode, (code: _code, childId: 'child-1'));
     });
 
     testWidgets('✕ drops the code and restores the row\'s own discount', (

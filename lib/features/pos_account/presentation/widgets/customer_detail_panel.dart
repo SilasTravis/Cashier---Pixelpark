@@ -216,6 +216,17 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                   for (final p in state.plans)
                     if (p.kind == KidsPlanKind.flatHour) p.key,
                 },
+                // The code was released (its child only got a conflict) —
+                // still on screen, so the confirmed switch can carry it.
+                promoCode:
+                    state.promo != null &&
+                        result.promoCode != null &&
+                        !result.promoCode!.applied
+                    ? (
+                        code: state.promo!.code,
+                        childId: result.promoCode!.childId,
+                      )
+                    : null,
               );
             }
           },
@@ -316,7 +327,22 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
           // so the default skips those, and with none left the code stays
           // unsent until the cashier selects a child who can.
           final promo = state.promo;
-          final passChildIds = {for (final p in state.activePasses) p.childId};
+          // A live pass blocks the code unless the selected plan is a
+          // flat-day UPGRADE of it (1 soat/Standard → VIP): the backend
+          // then discounts the new pass once the switch is confirmed. A
+          // discounted or already-covering pass stays frozen.
+          final upgradeTarget =
+              _selectedPlan != null &&
+              _selectedPlan!.kind == KidsPlanKind.flatDay;
+          final passChildIds = {
+            for (final p in state.activePasses)
+              if (!(upgradeTarget &&
+                  p.freeReason == null &&
+                  p.discountId == null &&
+                  p.planKey != _selectedPlan!.key &&
+                  !coveringPlanKeys.contains(p.planKey)))
+                p.childId,
+          };
           final selectedChildren = [
             for (final child in customer.children)
               if (_selectedChildIds.contains(child.id)) child,
@@ -351,6 +377,14 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                           discount?.appliedDiscountUzs(flat) ?? 0;
                       return sum + (flat - discountUzs);
                     })
+              : 0;
+          // What the promo code takes off the prepaid tariff — shown as its
+          // own row so a 100% code reads "Bepul", not a bare 0.
+          final promoDiscountUzs =
+              promoChildId != null &&
+                  (_selectedPlan?.isPrepaid ?? false) &&
+                  !alreadyOnSelectedPlan.contains(promoChildId)
+              ? promo!.discount.appliedDiscountUzs(_selectedPlan!.flatUzs ?? 0)
               : 0;
           final companionsTotal = _companions * state.companionPriceUzs;
           // Discount applies ONLY to the goods cart — never to vipTotal or
@@ -529,6 +563,10 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                             () => _selectedDiscountId = discount?.id,
                           ),
                           vipTotal: vipTotal,
+                          promoDiscountUzs: promoDiscountUzs,
+                          promoName: promo == null
+                              ? null
+                              : promoCodeLabel(promo),
                           // Everything but the built-in VIP is labelled by its
                           // own name (1 soat, custom hour or custom day).
                           hourPlan:
@@ -1277,6 +1315,8 @@ class _CheckoutSection extends StatelessWidget {
     required this.cartDiscountUzs,
     required this.onDiscountChanged,
     required this.vipTotal,
+    required this.promoDiscountUzs,
+    required this.promoName,
     required this.hourPlan,
     required this.companions,
     required this.companionPriceUzs,
@@ -1334,6 +1374,11 @@ class _CheckoutSection extends StatelessWidget {
   /// balance the moment the stickers print. 0 for Standard. Children with a
   /// free-entry reason are already excluded.
   final int vipTotal;
+
+  /// PREVIEW ONLY — what the promo code takes off the prepaid tariff
+  /// ([vipTotal] is already net of it); 0 when no code applies.
+  final int promoDiscountUzs;
+  final String? promoName;
 
   /// The prepaid plan picked is 1 soat, not VIP — only swaps the wording
   /// of the [vipTotal] row, its "debited immediately" note and the
@@ -1513,7 +1558,7 @@ class _CheckoutSection extends StatelessWidget {
               ).copyWith(fontSize: 11),
             ),
           ),
-        if (neededTotal > 0 || cartDiscountUzs > 0) ...[
+        if (neededTotal > 0 || cartDiscountUzs > 0 || promoDiscountUzs > 0) ...[
           const SizedBox(height: 12),
           if ([
                     cartTotal,
@@ -1521,7 +1566,8 @@ class _CheckoutSection extends StatelessWidget {
                     companionsTotal,
                   ].where((amount) => amount > 0).length >
                   1 ||
-              cartDiscountUzs > 0) ...[
+              cartDiscountUzs > 0 ||
+              promoDiscountUzs > 0) ...[
             if (cartTotal > 0)
               _TotalRow(label: l10n.products, amount: cartTotal),
             if (cartDiscountUzs > 0)
@@ -1529,12 +1575,17 @@ class _CheckoutSection extends StatelessWidget {
                 label: '${l10n.discount} (${selectedDiscount!.name})',
                 amount: -cartDiscountUzs,
               ),
-            if (vipTotal > 0)
+            if (vipTotal + promoDiscountUzs > 0)
               _TotalRow(
                 label: hourPlan != null
                     ? (_isBuiltInHour ? l10n.hourTariff : hourPlan!.name)
                     : l10n.vipTariff,
-                amount: vipTotal,
+                amount: vipTotal + promoDiscountUzs,
+              ),
+            if (promoDiscountUzs > 0)
+              _TotalRow(
+                label: '${l10n.promoCode} ($promoName)',
+                amount: -promoDiscountUzs,
               ),
             if (companionsTotal > 0)
               _TotalRow(
@@ -1547,7 +1598,10 @@ class _CheckoutSection extends StatelessWidget {
             children: [
               Text(l10n.total, style: AppTextStyles.muted(AppTextStyles.body)),
               const Spacer(),
-              Text(formatUzs(neededTotal), style: AppTextStyles.h5),
+              Text(
+                neededTotal == 0 ? l10n.free : formatUzs(neededTotal),
+                style: AppTextStyles.h5,
+              ),
             ],
           ),
           if (vipTotal > 0)
@@ -1565,7 +1619,9 @@ class _CheckoutSection extends StatelessWidget {
               ),
             ),
           const SizedBox(height: 8),
-          if (balanceCovers)
+          if (neededTotal == 0)
+            const SizedBox.shrink()
+          else if (balanceCovers)
             SwitchListTile(
               value: payFromBalance,
               onChanged: onPayFromBalanceChanged,
@@ -1793,7 +1849,10 @@ class _PromoSection extends StatelessWidget {
           ),
           if (promoChild == null)
             Text(
-              l10n.promoCodeNoChild,
+              selectedChildren.isNotEmpty &&
+                      selectedChildren.every((c) => passChildIds.contains(c.id))
+                  ? l10n.promoCodeChildHasPass
+                  : l10n.promoCodeNoChild,
               style: AppTextStyles.muted(
                 AppTextStyles.body,
               ).copyWith(fontSize: 11),

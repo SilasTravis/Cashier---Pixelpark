@@ -732,6 +732,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
       companions: event.companions,
       discountId: event.discountId,
       promoCode: event.promoCode,
+      replacePlan: event.replacePlan,
     );
     result.fold(
       (failure) {

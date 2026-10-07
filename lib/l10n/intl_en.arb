@@ -606,6 +606,7 @@
   "promoCodeWrongCustomer": "This promo code belongs to another customer",
   "promoCodeForChild": "For child",
   "promoCodeNoChild": "Select a child for the promo code",
+  "promoCodeChildHasPass": "This child already has a pass today — the promo code only applies to a new entry or a VIP upgrade",
   "promoCodeRemove": "Remove promo code",
   "promoCodeReleased": "Promo code not applied, code returned: {reason}",
   "@promoCodeReleased": { "placeholders": { "reason": { "type": "String" } } },

@@ -186,6 +186,7 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
     this.companions = 0,
     this.discountId,
     this.promoCode,
+    this.replacePlan = false,
   });
 
   final String planKey;
@@ -214,6 +215,10 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
   /// money moves.
   final ({String code, String childId})? promoCode;
 
+  /// The cashier confirmed a plan-switch conflict — the backend settles the
+  /// old pass and issues the new plan (with [promoCode] on the upgrade).
+  final bool replacePlan;
+
   @override
   List<Object?> get props => [
     planKey,
@@ -226,6 +231,7 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
     companions,
     discountId,
     promoCode,
+    replacePlan,
   ];
 }
 
