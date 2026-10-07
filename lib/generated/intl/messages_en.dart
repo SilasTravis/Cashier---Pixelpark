@@ -484,6 +484,9 @@ class MessageLookup extends MessageLookupByLibrary {
       "This promo code belongs to another customer",
     ),
     "qrPrinter": MessageLookupByLibrary.simpleMessage("QR and label printer"),
+    "qrPrinterFallbackNotice": MessageLookupByLibrary.simpleMessage(
+      "QR printer not found, so the QR code was printed with the receipt",
+    ),
     "quickAdd": MessageLookupByLibrary.simpleMessage("Quick add"),
     "receipt": MessageLookupByLibrary.simpleMessage("Receipt"),
     "receiptCount": MessageLookupByLibrary.simpleMessage("Receipt count"),

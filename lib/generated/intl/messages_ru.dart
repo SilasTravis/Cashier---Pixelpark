@@ -499,6 +499,9 @@ class MessageLookup extends MessageLookupByLibrary {
       "Этот промокод принадлежит другому клиенту",
     ),
     "qrPrinter": MessageLookupByLibrary.simpleMessage("Принтер QR и наклеек"),
+    "qrPrinterFallbackNotice": MessageLookupByLibrary.simpleMessage(
+      "QR-принтер не найден, поэтому QR-код напечатан вместе с чеком",
+    ),
     "quickAdd": MessageLookupByLibrary.simpleMessage("Быстро добавить"),
     "receipt": MessageLookupByLibrary.simpleMessage("Чек"),
     "receiptCount": MessageLookupByLibrary.simpleMessage("Количество чеков"),

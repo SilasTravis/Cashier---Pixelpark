@@ -4,8 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:phosphor_icons/phosphor_icons.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../../core/printing/gate_pass_label_printer.dart';
-import '../../../../core/local_source/local_source.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
 import '../../../../core/utils/currency.dart';
@@ -15,7 +13,6 @@ import '../../../../core/widgets/promo_code_field.dart';
 import '../../../pos_sale/presentation/widgets/receipt_dialog.dart';
 import '../../../pos_sale/domain/discount.dart';
 import '../../../pos_sale/domain/sale_receipt.dart';
-import '../../../../injector_container.dart';
 import '../../../products/domain/product.dart';
 import '../../domain/active_pass.dart';
 import '../../domain/customer.dart';
@@ -60,6 +57,12 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
   /// (`state.promo`) — null (or deselected) falls back to the first
   /// selected child without a pass today; see `promoChildId` in build.
   String? _promoChildId;
+
+  /// childId → the entry discount (catalog pick or promo tier) each child
+  /// was sent to checkout with — snapshotted on submit because the bloc
+  /// clears the promo in the same state that carries the entry result, and
+  /// the fallback entry ticket must print the discounted price.
+  Map<String, Discount> _checkoutEntryDiscounts = const {};
 
   /// Paid HAMROH companion stickers to buy with this checkout.
   int _companions = 0;
@@ -196,10 +199,15 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               result,
               childNames,
               planName: _selectedPlan?.name,
-              planPriceUzs: _selectedPlan?.kind == KidsPlanKind.flatDay
+              planPriceUzs: (_selectedPlan?.isPrepaid ?? false)
                   ? _selectedPlan?.flatUzs
                   : null,
+              entryDiscountsByChild: _checkoutEntryDiscounts,
+              companionPriceUzs: state.companionPriceUzs,
             );
+            // One checkout's discounts only — a plan-conflict retry is a
+            // fresh request that carries none.
+            _checkoutEntryDiscounts = const {};
             context.read<PosAccountBloc>().add(
               const PosAccountEntryAcknowledged(),
             );
@@ -245,25 +253,26 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               current.lastParentPass != null,
           listener: (context, state) {
             final pass = state.lastParentPass!;
-            final messenger = ScaffoldMessenger.of(context);
-            final printFailedMessage = AppLocalization.of(
-              context,
-            ).stickerPrintFailed;
-            GatePassLabelPrinter.printDirect(
-              [(qrData: pass.code, name: pass.customerName, invertName: true)],
-              preferredPrinterName: sl<LocalSource>().getQrPrinterName(),
-            ).then((ok) {
-              if (ok) return;
-              messenger.showSnackBar(
-                SnackBar(
-                  backgroundColor: NocturneColors.surface,
-                  content: Text(
-                    printFailedMessage,
-                    style: const TextStyle(color: NocturneColors.danger),
-                  ),
+            printPassesWithTicketFallback(
+              ScaffoldMessenger.of(context),
+              AppLocalization.of(context),
+              stickers: [
+                (qrData: pass.code, name: pass.customerName, invertName: true),
+              ],
+              tickets: [
+                (
+                  qrData: pass.code,
+                  childName: pass.customerName,
+                  planName: 'OTA-ONA',
+                  priceUzs: 0,
+                  discountUzs: 0,
+                  discountName: null,
+                  ticketId: pass.code.length > 8
+                      ? pass.code.substring(0, 8)
+                      : pass.code,
                 ),
-              );
-            });
+              ],
+            );
             context.read<PosAccountBloc>().add(
               const PosAccountParentQrAcknowledged(),
             );
@@ -760,40 +769,52 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                               setState(() => _printParentQr = v),
                           canSubmit: canEnter,
                           isBusy: state.isBusy,
-                          onSubmit: () => context.read<PosAccountBloc>().add(
-                            PosAccountCheckoutRequested(
-                              planKey: _selectedPlan!.key,
-                              childIds: orderedChildIds,
-                              withParentQr: _printParentQr,
-                              entryDiscounts: checkDiscount != null
-                                  ? const {}
-                                  : {
-                                      for (final entry
-                                          in _childEntryDiscountIds.entries)
-                                        if (_selectedChildIds.contains(
-                                              entry.key,
-                                            ) &&
-                                            entry.key != promoChildId)
-                                          entry.key: entry.value,
-                                    },
-                              checkDiscountId: checkDiscount?.id,
-                              promoCode: promoChildId == null
-                                  ? null
-                                  : (code: promo!.code, childId: promoChildId),
-                              companions: _companions,
-                              products: [
-                                for (final line in _cart.entries)
-                                  (productId: line.key, qty: line.value),
-                              ],
-                              cashUzs: requiredPayment == 0
-                                  ? 0
-                                  : paySplit.cashUzs,
-                              cardUzs: requiredPayment == 0
-                                  ? 0
-                                  : paySplit.cardUzs,
-                              discountId: _selectedDiscountId,
-                            ),
-                          ),
+                          onSubmit: () {
+                            // With a check discount, entryDiscountFor() is the
+                            // child's share — the printed ticket shows it.
+                            _checkoutEntryDiscounts = {
+                              for (final id in _selectedChildIds)
+                                if (!alreadyOnSelectedPlan.contains(id))
+                                  id: ?entryDiscountFor(id),
+                            };
+                            context.read<PosAccountBloc>().add(
+                              PosAccountCheckoutRequested(
+                                planKey: _selectedPlan!.key,
+                                childIds: orderedChildIds,
+                                withParentQr: _printParentQr,
+                                entryDiscounts: checkDiscount != null
+                                    ? const {}
+                                    : {
+                                        for (final entry
+                                            in _childEntryDiscountIds.entries)
+                                          if (_selectedChildIds.contains(
+                                                entry.key,
+                                              ) &&
+                                              entry.key != promoChildId)
+                                            entry.key: entry.value,
+                                      },
+                                checkDiscountId: checkDiscount?.id,
+                                promoCode: promoChildId == null
+                                    ? null
+                                    : (
+                                        code: promo!.code,
+                                        childId: promoChildId,
+                                      ),
+                                companions: _companions,
+                                products: [
+                                  for (final line in _cart.entries)
+                                    (productId: line.key, qty: line.value),
+                                ],
+                                cashUzs: requiredPayment == 0
+                                    ? 0
+                                    : paySplit.cashUzs,
+                                cardUzs: requiredPayment == 0
+                                    ? 0
+                                    : paySplit.cardUzs,
+                                discountId: _selectedDiscountId,
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ),

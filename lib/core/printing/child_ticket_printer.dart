@@ -7,14 +7,19 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 /// One child's entry ticket: who, which plan, what it costs. [priceUzs] is
-/// null for per-minute plans (no fixed price at entry). [qrData] is the same
-/// gate-pass token the Godex sticker would carry, so the door scanner reads
-/// the paper ticket exactly like the sticker.
+/// the plan's list price, null for per-minute plans (no fixed price at
+/// entry). [discountUzs] is taken off it and [discountName] (birthday,
+/// partner promo…) is printed so the parent and the cashier both see why
+/// the ticket costs less — the big price is always the NET amount. [qrData]
+/// is the same gate-pass token the Godex sticker would carry, so the door
+/// scanner reads the paper ticket exactly like the sticker.
 typedef ChildTicketEntry = ({
   String qrData,
   String childName,
   String planName,
   int? priceUzs,
+  int discountUzs,
+  String? discountName,
   String ticketId,
 });
 
@@ -90,6 +95,12 @@ class ChildTicketPrinter {
     );
 
     for (final entry in entries) {
+      final discountUzs = entry.priceUzs == null
+          ? 0
+          : entry.discountUzs.clamp(0, entry.priceUzs!);
+      final hasDiscount =
+          entry.discountName != null &&
+          (discountUzs > 0 || entry.priceUzs == null);
       document.addPage(
         pw.Page(
           pageFormat: pageFormat,
@@ -120,28 +131,36 @@ class ChildTicketPrinter {
                       pw.Expanded(
                         // One line, shrunk to fit: a wrapped plan name would
                         // push the header and footer off the fixed page.
-                        child: pw.FittedBox(
-                          fit: pw.BoxFit.scaleDown,
-                          alignment: pw.Alignment.centerLeft,
-                          child: pw.Text(
-                            asciiText(entry.planName).toUpperCase(),
-                            maxLines: 1,
-                            style: pw.TextStyle(font: bold, fontSize: 13),
+                        // The fixed height matters: unbounded, the FittedBox
+                        // blows a SHORT name ("VIP") up to the full page
+                        // height and the QR falls off the ticket.
+                        child: pw.SizedBox(
+                          height: 16,
+                          child: pw.FittedBox(
+                            fit: pw.BoxFit.scaleDown,
+                            alignment: pw.Alignment.bottomLeft,
+                            child: pw.Text(
+                              asciiText(entry.planName).toUpperCase(),
+                              maxLines: 1,
+                              style: pw.TextStyle(font: bold, fontSize: 13),
+                            ),
                           ),
                         ),
                       ),
                       pw.SizedBox(width: 6),
                       pw.Text(
-                        entry.priceUzs == null
-                            ? 'DAQIQABAY'
-                            : _money(entry.priceUzs!),
+                        _priceText(entry.priceUzs, discountUzs),
                         style: pw.TextStyle(font: bold, fontSize: 15),
                       ),
                     ],
                   ),
+                  if (hasDiscount) ...[
+                    pw.SizedBox(height: 2),
+                    _discountRow(entry, discountUzs, regular, bold),
+                  ],
                   // White quiet zone around the QR, so the scanner can
                   // find it next to the black text.
-                  pw.SizedBox(height: 7),
+                  pw.SizedBox(height: hasDiscount ? 5 : 7),
                   pw.Center(
                     child: pw.BarcodeWidget(
                       barcode: pw.Barcode.qrCode(),
@@ -170,6 +189,48 @@ class ChildTicketPrinter {
     }
     return document.save();
   }
+
+  /// What is actually owed for the entry: per-minute plans have no price
+  /// yet, a fully discounted one is free, anything else is the net amount.
+  static String _priceText(int? priceUzs, int discountUzs) {
+    if (priceUzs == null) return 'DAQIQABAY';
+    final net = priceUzs - discountUzs;
+    return net == 0 ? 'BEPUL' : _money(net);
+  }
+
+  /// "CHEGIRMA: TUG'ILGAN KUN    -85 000 SO'M" — the amount is left off for
+  /// a per-minute plan, where the discount is settled at exit.
+  static pw.Widget _discountRow(
+    ChildTicketEntry entry,
+    int discountUzs,
+    pw.Font regular,
+    pw.Font bold,
+  ) => pw.Row(
+    children: [
+      pw.Expanded(
+        // Fixed height for the same reason as the plan name above.
+        child: pw.SizedBox(
+          height: 11,
+          child: pw.FittedBox(
+            fit: pw.BoxFit.scaleDown,
+            alignment: pw.Alignment.centerLeft,
+            child: pw.Text(
+              'CHEGIRMA: ${asciiText(entry.discountName!).toUpperCase()}',
+              maxLines: 1,
+              style: pw.TextStyle(font: regular, fontSize: 9),
+            ),
+          ),
+        ),
+      ),
+      if (discountUzs > 0) ...[
+        pw.SizedBox(width: 6),
+        pw.Text(
+          '-${_money(discountUzs)}',
+          style: pw.TextStyle(font: bold, fontSize: 9),
+        ),
+      ],
+    ],
+  );
 
   static pw.Widget _nameBanner(String name, pw.Font bold) => pw.Container(
     padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 4),

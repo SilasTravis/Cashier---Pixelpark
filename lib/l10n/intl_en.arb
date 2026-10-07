@@ -298,6 +298,7 @@
   "newBalance": "New balance",
   "topup": "Top up",
   "stickerPrintFailed": "Sticker was not printed — check the printer",
+  "qrPrinterFallbackNotice": "QR printer not found, so the QR code was printed with the receipt",
   "entryFailed": "Failed to enter: {message}",
   "@entryFailed": {
     "placeholders": {
