@@ -89,7 +89,9 @@ abstract class PosAccountRemoteDataSource {
   /// 100% reproduces the old free-pass behavior); [companions] mints that
   /// many paid HAMROH stickers from the balance. [discountId] applies ONLY
   /// to the goods leg (`products`) — never to the plan/VIP or companion
-  /// legs; omitted from the request entirely when null.
+  /// legs; omitted from the request entirely when null. [checkDiscountId]
+  /// (Butun chek) discounts every child's pass; omitted when null so older
+  /// backends never see it.
   Future<PosEntryResult> planEntryCheckout({
     required int customerId,
     required String planKey,
@@ -101,6 +103,7 @@ abstract class PosAccountRemoteDataSource {
     int companions = 0,
     String? discountId,
     ({String code, String childId})? promoCode,
+    String? checkDiscountId,
     bool replacePlan = false,
   });
 
@@ -370,6 +373,7 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
     int companions = 0,
     String? discountId,
     ({String code, String childId})? promoCode,
+    String? checkDiscountId,
     bool replacePlan = false,
   }) async {
     final response = await _request(
@@ -398,6 +402,7 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
           'discountId': ?discountId,
           if (promoCode != null)
             'promoCode': {'code': promoCode.code, 'childId': promoCode.childId},
+          'checkDiscountId': ?checkDiscountId,
           if (replacePlan) 'replacePlan': true,
         },
       ),

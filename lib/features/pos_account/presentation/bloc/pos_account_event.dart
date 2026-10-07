@@ -186,6 +186,7 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
     this.companions = 0,
     this.discountId,
     this.promoCode,
+    this.checkDiscountId,
     this.replacePlan = false,
   });
 
@@ -215,6 +216,10 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
   /// money moves.
   final ({String code, String childId})? promoCode;
 
+  /// "Chek chegirmasi" (Butun chek): a check-scope discount for every
+  /// child. When set, [entryDiscounts] is empty and [promoCode] null.
+  final String? checkDiscountId;
+
   /// The cashier confirmed a plan-switch conflict — the backend settles the
   /// old pass and issues the new plan (with [promoCode] on the upgrade).
   final bool replacePlan;
@@ -231,6 +236,7 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
     companions,
     discountId,
     promoCode,
+    checkDiscountId,
     replacePlan,
   ];
 }
@@ -241,8 +247,9 @@ class PosAccountConfigRequested extends PosAccountEvent {
 }
 
 /// Fired once on page load (once per [scope]) — the active discount catalog
-/// for the goods-cart picker (`DiscountScope.goods`) or the per-child entry
-/// picker (`DiscountScope.entry`); [force] re-fetches even if a (possibly
+/// for the goods-cart picker (`DiscountScope.goods`), the per-child entry
+/// picker (`DiscountScope.entry`) or the whole-check sheet
+/// (`DiscountScope.check`); [force] re-fetches even if a (possibly
 /// stale) list is already held, used after a `DISCOUNT_NOT_AVAILABLE` /
 /// `GATE_PASS_DISCOUNT_CONFLICT` checkout failure.
 class PosAccountDiscountsRequested extends PosAccountEvent {

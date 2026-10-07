@@ -37,6 +37,7 @@ class _FakeRemote implements PosAccountRemoteDataSource {
     int companions = 0,
     String? discountId,
     ({String code, String childId})? promoCode,
+    String? checkDiscountId,
     bool replacePlan = false,
   }) async => checkoutResult!;
 

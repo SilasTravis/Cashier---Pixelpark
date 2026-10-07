@@ -732,6 +732,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
       companions: event.companions,
       discountId: event.discountId,
       promoCode: event.promoCode,
+      checkDiscountId: event.checkDiscountId,
       replacePlan: event.replacePlan,
     );
     result.fold(
@@ -762,6 +763,16 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
         // per-child instead, see the `failures` branch below.)
         if (code == 'DISCOUNT_NOT_AVAILABLE') {
           add(const PosAccountDiscountsRequested(force: true));
+          // Same for the picked CHECK discount — the sheet clears its
+          // selection on this code and needs a fresh catalog to re-pick.
+          if (event.checkDiscountId != null) {
+            add(
+              const PosAccountDiscountsRequested(
+                scope: DiscountScope.check,
+                force: true,
+              ),
+            );
+          }
         }
       },
       (entryResult) {
@@ -843,19 +854,21 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     PosAccountDiscountsRequested event,
     Emitter<PosAccountState> emit,
   ) async {
-    final held = event.scope == DiscountScope.entry
-        ? state.entryDiscounts
-        : state.discounts;
+    final held = switch (event.scope) {
+      DiscountScope.entry => state.entryDiscounts,
+      DiscountScope.check => state.checkDiscounts,
+      DiscountScope.goods => state.discounts,
+    };
     if (held.isNotEmpty && !event.force) return;
     final result = await _repository.fetchDiscounts(scope: event.scope);
     // Best-effort like plans/products/config: on failure (or an older
     // backend without the endpoint) the picker just stays hidden.
     result.fold((failure) {}, (discounts) {
-      emit(
-        event.scope == DiscountScope.entry
-            ? state.copyWith(entryDiscounts: discounts)
-            : state.copyWith(discounts: discounts),
-      );
+      emit(switch (event.scope) {
+        DiscountScope.entry => state.copyWith(entryDiscounts: discounts),
+        DiscountScope.check => state.copyWith(checkDiscounts: discounts),
+        DiscountScope.goods => state.copyWith(discounts: discounts),
+      });
     });
   }
 
