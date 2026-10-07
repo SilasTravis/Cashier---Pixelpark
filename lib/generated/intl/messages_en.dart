@@ -183,6 +183,11 @@ class MessageLookup extends MessageLookupByLibrary {
     "cashDesk": MessageLookupByLibrary.simpleMessage("Cash desk"),
     "cashDeskCashier": m3,
     "categoryAll": MessageLookupByLibrary.simpleMessage("All"),
+    "checkDiscount": MessageLookupByLibrary.simpleMessage("Check discount"),
+    "checkDiscountLocked": MessageLookupByLibrary.simpleMessage(
+      "Check discount selected — child discounts and promo code are off",
+    ),
+    "checkDiscountNone": MessageLookupByLibrary.simpleMessage("None"),
     "checkOnline": MessageLookupByLibrary.simpleMessage("Check connection"),
     "childCount": m4,
     "childName": MessageLookupByLibrary.simpleMessage("Child name"),

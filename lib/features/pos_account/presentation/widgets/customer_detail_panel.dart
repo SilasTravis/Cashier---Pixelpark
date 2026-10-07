@@ -23,6 +23,7 @@ import '../../domain/kids_plan.dart';
 import '../../domain/playing_child.dart';
 import '../../domain/pos_entry.dart';
 import '../../domain/promo_code_check.dart';
+import 'check_discount_sheet.dart';
 import 'confirm_topup_dialog.dart';
 import '../bloc/pos_account_bloc.dart';
 import 'plan_conflict_dialog.dart';
@@ -81,6 +82,10 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
   /// HAMROH companion price. Reset on cart-owning context changes: customer
   /// switch, checkout, or the server reporting it is no longer available.
   String? _selectedDiscountId;
+
+  /// "Chek chegirmasi" (Butun chek): one check-scope discount for every
+  /// selected child. While set, per-child picks and the promo code are off.
+  String? _checkDiscountId;
 
   /// "Balansdan yechish" — only offered while the balance covers the cart.
   bool _payFromBalance = true;
@@ -150,6 +155,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
     _topupCardController.clear();
     _cart.clear();
     _selectedDiscountId = null;
+    _checkDiscountId = null;
     _payFromBalance = true;
     _payMethod = PaymentMethod.cash;
     _payEdited = false;
@@ -271,7 +277,10 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               current.errorCode == 'DISCOUNT_NOT_AVAILABLE' &&
               previous.errorCode != current.errorCode,
           listener: (context, state) {
-            setState(() => _selectedDiscountId = null);
+            setState(() {
+              _selectedDiscountId = null;
+              _checkDiscountId = null;
+            });
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
@@ -347,7 +356,18 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
             for (final child in customer.children)
               if (_selectedChildIds.contains(child.id)) child,
           ];
-          final promoChildId = promo == null
+          final checkDiscount = _checkDiscountId == null
+              ? null
+              : state.checkDiscounts
+                    .where((d) => d.id == _checkDiscountId)
+                    .firstOrNull;
+          // The order `childIds` is sent in, so the fixed amount's remainder
+          // lands on the same child here as on the server.
+          final orderedChildIds = _selectedChildIds.toList();
+          final checkShares =
+              checkDiscount?.checkShares(orderedChildIds.length) ??
+              const <Discount>[];
+          final promoChildId = promo == null || checkDiscount != null
               ? null
               : _selectedChildIds.contains(_promoChildId)
               ? _promoChildId
@@ -370,6 +390,9 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
           // zeroes it exactly like the old free-reason flow did. The promo
           // child's discount is the code's tier, replacing any 3-dots pick.
           Discount? entryDiscountFor(String childId) {
+            if (checkDiscount != null) {
+              return checkShares[orderedChildIds.indexOf(childId)];
+            }
             if (childId == promoChildId) return promo!.discount;
             final id = _childEntryDiscountIds[childId];
             if (id == null) return null;
@@ -394,6 +417,20 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                   (_selectedPlan?.isPrepaid ?? false) &&
                   !alreadyOnSelectedPlan.contains(promoChildId)
               ? promo!.discount.appliedDiscountUzs(_selectedPlan!.flatUzs ?? 0)
+              : 0;
+          // What the check discount takes off the prepaid tariff — its own
+          // row, like the promo code ([vipTotal] is already net of it).
+          final checkDiscountUzs =
+              checkDiscount != null && (_selectedPlan?.isPrepaid ?? false)
+              ? orderedChildIds
+                    .where((id) => !alreadyOnSelectedPlan.contains(id))
+                    .fold<int>(
+                      0,
+                      (sum, id) =>
+                          sum +
+                          checkShares[orderedChildIds.indexOf(id)]
+                              .appliedDiscountUzs(_selectedPlan!.flatUzs ?? 0),
+                    )
               : 0;
           final companionsTotal = _companions * state.companionPriceUzs;
           // Discount applies ONLY to the goods cart — never to vipTotal or
@@ -495,8 +532,12 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                         onRenameChild: (id, name) => context
                             .read<PosAccountBloc>()
                             .add(PosAccountChildNameUpdateRequested(id, name)),
-                        entryDiscounts: state.entryDiscounts,
-                        childEntryDiscountIds: _childEntryDiscountIds,
+                        entryDiscounts: checkDiscount == null
+                            ? state.entryDiscounts
+                            : const [],
+                        childEntryDiscountIds: checkDiscount == null
+                            ? _childEntryDiscountIds
+                            : const {},
                         promoChildId: promoChildId,
                         promoLabel: promo == null
                             ? null
@@ -543,26 +584,63 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                           // working exactly as it already does for an empty
                           // cart, so nothing else changes.
                           products: const [],
-                          promoSection: _PromoSection(
-                            promo: promo,
-                            isChecking: state.isCheckingPromo,
-                            errorText: promoCodeErrorText(
-                              AppLocalization.of(context),
-                              state,
-                            ),
-                            label: promo == null ? null : promoCodeLabel(promo),
-                            selectedChildren: selectedChildren,
-                            passChildIds: passChildIds,
-                            promoChildId: promoChildId,
-                            onSubmit: (raw) => context
-                                .read<PosAccountBloc>()
-                                .add(PosAccountPromoCodeSubmitted(raw)),
-                            onChildPicked: (id) =>
-                                setState(() => _promoChildId = id),
-                            onClear: () => context.read<PosAccountBloc>().add(
-                              const PosAccountPromoCodeCleared(),
-                            ),
-                          ),
+                          promoSection: checkDiscount != null
+                              ? Text(
+                                  AppLocalization.of(
+                                    context,
+                                  ).checkDiscountLocked,
+                                  style: AppTextStyles.muted(
+                                    AppTextStyles.body,
+                                  ).copyWith(fontSize: 11),
+                                )
+                              : _PromoSection(
+                                  promo: promo,
+                                  isChecking: state.isCheckingPromo,
+                                  errorText: promoCodeErrorText(
+                                    AppLocalization.of(context),
+                                    state,
+                                  ),
+                                  label: promo == null
+                                      ? null
+                                      : promoCodeLabel(promo),
+                                  selectedChildren: selectedChildren,
+                                  passChildIds: passChildIds,
+                                  promoChildId: promoChildId,
+                                  onSubmit: (raw) => context
+                                      .read<PosAccountBloc>()
+                                      .add(PosAccountPromoCodeSubmitted(raw)),
+                                  onChildPicked: (id) =>
+                                      setState(() => _promoChildId = id),
+                                  onClear: () => context
+                                      .read<PosAccountBloc>()
+                                      .add(const PosAccountPromoCodeCleared()),
+                                ),
+                          checkDiscountButton:
+                              state.checkDiscounts.isEmpty ||
+                                  _selectedChildIds.isEmpty
+                              ? null
+                              : CheckDiscountButton(
+                                  discounts: state.checkDiscounts,
+                                  selected: checkDiscount,
+                                  onChanged: (discount) {
+                                    setState(() {
+                                      _checkDiscountId = discount?.id;
+                                      if (discount != null) {
+                                        _childEntryDiscountIds.clear();
+                                      }
+                                    });
+                                    if (discount != null &&
+                                        state.promo != null) {
+                                      context.read<PosAccountBloc>().add(
+                                        const PosAccountPromoCodeCleared(),
+                                      );
+                                    }
+                                  },
+                                ),
+                          checkDiscountUzs: checkDiscountUzs,
+                          checkDiscountName: checkDiscount == null
+                              ? null
+                              : checkDiscountLabel(checkDiscount),
                           cart: _cart,
                           cartTotal: cartTotal,
                           discounts: state.discounts,
@@ -645,15 +723,20 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                           onSubmit: () => context.read<PosAccountBloc>().add(
                             PosAccountCheckoutRequested(
                               planKey: _selectedPlan!.key,
-                              childIds: _selectedChildIds.toList(),
+                              childIds: orderedChildIds,
                               withParentQr: _printParentQr,
-                              entryDiscounts: {
-                                for (final entry
-                                    in _childEntryDiscountIds.entries)
-                                  if (_selectedChildIds.contains(entry.key) &&
-                                      entry.key != promoChildId)
-                                    entry.key: entry.value,
-                              },
+                              entryDiscounts: checkDiscount != null
+                                  ? const {}
+                                  : {
+                                      for (final entry
+                                          in _childEntryDiscountIds.entries)
+                                        if (_selectedChildIds.contains(
+                                              entry.key,
+                                            ) &&
+                                            entry.key != promoChildId)
+                                          entry.key: entry.value,
+                                    },
+                              checkDiscountId: checkDiscount?.id,
                               promoCode: promoChildId == null
                                   ? null
                                   : (code: promo!.code, childId: promoChildId),
@@ -1326,6 +1409,9 @@ class _CheckoutSection extends StatelessWidget {
     required this.vipTotal,
     required this.promoDiscountUzs,
     required this.promoName,
+    required this.checkDiscountButton,
+    required this.checkDiscountUzs,
+    required this.checkDiscountName,
     required this.hourPlan,
     required this.companions,
     required this.companionPriceUzs,
@@ -1388,6 +1474,14 @@ class _CheckoutSection extends StatelessWidget {
   /// ([vipTotal] is already net of it); 0 when no code applies.
   final int promoDiscountUzs;
   final String? promoName;
+
+  /// "Chek chegirmasi" button (null hides it) — right above the pay button.
+  final Widget? checkDiscountButton;
+
+  /// PREVIEW ONLY — what the check discount takes off the prepaid tariff;
+  /// 0 when none or Standard. [vipTotal] is already net of it.
+  final int checkDiscountUzs;
+  final String? checkDiscountName;
 
   /// The prepaid plan picked is 1 soat, not VIP — only swaps the wording
   /// of the [vipTotal] row, its "debited immediately" note and the
@@ -1567,7 +1661,10 @@ class _CheckoutSection extends StatelessWidget {
               ).copyWith(fontSize: 11),
             ),
           ),
-        if (neededTotal > 0 || cartDiscountUzs > 0 || promoDiscountUzs > 0) ...[
+        if (neededTotal > 0 ||
+            cartDiscountUzs > 0 ||
+            promoDiscountUzs > 0 ||
+            checkDiscountUzs > 0) ...[
           const SizedBox(height: 12),
           if ([
                     cartTotal,
@@ -1576,7 +1673,8 @@ class _CheckoutSection extends StatelessWidget {
                   ].where((amount) => amount > 0).length >
                   1 ||
               cartDiscountUzs > 0 ||
-              promoDiscountUzs > 0) ...[
+              promoDiscountUzs > 0 ||
+              checkDiscountUzs > 0) ...[
             if (cartTotal > 0)
               _TotalRow(label: l10n.products, amount: cartTotal),
             if (cartDiscountUzs > 0)
@@ -1584,17 +1682,22 @@ class _CheckoutSection extends StatelessWidget {
                 label: '${l10n.discount} (${selectedDiscount!.name})',
                 amount: -cartDiscountUzs,
               ),
-            if (vipTotal + promoDiscountUzs > 0)
+            if (vipTotal + promoDiscountUzs + checkDiscountUzs > 0)
               _TotalRow(
                 label: hourPlan != null
                     ? (_isBuiltInHour ? l10n.hourTariff : hourPlan!.name)
                     : l10n.vipTariff,
-                amount: vipTotal + promoDiscountUzs,
+                amount: vipTotal + promoDiscountUzs + checkDiscountUzs,
               ),
             if (promoDiscountUzs > 0)
               _TotalRow(
                 label: '${l10n.promoCode} ($promoName)',
                 amount: -promoDiscountUzs,
+              ),
+            if (checkDiscountUzs > 0)
+              _TotalRow(
+                label: '${l10n.checkDiscount} ($checkDiscountName)',
+                amount: -checkDiscountUzs,
               ),
             if (companionsTotal > 0)
               _TotalRow(
@@ -1631,21 +1734,26 @@ class _CheckoutSection extends StatelessWidget {
           if (neededTotal == 0)
             const SizedBox.shrink()
           else if (balanceCovers)
-            SwitchListTile(
-              value: payFromBalance,
-              onChanged: onPayFromBalanceChanged,
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              activeThumbColor: NocturneColors.accent,
-              title: Text(
-                l10n.payFromBalance,
-                style: AppTextStyles.body.copyWith(fontSize: 13),
-              ),
-              subtitle: Text(
-                l10n.currentBalanceValue(formatUzs(balance)),
-                style: AppTextStyles.muted(
-                  AppTextStyles.body,
-                ).copyWith(fontSize: 11),
+            // Transparent Material like the parent-QR tile below — the
+            // card's DecoratedBox otherwise trips ListTile's ink assert.
+            Material(
+              type: MaterialType.transparency,
+              child: SwitchListTile(
+                value: payFromBalance,
+                onChanged: onPayFromBalanceChanged,
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                activeThumbColor: NocturneColors.accent,
+                title: Text(
+                  l10n.payFromBalance,
+                  style: AppTextStyles.body.copyWith(fontSize: 13),
+                ),
+                subtitle: Text(
+                  l10n.currentBalanceValue(formatUzs(balance)),
+                  style: AppTextStyles.muted(
+                    AppTextStyles.body,
+                  ).copyWith(fontSize: 11),
+                ),
               ),
             )
           else
@@ -1720,6 +1828,10 @@ class _CheckoutSection extends StatelessWidget {
             ),
           ),
         ),
+        if (checkDiscountButton != null) ...[
+          const SizedBox(height: 8),
+          checkDiscountButton!,
+        ],
         const SizedBox(height: 8),
         SizedBox(
           height: 48,

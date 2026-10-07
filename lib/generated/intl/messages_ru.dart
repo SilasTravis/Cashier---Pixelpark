@@ -188,6 +188,11 @@ class MessageLookup extends MessageLookupByLibrary {
     "cashDesk": MessageLookupByLibrary.simpleMessage("Касса"),
     "cashDeskCashier": m3,
     "categoryAll": MessageLookupByLibrary.simpleMessage("Все"),
+    "checkDiscount": MessageLookupByLibrary.simpleMessage("Скидка на чек"),
+    "checkDiscountLocked": MessageLookupByLibrary.simpleMessage(
+      "Выбрана скидка на чек — скидки детей и промокод отключены",
+    ),
+    "checkDiscountNone": MessageLookupByLibrary.simpleMessage("Не выбрана"),
     "checkOnline": MessageLookupByLibrary.simpleMessage("Проверить связь"),
     "childCount": m4,
     "childName": MessageLookupByLibrary.simpleMessage("Имя ребёнка"),

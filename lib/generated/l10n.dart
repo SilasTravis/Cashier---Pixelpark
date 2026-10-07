@@ -279,6 +279,31 @@ class AppLocalization {
     return Intl.message('No discount', name: 'noDiscount', desc: '', args: []);
   }
 
+  /// `Check discount`
+  String get checkDiscount {
+    return Intl.message(
+      'Check discount',
+      name: 'checkDiscount',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `None`
+  String get checkDiscountNone {
+    return Intl.message('None', name: 'checkDiscountNone', desc: '', args: []);
+  }
+
+  /// `Check discount selected — child discounts and promo code are off`
+  String get checkDiscountLocked {
+    return Intl.message(
+      'Check discount selected — child discounts and promo code are off',
+      name: 'checkDiscountLocked',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `The discount is no longer available — pick again`
   String get discountUnavailableMessage {
     return Intl.message(

@@ -184,6 +184,11 @@ class MessageLookup extends MessageLookupByLibrary {
     "cashDesk": MessageLookupByLibrary.simpleMessage("Kassa"),
     "cashDeskCashier": m3,
     "categoryAll": MessageLookupByLibrary.simpleMessage("Hammasi"),
+    "checkDiscount": MessageLookupByLibrary.simpleMessage("Chek chegirmasi"),
+    "checkDiscountLocked": MessageLookupByLibrary.simpleMessage(
+      "Chek chegirmasi tanlangan — bola chegirmasi va promokod o\'chirilgan",
+    ),
+    "checkDiscountNone": MessageLookupByLibrary.simpleMessage("Tanlanmagan"),
     "checkOnline": MessageLookupByLibrary.simpleMessage("Onlaynni tekshirish"),
     "childCount": m4,
     "childName": MessageLookupByLibrary.simpleMessage("Bola ismi"),
