@@ -16,6 +16,13 @@ import 'package:cashier_app/features/pos_account/presentation/widgets/customer_d
 import 'package:cashier_app/features/pos_sale/domain/discount.dart';
 
 class _FakeRemote implements PosAccountRemoteDataSource {
+  _FakeRemote({this.activePasses = const [], this.checkDiscounts});
+
+  final List<ActivePass> activePasses;
+
+  /// Overrides the default two check discounts when set.
+  final List<Discount>? checkDiscounts;
+
   String? lastCheckDiscountId;
   Map<String, String>? lastEntryDiscounts;
   ({String code, String childId})? lastPromoCode;
@@ -49,6 +56,7 @@ class _FakeRemote implements PosAccountRemoteDataSource {
   Future<List<Discount>> fetchDiscounts({
     DiscountScope scope = DiscountScope.goods,
   }) async => switch (scope) {
+    DiscountScope.check when checkDiscounts != null => checkDiscounts!,
     DiscountScope.check => const [
       Discount(
         id: 'c-fixed',
@@ -100,7 +108,8 @@ class _FakeRemote implements PosAccountRemoteDataSource {
   ];
 
   @override
-  Future<List<ActivePass>> listActivePasses(int customerId) async => const [];
+  Future<List<ActivePass>> listActivePasses(int customerId) async =>
+      activePasses;
 
   @override
   Future<List<PlayingChild>> listPlaying(int customerId) async => const [];
@@ -112,14 +121,22 @@ class _FakeRemote implements PosAccountRemoteDataSource {
 late _FakeRemote _remote;
 
 /// Children in render order — `QR` buttons are found by this index.
-const _childIds = ['k1', 'k2'];
+const _childIds = ['k1', 'k2', 'k3'];
 
-Future<void> pumpPanel(WidgetTester tester) async {
+Future<void> pumpPanel(
+  WidgetTester tester, {
+  bool thirdChild = false,
+  List<ActivePass> activePasses = const [],
+  List<Discount>? checkDiscounts,
+}) async {
   tester.view.physicalSize = const Size(1600, 1400);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
 
-  _remote = _FakeRemote();
+  _remote = _FakeRemote(
+    activePasses: activePasses,
+    checkDiscounts: checkDiscounts,
+  );
   final bloc = PosAccountBloc(PosAccountRepository(_remote))
     ..add(const PosAccountPlansRequested())
     ..add(const PosAccountDiscountsRequested(scope: DiscountScope.entry))
@@ -145,6 +162,13 @@ Future<void> pumpPanel(WidgetTester tester) async {
               lastName: null,
               birthDate: DateTime(2019, 1, 1),
             ),
+            if (thirdChild)
+              Child(
+                id: 'k3',
+                firstName: 'Sami',
+                lastName: null,
+                birthDate: DateTime(2020, 1, 1),
+              ),
           ],
         ),
       ),
@@ -189,6 +213,22 @@ const _noDiscount = 'No discount';
 const _locked =
     'Check discount selected — child discounts and promo code are off';
 const _payAndPrint = 'Pay and print';
+const _total = 'Total';
+const _free = 'Free';
+
+Discount _fixedCheck(String id, String name, int value) => Discount(
+  id: id,
+  name: name,
+  kind: DiscountKind.fixed,
+  value: value,
+  scope: DiscountScope.check,
+);
+
+/// The value in the "Total" row of the checkout card.
+Finder totalValue(String text) => find.descendant(
+  of: find.ancestor(of: find.text(_total), matching: find.byType(Row)).first,
+  matching: find.text(text),
+);
 
 Future<void> pickCheckDiscount(WidgetTester tester, String name) async {
   await tester.tap(find.text(_checkDiscount));
@@ -268,5 +308,63 @@ void main() {
     await tapChildRow(tester, 'k1');
     await tester.pumpAndSettle();
     expect(find.text(_checkDiscount), findsOneWidget);
+  });
+  testWidgets('a child heading for a plan-switch conflict gets no share', (
+    tester,
+  ) async {
+    // k2 already plays on Standard today: VIP doesn't cover it, so the
+    // server answers k2 with a conflict and issues no pass in this request
+    // (the confirmed retry goes without the check discount, full price).
+    // The shares are still split over BOTH children.
+    await pumpPanel(
+      tester,
+      activePasses: [
+        ActivePass(
+          childId: 'k2',
+          planKey: 'standard',
+          planLabel: 'Standart',
+          expiresAt: DateTime(2100),
+          dueTodayUzs: 5000,
+        ),
+      ],
+    );
+    await selectChildrenAndPlan(tester, ['k1', 'k2'], 'VIP');
+
+    await pickCheckDiscount(tester, 'Aksiya');
+
+    expect(find.text(formatUzs(-15000)), findsOneWidget);
+    expect(find.text(formatUzs(-30000)), findsNothing);
+    // k1: 100 000 − 15 000, k2: 100 000 at full price.
+    expect(totalValue(formatUzs(185000)), findsOneWidget);
+  });
+
+  testWidgets('a fixed remainder lands on the first child', (tester) async {
+    await pumpPanel(
+      tester,
+      thirdChild: true,
+      checkDiscounts: [_fixedCheck('c-odd', 'Toq', 30001)],
+    );
+    await selectChildrenAndPlan(tester, ['k1', 'k2', 'k3'], 'VIP');
+
+    await pickCheckDiscount(tester, 'Toq');
+
+    // 10 001 + 10 000 + 10 000
+    expect(find.text(formatUzs(-30001)), findsOneWidget);
+    expect(totalValue(formatUzs(300000 - 30001)), findsOneWidget);
+  });
+
+  testWidgets('each fixed share clamps to its own pass price', (tester) async {
+    await pumpPanel(
+      tester,
+      thirdChild: true,
+      checkDiscounts: [_fixedCheck('c-big', 'Katta', 400000)],
+    );
+    await selectChildrenAndPlan(tester, ['k1', 'k2', 'k3'], 'VIP');
+
+    await pickCheckDiscount(tester, 'Katta');
+
+    // 133 334 / 133 333 / 133 333 → each clamped to 100 000.
+    expect(find.text(formatUzs(-300000)), findsOneWidget);
+    expect(totalValue(_free), findsOneWidget);
   });
 }

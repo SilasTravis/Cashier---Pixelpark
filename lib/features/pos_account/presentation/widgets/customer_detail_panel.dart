@@ -367,6 +367,21 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
           final checkShares =
               checkDiscount?.checkShares(orderedChildIds.length) ??
               const <Discount>[];
+          // A child with a live pass on another plan the selected one doesn't
+          // cover comes back as a plan-switch conflict: no pass in this
+          // request, and the confirmed retry goes without the check discount
+          // (full price). It still counts in the split above — the server
+          // splits over every sent childId — it just never takes its share.
+          final switchConflictIds = <String>{
+            for (final id in _selectedChildIds)
+              if (activePlanByChild.containsKey(id) &&
+                  !alreadyOnSelectedPlan.contains(id))
+                id,
+          };
+          Discount? checkShareFor(String childId) =>
+              switchConflictIds.contains(childId)
+              ? null
+              : checkShares[orderedChildIds.indexOf(childId)];
           final promoChildId = promo == null || checkDiscount != null
               ? null
               : _selectedChildIds.contains(_promoChildId)
@@ -390,9 +405,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
           // zeroes it exactly like the old free-reason flow did. The promo
           // child's discount is the code's tier, replacing any 3-dots pick.
           Discount? entryDiscountFor(String childId) {
-            if (checkDiscount != null) {
-              return checkShares[orderedChildIds.indexOf(childId)];
-            }
+            if (checkDiscount != null) return checkShareFor(childId);
             if (childId == promoChildId) return promo!.discount;
             final id = _childEntryDiscountIds[childId];
             if (id == null) return null;
@@ -428,8 +441,10 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                       0,
                       (sum, id) =>
                           sum +
-                          checkShares[orderedChildIds.indexOf(id)]
-                              .appliedDiscountUzs(_selectedPlan!.flatUzs ?? 0),
+                          (checkShareFor(id)?.appliedDiscountUzs(
+                                _selectedPlan!.flatUzs ?? 0,
+                              ) ??
+                              0),
                     )
               : 0;
           final companionsTotal = _companions * state.companionPriceUzs;
