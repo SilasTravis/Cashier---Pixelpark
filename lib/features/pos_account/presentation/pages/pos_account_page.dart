@@ -41,7 +41,8 @@ class PosAccountPage extends StatelessWidget {
           ..add(const PosAccountProductsRequested())
           ..add(const PosAccountConfigRequested())
           ..add(const PosAccountDiscountsRequested())
-          ..add(const PosAccountDiscountsRequested(scope: DiscountScope.entry));
+          ..add(const PosAccountDiscountsRequested(scope: DiscountScope.entry))
+          ..add(const PosAccountDiscountsRequested(scope: DiscountScope.check));
         if (initialCustomer != null) {
           bloc.add(PosAccountCustomerSelected(initialCustomer!));
         }

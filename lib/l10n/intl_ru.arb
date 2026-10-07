@@ -32,6 +32,9 @@
   "cartEmpty": "Корзина пуста",
   "discount": "Скидка",
   "noDiscount": "Без скидки",
+  "checkDiscount": "Скидка на чек",
+  "checkDiscountNone": "Не выбрана",
+  "checkDiscountLocked": "Выбрана скидка на чек — скидки детей и промокод отключены",
   "discountUnavailableMessage": "Скидка больше недоступна — выберите заново",
   "categoryAll": "Все",
   "productSearchHint": "Название или категория товара",
@@ -207,6 +210,35 @@
   },
   "vipTariff": "VIP-тариф",
   "vipChargedImmediately": "Стоимость VIP-тарифа списывается с баланса сразу при печати.",
+  "hourAlreadyActive": "«{name}» уже на активном тарифе «1 час» — повторная оплата не взимается.",
+  "@hourAlreadyActive": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "hourTariff": "Тариф «1 час»",
+  "hourChargedImmediately": "Стоимость тарифа «1 час» списывается с баланса сразу при печати.",
+  "planAlreadyActive": "У «{name}» уже действует тариф «{plan}» — повторная оплата не взимается.",
+  "@planAlreadyActive": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
+  "planChargedImmediately": "Тариф «{plan}» списывается с баланса сразу при печати.",
+  "@planChargedImmediately": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
   "payFromBalance": "Списать с баланса",
   "currentBalanceValue": "Текущий баланс: {value}",
   "@currentBalanceValue": {
@@ -266,6 +298,7 @@
   "newBalance": "Новый баланс",
   "topup": "Пополнить",
   "stickerPrintFailed": "Стикер не напечатан — проверьте принтер",
+  "qrPrinterFallbackNotice": "QR-принтер не найден, поэтому QR-код напечатан вместе с чеком",
   "entryFailed": "Не вошли: {message}",
   "@entryFailed": {
     "placeholders": {
@@ -294,6 +327,7 @@
       }
     }
   },
+  "planSwitchHourToVipNote": "Стоимость тарифа «1 час» не возвращается.",
   "currentPlanToday": "Сегодня «{child}» на тарифе «{plan}»{inside}.",
   "@currentPlanToday": {
     "placeholders": {
@@ -335,6 +369,14 @@
   },
   "pricePerDay": "{value} / день",
   "@pricePerDay": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "pricePerHour": "{value} / час",
+  "@pricePerHour": {
     "placeholders": {
       "value": {
         "type": "String"
@@ -568,6 +610,7 @@
   "promoCodeWrongCustomer": "Этот промокод принадлежит другому клиенту",
   "promoCodeForChild": "Какому ребёнку",
   "promoCodeNoChild": "Выберите ребёнка для промокода",
+  "promoCodeChildHasPass": "У ребёнка уже есть пропуск на сегодня — промокод действует только на новый вход или переход на VIP",
   "promoCodeRemove": "Убрать промокод",
   "promoCodeReleased": "Промокод не применён, код возвращён: {reason}",
   "@promoCodeReleased": { "placeholders": { "reason": { "type": "String" } } },

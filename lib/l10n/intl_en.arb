@@ -32,6 +32,9 @@
   "cartEmpty": "Cart is empty",
   "discount": "Discount",
   "noDiscount": "No discount",
+  "checkDiscount": "Check discount",
+  "checkDiscountNone": "None",
+  "checkDiscountLocked": "Check discount selected — child discounts and promo code are off",
   "discountUnavailableMessage": "The discount is no longer available — pick again",
   "categoryAll": "All",
   "productSearchHint": "Product name or category",
@@ -207,6 +210,35 @@
   },
   "vipTariff": "VIP tariff",
   "vipChargedImmediately": "The VIP tariff is debited from the balance immediately when printed.",
+  "hourAlreadyActive": "«{name}» already has an active 1 hour tariff — no second charge.",
+  "@hourAlreadyActive": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "hourTariff": "1 hour tariff",
+  "hourChargedImmediately": "The 1 hour tariff is debited from the balance immediately when printed.",
+  "planAlreadyActive": "«{name}» already has an active «{plan}» tariff — no second charge.",
+  "@planAlreadyActive": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
+  "planChargedImmediately": "The «{plan}» tariff is debited from the balance immediately when printed.",
+  "@planChargedImmediately": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
   "payFromBalance": "Pay from balance",
   "currentBalanceValue": "Current balance: {value}",
   "@currentBalanceValue": {
@@ -266,6 +298,7 @@
   "newBalance": "New balance",
   "topup": "Top up",
   "stickerPrintFailed": "Sticker was not printed — check the printer",
+  "qrPrinterFallbackNotice": "QR printer not found, so the QR code was printed with the receipt",
   "entryFailed": "Failed to enter: {message}",
   "@entryFailed": {
     "placeholders": {
@@ -294,6 +327,7 @@
       }
     }
   },
+  "planSwitchHourToVipNote": "The 1 hour tariff price is not refunded.",
   "currentPlanToday": "«{child}» is on the «{plan}» tariff today{inside}.",
   "@currentPlanToday": {
     "placeholders": {
@@ -335,6 +369,14 @@
   },
   "pricePerDay": "{value} / day",
   "@pricePerDay": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "pricePerHour": "{value} / hour",
+  "@pricePerHour": {
     "placeholders": {
       "value": {
         "type": "String"
@@ -568,6 +610,7 @@
   "promoCodeWrongCustomer": "This promo code belongs to another customer",
   "promoCodeForChild": "For child",
   "promoCodeNoChild": "Select a child for the promo code",
+  "promoCodeChildHasPass": "This child already has a pass today — the promo code only applies to a new entry or a VIP upgrade",
   "promoCodeRemove": "Remove promo code",
   "promoCodeReleased": "Promo code not applied, code returned: {reason}",
   "@promoCodeReleased": { "placeholders": { "reason": { "type": "String" } } },

@@ -89,7 +89,9 @@ abstract class PosAccountRemoteDataSource {
   /// 100% reproduces the old free-pass behavior); [companions] mints that
   /// many paid HAMROH stickers from the balance. [discountId] applies ONLY
   /// to the goods leg (`products`) — never to the plan/VIP or companion
-  /// legs; omitted from the request entirely when null.
+  /// legs; omitted from the request entirely when null. [checkDiscountId]
+  /// (Butun chek) discounts every child's pass; omitted when null so older
+  /// backends never see it.
   Future<PosEntryResult> planEntryCheckout({
     required int customerId,
     required String planKey,
@@ -101,6 +103,8 @@ abstract class PosAccountRemoteDataSource {
     int companions = 0,
     String? discountId,
     ({String code, String childId})? promoCode,
+    String? checkDiscountId,
+    bool replacePlan = false,
   });
 
   /// `POST /v1/pos/promo-codes/verify` — what a promo code is worth and,
@@ -236,7 +240,11 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
 
   @override
   Future<List<KidsPlan>> listPlans() async {
-    final response = await _request(() => dio.get('/v1/pos/plans'));
+    // `kinds=flat_hour` opts in to the 1 soat and custom flat_hour plans. The backend hides them
+    // from builds that don't ask — they would sell it as Standard.
+    final response = await _request(
+      () => dio.get('/v1/pos/plans', queryParameters: {'kinds': 'flat_hour'}),
+    );
     return (response as List)
         .map((json) => _kidsPlanFromJson(json as Map<String, dynamic>))
         .toList();
@@ -249,6 +257,9 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
     required List<String> childIds,
     bool replacePlan = false,
   }) async {
+    // No `kinds` opt-in here: this route only re-prints a live pass or
+    // switches TO VIP (conflict dialog). A fresh 1 soat sale always goes
+    // through `planEntryCheckout`; the backend refuses one here.
     final response = await _request(
       () => dio.post(
         '/v1/pos/customers/$customerId/plan-entry',
@@ -362,10 +373,16 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
     int companions = 0,
     String? discountId,
     ({String code, String childId})? promoCode,
+    String? checkDiscountId,
+    bool replacePlan = false,
   }) async {
     final response = await _request(
       () => dio.post(
         '/v1/pos/customers/$customerId/plan-entry-checkout',
+        // The same opt-in as `listPlans`: without it the backend refuses a
+        // fresh 1 soat sale (KIDS_PLAN_NOT_FOUND). It only gates opt-in
+        // kinds — Standard/VIP checkouts are unaffected.
+        queryParameters: {'kinds': 'flat_hour'},
         data: {
           'planKey': planKey,
           'childIds': childIds,
@@ -385,6 +402,8 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
           'discountId': ?discountId,
           if (promoCode != null)
             'promoCode': {'code': promoCode.code, 'childId': promoCode.childId},
+          'checkDiscountId': ?checkDiscountId,
+          if (replacePlan) 'replacePlan': true,
         },
       ),
     );
@@ -507,13 +526,17 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
     return KidsPlan(
       key: json['key'] as String,
       name: json['name'] as String,
-      kind: json['kind'] == 'flat_day'
-          ? KidsPlanKind.flatDay
-          : KidsPlanKind.perMinuteTiers,
+      kind: switch (json['kind']) {
+        'flat_day' => KidsPlanKind.flatDay,
+        'flat_hour' => KidsPlanKind.flatHour,
+        _ => KidsPlanKind.perMinuteTiers,
+      },
       firstMinuteUzs: json['firstMinuteUzs'] as int?,
       secondMinuteUzs: json['secondMinuteUzs'] as int?,
       extraMinuteUzs: json['extraMinuteUzs'] as int?,
       flatUzs: json['flatUzs'] as int?,
+      durationMinutes: json['durationMinutes'] as int?,
+      isVip: json['isVip'] == true,
     );
   }
 
@@ -524,6 +547,7 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
       expiresAt: json['expiresAt'] == null
           ? null
           : DateTime.parse(json['expiresAt'] as String),
+      durationMinutes: json['durationMinutes'] as int?,
     );
   }
 

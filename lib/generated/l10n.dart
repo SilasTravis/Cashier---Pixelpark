@@ -279,6 +279,31 @@ class AppLocalization {
     return Intl.message('No discount', name: 'noDiscount', desc: '', args: []);
   }
 
+  /// `Check discount`
+  String get checkDiscount {
+    return Intl.message(
+      'Check discount',
+      name: 'checkDiscount',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `None`
+  String get checkDiscountNone {
+    return Intl.message('None', name: 'checkDiscountNone', desc: '', args: []);
+  }
+
+  /// `Check discount selected — child discounts and promo code are off`
+  String get checkDiscountLocked {
+    return Intl.message(
+      'Check discount selected — child discounts and promo code are off',
+      name: 'checkDiscountLocked',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `The discount is no longer available — pick again`
   String get discountUnavailableMessage {
     return Intl.message(
@@ -984,6 +1009,56 @@ class AppLocalization {
     );
   }
 
+  /// `«{name}» already has an active 1 hour tariff — no second charge.`
+  String hourAlreadyActive(String name) {
+    return Intl.message(
+      '«$name» already has an active 1 hour tariff — no second charge.',
+      name: 'hourAlreadyActive',
+      desc: '',
+      args: [name],
+    );
+  }
+
+  /// `1 hour tariff`
+  String get hourTariff {
+    return Intl.message(
+      '1 hour tariff',
+      name: 'hourTariff',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The 1 hour tariff is debited from the balance immediately when printed.`
+  String get hourChargedImmediately {
+    return Intl.message(
+      'The 1 hour tariff is debited from the balance immediately when printed.',
+      name: 'hourChargedImmediately',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `«{name}» already has an active «{plan}» tariff — no second charge.`
+  String planAlreadyActive(String name, String plan) {
+    return Intl.message(
+      '«$name» already has an active «$plan» tariff — no second charge.',
+      name: 'planAlreadyActive',
+      desc: '',
+      args: [name, plan],
+    );
+  }
+
+  /// `The «{plan}» tariff is debited from the balance immediately when printed.`
+  String planChargedImmediately(String plan) {
+    return Intl.message(
+      'The «$plan» tariff is debited from the balance immediately when printed.',
+      name: 'planChargedImmediately',
+      desc: '',
+      args: [plan],
+    );
+  }
+
   /// `Pay from balance`
   String get payFromBalance {
     return Intl.message(
@@ -1139,6 +1214,16 @@ class AppLocalization {
     );
   }
 
+  /// `QR printer not found, so the QR code was printed with the receipt`
+  String get qrPrinterFallbackNotice {
+    return Intl.message(
+      'QR printer not found, so the QR code was printed with the receipt',
+      name: 'qrPrinterFallbackNotice',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Failed to enter: {message}`
   String entryFailed(String message) {
     return Intl.message(
@@ -1176,6 +1261,16 @@ class AppLocalization {
       name: 'planSwitchVipQuestion',
       desc: '',
       args: [plan, price],
+    );
+  }
+
+  /// `The 1 hour tariff price is not refunded.`
+  String get planSwitchHourToVipNote {
+    return Intl.message(
+      'The 1 hour tariff price is not refunded.',
+      name: 'planSwitchHourToVipNote',
+      desc: '',
+      args: [],
     );
   }
 
@@ -1294,6 +1389,16 @@ class AppLocalization {
     return Intl.message(
       '$value / day',
       name: 'pricePerDay',
+      desc: '',
+      args: [value],
+    );
+  }
+
+  /// `{value} / hour`
+  String pricePerHour(String value) {
+    return Intl.message(
+      '$value / hour',
+      name: 'pricePerHour',
       desc: '',
       args: [value],
     );
@@ -2719,6 +2824,16 @@ class AppLocalization {
     return Intl.message(
       'Select a child for the promo code',
       name: 'promoCodeNoChild',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `This child already has a pass today — the promo code only applies to a new entry or a VIP upgrade`
+  String get promoCodeChildHasPass {
+    return Intl.message(
+      'This child already has a pass today — the promo code only applies to a new entry or a VIP upgrade',
+      name: 'promoCodeChildHasPass',
       desc: '',
       args: [],
     );

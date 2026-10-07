@@ -8,16 +8,22 @@ enum DiscountKind { percent, fixed }
 /// `DiscountScope`. `goods`: the POS cart / plan-entry goods leg (the
 /// existing [DiscountPicker]). `entry`: a child's plan-entry gate pass (the
 /// per-child 3-dots menu in `customer_detail_panel.dart`) — replaces the old
-/// hardcoded `FreeReason` picker.
+/// hardcoded `FreeReason` picker. `check`: "Butun chek" — one discount for
+/// every child of a plan-entry checkout, picked above the pay button
+/// (`check_discount_sheet.dart`).
 enum DiscountScope {
   goods,
-  entry;
+  entry,
+  check;
 
   /// Wire value sent as the `?scope=` query param.
   String get key => name;
 
-  static DiscountScope fromKey(String? key) =>
-      key == 'entry' ? DiscountScope.entry : DiscountScope.goods;
+  static DiscountScope fromKey(String? key) => switch (key) {
+    'entry' => DiscountScope.entry,
+    'check' => DiscountScope.check,
+    _ => DiscountScope.goods,
+  };
 }
 
 /// One admin-managed catalog row ("Flayer 30%", "Tug'ilgan kun 20 000 so'm")
@@ -77,6 +83,28 @@ class Discount extends Equatable {
       DiscountKind.fixed => value,
     };
     return raw.clamp(0, grossUzs);
+  }
+
+  /// PREVIEW ONLY — mirrors the backend's `splitCheckDiscount`: one share
+  /// per child, in the order `childIds` is sent. Percent: this discount for
+  /// everyone. Fixed: `value ~/ n` each, the remainder on the first child.
+  /// [appliedDiscountUzs] then clamps each share to that child's price.
+  List<Discount> checkShares(int childCount) {
+    if (childCount <= 0) return const [];
+    if (kind == DiscountKind.percent) return List.filled(childCount, this);
+    final each = value ~/ childCount;
+    final remainder = value - each * childCount;
+    return [
+      for (var i = 0; i < childCount; i++)
+        Discount(
+          id: id,
+          name: name,
+          kind: kind,
+          value: each + (i == 0 ? remainder : 0),
+          scope: scope,
+          active: active,
+        ),
+    ];
   }
 
   @override

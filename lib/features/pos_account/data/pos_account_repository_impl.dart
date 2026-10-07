@@ -119,6 +119,8 @@ class PosAccountRepository {
     int companions = 0,
     String? discountId,
     ({String code, String childId})? promoCode,
+    String? checkDiscountId,
+    bool replacePlan = false,
   }) => _call(
     () => remote.planEntryCheckout(
       customerId: customerId,
@@ -131,6 +133,8 @@ class PosAccountRepository {
       companions: companions,
       discountId: discountId,
       promoCode: promoCode,
+      checkDiscountId: checkDiscountId,
+      replacePlan: replacePlan,
     ),
   );
 

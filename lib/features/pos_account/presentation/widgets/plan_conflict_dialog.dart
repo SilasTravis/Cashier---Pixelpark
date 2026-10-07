@@ -31,6 +31,18 @@ Future<void> showPlanConflictDialog(
   /// refuses the switch unless the balance already covers it, so the
   /// modal says so before the cashier confirms.
   int? requestedPlanFlatUzs,
+
+  /// Keys of the 1 soat (`flat_hour`) plans. A switchable conflict whose
+  /// CURRENT plan is one of them is a live hour → VIP upgrade: the row adds
+  /// that the hour price is not refunded. Empty leaves every row as before.
+  Set<String> hourPlanKeys = const {},
+
+  /// The promo code the first checkout released because its child hit this
+  /// conflict. When that child is switchable, "Almashtirish" re-runs the
+  /// CHECKOUT (not the bare plan-entry) with `replacePlan` + the code, so
+  /// the new VIP pass carries the discount. Nothing else is re-charged:
+  /// no goods, companions or payment ride along.
+  ({String code, String childId})? promoCode,
 }) {
   final bloc = context.read<PosAccountBloc>();
   final switchable = conflicts.where((c) => c.switchable).toList();
@@ -56,6 +68,7 @@ Future<void> showPlanConflictDialog(
                   conflict: conflict,
                   childName:
                       childNamesById[conflict.childId] ?? conflict.childId,
+                  fromHourPlan: hourPlanKeys.contains(conflict.currentPlanKey),
                 ),
                 const SizedBox(height: 8),
               ],
@@ -105,13 +118,29 @@ Future<void> showPlanConflictDialog(
             FilledButton.icon(
               onPressed: () {
                 Navigator.of(dialogContext).pop();
-                bloc.add(
-                  PosAccountPlanEntryRequested(
-                    planKey: switchable.first.requestedPlanKey,
-                    childIds: [for (final c in switchable) c.childId],
-                    replacePlan: true,
-                  ),
-                );
+                final planKey = switchable.first.requestedPlanKey;
+                final childIds = [for (final c in switchable) c.childId];
+                if (promoCode != null && childIds.contains(promoCode.childId)) {
+                  bloc.add(
+                    PosAccountCheckoutRequested(
+                      planKey: planKey,
+                      childIds: childIds,
+                      products: const [],
+                      cashUzs: 0,
+                      cardUzs: 0,
+                      promoCode: promoCode,
+                      replacePlan: true,
+                    ),
+                  );
+                } else {
+                  bloc.add(
+                    PosAccountPlanEntryRequested(
+                      planKey: planKey,
+                      childIds: childIds,
+                      replacePlan: true,
+                    ),
+                  );
+                }
               },
               icon: const Icon(PhosphorIconsRegular.printer, size: 16),
               label: Text(l10n.switchAndPrint),
@@ -123,10 +152,17 @@ Future<void> showPlanConflictDialog(
 }
 
 class _ConflictRow extends StatelessWidget {
-  const _ConflictRow({required this.conflict, required this.childName});
+  const _ConflictRow({
+    required this.conflict,
+    required this.childName,
+    required this.fromHourPlan,
+  });
 
   final PosEntryConflict conflict;
   final String childName;
+
+  /// The child's live pass is a 1 soat one.
+  final bool fromHourPlan;
 
   @override
   Widget build(BuildContext context) {
@@ -140,6 +176,9 @@ class _ConflictRow extends StatelessWidget {
       if (!conflict.switchable) l10n.downgradeForbidden,
       if (conflict.switchable && conflict.accruedDueUzs > 0)
         l10n.accruedDue(formatUzs(conflict.accruedDueUzs)),
+      // Live hour → VIP is an upgrade at the full VIP price; the hour pass
+      // is expired, nothing refunded (backend only offers switches TO VIP).
+      if (conflict.switchable && fromHourPlan) l10n.planSwitchHourToVipNote,
     ];
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),

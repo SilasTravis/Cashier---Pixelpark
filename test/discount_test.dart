@@ -108,4 +108,69 @@ void main() {
       expect(snapshot.name, "Tug'ilgan kun 100%");
     });
   });
+
+  group('Discount.checkShares (Butun chek preview)', () {
+    test('percent: the same discount for every child', () {
+      const d = Discount(
+        id: 'c',
+        name: 'Oila',
+        kind: DiscountKind.percent,
+        value: 10,
+        scope: DiscountScope.check,
+      );
+      expect(d.checkShares(3), [d, d, d]);
+    });
+
+    test('fixed: split evenly, remainder on the first child', () {
+      const d = Discount(
+        id: 'c',
+        name: 'Aksiya',
+        kind: DiscountKind.fixed,
+        value: 10000,
+        scope: DiscountScope.check,
+      );
+      final shares = d.checkShares(3);
+      expect(shares.map((s) => s.value), [3334, 3333, 3333]);
+      expect(
+        shares.every((s) => s.id == 'c' && s.kind == DiscountKind.fixed),
+        isTrue,
+      );
+    });
+
+    test('each share clamps to the child price', () {
+      const d = Discount(
+        id: 'c',
+        name: 'Katta',
+        kind: DiscountKind.fixed,
+        value: 150000,
+        scope: DiscountScope.check,
+      );
+      expect(d.checkShares(3).map((s) => s.appliedDiscountUzs(40000)), [
+        40000,
+        40000,
+        40000,
+      ]);
+    });
+
+    test('zero children: no shares', () {
+      const d = Discount(
+        id: 'c',
+        name: 'x',
+        kind: DiscountKind.fixed,
+        value: 5,
+      );
+      expect(d.checkShares(0), isEmpty);
+    });
+
+    test('fromJson reads scope check', () {
+      final d = Discount.fromJson({
+        'id': 'c',
+        'name': 'x',
+        'kind': 'percent',
+        'value': 5,
+        'scope': 'check',
+      });
+      expect(d.scope, DiscountScope.check);
+    });
+  });
 }

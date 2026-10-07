@@ -24,6 +24,7 @@ class PosAccountState extends Equatable {
     this.companionPriceUzs = defaultCompanionPriceUzs,
     this.discounts = const [],
     this.entryDiscounts = const [],
+    this.checkDiscounts = const [],
     this.errorCode,
     this.promo,
     this.isCheckingPromo = false,
@@ -92,6 +93,10 @@ class PosAccountState extends Equatable {
   /// best-effort/empty-hides-the-menu contract as [discounts].
   final List<Discount> entryDiscounts;
 
+  /// Active CHECK-scoped catalog — the "Chek chegirmasi" sheet above the pay
+  /// button; empty hides the button.
+  final List<Discount> checkDiscounts;
+
   /// Machine-readable code paired with [errorMessage] — same reset-on-every-
   /// copyWith lifecycle (not `?? this.errorCode`), so it never lingers past
   /// the action that set it. Lets the widget react to a specific failure
@@ -138,6 +143,7 @@ class PosAccountState extends Equatable {
     int? companionPriceUzs,
     List<Discount>? discounts,
     List<Discount>? entryDiscounts,
+    List<Discount>? checkDiscounts,
     String? errorCode,
     PromoCodeCheck? promo,
     bool clearPromo = false,
@@ -176,6 +182,7 @@ class PosAccountState extends Equatable {
       companionPriceUzs: companionPriceUzs ?? this.companionPriceUzs,
       discounts: discounts ?? this.discounts,
       entryDiscounts: entryDiscounts ?? this.entryDiscounts,
+      checkDiscounts: checkDiscounts ?? this.checkDiscounts,
       errorCode: errorCode,
       promo: clearPromo ? null : (promo ?? this.promo),
       isCheckingPromo: isCheckingPromo ?? this.isCheckingPromo,
@@ -213,6 +220,7 @@ class PosAccountState extends Equatable {
     companionPriceUzs,
     discounts,
     entryDiscounts,
+    checkDiscounts,
     errorCode,
     promo,
     isCheckingPromo,

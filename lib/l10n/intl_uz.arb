@@ -32,6 +32,9 @@
   "cartEmpty": "Chek bo‘sh",
   "discount": "Chegirma",
   "noDiscount": "Chegirmasiz",
+  "checkDiscount": "Chek chegirmasi",
+  "checkDiscountNone": "Tanlanmagan",
+  "checkDiscountLocked": "Chek chegirmasi tanlangan — bola chegirmasi va promokod o'chirilgan",
   "discountUnavailableMessage": "Chegirma endi mavjud emas — qayta tanlang",
   "categoryAll": "Hammasi",
   "productSearchHint": "Mahsulot nomi yoki kategoriya",
@@ -207,6 +210,35 @@
   },
   "vipTariff": "VIP tarif",
   "vipChargedImmediately": "VIP tarif puli chop etilganda balansdan darhol yechiladi.",
+  "hourAlreadyActive": "«{name}» allaqachon faol 1 soat tarifda — qayta to‘lov olinmaydi.",
+  "@hourAlreadyActive": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "hourTariff": "1 soat tarif",
+  "hourChargedImmediately": "1 soat tarif puli chop etilganda balansdan darhol yechiladi.",
+  "planAlreadyActive": "«{name}» allaqachon faol «{plan}» tarifda — qayta to‘lov olinmaydi.",
+  "@planAlreadyActive": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
+  "planChargedImmediately": "«{plan}» tarif puli chop etilganda balansdan darhol yechiladi.",
+  "@planChargedImmediately": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
   "payFromBalance": "Balansdan yechish",
   "currentBalanceValue": "Joriy balans: {value}",
   "@currentBalanceValue": {
@@ -266,6 +298,7 @@
   "newBalance": "Yangi balans",
   "topup": "To‘ldirish",
   "stickerPrintFailed": "Stiker chop etilmadi — printerni tekshiring",
+  "qrPrinterFallbackNotice": "QR printer topilmagani sababli QR kod chek bilan birga chiqarildi",
   "entryFailed": "Kirmadi: {message}",
   "@entryFailed": {
     "placeholders": {
@@ -294,6 +327,7 @@
       }
     }
   },
+  "planSwitchHourToVipNote": "1 soat tarif puli qaytarilmaydi.",
   "currentPlanToday": "«{child}» bugun «{plan}» rejasida{inside}.",
   "@currentPlanToday": {
     "placeholders": {
@@ -335,6 +369,14 @@
   },
   "pricePerDay": "{value} / kun",
   "@pricePerDay": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "pricePerHour": "{value} / soat",
+  "@pricePerHour": {
     "placeholders": {
       "value": {
         "type": "String"
@@ -644,6 +686,7 @@
   "promoCodeWrongCustomer": "Bu promokod boshqa mijozga tegishli",
   "promoCodeForChild": "Qaysi bolaga",
   "promoCodeNoChild": "Promokod uchun bolani tanlang",
+  "promoCodeChildHasPass": "Bu bolada bugun faol propusk bor — promokod faqat yangi kirishga yoki VIP’ga o‘tishga qo‘llanadi",
   "promoCodeRemove": "Promokodni olib tashlash",
   "promoCodeReleased": "Promokod qo‘llanmadi, kod qaytarildi: {reason}",
   "@promoCodeReleased": { "placeholders": { "reason": { "type": "String" } } },

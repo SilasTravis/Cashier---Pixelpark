@@ -4,8 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:phosphor_icons/phosphor_icons.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../../core/printing/gate_pass_label_printer.dart';
-import '../../../../core/local_source/local_source.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
 import '../../../../core/utils/currency.dart';
@@ -15,7 +13,6 @@ import '../../../../core/widgets/promo_code_field.dart';
 import '../../../pos_sale/presentation/widgets/receipt_dialog.dart';
 import '../../../pos_sale/domain/discount.dart';
 import '../../../pos_sale/domain/sale_receipt.dart';
-import '../../../../injector_container.dart';
 import '../../../products/domain/product.dart';
 import '../../domain/active_pass.dart';
 import '../../domain/customer.dart';
@@ -23,6 +20,7 @@ import '../../domain/kids_plan.dart';
 import '../../domain/playing_child.dart';
 import '../../domain/pos_entry.dart';
 import '../../domain/promo_code_check.dart';
+import 'check_discount_sheet.dart';
 import 'confirm_topup_dialog.dart';
 import '../bloc/pos_account_bloc.dart';
 import 'plan_conflict_dialog.dart';
@@ -60,6 +58,12 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
   /// selected child without a pass today; see `promoChildId` in build.
   String? _promoChildId;
 
+  /// childId → the entry discount (catalog pick or promo tier) each child
+  /// was sent to checkout with — snapshotted on submit because the bloc
+  /// clears the promo in the same state that carries the entry result, and
+  /// the fallback entry ticket must print the discounted price.
+  Map<String, Discount> _checkoutEntryDiscounts = const {};
+
   /// Paid HAMROH companion stickers to buy with this checkout.
   int _companions = 0;
 
@@ -81,6 +85,10 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
   /// HAMROH companion price. Reset on cart-owning context changes: customer
   /// switch, checkout, or the server reporting it is no longer available.
   String? _selectedDiscountId;
+
+  /// "Chek chegirmasi" (Butun chek): one check-scope discount for every
+  /// selected child. While set, per-child picks and the promo code are off.
+  String? _checkDiscountId;
 
   /// "Balansdan yechish" — only offered while the balance covers the cart.
   bool _payFromBalance = true;
@@ -150,6 +158,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
     _topupCardController.clear();
     _cart.clear();
     _selectedDiscountId = null;
+    _checkDiscountId = null;
     _payFromBalance = true;
     _payMethod = PaymentMethod.cash;
     _payEdited = false;
@@ -185,7 +194,20 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                   in state.selectedCustomer?.children ?? const <Child>[])
                 child.id: child.fullName,
             };
-            printPlanEntryLabels(context, result, childNames);
+            printPlanEntryLabels(
+              context,
+              result,
+              childNames,
+              planName: _selectedPlan?.name,
+              planPriceUzs: (_selectedPlan?.isPrepaid ?? false)
+                  ? _selectedPlan?.flatUzs
+                  : null,
+              entryDiscountsByChild: _checkoutEntryDiscounts,
+              companionPriceUzs: state.companionPriceUzs,
+            );
+            // One checkout's discounts only — a plan-conflict retry is a
+            // fresh request that carries none.
+            _checkoutEntryDiscounts = const {};
             context.read<PosAccountBloc>().add(
               const PosAccountEntryAcknowledged(),
             );
@@ -204,6 +226,21 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                     requestedPlan?.kind == KidsPlanKind.flatDay
                     ? requestedPlan?.flatUzs
                     : null,
+                hourPlanKeys: {
+                  for (final p in state.plans)
+                    if (p.kind == KidsPlanKind.flatHour) p.key,
+                },
+                // The code was released (its child only got a conflict) —
+                // still on screen, so the confirmed switch can carry it.
+                promoCode:
+                    state.promo != null &&
+                        result.promoCode != null &&
+                        !result.promoCode!.applied
+                    ? (
+                        code: state.promo!.code,
+                        childId: result.promoCode!.childId,
+                      )
+                    : null,
               );
             }
           },
@@ -216,25 +253,26 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               current.lastParentPass != null,
           listener: (context, state) {
             final pass = state.lastParentPass!;
-            final messenger = ScaffoldMessenger.of(context);
-            final printFailedMessage = AppLocalization.of(
-              context,
-            ).stickerPrintFailed;
-            GatePassLabelPrinter.printDirect(
-              [(qrData: pass.code, name: pass.customerName, invertName: true)],
-              preferredPrinterName: sl<LocalSource>().getQrPrinterName(),
-            ).then((ok) {
-              if (ok) return;
-              messenger.showSnackBar(
-                SnackBar(
-                  backgroundColor: NocturneColors.surface,
-                  content: Text(
-                    printFailedMessage,
-                    style: const TextStyle(color: NocturneColors.danger),
-                  ),
+            printPassesWithTicketFallback(
+              ScaffoldMessenger.of(context),
+              AppLocalization.of(context),
+              stickers: [
+                (qrData: pass.code, name: pass.customerName, invertName: true),
+              ],
+              tickets: [
+                (
+                  qrData: pass.code,
+                  childName: pass.customerName,
+                  planName: 'OTA-ONA',
+                  priceUzs: 0,
+                  discountUzs: 0,
+                  discountName: null,
+                  ticketId: pass.code.length > 8
+                      ? pass.code.substring(0, 8)
+                      : pass.code,
                 ),
-              );
-            });
+              ],
+            );
             context.read<PosAccountBloc>().add(
               const PosAccountParentQrAcknowledged(),
             );
@@ -248,7 +286,10 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               current.errorCode == 'DISCOUNT_NOT_AVAILABLE' &&
               previous.errorCode != current.errorCode,
           listener: (context, state) {
-            setState(() => _selectedDiscountId = null);
+            setState(() {
+              _selectedDiscountId = null;
+              _checkDiscountId = null;
+            });
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
@@ -270,18 +311,33 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
             (sum, line) =>
                 sum + (productsById[line.key]?.priceUzs ?? 0) * line.value,
           );
-          // VIP is debited from the balance at issuance (register prepay);
-          // Standard has no upfront tariff — it bills per exit by actual
-          // minutes. Children already holding today's pass on the SAME
-          // flat-day plan are not charged again — the backend just
-          // re-returns their pass.
+          // VIP and 1 soat are debited from the balance at issuance
+          // (register prepay); Standard has no upfront tariff — it bills per
+          // exit by actual minutes. Children already holding a live pass on
+          // the SAME prepaid plan are not charged again — the backend just
+          // re-returns their pass. A live VIP pass also covers a 1 soat
+          // sale: the backend re-prints the VIP sticker and charges nothing
+          // (spec decision 7, VIP → hour).
           final activePlanByChild = {
             for (final p in state.activePasses) p.childId: p.planKey,
           };
+          // Plans whose live pass covers a 1 soat sale: every unlimited day
+          // pass (built-in VIP and VIP-style custom day plans) and any
+          // VIP-flagged flat plan. Resolved by kind/flag, never by one key.
+          final coveringPlanKeys = {
+            for (final p in state.plans)
+              if (p.kind == KidsPlanKind.flatDay || (p.isVip && p.isPrepaid))
+                p.key,
+          };
+          final plansByKey = {for (final p in state.plans) p.key: p};
+          final hourSelected = _selectedPlan?.kind == KidsPlanKind.flatHour;
           final alreadyOnSelectedPlan = <String>{
-            if (_selectedPlan?.kind == KidsPlanKind.flatDay)
+            if (_selectedPlan?.isPrepaid ?? false)
               for (final id in _selectedChildIds)
-                if (activePlanByChild[id] == _selectedPlan!.key) id,
+                if (activePlanByChild[id] == _selectedPlan!.key ||
+                    (hourSelected &&
+                        coveringPlanKeys.contains(activePlanByChild[id])))
+                  id,
           };
           // The partner promo code discounts ONE selected child. A child
           // with a pass today can't take it — the backend would fail that
@@ -289,32 +345,83 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
           // so the default skips those, and with none left the code stays
           // unsent until the cashier selects a child who can.
           final promo = state.promo;
-          final passChildIds = {for (final p in state.activePasses) p.childId};
+          // A live pass blocks the code unless the selected plan is a
+          // flat-day UPGRADE of it (1 soat/Standard → VIP): the backend
+          // then discounts the new pass once the switch is confirmed. A
+          // discounted or already-covering pass stays frozen.
+          final upgradeTarget =
+              _selectedPlan != null &&
+              _selectedPlan!.kind == KidsPlanKind.flatDay;
+          final passChildIds = {
+            for (final p in state.activePasses)
+              if (!(upgradeTarget &&
+                  p.freeReason == null &&
+                  p.discountId == null &&
+                  p.planKey != _selectedPlan!.key &&
+                  !coveringPlanKeys.contains(p.planKey)))
+                p.childId,
+          };
           final selectedChildren = [
             for (final child in customer.children)
               if (_selectedChildIds.contains(child.id)) child,
           ];
-          final promoChildId = promo == null
+          final checkDiscount = _checkDiscountId == null
+              ? null
+              : state.checkDiscounts
+                    .where((d) => d.id == _checkDiscountId)
+                    .firstOrNull;
+          // The order `childIds` is sent in, so the fixed amount's remainder
+          // lands on the same child here as on the server.
+          final orderedChildIds = _selectedChildIds.toList();
+          final checkShares =
+              checkDiscount?.checkShares(orderedChildIds.length) ??
+              const <Discount>[];
+          // A child with a live pass on another plan the selected one doesn't
+          // cover comes back as a plan-switch conflict: no pass in this
+          // request, and the confirmed retry goes without the check discount
+          // (full price). It still counts in the split above — the server
+          // splits over every sent childId — it just never takes its share.
+          final switchConflictIds = <String>{
+            for (final id in _selectedChildIds)
+              if (activePlanByChild.containsKey(id) &&
+                  !alreadyOnSelectedPlan.contains(id))
+                id,
+          };
+          Discount? checkShareFor(String childId) =>
+              switchConflictIds.contains(childId)
+              ? null
+              : checkShares[orderedChildIds.indexOf(childId)];
+          final promoChildId = promo == null || checkDiscount != null
               ? null
               : _selectedChildIds.contains(_promoChildId)
               ? _promoChildId
-              : selectedChildren
-                    .where((c) => !passChildIds.contains(c.id))
-                    .firstOrNull
+              // A child with no pass at all first — the code applies right
+              // away; an upgrade only after the switch is confirmed.
+              : (selectedChildren
+                            .where(
+                              (c) => !state.activePasses.any(
+                                (p) => p.childId == c.id,
+                              ),
+                            )
+                            .firstOrNull ??
+                        selectedChildren
+                            .where((c) => !passChildIds.contains(c.id))
+                            .firstOrNull)
                     ?.id;
 
-          // A child with an entry discount pays the VIP price net of it — a
-          // 100% discount (PREVIEW ONLY, same formula as the backend) zeroes
-          // it exactly like the old free-reason flow did. The promo child's
-          // discount is the code's tier, replacing any 3-dots pick.
+          // A child with an entry discount pays the VIP / 1 soat price net of
+          // it — a 100% discount (PREVIEW ONLY, same formula as the backend)
+          // zeroes it exactly like the old free-reason flow did. The promo
+          // child's discount is the code's tier, replacing any 3-dots pick.
           Discount? entryDiscountFor(String childId) {
+            if (checkDiscount != null) return checkShareFor(childId);
             if (childId == promoChildId) return promo!.discount;
             final id = _childEntryDiscountIds[childId];
             if (id == null) return null;
             return state.entryDiscounts.where((d) => d.id == id).firstOrNull;
           }
 
-          final vipTotal = _selectedPlan?.kind == KidsPlanKind.flatDay
+          final vipTotal = (_selectedPlan?.isPrepaid ?? false)
               ? _selectedChildIds
                     .where((id) => !alreadyOnSelectedPlan.contains(id))
                     .fold<int>(0, (sum, id) {
@@ -325,6 +432,54 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                       return sum + (flat - discountUzs);
                     })
               : 0;
+          // What the promo code takes off the prepaid tariff — shown as its
+          // own row so a 100% code reads "Bepul", not a bare 0.
+          final promoDiscountUzs =
+              promoChildId != null &&
+                  (_selectedPlan?.isPrepaid ?? false) &&
+                  !alreadyOnSelectedPlan.contains(promoChildId)
+              ? promo!.discount.appliedDiscountUzs(_selectedPlan!.flatUzs ?? 0)
+              : 0;
+          // What the check discount takes off the prepaid tariff — its own
+          // row, like the promo code ([vipTotal] is already net of it).
+          final checkDiscountUzs =
+              checkDiscount != null && (_selectedPlan?.isPrepaid ?? false)
+              ? orderedChildIds
+                    .where((id) => !alreadyOnSelectedPlan.contains(id))
+                    .fold<int>(
+                      0,
+                      (sum, id) =>
+                          sum +
+                          (checkShareFor(id)?.appliedDiscountUzs(
+                                _selectedPlan!.flatUzs ?? 0,
+                              ) ??
+                              0),
+                    )
+              : 0;
+          // Each child's own share, shown on its row: what it takes off the
+          // prepaid tariff, or — on Standard, billed at exit — the share
+          // itself. Nothing for a child that takes none (re-print, plan
+          // switch, a fixed amount that floors to 0).
+          String? checkShareLabel(String childId) {
+            final share = checkShareFor(childId);
+            if (share == null || alreadyOnSelectedPlan.contains(childId)) {
+              return null;
+            }
+            if (_selectedPlan?.isPrepaid ?? false) {
+              final off = share.appliedDiscountUzs(_selectedPlan!.flatUzs ?? 0);
+              return off > 0 ? '−${formatUzs(off)}' : null;
+            }
+            if (share.value <= 0) return null;
+            return share.kind == DiscountKind.percent
+                ? '−${share.value}%'
+                : '−${formatUzs(share.value)}';
+          }
+
+          final checkShareLabels = <String, String>{
+            if (checkDiscount != null)
+              for (final id in orderedChildIds)
+                if (checkShareLabel(id) case final String label) id: label,
+          };
           final companionsTotal = _companions * state.companionPriceUzs;
           // Discount applies ONLY to the goods cart — never to vipTotal or
           // companionsTotal (see the design doc's decision #1 scope note).
@@ -425,8 +580,13 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                         onRenameChild: (id, name) => context
                             .read<PosAccountBloc>()
                             .add(PosAccountChildNameUpdateRequested(id, name)),
-                        entryDiscounts: state.entryDiscounts,
-                        childEntryDiscountIds: _childEntryDiscountIds,
+                        entryDiscounts: checkDiscount == null
+                            ? state.entryDiscounts
+                            : const [],
+                        childEntryDiscountIds: checkDiscount == null
+                            ? _childEntryDiscountIds
+                            : const {},
+                        checkShareLabels: checkShareLabels,
                         promoChildId: promoChildId,
                         promoLabel: promo == null
                             ? null
@@ -473,26 +633,63 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                           // working exactly as it already does for an empty
                           // cart, so nothing else changes.
                           products: const [],
-                          promoSection: _PromoSection(
-                            promo: promo,
-                            isChecking: state.isCheckingPromo,
-                            errorText: promoCodeErrorText(
-                              AppLocalization.of(context),
-                              state,
-                            ),
-                            label: promo == null ? null : promoCodeLabel(promo),
-                            selectedChildren: selectedChildren,
-                            passChildIds: passChildIds,
-                            promoChildId: promoChildId,
-                            onSubmit: (raw) => context
-                                .read<PosAccountBloc>()
-                                .add(PosAccountPromoCodeSubmitted(raw)),
-                            onChildPicked: (id) =>
-                                setState(() => _promoChildId = id),
-                            onClear: () => context.read<PosAccountBloc>().add(
-                              const PosAccountPromoCodeCleared(),
-                            ),
-                          ),
+                          promoSection: checkDiscount != null
+                              ? Text(
+                                  AppLocalization.of(
+                                    context,
+                                  ).checkDiscountLocked,
+                                  style: AppTextStyles.muted(
+                                    AppTextStyles.body,
+                                  ).copyWith(fontSize: 11),
+                                )
+                              : _PromoSection(
+                                  promo: promo,
+                                  isChecking: state.isCheckingPromo,
+                                  errorText: promoCodeErrorText(
+                                    AppLocalization.of(context),
+                                    state,
+                                  ),
+                                  label: promo == null
+                                      ? null
+                                      : promoCodeLabel(promo),
+                                  selectedChildren: selectedChildren,
+                                  passChildIds: passChildIds,
+                                  promoChildId: promoChildId,
+                                  onSubmit: (raw) => context
+                                      .read<PosAccountBloc>()
+                                      .add(PosAccountPromoCodeSubmitted(raw)),
+                                  onChildPicked: (id) =>
+                                      setState(() => _promoChildId = id),
+                                  onClear: () => context
+                                      .read<PosAccountBloc>()
+                                      .add(const PosAccountPromoCodeCleared()),
+                                ),
+                          checkDiscountButton:
+                              state.checkDiscounts.isEmpty ||
+                                  _selectedChildIds.isEmpty
+                              ? null
+                              : CheckDiscountButton(
+                                  discounts: state.checkDiscounts,
+                                  selected: checkDiscount,
+                                  onChanged: (discount) {
+                                    setState(() {
+                                      _checkDiscountId = discount?.id;
+                                      if (discount != null) {
+                                        _childEntryDiscountIds.clear();
+                                      }
+                                    });
+                                    if (discount != null &&
+                                        state.promo != null) {
+                                      context.read<PosAccountBloc>().add(
+                                        const PosAccountPromoCodeCleared(),
+                                      );
+                                    }
+                                  },
+                                ),
+                          checkDiscountUzs: checkDiscountUzs,
+                          checkDiscountName: checkDiscount == null
+                              ? null
+                              : checkDiscountLabel(checkDiscount),
                           cart: _cart,
                           cartTotal: cartTotal,
                           discounts: state.discounts,
@@ -502,6 +699,17 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                             () => _selectedDiscountId = discount?.id,
                           ),
                           vipTotal: vipTotal,
+                          promoDiscountUzs: promoDiscountUzs,
+                          promoName: promo == null
+                              ? null
+                              : promoCodeLabel(promo),
+                          // Everything but the built-in VIP is labelled by its
+                          // own name (1 soat, custom hour or custom day).
+                          hourPlan:
+                              (_selectedPlan?.isPrepaid ?? false) &&
+                                  _selectedPlan!.key != 'vip'
+                              ? _selectedPlan
+                              : null,
                           companions: _companions,
                           companionPriceUzs: state.companionPriceUzs,
                           companionsTotal: companionsTotal,
@@ -545,45 +753,68 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                             }
                           }),
                           selectedChildCount: _selectedChildIds.length,
-                          alreadyVipNames: [
+                          alreadyNotes: [
                             for (final child in customer.children)
                               if (alreadyOnSelectedPlan.contains(child.id))
-                                child.fullName,
+                                _alreadyActiveNote(
+                                  AppLocalization.of(context),
+                                  child.fullName,
+                                  _selectedPlan!,
+                                  activePlanByChild[child.id],
+                                  plansByKey,
+                                ),
                           ],
                           printParentQr: _printParentQr,
                           onPrintParentQrChanged: (v) =>
                               setState(() => _printParentQr = v),
                           canSubmit: canEnter,
                           isBusy: state.isBusy,
-                          onSubmit: () => context.read<PosAccountBloc>().add(
-                            PosAccountCheckoutRequested(
-                              planKey: _selectedPlan!.key,
-                              childIds: _selectedChildIds.toList(),
-                              withParentQr: _printParentQr,
-                              entryDiscounts: {
-                                for (final entry
-                                    in _childEntryDiscountIds.entries)
-                                  if (_selectedChildIds.contains(entry.key) &&
-                                      entry.key != promoChildId)
-                                    entry.key: entry.value,
-                              },
-                              promoCode: promoChildId == null
-                                  ? null
-                                  : (code: promo!.code, childId: promoChildId),
-                              companions: _companions,
-                              products: [
-                                for (final line in _cart.entries)
-                                  (productId: line.key, qty: line.value),
-                              ],
-                              cashUzs: requiredPayment == 0
-                                  ? 0
-                                  : paySplit.cashUzs,
-                              cardUzs: requiredPayment == 0
-                                  ? 0
-                                  : paySplit.cardUzs,
-                              discountId: _selectedDiscountId,
-                            ),
-                          ),
+                          onSubmit: () {
+                            // With a check discount, entryDiscountFor() is the
+                            // child's share — the printed ticket shows it.
+                            _checkoutEntryDiscounts = {
+                              for (final id in _selectedChildIds)
+                                if (!alreadyOnSelectedPlan.contains(id))
+                                  id: ?entryDiscountFor(id),
+                            };
+                            context.read<PosAccountBloc>().add(
+                              PosAccountCheckoutRequested(
+                                planKey: _selectedPlan!.key,
+                                childIds: orderedChildIds,
+                                withParentQr: _printParentQr,
+                                entryDiscounts: checkDiscount != null
+                                    ? const {}
+                                    : {
+                                        for (final entry
+                                            in _childEntryDiscountIds.entries)
+                                          if (_selectedChildIds.contains(
+                                                entry.key,
+                                              ) &&
+                                              entry.key != promoChildId)
+                                            entry.key: entry.value,
+                                      },
+                                checkDiscountId: checkDiscount?.id,
+                                promoCode: promoChildId == null
+                                    ? null
+                                    : (
+                                        code: promo!.code,
+                                        childId: promoChildId,
+                                      ),
+                                companions: _companions,
+                                products: [
+                                  for (final line in _cart.entries)
+                                    (productId: line.key, qty: line.value),
+                                ],
+                                cashUzs: requiredPayment == 0
+                                    ? 0
+                                    : paySplit.cashUzs,
+                                cardUzs: requiredPayment == 0
+                                    ? 0
+                                    : paySplit.cardUzs,
+                                discountId: _selectedDiscountId,
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ),
@@ -988,6 +1219,7 @@ class _ChildrenCard extends StatelessWidget {
     required this.onChildEntryDiscountChanged,
     required this.promoChildId,
     required this.promoLabel,
+    required this.checkShareLabels,
     required this.addingChild,
     required this.onStartAddChild,
     required this.onCancelAddChild,
@@ -1000,9 +1232,9 @@ class _ChildrenCard extends StatelessWidget {
 
   final Customer customer;
 
-  /// Standard/VIP — always exactly these two once loaded (seeded on the
-  /// backend). Standard starts a visit billed from the customer's balance
-  /// at exit; VIP is debited from the balance immediately at printing.
+  /// Standard/VIP, plus 1 soat when the backend has it switched on.
+  /// Standard starts a visit billed from the customer's balance at exit;
+  /// VIP and 1 soat are debited from the balance immediately at printing.
   final List<KidsPlan> plans;
   final bool isLoadingPlans;
 
@@ -1027,6 +1259,11 @@ class _ChildrenCard extends StatelessWidget {
   /// both null without a code.
   final String? promoChildId;
   final String? promoLabel;
+
+  /// childId → that child's share of the selected check discount
+  /// ("−10 000 so'm" / "−10%"), shown as a badge on its row. Empty when no
+  /// check discount is picked.
+  final Map<String, String> checkShareLabels;
   final bool addingChild;
   final VoidCallback onStartAddChild;
   final VoidCallback onCancelAddChild;
@@ -1040,8 +1277,8 @@ class _ChildrenCard extends StatelessWidget {
   final Widget checkout;
 
   /// Standard only: nothing is due at the register — billing happens at
-  /// exit by played time. VIP gets NO note here: it is debited immediately
-  /// at printing, and the checkout section already says so.
+  /// exit by played time. VIP / 1 soat get NO note here: they are debited
+  /// immediately at printing, and the checkout section already says so.
   String _noPaymentNote(AppLocalization l10n) => l10n.noPaymentNow;
 
   @override
@@ -1084,6 +1321,7 @@ class _ChildrenCard extends StatelessWidget {
                 onEntryDiscountChanged: (discountId) =>
                     onChildEntryDiscountChanged(child.id, discountId),
                 promoLabel: child.id == promoChildId ? promoLabel : null,
+                checkShareLabel: checkShareLabels[child.id],
               ),
             ),
           if (!addingChild)
@@ -1171,22 +1409,30 @@ class _ChildrenCard extends StatelessWidget {
               ),
             )
           else
-            Row(
-              children: [
-                for (final plan in plans) ...[
-                  if (plan.key != plans.first.key) const SizedBox(width: 8),
-                  Expanded(
-                    child: _TariffPill(
-                      plan: plan,
-                      selected: selectedPlan?.key == plan.key,
-                      onTap: () => onSelectPlan(plan),
-                    ),
-                  ),
-                ],
-              ],
+            LayoutBuilder(
+              builder: (context, constraints) {
+                // Up to 3 pills per row; any number of custom plans wrap.
+                final perRow = plans.length < 3 ? plans.length : 3;
+                final width =
+                    (constraints.maxWidth - 8 * (perRow - 1)) / perRow;
+                return Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final plan in plans)
+                      SizedBox(
+                        width: width,
+                        child: _TariffPill(
+                          plan: plan,
+                          selected: selectedPlan?.key == plan.key,
+                          onTap: () => onSelectPlan(plan),
+                        ),
+                      ),
+                  ],
+                );
+              },
             ),
-          if (selectedPlan != null &&
-              selectedPlan!.kind != KidsPlanKind.flatDay) ...[
+          if (selectedPlan != null && !selectedPlan!.isPrepaid) ...[
             const SizedBox(height: 10),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -1216,7 +1462,8 @@ class _ChildrenCard extends StatelessWidget {
 /// The money model mirrors the backend's plan-entry checkout: everything
 /// flows through the balance. Collected cash/card is credited to the
 /// balance first, then products are debited from it; the Standard tariff
-/// bills per exit, while VIP is debited from the balance at issuance.
+/// bills per exit, while VIP / 1 soat are debited from the balance at
+/// issuance.
 class _CheckoutSection extends StatelessWidget {
   const _CheckoutSection({
     required this.products,
@@ -1228,6 +1475,12 @@ class _CheckoutSection extends StatelessWidget {
     required this.cartDiscountUzs,
     required this.onDiscountChanged,
     required this.vipTotal,
+    required this.promoDiscountUzs,
+    required this.promoName,
+    required this.checkDiscountButton,
+    required this.checkDiscountUzs,
+    required this.checkDiscountName,
+    required this.hourPlan,
     required this.companions,
     required this.companionPriceUzs,
     required this.companionsTotal,
@@ -1252,7 +1505,7 @@ class _CheckoutSection extends StatelessWidget {
     required this.onAdd,
     required this.onRemove,
     required this.selectedChildCount,
-    required this.alreadyVipNames,
+    required this.alreadyNotes,
     required this.printParentQr,
     required this.onPrintParentQrChanged,
     required this.canSubmit,
@@ -1280,10 +1533,35 @@ class _CheckoutSection extends StatelessWidget {
   final int cartDiscountUzs;
   final ValueChanged<Discount?> onDiscountChanged;
 
-  /// VIP flat price × newly-covered children — debited from the balance
-  /// the moment the stickers print. 0 for Standard. Children with a
+  /// VIP / 1 soat flat price × newly-covered children — debited from the
+  /// balance the moment the stickers print. 0 for Standard. Children with a
   /// free-entry reason are already excluded.
   final int vipTotal;
+
+  /// PREVIEW ONLY — what the promo code takes off the prepaid tariff
+  /// ([vipTotal] is already net of it); 0 when no code applies.
+  final int promoDiscountUzs;
+  final String? promoName;
+
+  /// "Chek chegirmasi" button (null hides it) — right above the pay button.
+  final Widget? checkDiscountButton;
+
+  /// PREVIEW ONLY — what the check discount takes off the prepaid tariff;
+  /// 0 when none or Standard. [vipTotal] is already net of it.
+  final int checkDiscountUzs;
+  final String? checkDiscountName;
+
+  /// The prepaid plan picked is 1 soat, not VIP — only swaps the wording
+  /// of the [vipTotal] row, its "debited immediately" note and the
+  /// "no second charge" notes; VIP keeps its exact copy.
+
+  /// The selected flat_hour plan (built-in `hour` or a custom one) — its
+  /// name labels the total and the hint; null when none is selected.
+  final KidsPlan? hourPlan;
+
+  /// The shipped "1 soat" plan keeps its localized wording; custom plans
+  /// are labelled by their own name.
+  bool get _isBuiltInHour => hourPlan == null || hourPlan!.key == 'hour';
 
   /// Paid HAMROH companion stickers: qty, unit price (server-owned), and
   /// their subtotal — joins [neededTotal] and the normal payment flow.
@@ -1315,9 +1593,11 @@ class _CheckoutSection extends StatelessWidget {
   final ValueChanged<String> onRemove;
   final int selectedChildCount;
 
-  /// Selected children already on today's selected flat-day plan — shown
-  /// as "no second charge" notes and excluded from [vipTotal].
-  final List<String> alreadyVipNames;
+  /// Selected children already covered by a live pass on the selected
+  /// prepaid plan (or, for 1 soat, by a live VIP pass) — shown as "no second
+  /// charge" notes and excluded from [vipTotal]. Split by the pass they
+  /// hold so each note names the right tariff.
+  final List<String> alreadyNotes;
 
   /// The free parent sticker rides along with the checkout print.
   final bool printParentQr;
@@ -1439,17 +1719,20 @@ class _CheckoutSection extends StatelessWidget {
             ],
           ),
         ),
-        for (final name in alreadyVipNames)
+        for (final note in alreadyNotes)
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text(
-              l10n.vipAlreadyActive(name),
+              note,
               style: AppTextStyles.muted(
                 AppTextStyles.body,
               ).copyWith(fontSize: 11),
             ),
           ),
-        if (neededTotal > 0 || cartDiscountUzs > 0) ...[
+        if (neededTotal > 0 ||
+            cartDiscountUzs > 0 ||
+            promoDiscountUzs > 0 ||
+            checkDiscountUzs > 0) ...[
           const SizedBox(height: 12),
           if ([
                     cartTotal,
@@ -1457,7 +1740,9 @@ class _CheckoutSection extends StatelessWidget {
                     companionsTotal,
                   ].where((amount) => amount > 0).length >
                   1 ||
-              cartDiscountUzs > 0) ...[
+              cartDiscountUzs > 0 ||
+              promoDiscountUzs > 0 ||
+              checkDiscountUzs > 0) ...[
             if (cartTotal > 0)
               _TotalRow(label: l10n.products, amount: cartTotal),
             if (cartDiscountUzs > 0)
@@ -1465,8 +1750,23 @@ class _CheckoutSection extends StatelessWidget {
                 label: '${l10n.discount} (${selectedDiscount!.name})',
                 amount: -cartDiscountUzs,
               ),
-            if (vipTotal > 0)
-              _TotalRow(label: l10n.vipTariff, amount: vipTotal),
+            if (vipTotal + promoDiscountUzs + checkDiscountUzs > 0)
+              _TotalRow(
+                label: hourPlan != null
+                    ? (_isBuiltInHour ? l10n.hourTariff : hourPlan!.name)
+                    : l10n.vipTariff,
+                amount: vipTotal + promoDiscountUzs + checkDiscountUzs,
+              ),
+            if (promoDiscountUzs > 0)
+              _TotalRow(
+                label: '${l10n.promoCode} ($promoName)',
+                amount: -promoDiscountUzs,
+              ),
+            if (checkDiscountUzs > 0)
+              _TotalRow(
+                label: '${l10n.checkDiscount} ($checkDiscountName)',
+                amount: -checkDiscountUzs,
+              ),
             if (companionsTotal > 0)
               _TotalRow(
                 label: 'HAMROH QR ×$companions',
@@ -1478,36 +1778,50 @@ class _CheckoutSection extends StatelessWidget {
             children: [
               Text(l10n.total, style: AppTextStyles.muted(AppTextStyles.body)),
               const Spacer(),
-              Text(formatUzs(neededTotal), style: AppTextStyles.h5),
+              Text(
+                neededTotal == 0 ? l10n.free : formatUzs(neededTotal),
+                style: AppTextStyles.h5,
+              ),
             ],
           ),
           if (vipTotal > 0)
             Padding(
               padding: const EdgeInsets.only(top: 2),
               child: Text(
-                l10n.vipChargedImmediately,
+                hourPlan != null
+                    ? (_isBuiltInHour
+                          ? l10n.hourChargedImmediately
+                          : l10n.planChargedImmediately(hourPlan!.name))
+                    : l10n.vipChargedImmediately,
                 style: AppTextStyles.muted(
                   AppTextStyles.body,
                 ).copyWith(fontSize: 11),
               ),
             ),
           const SizedBox(height: 8),
-          if (balanceCovers)
-            SwitchListTile(
-              value: payFromBalance,
-              onChanged: onPayFromBalanceChanged,
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              activeThumbColor: NocturneColors.accent,
-              title: Text(
-                l10n.payFromBalance,
-                style: AppTextStyles.body.copyWith(fontSize: 13),
-              ),
-              subtitle: Text(
-                l10n.currentBalanceValue(formatUzs(balance)),
-                style: AppTextStyles.muted(
-                  AppTextStyles.body,
-                ).copyWith(fontSize: 11),
+          if (neededTotal == 0)
+            const SizedBox.shrink()
+          else if (balanceCovers)
+            // Transparent Material like the parent-QR tile below — the
+            // card's DecoratedBox otherwise trips ListTile's ink assert.
+            Material(
+              type: MaterialType.transparency,
+              child: SwitchListTile(
+                value: payFromBalance,
+                onChanged: onPayFromBalanceChanged,
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                activeThumbColor: NocturneColors.accent,
+                title: Text(
+                  l10n.payFromBalance,
+                  style: AppTextStyles.body.copyWith(fontSize: 13),
+                ),
+                subtitle: Text(
+                  l10n.currentBalanceValue(formatUzs(balance)),
+                  style: AppTextStyles.muted(
+                    AppTextStyles.body,
+                  ).copyWith(fontSize: 11),
+                ),
               ),
             )
           else
@@ -1582,6 +1896,10 @@ class _CheckoutSection extends StatelessWidget {
             ),
           ),
         ),
+        if (checkDiscountButton != null) ...[
+          const SizedBox(height: 8),
+          checkDiscountButton!,
+        ],
         const SizedBox(height: 8),
         SizedBox(
           height: 48,
@@ -1720,7 +2038,10 @@ class _PromoSection extends StatelessWidget {
           ),
           if (promoChild == null)
             Text(
-              l10n.promoCodeNoChild,
+              selectedChildren.isNotEmpty &&
+                      selectedChildren.every((c) => passChildIds.contains(c.id))
+                  ? l10n.promoCodeChildHasPass
+                  : l10n.promoCodeNoChild,
               style: AppTextStyles.muted(
                 AppTextStyles.body,
               ).copyWith(fontSize: 11),
@@ -2097,6 +2418,7 @@ class _ChildRow extends StatelessWidget {
     required this.selectedDiscountId,
     required this.onEntryDiscountChanged,
     this.promoLabel,
+    this.checkShareLabel,
   });
 
   final Child child;
@@ -2121,6 +2443,10 @@ class _ChildRow extends StatelessWidget {
   /// Set on the child the partner promo code discounts — shown instead of
   /// the 3-dots pick (the code's tier replaces it), and the menu is hidden.
   final String? promoLabel;
+
+  /// This child's share of the selected check discount ("−10 000 so'm"),
+  /// or null — a badge, since the check discount replaces the 3-dots pick.
+  final String? checkShareLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -2191,6 +2517,24 @@ class _ChildRow extends StatelessWidget {
               ),
               child: Text(
                 '${l10n.discount}: ${selectedDiscount.name}',
+                style: AppTextStyles.body.copyWith(
+                  fontSize: 11,
+                  color: NocturneColors.accent,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+          if (checkShareLabel != null) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: NocturneColors.accent.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+                border: Border.all(color: NocturneColors.accent),
+              ),
+              child: Text(
+                checkShareLabel!,
                 style: AppTextStyles.body.copyWith(
                   fontSize: 11,
                   color: NocturneColors.accent,
@@ -2319,6 +2663,23 @@ class _ChildRow extends StatelessWidget {
   }
 }
 
+/// "Already on a pass — no second charge" line for a child who holds a live
+/// pass on the selected plan, or on a covering VIP/day pass. The built-in
+/// VIP and 1 soat keep their own wording; any other plan is named.
+String _alreadyActiveNote(
+  AppLocalization l10n,
+  String childName,
+  KidsPlan selected,
+  String? activeKey,
+  Map<String, KidsPlan> plansByKey,
+) {
+  final holdKey = activeKey ?? selected.key;
+  if (holdKey == 'vip') return l10n.vipAlreadyActive(childName);
+  if (holdKey == 'hour') return l10n.hourAlreadyActive(childName);
+  final name = (holdKey == selected.key ? selected : plansByKey[holdKey])?.name;
+  return l10n.planAlreadyActive(childName, name ?? holdKey);
+}
+
 class _TariffPill extends StatelessWidget {
   const _TariffPill({
     required this.plan,
@@ -2330,16 +2691,29 @@ class _TariffPill extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  IconData get _icon => plan.kind == KidsPlanKind.flatDay
-      ? PhosphorIconsRegular.crownSimple
-      : PhosphorIconsRegular.ticket;
+  IconData get _icon => switch (plan.kind) {
+    KidsPlanKind.flatDay => PhosphorIconsRegular.crownSimple,
+    KidsPlanKind.flatHour =>
+      plan.isVip
+          ? PhosphorIconsRegular.crownSimple
+          : PhosphorIconsRegular.timer,
+    KidsPlanKind.perMinuteTiers => PhosphorIconsRegular.ticket,
+  };
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalization.of(context);
-    final priceLabel = plan.kind == KidsPlanKind.flatDay
-        ? l10n.pricePerDay(formatUzs(plan.flatUzs ?? 0))
-        : l10n.priceFromPerMinute(formatUzs(plan.firstMinuteUzs ?? 0));
+    final priceLabel = switch (plan.kind) {
+      KidsPlanKind.flatDay => l10n.pricePerDay(formatUzs(plan.flatUzs ?? 0)),
+      KidsPlanKind.flatHour =>
+        plan.durationMinutes == null || plan.durationMinutes == 60
+            ? l10n.pricePerHour(formatUzs(plan.flatUzs ?? 0))
+            : '${l10n.minutesCount(plan.durationMinutes!)} · '
+                  '${formatUzs(plan.flatUzs ?? 0)}',
+      KidsPlanKind.perMinuteTiers => l10n.priceFromPerMinute(
+        formatUzs(plan.firstMinuteUzs ?? 0),
+      ),
+    };
     return Material(
       color: selected
           ? NocturneColors.accent.withValues(alpha: 0.12)
@@ -2371,16 +2745,45 @@ class _TariffPill extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      plan.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.body.copyWith(
-                        fontSize: 13,
-                        color: selected
-                            ? NocturneColors.accent
-                            : NocturneColors.text,
-                      ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            plan.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.body.copyWith(
+                              fontSize: 13,
+                              color: selected
+                                  ? NocturneColors.accent
+                                  : NocturneColors.text,
+                            ),
+                          ),
+                        ),
+                        if (plan.isVip) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 5,
+                              vertical: 1,
+                            ),
+                            decoration: BoxDecoration(
+                              color: NocturneColors.accent.withValues(
+                                alpha: 0.2,
+                              ),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'VIP',
+                              style: AppTextStyles.body.copyWith(
+                                fontSize: 9,
+                                color: NocturneColors.accent,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     Text(
                       priceLabel,

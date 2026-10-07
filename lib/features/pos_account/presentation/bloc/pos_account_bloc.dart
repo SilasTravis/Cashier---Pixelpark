@@ -732,6 +732,8 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
       companions: event.companions,
       discountId: event.discountId,
       promoCode: event.promoCode,
+      checkDiscountId: event.checkDiscountId,
+      replacePlan: event.replacePlan,
     );
     result.fold(
       (failure) {
@@ -761,6 +763,16 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
         // per-child instead, see the `failures` branch below.)
         if (code == 'DISCOUNT_NOT_AVAILABLE') {
           add(const PosAccountDiscountsRequested(force: true));
+          // Same for the picked CHECK discount — the sheet clears its
+          // selection on this code and needs a fresh catalog to re-pick.
+          if (event.checkDiscountId != null) {
+            add(
+              const PosAccountDiscountsRequested(
+                scope: DiscountScope.check,
+                force: true,
+              ),
+            );
+          }
         }
       },
       (entryResult) {
@@ -769,6 +781,13 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
         // keep it on screen for another child, with the reason under it.
         final promoOutcome = entryResult.promoCode;
         final promoReleased = promoOutcome != null && !promoOutcome.applied;
+        // Released only because its child hit a plan-switch conflict — the
+        // confirm dialog re-sends the code, so no "not applied" note.
+        final awaitingSwitch =
+            promoReleased &&
+            entryResult.conflicts.any(
+              (c) => c.childId == promoOutcome.childId && c.switchable,
+            );
         final releaseReason = promoReleased
             ? entryResult.failures
                       .where((f) => f.childId == promoOutcome.childId)
@@ -781,7 +800,9 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
             isBusy: false,
             clearPromo: !promoReleased,
             clearPromoError: true,
-            promoErrorCode: promoReleased ? 'PROMO_CODE_RELEASED' : null,
+            promoErrorCode: promoReleased && !awaitingSwitch
+                ? 'PROMO_CODE_RELEASED'
+                : null,
             promoErrorMessage: releaseReason,
             lastEntryResult: entryResult,
             selectedCustomer: entryResult.balance == null
@@ -833,19 +854,21 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     PosAccountDiscountsRequested event,
     Emitter<PosAccountState> emit,
   ) async {
-    final held = event.scope == DiscountScope.entry
-        ? state.entryDiscounts
-        : state.discounts;
+    final held = switch (event.scope) {
+      DiscountScope.entry => state.entryDiscounts,
+      DiscountScope.check => state.checkDiscounts,
+      DiscountScope.goods => state.discounts,
+    };
     if (held.isNotEmpty && !event.force) return;
     final result = await _repository.fetchDiscounts(scope: event.scope);
     // Best-effort like plans/products/config: on failure (or an older
     // backend without the endpoint) the picker just stays hidden.
     result.fold((failure) {}, (discounts) {
-      emit(
-        event.scope == DiscountScope.entry
-            ? state.copyWith(entryDiscounts: discounts)
-            : state.copyWith(discounts: discounts),
-      );
+      emit(switch (event.scope) {
+        DiscountScope.entry => state.copyWith(entryDiscounts: discounts),
+        DiscountScope.check => state.copyWith(checkDiscounts: discounts),
+        DiscountScope.goods => state.copyWith(discounts: discounts),
+      });
     });
   }
 
