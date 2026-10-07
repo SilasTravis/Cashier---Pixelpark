@@ -447,6 +447,30 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                               0),
                     )
               : 0;
+          // Each child's own share, shown on its row: what it takes off the
+          // prepaid tariff, or — on Standard, billed at exit — the share
+          // itself. Nothing for a child that takes none (re-print, plan
+          // switch, a fixed amount that floors to 0).
+          String? checkShareLabel(String childId) {
+            final share = checkShareFor(childId);
+            if (share == null || alreadyOnSelectedPlan.contains(childId)) {
+              return null;
+            }
+            if (_selectedPlan?.isPrepaid ?? false) {
+              final off = share.appliedDiscountUzs(_selectedPlan!.flatUzs ?? 0);
+              return off > 0 ? '−${formatUzs(off)}' : null;
+            }
+            if (share.value <= 0) return null;
+            return share.kind == DiscountKind.percent
+                ? '−${share.value}%'
+                : '−${formatUzs(share.value)}';
+          }
+
+          final checkShareLabels = <String, String>{
+            if (checkDiscount != null)
+              for (final id in orderedChildIds)
+                if (checkShareLabel(id) case final String label) id: label,
+          };
           final companionsTotal = _companions * state.companionPriceUzs;
           // Discount applies ONLY to the goods cart — never to vipTotal or
           // companionsTotal (see the design doc's decision #1 scope note).
@@ -553,6 +577,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                         childEntryDiscountIds: checkDiscount == null
                             ? _childEntryDiscountIds
                             : const {},
+                        checkShareLabels: checkShareLabels,
                         promoChildId: promoChildId,
                         promoLabel: promo == null
                             ? null
@@ -1173,6 +1198,7 @@ class _ChildrenCard extends StatelessWidget {
     required this.onChildEntryDiscountChanged,
     required this.promoChildId,
     required this.promoLabel,
+    required this.checkShareLabels,
     required this.addingChild,
     required this.onStartAddChild,
     required this.onCancelAddChild,
@@ -1212,6 +1238,11 @@ class _ChildrenCard extends StatelessWidget {
   /// both null without a code.
   final String? promoChildId;
   final String? promoLabel;
+
+  /// childId → that child's share of the selected check discount
+  /// ("−10 000 so'm" / "−10%"), shown as a badge on its row. Empty when no
+  /// check discount is picked.
+  final Map<String, String> checkShareLabels;
   final bool addingChild;
   final VoidCallback onStartAddChild;
   final VoidCallback onCancelAddChild;
@@ -1269,6 +1300,7 @@ class _ChildrenCard extends StatelessWidget {
                 onEntryDiscountChanged: (discountId) =>
                     onChildEntryDiscountChanged(child.id, discountId),
                 promoLabel: child.id == promoChildId ? promoLabel : null,
+                checkShareLabel: checkShareLabels[child.id],
               ),
             ),
           if (!addingChild)
@@ -2365,6 +2397,7 @@ class _ChildRow extends StatelessWidget {
     required this.selectedDiscountId,
     required this.onEntryDiscountChanged,
     this.promoLabel,
+    this.checkShareLabel,
   });
 
   final Child child;
@@ -2389,6 +2422,10 @@ class _ChildRow extends StatelessWidget {
   /// Set on the child the partner promo code discounts — shown instead of
   /// the 3-dots pick (the code's tier replaces it), and the menu is hidden.
   final String? promoLabel;
+
+  /// This child's share of the selected check discount ("−10 000 so'm"),
+  /// or null — a badge, since the check discount replaces the 3-dots pick.
+  final String? checkShareLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -2459,6 +2496,24 @@ class _ChildRow extends StatelessWidget {
               ),
               child: Text(
                 '${l10n.discount}: ${selectedDiscount.name}',
+                style: AppTextStyles.body.copyWith(
+                  fontSize: 11,
+                  color: NocturneColors.accent,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+          if (checkShareLabel != null) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: NocturneColors.accent.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+                border: Border.all(color: NocturneColors.accent),
+              ),
+              child: Text(
+                checkShareLabel!,
                 style: AppTextStyles.body.copyWith(
                   fontSize: 11,
                   color: NocturneColors.accent,

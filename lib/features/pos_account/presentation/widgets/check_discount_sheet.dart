@@ -58,13 +58,15 @@ class CheckDiscountButton extends StatelessWidget {
           const Icon(PhosphorIconsRegular.percent, size: 18),
           const SizedBox(width: 8),
           Text(l10n.checkDiscount),
-          const Spacer(),
-          Flexible(
+          const SizedBox(width: 12),
+          // The pick sits flush right, like a settings row's value.
+          Expanded(
             child: Text(
               selected == null
                   ? l10n.checkDiscountNone
                   : checkDiscountLabel(selected!),
               overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.end,
               style: selected == null
                   ? AppTextStyles.muted(
                       AppTextStyles.body,

@@ -367,4 +367,42 @@ void main() {
     expect(find.text(formatUzs(-300000)), findsOneWidget);
     expect(totalValue(_free), findsOneWidget);
   });
+
+  testWidgets('each child row shows its own share of a fixed amount', (
+    tester,
+  ) async {
+    await pumpPanel(tester, thirdChild: true);
+    await selectChildrenAndPlan(tester, ['k1', 'k2', 'k3'], 'VIP');
+
+    await pickCheckDiscount(tester, 'Aksiya');
+
+    // 30 000 over three children: 10 000 each on its row.
+    expect(find.text('−${formatUzs(10000)}'), findsNWidgets(3));
+  });
+
+  testWidgets('on Standard each child row shows the percent share', (
+    tester,
+  ) async {
+    await pumpPanel(tester);
+    await selectChildrenAndPlan(tester, ['k1', 'k2'], 'Standart');
+
+    await pickCheckDiscount(tester, 'Oila');
+
+    expect(find.text('−10%'), findsNWidgets(2));
+  });
+
+  testWidgets('dropping a child moves its share badge to the others', (
+    tester,
+  ) async {
+    await pumpPanel(tester);
+    await selectChildrenAndPlan(tester, ['k1', 'k2'], 'VIP');
+
+    await pickCheckDiscount(tester, 'Aksiya');
+    expect(find.text('−${formatUzs(15000)}'), findsNWidgets(2));
+
+    await tapChildRow(tester, 'k2');
+    await tester.pumpAndSettle();
+    expect(find.text('−${formatUzs(15000)}'), findsNothing);
+    expect(find.text('−${formatUzs(30000)}'), findsOneWidget);
+  });
 }
