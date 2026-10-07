@@ -683,6 +683,7 @@
   "promoCodeWrongCustomer": "Bu promokod boshqa mijozga tegishli",
   "promoCodeForChild": "Qaysi bolaga",
   "promoCodeNoChild": "Promokod uchun bolani tanlang",
+  "promoCodeChildHasPass": "Bu bolada bugun faol propusk bor — promokod faqat yangi kirishga yoki VIP’ga o‘tishga qo‘llanadi",
   "promoCodeRemove": "Promokodni olib tashlash",
   "promoCodeReleased": "Promokod qo‘llanmadi, kod qaytarildi: {reason}",
   "@promoCodeReleased": { "placeholders": { "reason": { "type": "String" } } },

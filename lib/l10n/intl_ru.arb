@@ -607,6 +607,7 @@
   "promoCodeWrongCustomer": "Этот промокод принадлежит другому клиенту",
   "promoCodeForChild": "Какому ребёнку",
   "promoCodeNoChild": "Выберите ребёнка для промокода",
+  "promoCodeChildHasPass": "У ребёнка уже есть пропуск на сегодня — промокод действует только на новый вход или переход на VIP",
   "promoCodeRemove": "Убрать промокод",
   "promoCodeReleased": "Промокод не применён, код возвращён: {reason}",
   "@promoCodeReleased": { "placeholders": { "reason": { "type": "String" } } },

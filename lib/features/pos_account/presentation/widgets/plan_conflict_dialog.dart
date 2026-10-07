@@ -36,6 +36,13 @@ Future<void> showPlanConflictDialog(
   /// CURRENT plan is one of them is a live hour → VIP upgrade: the row adds
   /// that the hour price is not refunded. Empty leaves every row as before.
   Set<String> hourPlanKeys = const {},
+
+  /// The promo code the first checkout released because its child hit this
+  /// conflict. When that child is switchable, "Almashtirish" re-runs the
+  /// CHECKOUT (not the bare plan-entry) with `replacePlan` + the code, so
+  /// the new VIP pass carries the discount. Nothing else is re-charged:
+  /// no goods, companions or payment ride along.
+  ({String code, String childId})? promoCode,
 }) {
   final bloc = context.read<PosAccountBloc>();
   final switchable = conflicts.where((c) => c.switchable).toList();
@@ -111,13 +118,29 @@ Future<void> showPlanConflictDialog(
             FilledButton.icon(
               onPressed: () {
                 Navigator.of(dialogContext).pop();
-                bloc.add(
-                  PosAccountPlanEntryRequested(
-                    planKey: switchable.first.requestedPlanKey,
-                    childIds: [for (final c in switchable) c.childId],
-                    replacePlan: true,
-                  ),
-                );
+                final planKey = switchable.first.requestedPlanKey;
+                final childIds = [for (final c in switchable) c.childId];
+                if (promoCode != null && childIds.contains(promoCode.childId)) {
+                  bloc.add(
+                    PosAccountCheckoutRequested(
+                      planKey: planKey,
+                      childIds: childIds,
+                      products: const [],
+                      cashUzs: 0,
+                      cardUzs: 0,
+                      promoCode: promoCode,
+                      replacePlan: true,
+                    ),
+                  );
+                } else {
+                  bloc.add(
+                    PosAccountPlanEntryRequested(
+                      planKey: planKey,
+                      childIds: childIds,
+                      replacePlan: true,
+                    ),
+                  );
+                }
               },
               icon: const Icon(PhosphorIconsRegular.printer, size: 16),
               label: Text(l10n.switchAndPrint),

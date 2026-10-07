@@ -2804,6 +2804,16 @@ class AppLocalization {
     );
   }
 
+  /// `This child already has a pass today — the promo code only applies to a new entry or a VIP upgrade`
+  String get promoCodeChildHasPass {
+    return Intl.message(
+      'This child already has a pass today — the promo code only applies to a new entry or a VIP upgrade',
+      name: 'promoCodeChildHasPass',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Remove promo code`
   String get promoCodeRemove {
     return Intl.message(

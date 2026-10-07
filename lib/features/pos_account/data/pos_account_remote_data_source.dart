@@ -101,6 +101,7 @@ abstract class PosAccountRemoteDataSource {
     int companions = 0,
     String? discountId,
     ({String code, String childId})? promoCode,
+    bool replacePlan = false,
   });
 
   /// `POST /v1/pos/promo-codes/verify` — what a promo code is worth and,
@@ -369,6 +370,7 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
     int companions = 0,
     String? discountId,
     ({String code, String childId})? promoCode,
+    bool replacePlan = false,
   }) async {
     final response = await _request(
       () => dio.post(
@@ -396,6 +398,7 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
           'discountId': ?discountId,
           if (promoCode != null)
             'promoCode': {'code': promoCode.code, 'childId': promoCode.childId},
+          if (replacePlan) 'replacePlan': true,
         },
       ),
     );
