@@ -466,6 +466,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "promoCodeBlogger": MessageLookupByLibrary.simpleMessage("Блогер"),
     "promoCodeBloggerPending": m40,
     "promoCodeCheck": MessageLookupByLibrary.simpleMessage("Проверить"),
+    "promoCodeChildHasPass": MessageLookupByLibrary.simpleMessage(
+      "У ребёнка уже есть пропуск на сегодня — промокод действует только на новый вход или переход на VIP",
+    ),
     "promoCodeForChild": MessageLookupByLibrary.simpleMessage("Какому ребёнку"),
     "promoCodeHint": MessageLookupByLibrary.simpleMessage(
       "Отсканируйте или введите код",

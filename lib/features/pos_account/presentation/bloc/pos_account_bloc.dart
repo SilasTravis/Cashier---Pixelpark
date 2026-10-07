@@ -732,6 +732,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
       companions: event.companions,
       discountId: event.discountId,
       promoCode: event.promoCode,
+      replacePlan: event.replacePlan,
     );
     result.fold(
       (failure) {
@@ -769,6 +770,13 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
         // keep it on screen for another child, with the reason under it.
         final promoOutcome = entryResult.promoCode;
         final promoReleased = promoOutcome != null && !promoOutcome.applied;
+        // Released only because its child hit a plan-switch conflict — the
+        // confirm dialog re-sends the code, so no "not applied" note.
+        final awaitingSwitch =
+            promoReleased &&
+            entryResult.conflicts.any(
+              (c) => c.childId == promoOutcome.childId && c.switchable,
+            );
         final releaseReason = promoReleased
             ? entryResult.failures
                       .where((f) => f.childId == promoOutcome.childId)
@@ -781,7 +789,9 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
             isBusy: false,
             clearPromo: !promoReleased,
             clearPromoError: true,
-            promoErrorCode: promoReleased ? 'PROMO_CODE_RELEASED' : null,
+            promoErrorCode: promoReleased && !awaitingSwitch
+                ? 'PROMO_CODE_RELEASED'
+                : null,
             promoErrorMessage: releaseReason,
             lastEntryResult: entryResult,
             selectedCustomer: entryResult.balance == null

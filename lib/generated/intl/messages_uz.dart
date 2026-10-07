@@ -454,6 +454,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "promoCodeBlogger": MessageLookupByLibrary.simpleMessage("Blogger"),
     "promoCodeBloggerPending": m40,
     "promoCodeCheck": MessageLookupByLibrary.simpleMessage("Tekshirish"),
+    "promoCodeChildHasPass": MessageLookupByLibrary.simpleMessage(
+      "Bu bolada bugun faol propusk bor — promokod faqat yangi kirishga yoki VIP’ga o‘tishga qo‘llanadi",
+    ),
     "promoCodeForChild": MessageLookupByLibrary.simpleMessage("Qaysi bolaga"),
     "promoCodeHint": MessageLookupByLibrary.simpleMessage(
       "Skanerlang yoki kodni kiriting",

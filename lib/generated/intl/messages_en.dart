@@ -449,6 +449,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "promoCodeBlogger": MessageLookupByLibrary.simpleMessage("Blogger"),
     "promoCodeBloggerPending": m40,
     "promoCodeCheck": MessageLookupByLibrary.simpleMessage("Check"),
+    "promoCodeChildHasPass": MessageLookupByLibrary.simpleMessage(
+      "This child already has a pass today — the promo code only applies to a new entry or a VIP upgrade",
+    ),
     "promoCodeForChild": MessageLookupByLibrary.simpleMessage("For child"),
     "promoCodeHint": MessageLookupByLibrary.simpleMessage(
       "Scan or type the code",
