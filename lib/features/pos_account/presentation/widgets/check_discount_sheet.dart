@@ -42,6 +42,9 @@ class CheckDiscountButton extends StatelessWidget {
           context: context,
           backgroundColor: NocturneColors.surface,
           showDragHandle: true,
+          // Lets the sheet grow past the default 9/16 of the window; the
+          // list itself scrolls once the catalog outgrows the cap below.
+          isScrollControlled: true,
           builder: (_) =>
               _CheckDiscountSheet(discounts: discounts, selected: selected),
         );
@@ -110,23 +113,40 @@ class _CheckDiscountSheet extends StatelessWidget {
       onTap: () => Navigator.of(context).pop(value),
     );
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(l10n.checkDiscount, style: AppTextStyles.h5),
-            const SizedBox(height: 8),
-            option(l10n.noDiscount, null, selected == null, _noCheckDiscount),
-            for (final discount in discounts)
-              option(
-                discount.name,
-                _amount(discount),
-                discount.id == selected?.id,
-                discount,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.8,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(l10n.checkDiscount, style: AppTextStyles.h5),
+              const SizedBox(height: 8),
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    option(
+                      l10n.noDiscount,
+                      null,
+                      selected == null,
+                      _noCheckDiscount,
+                    ),
+                    for (final discount in discounts)
+                      option(
+                        discount.name,
+                        _amount(discount),
+                        discount.id == selected?.id,
+                        discount,
+                      ),
+                  ],
+                ),
               ),
-          ],
+            ],
+          ),
         ),
       ),
     );
