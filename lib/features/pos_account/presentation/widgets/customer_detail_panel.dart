@@ -360,9 +360,18 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               ? null
               : _selectedChildIds.contains(_promoChildId)
               ? _promoChildId
-              : selectedChildren
-                    .where((c) => !passChildIds.contains(c.id))
-                    .firstOrNull
+              // A child with no pass at all first — the code applies right
+              // away; an upgrade only after the switch is confirmed.
+              : (selectedChildren
+                            .where(
+                              (c) => !state.activePasses.any(
+                                (p) => p.childId == c.id,
+                              ),
+                            )
+                            .firstOrNull ??
+                        selectedChildren
+                            .where((c) => !passChildIds.contains(c.id))
+                            .firstOrNull)
                     ?.id;
 
           // A child with an entry discount pays the VIP / 1 soat price net of
