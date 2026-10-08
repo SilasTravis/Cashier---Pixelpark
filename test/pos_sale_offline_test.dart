@@ -239,6 +239,12 @@ void main() {
   Future<void> settle() =>
       Future<void>.delayed(const Duration(milliseconds: 20));
 
+  Future<void> settleUntil(bool Function() done) async {
+    for (var i = 0; i < 250 && !done(); i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    }
+  }
+
   test(
     'offline-only plan items are hidden online and sellable offline',
     () async {
@@ -273,7 +279,9 @@ void main() {
         ..add(const PosSaleProductAdded(_vip))
         ..add(const PosSaleProductAdded(_vip))
         ..add(const PosSaleCheckoutRequested(cashUzs: 150000, cardUzs: 0));
-      await settle();
+      // The queued sale is written to Hive first — slower on the Windows CI
+      // runner than a fixed settle(), so wait for the receipt itself.
+      await settleUntil(() => bloc.state.lastReceipt != null);
 
       expect(sales.checkouts, 0);
       expect(bloc.state.lastReceipt?.isOffline, isTrue);
