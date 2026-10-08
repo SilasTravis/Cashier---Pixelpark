@@ -106,7 +106,7 @@ class _RefundSaleDialogState extends State<_RefundSaleDialog> {
                   color: NocturneColors.danger.withValues(alpha: .18),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(
+                child: Icon(
                   PhosphorIconsRegular.arrowUDownLeft,
                   color: NocturneColors.neutral200,
                 ),
@@ -263,7 +263,7 @@ class _RefundSaleDialogState extends State<_RefundSaleDialog> {
                       const SizedBox(height: 12),
                       Text(
                         state.actionError!,
-                        style: const TextStyle(color: NocturneColors.danger),
+                        style: TextStyle(color: NocturneColors.danger),
                       ),
                     ],
                   ],

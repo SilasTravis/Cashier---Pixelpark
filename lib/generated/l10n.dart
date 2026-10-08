@@ -3194,6 +3194,26 @@ class AppLocalization {
     return Intl.message('Reprint all', name: 'reprintAll', desc: '', args: []);
   }
 
+  /// `Night mode`
+  String get themeNight {
+    return Intl.message('Night mode', name: 'themeNight', desc: '', args: []);
+  }
+
+  /// `Day mode`
+  String get themeDay {
+    return Intl.message('Day mode', name: 'themeDay', desc: '', args: []);
+  }
+
+  /// `A soft dark-blue background that is easy on the eyes. Remembered on this till.`
+  String get themeNightHint {
+    return Intl.message(
+      'A soft dark-blue background that is easy on the eyes. Remembered on this till.',
+      name: 'themeNightHint',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Transaction history`
   String get accountTxTitle {
     return Intl.message(

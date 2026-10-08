@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/theme/app_theme_mode.dart';
 import '../../../../core/theme/pos_light_theme.dart';
 import '../../../../core/theme/pos_palette.dart';
 import '../widgets/account_ui.dart';
@@ -46,12 +47,12 @@ class PosAccountPage extends StatelessWidget {
         }
         return bloc;
       },
-      // The account workspace is the till's one light screen: everything
-      // below — dialogs and menus included — resolves the light palette.
+      // Everything below — dialogs and menus included — resolves the till's
+      // current palette (light or night).
       child: Theme(
-        data: posLightTheme,
+        data: AppThemeMode.dark ? posDarkTheme : posLightTheme,
         child: ColoredBox(
-          color: PosPalette.light.bg,
+          color: PosPalette.current.bg,
           child: Padding(
             padding: breakpointOfContext(context) == Breakpoint.compact
                 ? const EdgeInsets.fromLTRB(12, 12, 12, 14)
@@ -76,7 +77,7 @@ class PosAccountPage extends StatelessWidget {
                             ? 10
                             : 16,
                       ),
-                      decoration: accountCardDecoration(PosPalette.light),
+                      decoration: accountCardDecoration(PosPalette.current),
                       child: const SingleChildScrollView(child: PhoneKeypad()),
                     ),
                     SizedBox(
@@ -87,7 +88,7 @@ class PosAccountPage extends StatelessWidget {
                     Expanded(
                       child: Container(
                         padding: const EdgeInsets.all(16),
-                        decoration: accountCardDecoration(PosPalette.light),
+                        decoration: accountCardDecoration(PosPalette.current),
                         child: const CustomerResultsList(),
                       ),
                     ),

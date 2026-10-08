@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'app_text_styles.dart';
+import 'app_theme_mode.dart';
 
 /// Screen-level color tokens of the light / primary-blue design, resolved
 /// from the ambient [Theme] (see `posLightTheme`). Read with [PosPalette.of].
@@ -81,10 +82,37 @@ class PosPalette extends ThemeExtension<PosPalette> {
     dangerSoft: Color(0xFFFEF2F2),
   );
 
-  /// Falls back to [light] — widget tests pumping a bare MaterialApp get
+  /// Night mode: a soft blue-slate, not black — easy on the eyes in a dim
+  /// hall without the harsh contrast of a pure dark theme.
+  static const dark = PosPalette(
+    bg: Color(0xFF1B2536),
+    surface: Color(0xFF243044),
+    surfaceMuted: Color(0xFF2C3A51),
+    text: Color(0xFFE8EEF7),
+    textMuted: Color(0xFFA7B4C8),
+    textFaint: Color(0xFF7F8DA3),
+    border: Color(0xFF34445C),
+    borderStrong: Color(0xFF43556F),
+    accent: Color(0xFF3B82F6),
+    accentSoft: Color(0xFF2A3F63),
+    accentBorder: Color(0xFF3D5B8C),
+    accentStrong: Color(0xFF9CC2FF),
+    onAccent: Color(0xFFFFFFFF),
+    positive: Color(0xFF34D399),
+    positiveSoft: Color(0xFF1F3D3A),
+    warning: Color(0xFFF5B547),
+    warningSoft: Color(0xFF40361F),
+    danger: Color(0xFFF87171),
+    dangerSoft: Color(0xFF472A31),
+  );
+
+  /// The palette for the current [AppThemeMode].
+  static PosPalette get current => AppThemeMode.dark ? dark : light;
+
+  /// Falls back to [current] — widget tests pumping a bare MaterialApp get
   /// the same colors as the app.
   static PosPalette of(BuildContext context) =>
-      Theme.of(context).extension<PosPalette>() ?? light;
+      Theme.of(context).extension<PosPalette>() ?? current;
 
   @override
   PosPalette copyWith() => this;

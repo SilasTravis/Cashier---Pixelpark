@@ -132,7 +132,7 @@ class _EditSaleDialogState extends State<_EditSaleDialog> {
                   color: NocturneColors.accent900,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(
+                child: Icon(
                   PhosphorIconsRegular.pencilSimple,
                   color: NocturneColors.neutral200,
                 ),
@@ -248,7 +248,7 @@ class _EditSaleDialogState extends State<_EditSaleDialog> {
                       const SizedBox(height: 12),
                       Text(
                         state.actionError!,
-                        style: const TextStyle(color: NocturneColors.danger),
+                        style: TextStyle(color: NocturneColors.danger),
                       ),
                       const SizedBox(height: 6),
                       Text(

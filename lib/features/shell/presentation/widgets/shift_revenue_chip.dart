@@ -37,7 +37,7 @@ class ShiftRevenueChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (!compact) ...[
-            const Icon(
+            Icon(
               PhosphorIconsRegular.wallet,
               size: 18,
               color: NocturneColors.accent,
@@ -75,7 +75,7 @@ class ShiftRevenueChip extends StatelessWidget {
             visualDensity: VisualDensity.compact,
             onPressed: () =>
                 context.read<ShiftBloc>().add(const ShiftRefreshed()),
-            icon: const Icon(
+            icon: Icon(
               PhosphorIconsRegular.arrowsClockwise,
               size: 16,
               color: NocturneColors.accent,

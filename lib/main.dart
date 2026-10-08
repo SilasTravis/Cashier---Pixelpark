@@ -6,6 +6,8 @@ import 'app.dart';
 import 'constants/app_constants.dart';
 import 'core/connectivity/connectivity_monitor.dart';
 import 'core/terminal/terminal_heartbeat_service.dart';
+import 'core/local_source/local_source.dart';
+import 'core/theme/app_theme_mode.dart';
 import 'core/theme/nocturne_colors.dart';
 import 'core/update/update_service.dart';
 import 'injector_container.dart' as di;
@@ -13,14 +15,16 @@ import 'injector_container.dart' as di;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await di.init();
+  // Before the first frame, so the window opens in the till's last mode.
+  AppThemeMode.notifier.value = di.sl<LocalSource>().getDarkMode();
   di.sl<UpdateService>().startBackgroundChecks();
   di.sl<ConnectivityMonitor>().start();
   di.sl<TerminalHeartbeatService>().start();
 
   await windowManager.ensureInitialized();
-  const windowOptions = WindowOptions(
+  final windowOptions = WindowOptions(
     size: Size(1440, 900),
-    minimumSize: Size(
+    minimumSize: const Size(
       AppConstants.minWindowWidth,
       AppConstants.minWindowHeight,
     ),

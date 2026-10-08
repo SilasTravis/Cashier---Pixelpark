@@ -45,7 +45,7 @@ class _TitleBarState extends State<TitleBar> with WindowListener {
   Widget build(BuildContext context) {
     return Container(
       height: 36,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: NocturneColors.surface,
         border: Border(bottom: BorderSide(color: NocturneColors.divider)),
       ),
@@ -66,7 +66,7 @@ class _TitleBarState extends State<TitleBar> with WindowListener {
                 padding: EdgeInsets.only(left: Platform.isMacOS ? 78 : 12),
                 child: Row(
                   children: [
-                    const Icon(
+                    Icon(
                       PhosphorIconsFill.storefront,
                       size: 14,
                       color: NocturneColors.accent,

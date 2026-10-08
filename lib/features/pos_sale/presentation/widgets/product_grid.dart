@@ -191,13 +191,13 @@ class _ProductCard extends StatelessWidget {
                     width: 22,
                     height: 22,
                     alignment: Alignment.center,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       color: NocturneColors.accent,
                       shape: BoxShape.circle,
                     ),
                     child: Text(
                       '$qtyInCart',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: NocturneColors.neutral100,
                         fontSize: 11,
                         fontWeight: FontWeight.w700,

@@ -678,6 +678,11 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "tariff": MessageLookupByLibrary.simpleMessage("Tariff"),
     "tariffNotFound": MessageLookupByLibrary.simpleMessage("No tariffs found."),
+    "themeDay": MessageLookupByLibrary.simpleMessage("Day mode"),
+    "themeNight": MessageLookupByLibrary.simpleMessage("Night mode"),
+    "themeNightHint": MessageLookupByLibrary.simpleMessage(
+      "A soft dark-blue background that is easy on the eyes. Remembered on this till.",
+    ),
     "topup": MessageLookupByLibrary.simpleMessage("Top up"),
     "topupBalance": MessageLookupByLibrary.simpleMessage("Top up balance"),
     "topupConfirmAction": MessageLookupByLibrary.simpleMessage("Top up"),

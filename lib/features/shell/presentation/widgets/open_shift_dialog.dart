@@ -63,7 +63,7 @@ class _OpenShiftPromptState extends State<OpenShiftPrompt> {
                         color: NocturneColors.accent.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         PhosphorIconsRegular.cashRegister,
                         color: NocturneColors.accent,
                         size: 28,
@@ -99,7 +99,7 @@ class _OpenShiftPromptState extends State<OpenShiftPrompt> {
                       const SizedBox(height: 12),
                       Text(
                         state.errorMessage!,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: NocturneColors.danger,
                           fontSize: 13,
                         ),
@@ -124,7 +124,7 @@ class _OpenShiftPromptState extends State<OpenShiftPrompt> {
                                 );
                               },
                         child: state.isLoading
-                            ? const SizedBox(
+                            ? SizedBox(
                                 width: 18,
                                 height: 18,
                                 child: CircularProgressIndicator(

@@ -74,7 +74,7 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                               borderRadius: BorderRadius.circular(16),
                             ),
-                            child: const Icon(
+                            child: Icon(
                               PhosphorIconsRegular.storefront,
                               color: NocturneColors.accent,
                               size: 28,
@@ -135,7 +135,7 @@ class _LoginPageState extends State<LoginPage> {
                             const SizedBox(height: 12),
                             Text(
                               state.errorMessage!,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: NocturneColors.danger,
                                 fontSize: 13,
                               ),
@@ -151,7 +151,7 @@ class _LoginPageState extends State<LoginPage> {
                                   ? null
                                   : () => _submit(context),
                               child: state.isLoading
-                                  ? const SizedBox(
+                                  ? SizedBox(
                                       width: 18,
                                       height: 18,
                                       child: CircularProgressIndicator(

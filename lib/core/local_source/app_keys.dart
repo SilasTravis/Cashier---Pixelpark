@@ -21,6 +21,10 @@ abstract final class AppKeys {
   /// logout.
   static const String printParentQr = 'printParentQr';
 
+  /// Night mode on this till (the soft blue-slate theme). Device config,
+  /// not session: never cleared on logout.
+  static const String darkMode = 'darkMode';
+
   /// This installation's identity for the backend's terminal monitoring.
   /// Device config, not session: never cleared on logout.
   static const String terminalId = 'terminalId';

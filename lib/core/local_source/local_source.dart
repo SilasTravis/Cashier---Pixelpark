@@ -99,6 +99,11 @@ class LocalSource {
   bool getPrintParentQr() =>
       box.get(AppKeys.printParentQr, defaultValue: false) as bool;
 
+  Future<void> setDarkMode(bool value) => box.put(AppKeys.darkMode, value);
+
+  /// Light until the cashier switches the till to night mode.
+  bool getDarkMode() => box.get(AppKeys.darkMode, defaultValue: false) as bool;
+
   /// This installation's terminal id — a UUID v4 generated on first call
   /// and kept for good. It lives in this box (not the app folder), so a
   /// self-update, which replaces the app folder, keeps it; and it is not in

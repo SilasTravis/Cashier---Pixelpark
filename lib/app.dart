@@ -5,6 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/localization/locale_cubit.dart';
 import 'core/offline/app_mode_cubit.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/app_theme_mode.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/shell/presentation/pages/shell_page.dart';
 import 'injector_container.dart';
@@ -25,27 +26,30 @@ class App extends StatelessWidget {
         // `.value`: the singleton outlives this widget; never closed here.
         BlocProvider<AppModeCubit>.value(value: sl<AppModeCubit>()),
       ],
-      child: BlocBuilder<LocaleCubit, Locale>(
-        builder: (context, locale) => MaterialApp(
-          onGenerateTitle: (context) => AppLocalization.of(context).appTitle,
-          debugShowCheckedModeBanner: false,
-          navigatorKey: rootNavigatorKey,
-          theme: appTheme,
-          darkTheme: appTheme,
-          themeMode: ThemeMode.light,
-          locale: locale,
-          supportedLocales: AppLocalization.delegate.supportedLocales,
-          localizationsDelegates: const [
-            AppLocalization.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
-          initialRoute: hasSession ? Routes.shell : Routes.login,
-          routes: {
-            Routes.login: (_) => const LoginPage(),
-            Routes.shell: (_) => const ShellPage(),
-          },
+      child: ValueListenableBuilder<bool>(
+        valueListenable: AppThemeMode.notifier,
+        builder: (context, dark, _) => BlocBuilder<LocaleCubit, Locale>(
+          builder: (context, locale) => MaterialApp(
+            onGenerateTitle: (context) => AppLocalization.of(context).appTitle,
+            debugShowCheckedModeBanner: false,
+            navigatorKey: rootNavigatorKey,
+            // The till picks its own mode (Settings / top bar), not the OS.
+            theme: dark ? appDarkTheme : appTheme,
+            themeMode: ThemeMode.light,
+            locale: locale,
+            supportedLocales: AppLocalization.delegate.supportedLocales,
+            localizationsDelegates: const [
+              AppLocalization.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            initialRoute: hasSession ? Routes.shell : Routes.login,
+            routes: {
+              Routes.login: (_) => const LoginPage(),
+              Routes.shell: (_) => const ShellPage(),
+            },
+          ),
         ),
       ),
     );

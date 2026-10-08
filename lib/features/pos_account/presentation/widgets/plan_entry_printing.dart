@@ -103,7 +103,7 @@ void printPlanEntryLabels(
         backgroundColor: NocturneColors.surface,
         content: Row(
           children: [
-            const Icon(
+            Icon(
               PhosphorIconsRegular.warning,
               size: 16,
               color: NocturneColors.accent300,
@@ -163,7 +163,7 @@ void printPassesWithTicketFallback(
           backgroundColor: NocturneColors.surface,
           content: Row(
             children: [
-              const Icon(
+              Icon(
                 PhosphorIconsRegular.printer,
                 size: 16,
                 color: NocturneColors.accent300,
@@ -181,7 +181,7 @@ void printPassesWithTicketFallback(
         backgroundColor: NocturneColors.surface,
         content: Text(
           l10n.stickerPrintFailed,
-          style: const TextStyle(color: NocturneColors.danger),
+          style: TextStyle(color: NocturneColors.danger),
         ),
       ),
     );

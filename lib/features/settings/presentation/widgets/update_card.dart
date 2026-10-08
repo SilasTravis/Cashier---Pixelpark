@@ -57,7 +57,7 @@ class UpdateCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     PhosphorIconsRegular.arrowCircleUp,
                     color: NocturneColors.accent,
                     size: 20,

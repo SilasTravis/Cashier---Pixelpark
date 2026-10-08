@@ -186,7 +186,7 @@ class _SalesHistoryView extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               child: Text(
                 state.error!,
-                style: const TextStyle(color: NocturneColors.danger),
+                style: TextStyle(color: NocturneColors.danger),
               ),
             ),
           Expanded(
@@ -334,7 +334,7 @@ class _SaleCard extends StatelessWidget {
         color: NocturneColors.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
-          side: const BorderSide(color: NocturneColors.divider),
+          side: BorderSide(color: NocturneColors.divider),
         ),
         clipBehavior: Clip.antiAlias,
         child: ListTile(
@@ -378,11 +378,11 @@ class _SaleCard extends StatelessWidget {
       collapsedBackgroundColor: NocturneColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
-        side: const BorderSide(color: NocturneColors.divider),
+        side: BorderSide(color: NocturneColors.divider),
       ),
       collapsedShape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
-        side: const BorderSide(color: NocturneColors.divider),
+        side: BorderSide(color: NocturneColors.divider),
       ),
       title: Row(
         children: [
@@ -485,7 +485,7 @@ class _SaleCard extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
             child: Row(
               children: [
-                const Icon(
+                Icon(
                   PhosphorIconsRegular.clockCounterClockwise,
                   size: 17,
                   color: NocturneColors.accent,
@@ -508,7 +508,7 @@ class _SaleCard extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
             child: Row(
               children: [
-                const Icon(
+                Icon(
                   PhosphorIconsRegular.arrowsLeftRight,
                   size: 17,
                   color: NocturneColors.accent,
@@ -638,10 +638,7 @@ class _SaleCard extends StatelessWidget {
       builder: (dialogContext) => AlertDialog(
         title: Row(
           children: [
-            const Icon(
-              PhosphorIconsRegular.wallet,
-              color: NocturneColors.accent,
-            ),
+            Icon(PhosphorIconsRegular.wallet, color: NocturneColors.accent),
             const SizedBox(width: 10),
             Text(l10n.topupDetails),
           ],
@@ -806,7 +803,7 @@ class _PaymentCorrectionAuditRow extends StatelessWidget {
                 color: NocturneColors.accent900,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(
+              child: Icon(
                 PhosphorIconsRegular.arrowsLeftRight,
                 size: 17,
                 color: NocturneColors.accent300,
@@ -884,7 +881,7 @@ class _RefundAuditRow extends StatelessWidget {
                 color: NocturneColors.accent900,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(
+              child: Icon(
                 PhosphorIconsRegular.arrowUDownLeft,
                 size: 17,
                 color: NocturneColors.accent300,

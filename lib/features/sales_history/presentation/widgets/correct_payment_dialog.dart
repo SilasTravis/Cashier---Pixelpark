@@ -109,7 +109,7 @@ class _CorrectPaymentDialogState extends State<_CorrectPaymentDialog> {
                   color: NocturneColors.accent900,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(
+                child: Icon(
                   PhosphorIconsRegular.arrowsLeftRight,
                   color: NocturneColors.neutral200,
                 ),
@@ -207,7 +207,7 @@ class _CorrectPaymentDialogState extends State<_CorrectPaymentDialog> {
                       const SizedBox(height: 12),
                       Text(
                         state.actionError!,
-                        style: const TextStyle(color: NocturneColors.danger),
+                        style: TextStyle(color: NocturneColors.danger),
                       ),
                     ],
                   ],

@@ -236,7 +236,7 @@ class _ChildCard extends StatelessWidget {
       color: NocturneColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        side: const BorderSide(color: NocturneColors.divider),
+        side: BorderSide(color: NocturneColors.divider),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -286,7 +286,7 @@ class _ChildCard extends StatelessWidget {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     PhosphorIconsRegular.phone,
                     size: 17,
                     color: NocturneColors.accent,
@@ -387,7 +387,7 @@ class _Empty extends StatelessWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(
+        Icon(
           PhosphorIconsRegular.personSimpleRun,
           size: 42,
           color: NocturneColors.neutral600,

@@ -112,7 +112,7 @@ class _VisitHistoryViewState extends State<_VisitHistoryView> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(
+                          Icon(
                             PhosphorIconsRegular.clock,
                             size: 16,
                             color: NocturneColors.accent,
@@ -142,7 +142,7 @@ class _VisitHistoryViewState extends State<_VisitHistoryView> {
               padding: const EdgeInsets.all(12),
               child: Text(
                 state.error!,
-                style: const TextStyle(color: NocturneColors.danger),
+                style: TextStyle(color: NocturneColors.danger),
               ),
             ),
           Expanded(
@@ -251,7 +251,7 @@ class _VisitRow extends StatelessWidget {
       color: NocturneColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.md),
-        side: const BorderSide(color: NocturneColors.divider),
+        side: BorderSide(color: NocturneColors.divider),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(

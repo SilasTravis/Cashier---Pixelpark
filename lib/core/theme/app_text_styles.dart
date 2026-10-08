@@ -10,51 +10,45 @@ import 'nocturne_colors.dart';
 const String? _fontFamily = null;
 
 /// Heading + body text styles, sized to match the design's `h1`–`h6` and
-/// body scale. Weight 500 (`--font-heading-weight`) for headings.
+/// body scale. No color: text inks itself from the ambient theme (light or
+/// night), unless a caller sets one. Weight 500 (`--font-heading-weight`) for headings.
 abstract final class AppTextStyles {
   static const TextStyle body = TextStyle(
     fontFamily: _fontFamily,
     fontSize: 15,
     height: 1.4,
-    color: NocturneColors.text,
   );
 
   static const TextStyle h1 = TextStyle(
     fontFamily: _fontFamily,
     fontSize: 42,
     fontWeight: FontWeight.w500,
-    color: NocturneColors.text,
   );
   static const TextStyle h2 = TextStyle(
     fontFamily: _fontFamily,
     fontSize: 32,
     fontWeight: FontWeight.w500,
-    color: NocturneColors.text,
   );
   static const TextStyle h3 = TextStyle(
     fontFamily: _fontFamily,
     fontSize: 25,
     fontWeight: FontWeight.w500,
-    color: NocturneColors.text,
   );
   static const TextStyle h4 = TextStyle(
     fontFamily: _fontFamily,
     fontSize: 20,
     fontWeight: FontWeight.w500,
-    color: NocturneColors.text,
   );
   static const TextStyle h5 = TextStyle(
     fontFamily: _fontFamily,
     fontSize: 16,
     fontWeight: FontWeight.w500,
-    color: NocturneColors.text,
   );
   static const TextStyle h6 = TextStyle(
     fontFamily: _fontFamily,
     fontSize: 13,
     fontWeight: FontWeight.w500,
     letterSpacing: 1.04, // 0.08em
-    color: NocturneColors.text,
   );
 
   /// Small uppercase kicker label — used all over the design (`Kassa 2 ·

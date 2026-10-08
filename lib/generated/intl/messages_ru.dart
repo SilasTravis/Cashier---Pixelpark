@@ -699,6 +699,11 @@ class MessageLookup extends MessageLookupByLibrary {
     "tariffNotFound": MessageLookupByLibrary.simpleMessage(
       "Тарифы не найдены.",
     ),
+    "themeDay": MessageLookupByLibrary.simpleMessage("Дневной режим"),
+    "themeNight": MessageLookupByLibrary.simpleMessage("Ночной режим"),
+    "themeNightHint": MessageLookupByLibrary.simpleMessage(
+      "Мягкий тёмно-синий фон, не утомляющий глаза. Запоминается на этой кассе.",
+    ),
     "topup": MessageLookupByLibrary.simpleMessage("Пополнить"),
     "topupBalance": MessageLookupByLibrary.simpleMessage("Пополнить баланс"),
     "topupConfirmAction": MessageLookupByLibrary.simpleMessage("Пополнить"),

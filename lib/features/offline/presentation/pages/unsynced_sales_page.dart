@@ -39,7 +39,7 @@ class UnsyncedSalesPage extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
+                  Icon(
                     PhosphorIconsRegular.cloudCheck,
                     size: 40,
                     color: NocturneColors.success,

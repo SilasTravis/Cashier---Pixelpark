@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+
+import '../../../../core/theme/theme_mode_toggle.dart';
 import 'package:phosphor_icons/phosphor_icons.dart';
 
 import '../../../../core/theme/app_text_styles.dart';
@@ -121,7 +123,7 @@ class TopNav extends StatelessWidget {
         return Container(
           height: 64,
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: NocturneColors.surface,
             border: Border(bottom: BorderSide(color: NocturneColors.divider)),
           ),
@@ -161,6 +163,8 @@ class TopNav extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               if (revenue != null) ...[revenue!, const SizedBox(width: 10)],
+              const ThemeModeButton(),
+              const SizedBox(width: 8),
               const LanguageSwitcher(),
               if (showWho) ...[
                 const SizedBox(width: 14),
@@ -242,7 +246,7 @@ class _WhoIsOnTill extends StatelessWidget {
                 Container(
                   width: 7,
                   height: 7,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: NocturneColors.success,
                     shape: BoxShape.circle,
                   ),
@@ -321,7 +325,7 @@ class _NavTab extends StatelessWidget {
                             key: Key('nav-update-badge-${tab.name}'),
                             width: 8,
                             height: 8,
-                            decoration: const BoxDecoration(
+                            decoration: BoxDecoration(
                               color: NocturneColors.accent,
                               shape: BoxShape.circle,
                             ),

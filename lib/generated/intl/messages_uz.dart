@@ -691,6 +691,11 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "tariff": MessageLookupByLibrary.simpleMessage("Tarif"),
     "tariffNotFound": MessageLookupByLibrary.simpleMessage("Tarif topilmadi."),
+    "themeDay": MessageLookupByLibrary.simpleMessage("Kunduzgi rejim"),
+    "themeNight": MessageLookupByLibrary.simpleMessage("Tungi rejim"),
+    "themeNightHint": MessageLookupByLibrary.simpleMessage(
+      "Ko‘zni charchatmaydigan yumshoq ko‘k-to‘q fon. Shu kassada eslab qolinadi.",
+    ),
     "topup": MessageLookupByLibrary.simpleMessage("To‘ldirish"),
     "topupBalance": MessageLookupByLibrary.simpleMessage("Balansni to‘ldirish"),
     "topupConfirmAction": MessageLookupByLibrary.simpleMessage("To‘ldirish"),
