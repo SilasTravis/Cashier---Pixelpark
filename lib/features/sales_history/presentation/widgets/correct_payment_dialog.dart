@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:phosphor_icons/phosphor_icons.dart';
 import 'package:uuid/uuid.dart';
@@ -70,7 +69,7 @@ class _CorrectPaymentDialogState extends State<_CorrectPaymentDialog> {
       : SalePaymentMoveMethod.cash;
 
   int get _limit => widget.sale.movableFor(_from);
-  int get _amount => int.tryParse(_amountController.text) ?? 0;
+  int get _amount => parseUzs(_amountController.text) ?? 0;
 
   int get _resultCash =>
       widget.sale.cashUzs +
@@ -163,7 +162,7 @@ class _CorrectPaymentDialogState extends State<_CorrectPaymentDialog> {
                       controller: _amountController,
                       enabled: !submitting,
                       keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      inputFormatters: const [ThousandsInputFormatter()],
                       onChanged: (_) => setState(() {}),
                       decoration: InputDecoration(
                         labelText: l10n.correctPaymentAmount,
@@ -172,7 +171,7 @@ class _CorrectPaymentDialogState extends State<_CorrectPaymentDialog> {
                             '${l10n.correctPaymentTo}: ${_label(l10n, _to)} · 1 — ${formatUzs(_limit)}',
                       ),
                       validator: (value) {
-                        final amount = int.tryParse(value ?? '');
+                        final amount = parseUzs(value ?? '');
                         if (amount == null || amount < 1 || amount > _limit) {
                           return '1 — ${formatUzs(_limit)}';
                         }

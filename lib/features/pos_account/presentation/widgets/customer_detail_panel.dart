@@ -4,12 +4,15 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:phosphor_icons/phosphor_icons.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/local_source/local_source.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/theme/nocturne_colors.dart';
+import '../../../../core/theme/pos_palette.dart';
+import '../../../../core/utils/phone_number.dart';
 import '../../../../core/utils/currency.dart';
 import '../../../../core/widgets/discount_picker.dart';
 import '../../../../core/widgets/payment_method_selector.dart';
 import '../../../../core/widgets/promo_code_field.dart';
+import '../../../pos_sale/presentation/widgets/product_grid.dart';
 import '../../../pos_sale/presentation/widgets/receipt_dialog.dart';
 import '../../../pos_sale/domain/discount.dart';
 import '../../../pos_sale/domain/sale_receipt.dart';
@@ -20,19 +23,20 @@ import '../../domain/kids_plan.dart';
 import '../../domain/playing_child.dart';
 import '../../domain/pos_entry.dart';
 import '../../domain/promo_code_check.dart';
+import 'account_ui.dart';
 import 'check_discount_sheet.dart';
+import 'entry_discount_dialog.dart';
 import 'confirm_topup_dialog.dart';
 import '../bloc/pos_account_bloc.dart';
 import 'plan_conflict_dialog.dart';
 import 'plan_entry_printing.dart';
+import 'today_passes_card.dart';
+import 'transactions_accordion.dart';
 import 'promo_code_error.dart';
 import '../../../../generated/l10n.dart';
+import '../../../../injector_container.dart';
 
 const _quickTopupAmounts = [10000, 20000, 50000, 100000];
-
-/// Sentinel for the 3-dots menu's "Bekor qilish" item — see the
-/// PopupMenuButton note in [_ChildRow].
-const _clearEntryDiscount = Object();
 
 /// The center pane once a customer is selected — a summary strip (back,
 /// avatar, name, balance) then two cards side by side (wrapping on narrow
@@ -70,8 +74,41 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
   bool _addingChild = false;
   final _childNameController = TextEditingController();
 
-  /// Checkout also prints the free parent QR — default ON per customer.
-  bool _printParentQr = true;
+  /// Checkout also prints the free parent QR. Starts from the cashier's
+  /// last choice on this till (OFF until first turned on) — see
+  /// [LocalSource.getPrintParentQr].
+  bool _printParentQr = _savedPrintParentQr();
+
+  /// "Bugungi QR'lar" re-print in flight: the plan name its sticker / ticket
+  /// carries (the pass's own plan, not whatever is picked in step 2), and the
+  /// plan groups still to send — the bloc drops a request while busy, so
+  /// "Hammasini" sends them one after another.
+  String? _reprintPlanName;
+  List<ReprintGroup> _reprintQueue = const [];
+
+  void _startReprint(List<ReprintGroup> groups) {
+    if (groups.isEmpty) return;
+    final next = groups.first;
+    _reprintQueue = groups.sublist(1);
+    _reprintPlanName = next.planLabel;
+    context.read<PosAccountBloc>().add(
+      PosAccountPlanEntryRequested(
+        planKey: next.planKey,
+        childIds: next.childIds,
+      ),
+    );
+  }
+
+  void _clearReprint() {
+    _reprintPlanName = null;
+    _reprintQueue = const [];
+  }
+
+  /// Null in widget tests that don't register the local store.
+  static LocalSource? get _local =>
+      sl.isRegistered<LocalSource>() ? sl<LocalSource>() : null;
+
+  static bool _savedPrintParentQr() => _local?.getPrintParentQr() ?? false;
 
   PaymentMethod _topupMethod = PaymentMethod.cash;
   final _topupAmountController = TextEditingController();
@@ -101,6 +138,13 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
   /// True once the cashier types in the payment field themselves — from
   /// then on the auto-prefill below keeps its hands off their value.
   bool _payEdited = false;
+
+  /// The money panel's open tab — false: "Kirish", true: "To'ldirish".
+  bool _topupTab = false;
+
+  /// The editable "collect a different amount" field is folded away until
+  /// the cashier asks for it — the check shows the amount owed.
+  bool _showPayAmount = false;
 
   @override
   void dispose() {
@@ -144,6 +188,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
   }
 
   void _resetFor(Customer? customer) {
+    _clearReprint();
     _selectedChildIds.clear();
     _selectedPlan = null;
     _childEntryDiscountIds.clear();
@@ -151,7 +196,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
     _companions = 0;
     _addingChild = false;
     _childNameController.clear();
-    _printParentQr = true;
+    _printParentQr = _savedPrintParentQr();
     _topupMethod = PaymentMethod.cash;
     _topupAmountController.clear();
     _topupCashController.clear();
@@ -165,6 +210,8 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
     _payAmountController.clear();
     _payCashController.clear();
     _payCardController.clear();
+    _topupTab = false;
+    _showPayAmount = false;
   }
 
   @override
@@ -176,6 +223,16 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               previous.selectedCustomer?.id != current.selectedCustomer?.id,
           listener: (context, state) =>
               setState(() => _resetFor(state.selectedCustomer)),
+        ),
+        // A failed re-print (or any failed request mid-queue) must not leave
+        // its plan name armed for the next real checkout.
+        BlocListener<PosAccountBloc, PosAccountState>(
+          listenWhen: (previous, current) =>
+              previous.isBusy &&
+              !current.isBusy &&
+              current.lastEntryResult == null &&
+              current.errorMessage != null,
+          listener: (context, state) => _clearReprint(),
         ),
         BlocListener<PosAccountBloc, PosAccountState>(
           listenWhen: (previous, current) =>
@@ -194,6 +251,27 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                   in state.selectedCustomer?.children ?? const <Child>[])
                 child.id: child.fullName,
             };
+            final reprintPlanName = _reprintPlanName;
+            if (reprintPlanName != null) {
+              // A re-print: the same QR again, nothing was charged — so no
+              // price or discount on the ticket, and the cashier's picks in
+              // steps 1–3 stay as they were.
+              printPlanEntryLabels(
+                context,
+                result,
+                childNames,
+                planName: reprintPlanName,
+              );
+              context.read<PosAccountBloc>().add(
+                const PosAccountEntryAcknowledged(),
+              );
+              if (_reprintQueue.isEmpty) {
+                _clearReprint();
+              } else {
+                _startReprint(_reprintQueue);
+              }
+              return;
+            }
             printPlanEntryLabels(
               context,
               result,
@@ -311,6 +389,21 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
             (sum, line) =>
                 sum + (productsById[line.key]?.priceUzs ?? 0) * line.value,
           );
+          // Products the admin flagged for the "Qo'shimcha" step — sold from
+          // the balance with a receipt (never a QR, unlike HAMROH).
+          final extrasProducts = [
+            for (final product in state.products)
+              if (product.showInExtras) product,
+          ];
+          final cartLines = [
+            for (final line in _cart.entries)
+              if (productsById[line.key] case final product?)
+                (
+                  name: product.name,
+                  qty: line.value,
+                  totalUzs: product.priceUzs * line.value,
+                ),
+          ];
           // VIP and 1 soat are debited from the balance at issuance
           // (register prepay); Standard has no upfront tariff — it bills per
           // exit by actual minutes. Children already holding a live pass on
@@ -496,19 +589,24 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
           final balanceCovers = shortfall <= 0;
           // Money must be collected when the balance can't cover the total,
           // or when the cashier explicitly keeps the balance untouched.
+          // "Balansdan yechish" OFF collects the whole check in cash/card
+          // even when the balance can't cover it — the money is credited to
+          // the balance and debited right back, so the balance stays as is.
           final requiredPayment = neededTotal == 0
               ? 0
               : balanceCovers
               ? (_payFromBalance ? 0 : neededTotal)
-              : shortfall;
+              : (_payFromBalance || customer.balance <= 0
+                    ? shortfall
+                    : neededTotal);
 
           // Default the payment field to exactly what's owed, so the
           // cashier confirms a number instead of typing it. Follows cart /
           // tariff changes until the cashier edits the field by hand.
           if (requiredPayment > 0 &&
               !_payEdited &&
-              _payAmountController.text != '$requiredPayment') {
-            _payAmountController.text = '$requiredPayment';
+              parseUzs(_payAmountController.text) != requiredPayment) {
+            _payAmountController.text = groupDigits(requiredPayment);
           }
 
           final payAmount =
@@ -523,11 +621,14 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               requiredPayment == 0 ||
               (payAmount >= requiredPayment && paySplit.isValid);
 
+          // A sale with no child is HAMROH / "Qo'shimcha" products alone.
+          final hasEntry =
+              _selectedPlan != null && _selectedChildIds.isNotEmpty;
+          final extrasOnly =
+              _selectedChildIds.isEmpty &&
+              (_cart.isNotEmpty || _companions > 0);
           final canEnter =
-              !state.isBusy &&
-              _selectedPlan != null &&
-              _selectedChildIds.isNotEmpty &&
-              paymentOk;
+              !state.isBusy && (hasEntry || extrasOnly) && paymentOk;
 
           final topupAmount =
               int.tryParse(_topupAmountController.text.replaceAll(' ', '')) ??
@@ -541,331 +642,427 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
           final canTopup =
               !state.isBusy && topupAmount > 0 && topupSplit.isValid;
 
-          return SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _SummaryStrip(
-                  customer: customer,
-                  isBusy: state.isBusy,
-                  onRename: (name) => context.read<PosAccountBloc>().add(
-                    PosAccountCustomerNameUpdateRequested(name),
-                  ),
-                  onRefresh: () => context.read<PosAccountBloc>().add(
-                    const PosAccountCustomerRefreshRequested(),
-                  ),
-                  onParentQr: () => context.read<PosAccountBloc>().add(
-                    const PosAccountParentQrRequested(),
-                  ),
-                  onBack: () => context.read<PosAccountBloc>().add(
-                    const PosAccountSelectionCleared(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: _ChildrenCard(
-                        customer: customer,
-                        plans: state.plans,
-                        isLoadingPlans: state.isLoadingPlans,
-                        activePasses: state.activePasses,
-                        selectedChildIds: _selectedChildIds,
-                        onToggleChild: (id) => setState(
-                          () => _selectedChildIds.contains(id)
-                              ? _selectedChildIds.remove(id)
-                              : _selectedChildIds.add(id),
-                        ),
-                        onRenameChild: (id, name) => context
-                            .read<PosAccountBloc>()
-                            .add(PosAccountChildNameUpdateRequested(id, name)),
-                        entryDiscounts: checkDiscount == null
-                            ? state.entryDiscounts
-                            : const [],
-                        childEntryDiscountIds: checkDiscount == null
-                            ? _childEntryDiscountIds
-                            : const {},
-                        checkShareLabels: checkShareLabels,
-                        promoChildId: promoChildId,
-                        promoLabel: promo == null
-                            ? null
-                            : promoCodeLabel(promo),
-                        onChildEntryDiscountChanged: (id, discountId) =>
-                            setState(() {
-                              if (discountId == null) {
-                                _childEntryDiscountIds.remove(id);
-                              } else {
-                                _childEntryDiscountIds[id] = discountId;
-                              }
-                            }),
-                        addingChild: _addingChild,
-                        onStartAddChild: () =>
-                            setState(() => _addingChild = true),
-                        onCancelAddChild: () => setState(() {
-                          _addingChild = false;
-                          _childNameController.clear();
-                        }),
-                        childNameController: _childNameController,
-                        onSubmitAddChild: () {
-                          final today = DateTime.now();
-                          final iso =
-                              '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-                          context.read<PosAccountBloc>().add(
-                            PosAccountChildAddRequested(
-                              firstName: _childNameController.text.trim(),
-                              birthDate: iso,
-                            ),
-                          );
-                          setState(() {
-                            _addingChild = false;
-                            _childNameController.clear();
-                          });
-                        },
-                        selectedPlan: _selectedPlan,
-                        onSelectPlan: (p) => setState(() => _selectedPlan = p),
-                        checkout: _CheckoutSection(
-                          // Products are sold from the dedicated "Savdo" tab
-                          // only — never shown/sellable from this per-child
-                          // plan-entry checkout. Passing an empty list (not
-                          // touching `_CheckoutSection` itself) keeps every
-                          // downstream total/discount/payment computation
-                          // working exactly as it already does for an empty
-                          // cart, so nothing else changes.
-                          products: const [],
-                          promoSection: checkDiscount != null
-                              ? Text(
-                                  AppLocalization.of(
-                                    context,
-                                  ).checkDiscountLocked,
-                                  style: AppTextStyles.muted(
-                                    AppTextStyles.body,
-                                  ).copyWith(fontSize: 11),
-                                )
-                              : _PromoSection(
-                                  promo: promo,
-                                  isChecking: state.isCheckingPromo,
-                                  errorText: promoCodeErrorText(
-                                    AppLocalization.of(context),
-                                    state,
-                                  ),
-                                  label: promo == null
-                                      ? null
-                                      : promoCodeLabel(promo),
-                                  selectedChildren: selectedChildren,
-                                  passChildIds: passChildIds,
-                                  promoChildId: promoChildId,
-                                  onSubmit: (raw) => context
-                                      .read<PosAccountBloc>()
-                                      .add(PosAccountPromoCodeSubmitted(raw)),
-                                  onChildPicked: (id) =>
-                                      setState(() => _promoChildId = id),
-                                  onClear: () => context
-                                      .read<PosAccountBloc>()
-                                      .add(const PosAccountPromoCodeCleared()),
-                                ),
-                          checkDiscountButton:
-                              state.checkDiscounts.isEmpty ||
-                                  _selectedChildIds.isEmpty
-                              ? null
-                              : CheckDiscountButton(
-                                  discounts: state.checkDiscounts,
-                                  selected: checkDiscount,
-                                  onChanged: (discount) {
-                                    setState(() {
-                                      _checkDiscountId = discount?.id;
-                                      if (discount != null) {
-                                        _childEntryDiscountIds.clear();
-                                      }
-                                    });
-                                    if (discount != null &&
-                                        state.promo != null) {
-                                      context.read<PosAccountBloc>().add(
-                                        const PosAccountPromoCodeCleared(),
-                                      );
-                                    }
-                                  },
-                                ),
-                          checkDiscountUzs: checkDiscountUzs,
-                          checkDiscountName: checkDiscount == null
-                              ? null
-                              : checkDiscountLabel(checkDiscount),
-                          cart: _cart,
-                          cartTotal: cartTotal,
-                          discounts: state.discounts,
-                          selectedDiscount: selectedDiscount,
-                          cartDiscountUzs: cartDiscountUzs,
-                          onDiscountChanged: (discount) => setState(
-                            () => _selectedDiscountId = discount?.id,
-                          ),
-                          vipTotal: vipTotal,
-                          promoDiscountUzs: promoDiscountUzs,
-                          promoName: promo == null
-                              ? null
-                              : promoCodeLabel(promo),
-                          // Everything but the built-in VIP is labelled by its
-                          // own name (1 soat, custom hour or custom day).
-                          hourPlan:
-                              (_selectedPlan?.isPrepaid ?? false) &&
-                                  _selectedPlan!.key != 'vip'
-                              ? _selectedPlan
-                              : null,
-                          companions: _companions,
-                          companionPriceUzs: state.companionPriceUzs,
-                          companionsTotal: companionsTotal,
-                          onCompanionAdd: () =>
-                              setState(() => _companions += 1),
-                          onCompanionRemove: () => setState(
-                            () => _companions = _companions > 0
-                                ? _companions - 1
-                                : 0,
-                          ),
-                          neededTotal: neededTotal,
-                          balance: customer.balance,
-                          balanceCovers: balanceCovers,
-                          shortfall: shortfall,
-                          payFromBalance: _payFromBalance,
-                          onPayFromBalanceChanged: (v) => setState(() {
-                            _payFromBalance = v;
-                            // Toggling re-arms the prefill for the new mode.
-                            _payEdited = false;
-                            if (v) _payAmountController.clear();
-                          }),
-                          onPayAmountEdited: () => _payEdited = true,
-                          requiredPayment: requiredPayment,
-                          payMethod: _payMethod,
-                          onPayMethodChanged: (m) =>
-                              setState(() => _payMethod = m),
-                          payAmountController: _payAmountController,
-                          payCashController: _payCashController,
-                          payCardController: _payCardController,
-                          paySplit: paySplit,
-                          payAmount: payAmount,
-                          onChanged: () => setState(() {}),
-                          onAdd: (id) =>
-                              setState(() => _cart[id] = (_cart[id] ?? 0) + 1),
-                          onRemove: (id) => setState(() {
-                            final qty = (_cart[id] ?? 0) - 1;
-                            if (qty <= 0) {
-                              _cart.remove(id);
-                            } else {
-                              _cart[id] = qty;
-                            }
-                          }),
-                          selectedChildCount: _selectedChildIds.length,
-                          alreadyNotes: [
-                            for (final child in customer.children)
-                              if (alreadyOnSelectedPlan.contains(child.id))
-                                _alreadyActiveNote(
-                                  AppLocalization.of(context),
-                                  child.fullName,
-                                  _selectedPlan!,
-                                  activePlanByChild[child.id],
-                                  plansByKey,
-                                ),
-                          ],
-                          printParentQr: _printParentQr,
-                          onPrintParentQrChanged: (v) =>
-                              setState(() => _printParentQr = v),
-                          canSubmit: canEnter,
-                          isBusy: state.isBusy,
-                          onSubmit: () {
-                            // With a check discount, entryDiscountFor() is the
-                            // child's share — the printed ticket shows it.
-                            _checkoutEntryDiscounts = {
-                              for (final id in _selectedChildIds)
-                                if (!alreadyOnSelectedPlan.contains(id))
-                                  id: ?entryDiscountFor(id),
-                            };
-                            context.read<PosAccountBloc>().add(
-                              PosAccountCheckoutRequested(
-                                planKey: _selectedPlan!.key,
-                                childIds: orderedChildIds,
-                                withParentQr: _printParentQr,
-                                entryDiscounts: checkDiscount != null
-                                    ? const {}
-                                    : {
-                                        for (final entry
-                                            in _childEntryDiscountIds.entries)
-                                          if (_selectedChildIds.contains(
-                                                entry.key,
-                                              ) &&
-                                              entry.key != promoChildId)
-                                            entry.key: entry.value,
-                                      },
-                                checkDiscountId: checkDiscount?.id,
-                                promoCode: promoChildId == null
-                                    ? null
-                                    : (
-                                        code: promo!.code,
-                                        childId: promoChildId,
-                                      ),
-                                companions: _companions,
-                                products: [
-                                  for (final line in _cart.entries)
-                                    (productId: line.key, qty: line.value),
-                                ],
-                                cashUzs: requiredPayment == 0
-                                    ? 0
-                                    : paySplit.cashUzs,
-                                cardUzs: requiredPayment == 0
-                                    ? 0
-                                    : paySplit.cardUzs,
-                                discountId: _selectedDiscountId,
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _BalanceCard(
-                        customer: customer,
-                        amountController: _topupAmountController,
-                        onAmountChanged: () => setState(() {}),
-                        method: _topupMethod,
-                        onMethodChanged: (m) =>
-                            setState(() => _topupMethod = m),
-                        cashController: _topupCashController,
-                        cardController: _topupCardController,
-                        split: topupSplit,
-                        amount: topupAmount,
-                        canTopup: canTopup,
-                        isBusy: state.isBusy,
-                        onTopup: () => _confirmAndTopup(
-                          context,
-                          customer: customer,
-                          amountUzs: topupAmount,
-                          split: topupSplit,
-                          method: _topupMethod,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                if (state.playing.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  _PlayingCard(
-                    rows: state.playing,
-                    balance: customer.balance,
-                    onRefresh: () => context.read<PosAccountBloc>().add(
-                      const PosAccountPlayingRequested(),
-                    ),
-                  ),
-                ],
-                if (state.errorMessage != null) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    state.errorMessage!,
-                    style: const TextStyle(
-                      color: NocturneColors.danger,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ],
+          final l10n = AppLocalization.of(context);
+          final p = PosPalette.of(context);
+          // What the balance pays of this checkout — everything the cashier
+          // does not collect in cash/card.
+          final fromBalanceUzs = _payFromBalance && customer.balance > 0
+              ? (neededTotal - requiredPayment).clamp(0, neededTotal)
+              : 0;
+
+          final childrenCard = _ChildrenCard(
+            customer: customer,
+            activePasses: state.activePasses,
+            insideMinutes: {
+              for (final row in state.playing) row.childId: row.minutes,
+            },
+            selectedChildIds: _selectedChildIds,
+            onToggleChild: (id) => setState(
+              () => _selectedChildIds.contains(id)
+                  ? _selectedChildIds.remove(id)
+                  : _selectedChildIds.add(id),
             ),
+            onRenameChild: (id, name) => context.read<PosAccountBloc>().add(
+              PosAccountChildNameUpdateRequested(id, name),
+            ),
+            entryDiscounts: checkDiscount == null
+                ? state.entryDiscounts
+                : const [],
+            childEntryDiscountIds: checkDiscount == null
+                ? _childEntryDiscountIds
+                : const {},
+            checkShareLabels: checkShareLabels,
+            promoChildId: promoChildId,
+            promoLabel: promo == null ? null : promoCodeLabel(promo),
+            onChildEntryDiscountChanged: (id, discountId) => setState(() {
+              if (discountId == null) {
+                _childEntryDiscountIds.remove(id);
+              } else {
+                _childEntryDiscountIds[id] = discountId;
+              }
+            }),
+            addingChild: _addingChild,
+            onStartAddChild: () => setState(() => _addingChild = true),
+            onCancelAddChild: () => setState(() {
+              _addingChild = false;
+              _childNameController.clear();
+            }),
+            childNameController: _childNameController,
+            onSubmitAddChild: () {
+              final today = DateTime.now();
+              final iso =
+                  '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+              context.read<PosAccountBloc>().add(
+                PosAccountChildAddRequested(
+                  firstName: _childNameController.text.trim(),
+                  birthDate: iso,
+                ),
+              );
+              setState(() {
+                _addingChild = false;
+                _childNameController.clear();
+              });
+            },
+          );
+
+          final tariffCard = _TariffCard(
+            plans: state.plans,
+            isLoadingPlans: state.isLoadingPlans,
+            selectedPlan: _selectedPlan,
+            onSelectPlan: (plan) => setState(() => _selectedPlan = plan),
+          );
+
+          final extrasCard = _ExtrasCard(
+            products: extrasProducts,
+            cart: _cart,
+            onProductAdd: (id) =>
+                setState(() => _cart[id] = (_cart[id] ?? 0) + 1),
+            onProductRemove: (id) => setState(() {
+              final qty = (_cart[id] ?? 0) - 1;
+              if (qty <= 0) {
+                _cart.remove(id);
+              } else {
+                _cart[id] = qty;
+              }
+            }),
+            companions: _companions,
+            companionPriceUzs: state.companionPriceUzs,
+            onCompanionAdd: () => setState(() => _companions += 1),
+            onCompanionRemove: () => setState(
+              () => _companions = _companions > 0 ? _companions - 1 : 0,
+            ),
+            promoSection: checkDiscount != null
+                ? Text(
+                    l10n.checkDiscountLocked,
+                    style: p.bodyMuted.copyWith(fontSize: 11.5),
+                  )
+                : _PromoSection(
+                    promo: promo,
+                    isChecking: state.isCheckingPromo,
+                    errorText: promoCodeErrorText(l10n, state),
+                    label: promo == null ? null : promoCodeLabel(promo),
+                    selectedChildren: selectedChildren,
+                    passChildIds: passChildIds,
+                    promoChildId: promoChildId,
+                    onSubmit: (raw) => context.read<PosAccountBloc>().add(
+                      PosAccountPromoCodeSubmitted(raw),
+                    ),
+                    onChildPicked: (id) => setState(() => _promoChildId = id),
+                    onClear: () => context.read<PosAccountBloc>().add(
+                      const PosAccountPromoCodeCleared(),
+                    ),
+                  ),
+            // Always on screen; greyed with the reason until it can be used.
+            checkDiscountHint: state.checkDiscounts.isEmpty
+                ? l10n.accountNoCheckDiscounts
+                : _selectedChildIds.isEmpty
+                ? l10n.accountPickChildFirst
+                : null,
+            checkDiscountButton:
+                state.checkDiscounts.isEmpty || _selectedChildIds.isEmpty
+                ? null
+                : CheckDiscountButton(
+                    discounts: state.checkDiscounts,
+                    selected: checkDiscount,
+                    onChanged: (discount) {
+                      setState(() {
+                        _checkDiscountId = discount?.id;
+                        if (discount != null) {
+                          _childEntryDiscountIds.clear();
+                        }
+                      });
+                      if (discount != null && state.promo != null) {
+                        context.read<PosAccountBloc>().add(
+                          const PosAccountPromoCodeCleared(),
+                        );
+                      }
+                    },
+                  ),
+          );
+
+          final checkout = _CheckoutSection(
+            // Products are sold from the dedicated "Savdo" tab only — never
+            // shown/sellable from this per-child plan-entry checkout. Passing
+            // an empty list (not touching `_CheckoutSection` itself) keeps
+            // every downstream total/discount/payment computation working
+            // exactly as it already does for an empty cart.
+            products: const [],
+            checkDiscountUzs: checkDiscountUzs,
+            checkDiscountName: checkDiscount == null
+                ? null
+                : checkDiscountLabel(checkDiscount),
+            cart: _cart,
+            cartTotal: cartTotal,
+            cartLines: cartLines,
+            discounts: state.discounts,
+            selectedDiscount: selectedDiscount,
+            cartDiscountUzs: cartDiscountUzs,
+            onDiscountChanged: (discount) =>
+                setState(() => _selectedDiscountId = discount?.id),
+            vipTotal: vipTotal,
+            promoDiscountUzs: promoDiscountUzs,
+            promoName: promo == null ? null : promoCodeLabel(promo),
+            planName: _selectedPlan?.name,
+            planPrepaid: _selectedPlan?.isPrepaid ?? false,
+            companions: _companions,
+            companionsTotal: companionsTotal,
+            neededTotal: neededTotal,
+            balance: customer.balance,
+            fromBalanceUzs: fromBalanceUzs,
+            payFromBalance: _payFromBalance,
+            onPayFromBalanceChanged: (v) => setState(() {
+              _payFromBalance = v;
+              // Toggling re-arms the prefill for the new mode.
+              _payEdited = false;
+              if (v) _payAmountController.clear();
+            }),
+            onPayAmountEdited: () => _payEdited = true,
+            requiredPayment: requiredPayment,
+            payMethod: _payMethod,
+            onPayMethodChanged: (m) => setState(() {
+              // "Aralash" starts as all-cash; typing either half fills the
+              // other with the remainder.
+              if (m == PaymentMethod.split &&
+                  _payCashController.text.isEmpty &&
+                  _payCardController.text.isEmpty) {
+                _payCashController.text = groupDigits(payAmount);
+                _payCardController.text = '0';
+              }
+              _payMethod = m;
+            }),
+            payAmountController: _payAmountController,
+            payCashController: _payCashController,
+            payCardController: _payCardController,
+            paySplit: paySplit,
+            payAmount: payAmount,
+            onChanged: () => setState(() {}),
+            onAdd: (id) => setState(() => _cart[id] = (_cart[id] ?? 0) + 1),
+            onRemove: (id) => setState(() {
+              final qty = (_cart[id] ?? 0) - 1;
+              if (qty <= 0) {
+                _cart.remove(id);
+              } else {
+                _cart[id] = qty;
+              }
+            }),
+            selectedChildCount: _selectedChildIds.length,
+            alreadyNotes: [
+              for (final child in customer.children)
+                if (alreadyOnSelectedPlan.contains(child.id))
+                  _alreadyActiveNote(
+                    l10n,
+                    child.fullName,
+                    _selectedPlan!,
+                    activePlanByChild[child.id],
+                    plansByKey,
+                  ),
+            ],
+            printParentQr: _printParentQr,
+            onPrintParentQrChanged: (v) {
+              setState(() => _printParentQr = v);
+              _local?.setPrintParentQr(v);
+            },
+            showPayAmount: _showPayAmount,
+            onShowPayAmount: () => setState(() => _showPayAmount = true),
+            canSubmit: canEnter,
+            isBusy: state.isBusy,
+            onSubmit: () {
+              // With a check discount, entryDiscountFor() is the child's
+              // share — the printed ticket shows it.
+              _checkoutEntryDiscounts = {
+                for (final id in _selectedChildIds)
+                  if (!alreadyOnSelectedPlan.contains(id))
+                    id: ?entryDiscountFor(id),
+              };
+              context.read<PosAccountBloc>().add(
+                PosAccountCheckoutRequested(
+                  planKey: hasEntry ? _selectedPlan!.key : null,
+                  childIds: hasEntry ? orderedChildIds : const [],
+                  withParentQr: hasEntry && _printParentQr,
+                  entryDiscounts: checkDiscount != null
+                      ? const {}
+                      : {
+                          for (final entry in _childEntryDiscountIds.entries)
+                            if (_selectedChildIds.contains(entry.key) &&
+                                entry.key != promoChildId)
+                              entry.key: entry.value,
+                        },
+                  checkDiscountId: checkDiscount?.id,
+                  promoCode: promoChildId == null
+                      ? null
+                      : (code: promo!.code, childId: promoChildId),
+                  companions: _companions,
+                  products: [
+                    for (final line in _cart.entries)
+                      (productId: line.key, qty: line.value),
+                  ],
+                  cashUzs: requiredPayment == 0 ? 0 : paySplit.cashUzs,
+                  cardUzs: requiredPayment == 0 ? 0 : paySplit.cardUzs,
+                  discountId: _selectedDiscountId,
+                ),
+              );
+            },
+          );
+
+          final topup = _BalanceCard(
+            customer: customer,
+            amountController: _topupAmountController,
+            onAmountChanged: () => setState(() {}),
+            method: _topupMethod,
+            onMethodChanged: (m) => setState(() => _topupMethod = m),
+            cashController: _topupCashController,
+            cardController: _topupCardController,
+            split: topupSplit,
+            amount: topupAmount,
+            canTopup: canTopup,
+            isBusy: state.isBusy,
+            onTopup: () => _confirmAndTopup(
+              context,
+              customer: customer,
+              amountUzs: topupAmount,
+              split: topupSplit,
+              method: _topupMethod,
+            ),
+          );
+
+          _MoneyPanel moneyPanel({required bool pinned}) => _MoneyPanel(
+            topupTab: _topupTab,
+            onTabChanged: (topupTab) => setState(() => _topupTab = topupTab),
+            entry: checkout,
+            topup: topup,
+            pinned: pinned,
+          );
+
+          final header = _SummaryStrip(
+            customer: customer,
+            isBusy: state.isBusy,
+            insideCount: state.playing.length,
+            onRename: (name) => context.read<PosAccountBloc>().add(
+              PosAccountCustomerNameUpdateRequested(name),
+            ),
+            onRefresh: () => context.read<PosAccountBloc>().add(
+              const PosAccountCustomerRefreshRequested(),
+            ),
+            onParentQr: () => context.read<PosAccountBloc>().add(
+              const PosAccountParentQrRequested(),
+            ),
+            onBack: () => context.read<PosAccountBloc>().add(
+              const PosAccountSelectionCleared(),
+            ),
+          );
+          // Left: who + which tariff + extras, top-down. Right: money only —
+          // enter or top up, one big button each.
+          final steps = Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              childrenCard,
+              const SizedBox(height: 14),
+              tariffCard,
+              const SizedBox(height: 14),
+              extrasCard,
+            ],
+          );
+          // Everything that is reference, not part of the sale.
+          final below = <Widget>[
+            if (state.playing.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              _PlayingCard(
+                rows: state.playing,
+                balance: customer.balance,
+                onRefresh: () => context.read<PosAccountBloc>().add(
+                  const PosAccountPlayingRequested(),
+                ),
+              ),
+            ],
+            // Folded by default; keyed by customer so the next one starts
+            // folded too.
+            const SizedBox(height: 14),
+            TodayPassesCard(
+              passes: state.activePasses,
+              childNames: {
+                for (final child in customer.children) child.id: child.fullName,
+              },
+              busy: state.isBusy,
+              onReprint: _startReprint,
+              onStale: () => context.read<PosAccountBloc>().add(
+                const PosAccountActivePassesRequested(),
+              ),
+            ),
+            if (state.activePasses.isNotEmpty) const SizedBox(height: 14),
+            TransactionsAccordion(key: ValueKey(customer.id)),
+            if (state.errorMessage != null) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: p.dangerSoft,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  state.errorMessage!,
+                  style: TextStyle(color: p.danger, fontSize: 13),
+                ),
+              ),
+            ],
+          ];
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              // Too narrow for two panes (or hosted in something that gives
+              // no height to split): one page, money panel after the steps.
+              if (constraints.maxWidth < 720 || !constraints.hasBoundedHeight) {
+                return SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      header,
+                      const SizedBox(height: 14),
+                      steps,
+                      const SizedBox(height: 14),
+                      moneyPanel(pinned: false),
+                      ...below,
+                    ],
+                  ),
+                );
+              }
+              // Two panes: the steps scroll on the left while the money panel
+              // stays on screen on the right — at 800 px the cashier never
+              // scrolls to find "To'lov va chop etish".
+              final moneyWidth = constraints.maxWidth >= 1280
+                  ? 420.0
+                  : constraints.maxWidth >= 1000
+                  ? 380.0
+                  : 330.0;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  header,
+                  const SizedBox(height: 14),
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [steps, ...below],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        SizedBox(
+                          width: moneyWidth,
+                          child: moneyPanel(pinned: true),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
           );
         },
       ),
@@ -905,40 +1102,23 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
   }
 }
 
-class _Card extends StatelessWidget {
-  const _Card({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: NocturneColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: AppShadow.sm,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [child],
-      ),
-    );
-  }
-}
-
 class _InlineEditableName extends StatefulWidget {
   const _InlineEditableName({
     required this.value,
     required this.style,
     required this.onSave,
     this.enabled = true,
+    this.pencilOnHover = false,
   });
 
   final String value;
   final TextStyle style;
   final ValueChanged<String> onSave;
   final bool enabled;
+
+  /// Child tiles show the pencil only under the mouse — a column of
+  /// pencils is noise; the name stays tap-to-rename either way.
+  final bool pencilOnHover;
 
   @override
   State<_InlineEditableName> createState() => _InlineEditableNameState();
@@ -948,6 +1128,7 @@ class _InlineEditableNameState extends State<_InlineEditableName> {
   late final TextEditingController _controller;
   late final FocusNode _focusNode;
   bool _editing = false;
+  bool _hovered = false;
 
   @override
   void initState() {
@@ -1000,32 +1181,41 @@ class _InlineEditableNameState extends State<_InlineEditableName> {
   Widget build(BuildContext context) {
     final l10n = AppLocalization.of(context);
     if (!_editing) {
+      final showPencil = widget.enabled && (!widget.pencilOnHover || _hovered);
       return Tooltip(
         message: l10n.fullName,
-        child: InkWell(
-          onTap: _start,
-          borderRadius: BorderRadius.circular(AppRadius.sm),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 3),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Flexible(
-                  child: Text(
-                    widget.value,
-                    style: widget.style,
-                    overflow: TextOverflow.ellipsis,
+        child: MouseRegion(
+          onEnter: (_) => setState(() => _hovered = true),
+          onExit: (_) => setState(() => _hovered = false),
+          child: InkWell(
+            onTap: _start,
+            borderRadius: BorderRadius.circular(6),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      widget.value,
+                      style: widget.style,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-                if (widget.enabled) ...[
-                  const SizedBox(width: 6),
-                  Icon(
-                    PhosphorIconsRegular.pencilSimple,
-                    size: 14,
-                    color: NocturneColors.text.withValues(alpha: 0.45),
-                  ),
+                  if (widget.enabled) ...[
+                    const SizedBox(width: 6),
+                    // Space is kept while hidden so the name never jumps.
+                    Opacity(
+                      opacity: showPencil ? 1 : 0,
+                      child: Icon(
+                        PhosphorIconsRegular.pencilSimple,
+                        size: 14,
+                        color: PosPalette.of(context).textFaint,
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),
@@ -1070,10 +1260,28 @@ class _InlineEditableNameState extends State<_InlineEditableName> {
   }
 }
 
+/// "Already on a pass — no second charge" line for a child who holds a live
+/// pass on the selected plan, or on a covering VIP/day pass. The built-in
+/// VIP and 1 soat keep their own wording; any other plan is named.
+String _alreadyActiveNote(
+  AppLocalization l10n,
+  String childName,
+  KidsPlan selected,
+  String? activeKey,
+  Map<String, KidsPlan> plansByKey,
+) {
+  final holdKey = activeKey ?? selected.key;
+  if (holdKey == 'vip') return l10n.vipAlreadyActive(childName);
+  if (holdKey == 'hour') return l10n.hourAlreadyActive(childName);
+  final name = (holdKey == selected.key ? selected : plansByKey[holdKey])?.name;
+  return l10n.planAlreadyActive(childName, name ?? holdKey);
+}
+
 class _SummaryStrip extends StatelessWidget {
   const _SummaryStrip({
     required this.customer,
     required this.isBusy,
+    required this.insideCount,
     required this.onParentQr,
     required this.onRename,
     required this.onRefresh,
@@ -1083,6 +1291,9 @@ class _SummaryStrip extends StatelessWidget {
   final Customer customer;
   final bool isBusy;
 
+  /// Children of this customer inside the park right now.
+  final int insideCount;
+
   /// Prints the customer's free parent QR — the ruleless both-direction
   /// day sticker for the accompanying adult.
   final VoidCallback onParentQr;
@@ -1090,126 +1301,153 @@ class _SummaryStrip extends StatelessWidget {
   final VoidCallback onRefresh;
   final VoidCallback onBack;
 
-  String _initials(String value) {
-    final trimmed = value.trim();
-    if (trimmed.isEmpty) return '?';
-    return trimmed
-        .split(RegExp(r'\s+'))
-        .take(2)
-        .map((p) => p[0].toUpperCase())
-        .join();
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalization.of(context);
+    final p = PosPalette.of(context);
     final displayName = customer.fullName.isEmpty
         ? customer.phoneNumber
         : customer.fullName;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-      decoration: BoxDecoration(
-        color: NocturneColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: AppShadow.sm,
-      ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 36,
-            height: 36,
-            child: OutlinedButton(
-              onPressed: onBack,
-              style: OutlinedButton.styleFrom(padding: EdgeInsets.zero),
-              child: const Icon(PhosphorIconsRegular.arrowLeft, size: 16),
-            ),
-          ),
-          const SizedBox(width: 12),
-          CircleAvatar(
-            radius: 22,
-            backgroundColor: NocturneColors.accent900,
-            child: Text(
-              _initials(displayName),
-              style: const TextStyle(
-                color: NocturneColors.accent300,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _InlineEditableName(
-                  value: displayName,
-                  enabled: !isBusy && customer.fullName.isNotEmpty,
-                  style: AppTextStyles.h4,
-                  onSave: onRename,
-                ),
-                Text(
-                  customer.phoneNumber,
-                  style: AppTextStyles.muted(
-                    AppTextStyles.body,
-                  ).copyWith(fontSize: 12),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 38,
-            height: 38,
-            child: IconButton(
-              tooltip: l10n.refresh,
-              onPressed: isBusy ? null : onRefresh,
-              icon: isBusy
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(PhosphorIconsRegular.arrowsClockwise, size: 18),
-            ),
-          ),
-          const SizedBox(width: 8),
-          OutlinedButton.icon(
-            onPressed: isBusy ? null : onParentQr,
-            icon: const Icon(PhosphorIconsRegular.qrCode, size: 16),
-            label: Text(l10n.parentQr),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisSize: MainAxisSize.min,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Under ~900 px the name needs the room: the parent-QR button keeps
+        // only its icon and the "inside" chip only its count.
+        final narrow = constraints.maxWidth < 900;
+        return AccountCard(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
             children: [
-              Text(
-                l10n.balance,
-                style: AppTextStyles.kicker.copyWith(
-                  color: NocturneColors.text.withValues(alpha: 0.45),
+              SizedBox(
+                width: 40,
+                height: 40,
+                child: OutlinedButton(
+                  onPressed: onBack,
+                  style: OutlinedButton.styleFrom(padding: EdgeInsets.zero),
+                  child: const Icon(PhosphorIconsRegular.arrowLeft, size: 18),
                 ),
               ),
-              Text(
-                formatUzs(customer.balance),
-                style: AppTextStyles.h4.copyWith(
-                  color: NocturneColors.accent300,
+              const SizedBox(width: 12),
+              AccountAvatar(name: displayName, size: 46),
+              const SizedBox(width: 12),
+              // Name block takes the free width, so the actions and the balance
+              // box always sit flush right.
+              Expanded(
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _InlineEditableName(
+                            value: displayName,
+                            enabled: !isBusy && customer.fullName.isNotEmpty,
+                            style: p.title.copyWith(fontSize: 18),
+                            onSave: onRename,
+                          ),
+                          Text(
+                            formatPhoneNumber(customer.phoneNumber),
+                            style: p.bodyMuted.copyWith(fontSize: 12.5),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (insideCount > 0) ...[
+                      const SizedBox(width: 12),
+                      Tooltip(
+                        message: l10n.accountInsideCount(insideCount),
+                        child: StatusChip(
+                          label: narrow
+                              ? '$insideCount'
+                              : l10n.accountInsideCount(insideCount),
+                          icon: PhosphorIconsRegular.doorOpen,
+                          tone: ChipTone.positive,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 40,
+                height: 40,
+                child: IconButton(
+                  tooltip: l10n.refresh,
+                  onPressed: isBusy ? null : onRefresh,
+                  icon: isBusy
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(
+                          PhosphorIconsRegular.arrowsClockwise,
+                          size: 18,
+                        ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (narrow)
+                IconButton.outlined(
+                  tooltip: l10n.parentQr,
+                  onPressed: isBusy ? null : onParentQr,
+                  icon: const Icon(PhosphorIconsRegular.qrCode, size: 18),
+                )
+              else
+                SizedBox(
+                  height: 40,
+                  child: OutlinedButton.icon(
+                    onPressed: isBusy ? null : onParentQr,
+                    icon: const Icon(PhosphorIconsRegular.qrCode, size: 16),
+                    label: Text(l10n.parentQr),
+                  ),
+                ),
+              const SizedBox(width: 12),
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: narrow ? 12 : 16,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: p.accentSoft,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: p.accentBorder),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      l10n.balance.toUpperCase(),
+                      style: AppTextStyles.kicker.copyWith(color: p.accent),
+                    ),
+                    Text(
+                      formatUzs(customer.balance),
+                      style: AppTextStyles.h4.copyWith(
+                        fontSize: 21,
+                        fontWeight: FontWeight.w700,
+                        color: p.accentStrong,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
 
+/// Step 1 — "Kim kiradi?": one tile per child (tap toggles it into the
+/// checkout), its pass/discount badges, and the inline "add child" form.
 class _ChildrenCard extends StatelessWidget {
   const _ChildrenCard({
     required this.customer,
-    required this.plans,
-    required this.isLoadingPlans,
     required this.activePasses,
     required this.selectedChildIds,
     required this.onToggleChild,
@@ -1225,31 +1463,26 @@ class _ChildrenCard extends StatelessWidget {
     required this.onCancelAddChild,
     required this.childNameController,
     required this.onSubmitAddChild,
-    required this.selectedPlan,
-    required this.onSelectPlan,
-    required this.checkout,
+    required this.insideMinutes,
   });
 
   final Customer customer;
 
-  /// Standard/VIP, plus 1 soat when the backend has it switched on.
-  /// Standard starts a visit billed from the customer's balance at exit;
-  /// VIP and 1 soat are debited from the balance immediately at printing.
-  final List<KidsPlan> plans;
-  final bool isLoadingPlans;
+  /// childId → minutes played so far, for children inside right now.
+  final Map<String, int> insideMinutes;
 
-  /// Children's still-valid day passes — powers the per-row plan badge so
+  /// Children's still-valid day passes — powers the per-tile plan badge so
   /// staff see "already on Standart today" BEFORE picking a tariff.
   final List<ActivePass> activePasses;
   final Set<String> selectedChildIds;
   final ValueChanged<String> onToggleChild;
   final void Function(String childId, String fullName) onRenameChild;
 
-  /// Active ENTRY-scoped discount catalog — the row's 3-dots menu picks
+  /// Active ENTRY-scoped discount catalog — the tile's 3-dots menu picks
   /// from this list; empty hides the menu (best-effort catalog fetch).
   final List<Discount> entryDiscounts;
 
-  /// Optional per-child entry discount picked from the row's 3-dots menu —
+  /// Optional per-child entry discount picked from the tile's 3-dots menu —
   /// null discountId in the callback clears the child's pick.
   final Map<String, String> childEntryDiscountIds;
   final void Function(String childId, String? discountId)
@@ -1261,7 +1494,7 @@ class _ChildrenCard extends StatelessWidget {
   final String? promoLabel;
 
   /// childId → that child's share of the selected check discount
-  /// ("−10 000 so'm" / "−10%"), shown as a badge on its row. Empty when no
+  /// ("−10 000 so'm" / "−10%"), shown as a badge on its tile. Empty when no
   /// check discount is picked.
   final Map<String, String> checkShareLabels;
   final bool addingChild;
@@ -1269,119 +1502,426 @@ class _ChildrenCard extends StatelessWidget {
   final VoidCallback onCancelAddChild;
   final TextEditingController childNameController;
   final VoidCallback onSubmitAddChild;
-  final KidsPlan? selectedPlan;
-  final ValueChanged<KidsPlan> onSelectPlan;
-
-  /// Products + total + payment + the submit button — owned by the parent
-  /// so this card doesn't have to thread a dozen more callbacks through.
-  final Widget checkout;
-
-  /// Standard only: nothing is due at the register — billing happens at
-  /// exit by played time. VIP / 1 soat get NO note here: they are debited
-  /// immediately at printing, and the checkout section already says so.
-  String _noPaymentNote(AppLocalization l10n) => l10n.noPaymentNow;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalization.of(context);
+    final p = PosPalette.of(context);
     final selCount = selectedChildIds.length;
     final passByChildId = {for (final pass in activePasses) pass.childId: pass};
-    return _Card(
+    return AccountCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
+          StepHeader(
+            step: 1,
+            title: l10n.accountStepWho,
+            trailing: Text(
+              selCount > 0
+                  ? l10n.selectedCount(selCount)
+                  : customer.children.isEmpty
+                  ? l10n.noChildren
+                  : l10n.selectForQr,
+              style: AppTextStyles.body.copyWith(
+                fontSize: 12.5,
+                fontWeight: selCount > 0 ? FontWeight.w600 : null,
+                color: selCount > 0 ? p.accent : p.textMuted,
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final columns = constraints.maxWidth >= 640
+                  ? 3
+                  : constraints.maxWidth >= 340
+                  ? 2
+                  : 1;
+              final tiles = <Widget>[
+                for (final child in customer.children)
+                  _ChildRow(
+                    child: child,
+                    activePass: passByChildId[child.id],
+                    selected: selectedChildIds.contains(child.id),
+                    onToggle: () => onToggleChild(child.id),
+                    onRename: (name) => onRenameChild(child.id, name),
+                    entryDiscounts: entryDiscounts,
+                    selectedDiscountId: childEntryDiscountIds[child.id],
+                    onEntryDiscountChanged: (discountId) =>
+                        onChildEntryDiscountChanged(child.id, discountId),
+                    promoLabel: child.id == promoChildId ? promoLabel : null,
+                    checkShareLabel: checkShareLabels[child.id],
+                    insideMinutes: insideMinutes[child.id],
+                  ),
+                if (!addingChild)
+                  _AddChildTile(label: l10n.quickAdd, onTap: onStartAddChild),
+              ];
+              // A grid whose rows share one height, so a tile with badges
+              // never leaves its neighbours looking short.
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (var start = 0; start < tiles.length; start += columns)
+                    Padding(
+                      padding: EdgeInsets.only(top: start == 0 ? 0 : 10),
+                      child: IntrinsicHeight(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            for (var i = start; i < start + columns; i++) ...[
+                              if (i > start) const SizedBox(width: 10),
+                              Expanded(
+                                child: i < tiles.length
+                                    ? tiles[i]
+                                    : const SizedBox.shrink(),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+          if (addingChild) ...[
+            const SizedBox(height: 12),
+            // Listens to the controller directly so the submit button
+            // enables the moment a valid name is typed — the parent
+            // doesn't rebuild on keystrokes.
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: childNameController,
+              builder: (context, value, _) {
+                final canSubmit = value.text.trim().length >= 2;
+                return Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: childNameController,
+                        autofocus: true,
+                        style: p.body,
+                        onSubmitted: (_) {
+                          if (canSubmit) onSubmitAddChild();
+                        },
+                        decoration: InputDecoration(
+                          hintText: l10n.childName,
+                          prefixIcon: const Icon(
+                            PhosphorIconsRegular.userPlus,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      height: 46,
+                      child: FilledButton.icon(
+                        onPressed: canSubmit ? onSubmitAddChild : null,
+                        icon: const Icon(PhosphorIconsRegular.plus, size: 15),
+                        label: Text(l10n.add),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      height: 46,
+                      child: OutlinedButton(
+                        onPressed: onCancelAddChild,
+                        child: Text(l10n.cancel),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _AddChildTile extends StatelessWidget {
+  const _AddChildTile({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = PosPalette.of(context);
+    return Material(
+      color: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: p.accentBorder, width: 1.5),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        hoverColor: p.accentSoft,
+        child: SizedBox(
+          height: 74,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(l10n.children, style: AppTextStyles.h5),
-              const SizedBox(width: 8),
+              Icon(PhosphorIconsRegular.plus, size: 16, color: p.accent),
+              const SizedBox(width: 6),
               Text(
-                selCount > 0
-                    ? l10n.selectedCount(selCount)
-                    : customer.children.isEmpty
-                    ? l10n.noChildren
-                    : l10n.selectForQr,
-                style: AppTextStyles.muted(
-                  AppTextStyles.body,
-                ).copyWith(fontSize: 11),
+                label,
+                style: AppTextStyles.body.copyWith(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  color: p.accent,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          for (final child in customer.children)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: _ChildRow(
-                child: child,
-                activePass: passByChildId[child.id],
-                selected: selectedChildIds.contains(child.id),
-                onToggle: () => onToggleChild(child.id),
-                onRename: (name) => onRenameChild(child.id, name),
-                entryDiscounts: entryDiscounts,
-                selectedDiscountId: childEntryDiscountIds[child.id],
-                onEntryDiscountChanged: (discountId) =>
-                    onChildEntryDiscountChanged(child.id, discountId),
-                promoLabel: child.id == promoChildId ? promoLabel : null,
-                checkShareLabel: checkShareLabels[child.id],
+        ),
+      ),
+    );
+  }
+}
+
+/// One child as a selectable tile: checkbox, name (tap to rename), and
+/// badges — today's pass, the promo code, a 3-dots entry discount or the
+/// check discount share. The "QR" chip mirrors the selection.
+class _ChildRow extends StatelessWidget {
+  const _ChildRow({
+    required this.child,
+    required this.activePass,
+    required this.selected,
+    required this.onToggle,
+    required this.onRename,
+    required this.entryDiscounts,
+    required this.selectedDiscountId,
+    required this.onEntryDiscountChanged,
+    this.promoLabel,
+    this.checkShareLabel,
+    this.insideMinutes,
+  });
+
+  final Child child;
+
+  /// Minutes played so far when the child is inside right now, else null.
+  final int? insideMinutes;
+
+  /// The child's still-valid day pass, or null — shown as a badge (plan +
+  /// today's running cost) so the cashier both notices the existing tariff
+  /// before printing and can answer a parent's "qancha bo'ldi?" on sight.
+  final ActivePass? activePass;
+  final bool selected;
+  final VoidCallback onToggle;
+  final ValueChanged<String> onRename;
+
+  /// Active ENTRY-scoped discount catalog — the menu below picks from this
+  /// list instead of the old hardcoded `FreeReason` enum.
+  final List<Discount> entryDiscounts;
+
+  /// This checkout's entry-discount pick for the child, or null (bills
+  /// normally). Chosen from the 3-dots menu; null in the callback clears.
+  final String? selectedDiscountId;
+  final ValueChanged<String?> onEntryDiscountChanged;
+
+  /// Set on the child the partner promo code discounts — shown instead of
+  /// the 3-dots pick (the code's tier replaces it), and the menu is hidden.
+  final String? promoLabel;
+
+  /// This child's share of the selected check discount ("−10 000 so'm"),
+  /// or null — a badge, since the check discount replaces the 3-dots pick.
+  final String? checkShareLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
+    final p = PosPalette.of(context);
+    final hasPromo = promoLabel != null;
+    final selectedDiscount = selectedDiscountId == null || hasPromo
+        ? null
+        : entryDiscounts.where((d) => d.id == selectedDiscountId).firstOrNull;
+    final today = DateTime.now();
+    final age =
+        today.year -
+        child.birthDate.year -
+        ((today.month < child.birthDate.month ||
+                (today.month == child.birthDate.month &&
+                    today.day < child.birthDate.day))
+            ? 1
+            : 0);
+    final radius = BorderRadius.circular(12);
+    return Material(
+      color: selected ? p.accentSoft : p.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: radius,
+        side: BorderSide(color: selected ? p.accent : p.border, width: 1.5),
+      ),
+      child: InkWell(
+        onTap: onToggle,
+        borderRadius: radius,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                key: const ValueKey('child-select'),
+                width: 22,
+                height: 22,
+                margin: const EdgeInsets.only(top: 3),
+                decoration: BoxDecoration(
+                  color: selected ? p.accent : p.surface,
+                  borderRadius: BorderRadius.circular(7),
+                  border: Border.all(
+                    color: selected ? p.accent : p.borderStrong,
+                    width: 1.5,
+                  ),
+                ),
+                child: selected
+                    ? Icon(PhosphorIconsBold.check, size: 13, color: p.onAccent)
+                    : null,
               ),
-            ),
-          if (!addingChild)
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: TextButton.icon(
-                onPressed: onStartAddChild,
-                icon: const Icon(PhosphorIconsRegular.plus, size: 14),
-                label: Text(l10n.quickAdd),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _InlineEditableName(
+                      value: child.fullName,
+                      style: p.heading.copyWith(fontSize: 14.5),
+                      onSave: onRename,
+                      pencilOnHover: true,
+                    ),
+                    if (age > 0)
+                      Text(
+                        l10n.accountAgeYears(age),
+                        style: p.bodyMuted.copyWith(fontSize: 12),
+                      ),
+                    const SizedBox(height: 7),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        if (insideMinutes != null)
+                          StatusChip(
+                            label: l10n.accountInsideMinutes(insideMinutes!),
+                            icon: PhosphorIconsRegular.doorOpen,
+                            tone: ChipTone.positive,
+                          ),
+                        // Inside right now → the "Hozir ichkarida" table
+                        // already carries the pass and its running cost.
+                        if (activePass != null && insideMinutes == null)
+                          StatusChip(
+                            label:
+                                '${activePass!.planLabel} · ${_activePassBadge(l10n, activePass!)}',
+                            icon: PhosphorIconsRegular.ticket,
+                            tone: ChipTone.neutral,
+                          ),
+                        if (hasPromo)
+                          StatusChip(
+                            label: promoLabel!,
+                            icon: PhosphorIconsRegular.qrCode,
+                          ),
+                        if (selectedDiscount != null)
+                          StatusChip(
+                            label: '${l10n.discount}: ${selectedDiscount.name}',
+                            tone: ChipTone.positive,
+                          ),
+                        if (checkShareLabel != null)
+                          StatusChip(
+                            label: checkShareLabel!,
+                            tone: ChipTone.positive,
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            )
-          else
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              // Listens to the controller directly so the submit button
-              // enables the moment a valid name is typed — the parent
-              // doesn't rebuild on keystrokes.
-              child: ValueListenableBuilder<TextEditingValue>(
-                valueListenable: childNameController,
-                builder: (context, value, _) {
-                  final canSubmit = value.text.trim().length >= 2;
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: childNameController,
-                          autofocus: true,
-                          style: AppTextStyles.body,
-                          onSubmitted: (_) {
-                            if (canSubmit) onSubmitAddChild();
-                          },
-                          decoration: InputDecoration(hintText: l10n.childName),
+              if (!hasPromo &&
+                  (entryDiscounts.isNotEmpty ||
+                      selectedDiscountId != null)) ...[
+                const SizedBox(width: 10),
+                // Round 3-dots button (no label — it used to crowd the child's
+                // name): opens the grid dialog; filled once a discount is set.
+                Tooltip(
+                  key: const ValueKey('child-discount-button'),
+                  message: l10n.discount,
+                  child: Material(
+                    color: selectedDiscount == null ? p.accentSoft : p.accent,
+                    shape: CircleBorder(
+                      side: BorderSide(
+                        color: selectedDiscount == null
+                            ? p.accentBorder
+                            : p.accent,
+                      ),
+                    ),
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: () async {
+                        final pick = await showEntryDiscountDialog(
+                          context,
+                          discounts: entryDiscounts,
+                          selectedId: selectedDiscountId,
+                        );
+                        if (pick != null) onEntryDiscountChanged(pick.id);
+                      },
+                      child: SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: Icon(
+                          PhosphorIconsBold.dotsThreeVertical,
+                          size: 18,
+                          color: selectedDiscount == null
+                              ? p.accentStrong
+                              : p.onAccent,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      SizedBox(
-                        height: 42,
-                        child: FilledButton.icon(
-                          onPressed: canSubmit ? onSubmitAddChild : null,
-                          icon: const Icon(PhosphorIconsRegular.plus, size: 14),
-                          label: Text(l10n.add),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      SizedBox(
-                        height: 42,
-                        child: OutlinedButton(
-                          onPressed: onCancelAddChild,
-                          child: Text(l10n.cancel),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
-          const SizedBox(height: 12),
-          Text(l10n.tariff, style: AppTextStyles.body.copyWith(fontSize: 12)),
-          const SizedBox(height: 6),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// LEGACY passes show the raw free-reason label; new passes show the
+  /// discount name when fully free, or the running due amount otherwise (a
+  /// partial discount is already netted into `dueTodayUzs` server-side).
+  String _activePassBadge(AppLocalization l10n, ActivePass pass) {
+    if (pass.freeReason != null) return l10n.free;
+    if (pass.dueTodayUzs == 0 && pass.discountName != null) return l10n.free;
+    return formatUzs(pass.dueTodayUzs);
+  }
+}
+
+/// Step 2 — the tariff. Standard bills at exit by played time; VIP / 1 soat
+/// / custom plans are debited from the balance immediately at printing.
+class _TariffCard extends StatelessWidget {
+  const _TariffCard({
+    required this.plans,
+    required this.isLoadingPlans,
+    required this.selectedPlan,
+    required this.onSelectPlan,
+  });
+
+  /// Standard/VIP, plus 1 soat when the backend has it switched on.
+  final List<KidsPlan> plans;
+  final bool isLoadingPlans;
+  final KidsPlan? selectedPlan;
+  final ValueChanged<KidsPlan> onSelectPlan;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
+    final p = PosPalette.of(context);
+    return AccountCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          StepHeader(step: 2, title: l10n.tariff),
+          const SizedBox(height: 14),
           if (isLoadingPlans)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
@@ -1397,27 +1937,24 @@ class _ChildrenCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                border: Border.all(color: NocturneColors.divider),
+                borderRadius: BorderRadius.circular(10),
+                color: p.surfaceMuted,
               ),
               child: Text(
                 l10n.tariffNotFound,
-                style: AppTextStyles.body.copyWith(
-                  fontSize: 12,
-                  color: NocturneColors.text.withValues(alpha: 0.55),
-                ),
+                style: p.bodyMuted.copyWith(fontSize: 12.5),
               ),
             )
           else
             LayoutBuilder(
               builder: (context, constraints) {
-                // Up to 3 pills per row; any number of custom plans wrap.
+                // Up to 3 cards per row; any number of custom plans wrap.
                 final perRow = plans.length < 3 ? plans.length : 3;
                 final width =
-                    (constraints.maxWidth - 8 * (perRow - 1)) / perRow;
+                    (constraints.maxWidth - 10 * (perRow - 1)) / perRow;
                 return Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                  spacing: 10,
+                  runSpacing: 10,
                   children: [
                     for (final plan in plans)
                       SizedBox(
@@ -1432,32 +1969,570 @@ class _ChildrenCard extends StatelessWidget {
                 );
               },
             ),
-          if (selectedPlan != null && !selectedPlan!.isPrepaid) ...[
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                color: NocturneColors.bg,
-              ),
-              child: Text(
-                _noPaymentNote(l10n),
-                style: AppTextStyles.body.copyWith(
-                  fontSize: 12,
-                  color: NocturneColors.text.withValues(alpha: 0.6),
-                ),
-              ),
-            ),
-          ],
-          const SizedBox(height: 12),
-          checkout,
         ],
       ),
     );
   }
 }
 
-/// Products + running total + how the money is settled + the submit button.
+class _TariffPill extends StatelessWidget {
+  const _TariffPill({
+    required this.plan,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final KidsPlan plan;
+  final bool selected;
+  final VoidCallback onTap;
+
+  IconData get _icon => switch (plan.kind) {
+    KidsPlanKind.flatDay => PhosphorIconsRegular.crownSimple,
+    KidsPlanKind.flatHour =>
+      plan.isVip
+          ? PhosphorIconsRegular.crownSimple
+          : PhosphorIconsRegular.timer,
+    KidsPlanKind.perMinuteTiers => PhosphorIconsRegular.ticket,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
+    final p = PosPalette.of(context);
+    final priceLabel = switch (plan.kind) {
+      KidsPlanKind.flatDay => l10n.pricePerDay(formatUzs(plan.flatUzs ?? 0)),
+      KidsPlanKind.flatHour =>
+        plan.durationMinutes == null || plan.durationMinutes == 60
+            ? l10n.pricePerHour(formatUzs(plan.flatUzs ?? 0))
+            : '${l10n.minutesCount(plan.durationMinutes!)} · '
+                  '${formatUzs(plan.flatUzs ?? 0)}',
+      KidsPlanKind.perMinuteTiers => l10n.priceFromPerMinute(
+        formatUzs(plan.firstMinuteUzs ?? 0),
+      ),
+    };
+    final iconColor = switch (plan.kind) {
+      _ when plan.isVip => p.warning,
+      KidsPlanKind.flatHour => p.positive,
+      _ => p.accent,
+    };
+    final radius = BorderRadius.circular(12);
+    // The selected card gets a soft focus ring on top of its blue border.
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: radius,
+        boxShadow: selected
+            ? [BoxShadow(color: p.accentBorder, spreadRadius: 3)]
+            : null,
+      ),
+      child: Material(
+        color: selected ? p.accentSoft : p.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: radius,
+          side: BorderSide(color: selected ? p.accent : p.border, width: 1.5),
+        ),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: radius,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Icon(_icon, size: 17, color: iconColor),
+                    const SizedBox(width: 7),
+                    Expanded(
+                      child: Text(
+                        plan.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: p.heading.copyWith(
+                          fontSize: 14,
+                          color: selected ? p.accent : p.text,
+                        ),
+                      ),
+                    ),
+                    if (plan.isVip) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 1,
+                        ),
+                        decoration: BoxDecoration(
+                          color: p.warningSoft,
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                        child: Text(
+                          'VIP',
+                          style: AppTextStyles.body.copyWith(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: p.warning,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 8),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    priceLabel,
+                    maxLines: 1,
+                    style: AppTextStyles.body.copyWith(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: p.text,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  plan.isPrepaid ? l10n.accountPayNow : l10n.accountPayAtExit,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: p.bodyMuted.copyWith(fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Step 3 — optional extras: paid HAMROH companion stickers and the
+/// whole-check discount.
+class _ExtrasCard extends StatelessWidget {
+  const _ExtrasCard({
+    required this.products,
+    required this.cart,
+    required this.onProductAdd,
+    required this.onProductRemove,
+    required this.companions,
+    required this.companionPriceUzs,
+    required this.onCompanionAdd,
+    required this.onCompanionRemove,
+    required this.checkDiscountButton,
+    required this.checkDiscountHint,
+    required this.promoSection,
+  });
+
+  /// The admin's "Qo'shimcha" products (e.g. a nanny service) and their
+  /// qty in the checkout cart — debited from the balance, printed as a
+  /// receipt line.
+  final List<Product> products;
+  final Map<String, int> cart;
+  final ValueChanged<String> onProductAdd;
+  final ValueChanged<String> onProductRemove;
+
+  /// Paid HAMROH companion stickers: qty and unit price (server-owned) —
+  /// joins the checkout total and the normal payment flow.
+  final int companions;
+  final int companionPriceUzs;
+  final VoidCallback onCompanionAdd;
+  final VoidCallback onCompanionRemove;
+
+  /// "Chek chegirmasi" picker — null while it can't be used; then a greyed
+  /// tile says why ([checkDiscountHint]).
+  final Widget? checkDiscountButton;
+  final String? checkDiscountHint;
+
+  /// The "Promokod" field, the verified code's chip, or — with a check
+  /// discount picked — the note that the code is off.
+  final Widget promoSection;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
+    final p = PosPalette.of(context);
+    // Paid HAMROH companion sticker — parent-QR door semantics, minted by
+    // the same checkout and settled through the same payment flow.
+    final hamroh = _ExtraItemTile(
+      leading: Icon(PhosphorIconsRegular.usersThree, size: 20, color: p.accent),
+      title: 'HAMROH QR',
+      subtitle: l10n.companionDescription(formatUzs(companionPriceUzs)),
+      qty: companions,
+      onAdd: onCompanionAdd,
+      onRemove: onCompanionRemove,
+    );
+    final productTiles = [
+      for (final product in products)
+        _ExtraItemTile(
+          key: ValueKey('extra-${product.id}'),
+          leading: SizedBox.square(
+            dimension: 36,
+            child: ProductImage(product: product),
+          ),
+          title: product.name,
+          subtitle: formatUzs(product.priceUzs),
+          qty: cart[product.id] ?? 0,
+          onAdd: () => onProductAdd(product.id),
+          onRemove: () => onProductRemove(product.id),
+        ),
+    ];
+    return AccountCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          StepHeader(
+            step: 3,
+            title: l10n.accountStepExtras,
+            subtitle: '— ${l10n.accountOptional}',
+          ),
+          const SizedBox(height: 14),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final discount =
+                  checkDiscountButton ??
+                  _UnavailableTile(
+                    icon: PhosphorIconsRegular.percent,
+                    title: l10n.checkDiscount,
+                    hint: checkDiscountHint ?? '',
+                  );
+              final tiles = [hamroh, ...productTiles, discount];
+              if (constraints.maxWidth < 560) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (final (i, tile) in tiles.indexed) ...[
+                      if (i > 0) const SizedBox(height: 10),
+                      tile,
+                    ],
+                  ],
+                );
+              }
+              // Two per row, each pair as tall as its taller tile.
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (var i = 0; i < tiles.length; i += 2) ...[
+                    if (i > 0) const SizedBox(height: 10),
+                    IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(child: tiles[i]),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: i + 1 < tiles.length
+                                ? tiles[i + 1]
+                                : const SizedBox.shrink(),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+          promoSection,
+        ],
+      ),
+    );
+  }
+}
+
+/// One "Qo'shimcha" item with a − qty + stepper: HAMROH or a product.
+class _ExtraItemTile extends StatelessWidget {
+  const _ExtraItemTile({
+    super.key,
+    required this.leading,
+    required this.title,
+    required this.subtitle,
+    required this.qty,
+    required this.onAdd,
+    required this.onRemove,
+  });
+
+  final Widget leading;
+  final String title;
+  final String subtitle;
+  final int qty;
+  final VoidCallback onAdd;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = PosPalette.of(context);
+    final active = qty > 0;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: active ? p.accent : p.border,
+          width: active ? 1.5 : 1,
+        ),
+        color: active ? p.accentSoft : Colors.transparent,
+      ),
+      child: Row(
+        children: [
+          leading,
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: p.heading.copyWith(
+                    fontSize: 13.5,
+                    color: active ? p.accent : p.text,
+                  ),
+                ),
+                Text(subtitle, style: p.bodyMuted.copyWith(fontSize: 11.5)),
+              ],
+            ),
+          ),
+          _StepButton(
+            icon: PhosphorIconsRegular.minus,
+            onTap: active ? onRemove : null,
+          ),
+          SizedBox(
+            width: 34,
+            child: Text(
+              '$qty',
+              textAlign: TextAlign.center,
+              style: p.heading.copyWith(color: active ? p.accent : p.text),
+            ),
+          ),
+          _StepButton(icon: PhosphorIconsRegular.plus, onTap: onAdd),
+        ],
+      ),
+    );
+  }
+}
+
+/// A greyed picker tile that says why it can't be used yet.
+class _UnavailableTile extends StatelessWidget {
+  const _UnavailableTile({
+    required this.icon,
+    required this.title,
+    required this.hint,
+  });
+
+  final IconData icon;
+  final String title;
+  final String hint;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = PosPalette.of(context);
+    return Container(
+      constraints: const BoxConstraints(minHeight: 60),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: p.surfaceMuted,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: p.border),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: p.textFaint),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  style: p.heading.copyWith(fontSize: 13.5, color: p.textMuted),
+                ),
+                Text(hint, style: p.bodyMuted.copyWith(fontSize: 11.5)),
+              ],
+            ),
+          ),
+          Icon(PhosphorIconsRegular.caretDown, size: 16, color: p.textFaint),
+        ],
+      ),
+    );
+  }
+}
+
+/// The right-hand money panel: "Kirish" (pay for this entry) and
+/// "To'ldirish" (top up the balance) — one job per tab, one big button each.
+class _MoneyPanel extends StatelessWidget {
+  const _MoneyPanel({
+    required this.topupTab,
+    required this.onTabChanged,
+    required this.entry,
+    required this.topup,
+    this.pinned = false,
+  });
+
+  final bool topupTab;
+  final ValueChanged<bool> onTabChanged;
+  final _CheckoutSection entry;
+  final Widget topup;
+
+  /// True in the two-pane layout: the panel fills the pane's height, its
+  /// content scrolls and the submit button stays pinned at the bottom.
+  final bool pinned;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
+    final p = PosPalette.of(context);
+    final parts = topupTab
+        ? null
+        : entry.parts(context, amountOnAction: pinned);
+    // Only the active tab is built — its controllers live in the panel's
+    // state, so switching back keeps what was typed.
+    final content = topupTab ? topup : parts!.body;
+    return AccountCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: pinned ? MainAxisSize.max : MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: p.surfaceMuted,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _PanelTab(
+                    icon: PhosphorIconsRegular.doorOpen,
+                    label: l10n.enter,
+                    selected: !topupTab,
+                    onTap: () => onTabChanged(false),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: _PanelTab(
+                    icon: PhosphorIconsRegular.wallet,
+                    label: l10n.topup,
+                    selected: topupTab,
+                    onTap: () => onTabChanged(true),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (pinned)
+            Expanded(child: SingleChildScrollView(child: content))
+          else
+            content,
+          if (parts != null) ...[const SizedBox(height: 10), parts.action],
+        ],
+      ),
+    );
+  }
+}
+
+class _PanelTab extends StatelessWidget {
+  const _PanelTab({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = PosPalette.of(context);
+    final fg = selected ? p.accent : p.textMuted;
+    return Material(
+      color: selected ? p.surface : Colors.transparent,
+      elevation: selected ? 1 : 0,
+      shadowColor: const Color(0x14000000),
+      borderRadius: BorderRadius.circular(9),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(9),
+        child: SizedBox(
+          height: 42,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 17, color: fg),
+              const SizedBox(width: 7),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.body.copyWith(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: fg,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Tinted one-line hint — "balance covers it", "debited at exit".
+class _Note extends StatelessWidget {
+  const _Note({required this.text, this.tone = ChipTone.neutral, this.icon});
+
+  final String text;
+  final ChipTone tone;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = PosPalette.of(context);
+    final (bg, fg) = switch (tone) {
+      ChipTone.accent => (p.accentSoft, p.accent),
+      ChipTone.positive => (p.positiveSoft, p.positive),
+      ChipTone.warning => (p.warningSoft, p.warning),
+      ChipTone.neutral => (p.surfaceMuted, p.textMuted),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Icon(icon ?? PhosphorIconsRegular.info, size: 15, color: fg),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: AppTextStyles.body.copyWith(fontSize: 12.5, color: fg),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The "Kirish" tab: promo code, check lines, the balance switch, what is
+/// left to collect, how it is paid, and the submit button.
 ///
 /// The money model mirrors the backend's plan-entry checkout: everything
 /// flows through the balance. Collected cash/card is credited to the
@@ -1467,9 +2542,9 @@ class _ChildrenCard extends StatelessWidget {
 class _CheckoutSection extends StatelessWidget {
   const _CheckoutSection({
     required this.products,
-    required this.promoSection,
     required this.cart,
     required this.cartTotal,
+    required this.cartLines,
     required this.discounts,
     required this.selectedDiscount,
     required this.cartDiscountUzs,
@@ -1477,19 +2552,15 @@ class _CheckoutSection extends StatelessWidget {
     required this.vipTotal,
     required this.promoDiscountUzs,
     required this.promoName,
-    required this.checkDiscountButton,
     required this.checkDiscountUzs,
     required this.checkDiscountName,
-    required this.hourPlan,
+    required this.planName,
+    required this.planPrepaid,
     required this.companions,
-    required this.companionPriceUzs,
     required this.companionsTotal,
-    required this.onCompanionAdd,
-    required this.onCompanionRemove,
     required this.neededTotal,
     required this.balance,
-    required this.balanceCovers,
-    required this.shortfall,
+    required this.fromBalanceUzs,
     required this.payFromBalance,
     required this.onPayFromBalanceChanged,
     required this.onPayAmountEdited,
@@ -1508,6 +2579,8 @@ class _CheckoutSection extends StatelessWidget {
     required this.alreadyNotes,
     required this.printParentQr,
     required this.onPrintParentQrChanged,
+    required this.showPayAmount,
+    required this.onShowPayAmount,
     required this.canSubmit,
     required this.isBusy,
     required this.onSubmit,
@@ -1515,10 +2588,12 @@ class _CheckoutSection extends StatelessWidget {
 
   final List<Product> products;
 
-  /// The "Promokod" field, or the verified code's chip + child picker.
-  final Widget promoSection;
   final Map<String, int> cart;
   final int cartTotal;
+
+  /// The cart line by line ("Enaga ×2") — the check names what is sold
+  /// instead of one "Mahsulotlar" sum.
+  final List<({String name, int qty, int totalUzs})> cartLines;
 
   /// Active discount catalog — empty hides the picker entirely (best-effort
   /// fetch, same contract as `products`/`plans`).
@@ -1543,37 +2618,25 @@ class _CheckoutSection extends StatelessWidget {
   final int promoDiscountUzs;
   final String? promoName;
 
-  /// "Chek chegirmasi" button (null hides it) — right above the pay button.
-  final Widget? checkDiscountButton;
-
   /// PREVIEW ONLY — what the check discount takes off the prepaid tariff;
   /// 0 when none or Standard. [vipTotal] is already net of it.
   final int checkDiscountUzs;
   final String? checkDiscountName;
 
-  /// The prepaid plan picked is 1 soat, not VIP — only swaps the wording
-  /// of the [vipTotal] row, its "debited immediately" note and the
-  /// "no second charge" notes; VIP keeps its exact copy.
+  /// The selected tariff's name for the "VIP × 2 bola" line — null until a
+  /// tariff is picked. [planPrepaid] false (Standard) bills at exit.
+  final String? planName;
+  final bool planPrepaid;
 
-  /// The selected flat_hour plan (built-in `hour` or a custom one) — its
-  /// name labels the total and the hint; null when none is selected.
-  final KidsPlan? hourPlan;
-
-  /// The shipped "1 soat" plan keeps its localized wording; custom plans
-  /// are labelled by their own name.
-  bool get _isBuiltInHour => hourPlan == null || hourPlan!.key == 'hour';
-
-  /// Paid HAMROH companion stickers: qty, unit price (server-owned), and
-  /// their subtotal — joins [neededTotal] and the normal payment flow.
+  /// Paid HAMROH companion stickers and their subtotal — the qty is picked
+  /// in step 3, the line shows here.
   final int companions;
-  final int companionPriceUzs;
   final int companionsTotal;
-  final VoidCallback onCompanionAdd;
-  final VoidCallback onCompanionRemove;
   final int neededTotal;
   final int balance;
-  final bool balanceCovers;
-  final int shortfall;
+
+  /// What the balance pays of [neededTotal] — 0 with the switch off.
+  final int fromBalanceUzs;
   final bool payFromBalance;
   final ValueChanged<bool> onPayFromBalanceChanged;
 
@@ -1602,18 +2665,63 @@ class _CheckoutSection extends StatelessWidget {
   /// The free parent sticker rides along with the checkout print.
   final bool printParentQr;
   final ValueChanged<bool> onPrintParentQrChanged;
+
+  /// Whether the "Boshqa summa olish" field is open.
+  final bool showPayAmount;
+  final VoidCallback onShowPayAmount;
   final bool canSubmit;
   final bool isBusy;
   final VoidCallback onSubmit;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalization.of(context);
+    final parts = this.parts(context);
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [parts.body, const SizedBox(height: 10), parts.action],
+    );
+  }
+
+  /// The check split in two so the money panel can scroll [body] while the
+  /// big submit [action] stays pinned under it.
+  ({Widget body, Widget action}) parts(
+    BuildContext context, {
+    bool amountOnAction = false,
+  }) {
+    final l10n = AppLocalization.of(context);
+    final p = PosPalette.of(context);
+    final showPlanLine = planName != null && selectedChildCount > 0;
+    final planGross = vipTotal + promoDiscountUzs + checkDiscountUzs;
+    final hasLines =
+        showPlanLine ||
+        cartTotal > 0 ||
+        companionsTotal > 0 ||
+        cartDiscountUzs > 0 ||
+        promoDiscountUzs > 0 ||
+        checkDiscountUzs > 0;
+    // Something is owed (or discounted away) — the check gets its totals.
+    final hasTotals =
+        neededTotal > 0 ||
+        cartDiscountUzs > 0 ||
+        promoDiscountUzs > 0 ||
+        checkDiscountUzs > 0;
+    final lineCount = [
+      showPlanLine,
+      cartTotal > 0,
+      companionsTotal > 0,
+      cartDiscountUzs > 0,
+      promoDiscountUzs > 0,
+      checkDiscountUzs > 0,
+    ].where((shown) => shown).length;
+    // "Jami" only when it adds something: several lines, or a balance
+    // deduction between it and the amount to pay.
+    final showTotal = lineCount > 1 || fromBalanceUzs > 0 || neededTotal == 0;
+    final payDelta = payAmount - requiredPayment;
+    final body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (products.isNotEmpty) ...[
-          Text(l10n.products, style: AppTextStyles.body.copyWith(fontSize: 12)),
+          Text(l10n.products, style: p.bodyMuted.copyWith(fontSize: 12)),
           const SizedBox(height: 6),
           Wrap(
             spacing: 8,
@@ -1628,15 +2736,12 @@ class _CheckoutSection extends StatelessWidget {
                 ),
             ],
           ),
+          const SizedBox(height: 10),
         ],
         if (discounts.isNotEmpty && cart.isNotEmpty) ...[
-          const SizedBox(height: 10),
           Row(
             children: [
-              Text(
-                l10n.discount,
-                style: AppTextStyles.body.copyWith(fontSize: 12),
-              ),
+              Text(l10n.discount, style: p.bodyMuted.copyWith(fontSize: 12)),
               const Spacer(),
               DiscountPicker(
                 discounts: discounts,
@@ -1650,202 +2755,182 @@ class _CheckoutSection extends StatelessWidget {
               name: selectedDiscount!.name,
               amountUzs: cartDiscountUzs,
             ),
+          const SizedBox(height: 10),
         ],
-        const SizedBox(height: 10),
-        promoSection,
-        const SizedBox(height: 10),
-        // Paid HAMROH companion sticker — parent-QR door semantics, minted
-        // by the same checkout and settled through the same payment flow.
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            border: Border.all(
-              color: companions > 0
-                  ? NocturneColors.accent
-                  : NocturneColors.divider,
-            ),
-            color: companions > 0
-                ? NocturneColors.accent.withValues(alpha: 0.08)
-                : Colors.transparent,
+        if (neededTotal > 0 && balance > 0) ...[
+          const SizedBox(height: 10),
+          _BalanceSwitch(
+            value: payFromBalance,
+            onChanged: onPayFromBalanceChanged,
+            balance: balance,
           ),
-          child: Row(
+        ],
+        // The check itself — read-only, top to bottom like a printed
+        // receipt: lines, total, what the balance pays, what is left.
+        if (hasLines) ...[
+          const SizedBox(height: 12),
+          _Receipt(
             children: [
-              Icon(
-                PhosphorIconsRegular.usersThree,
-                size: 16,
-                color: companions > 0
-                    ? NocturneColors.accent
-                    : NocturneColors.text,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
+              if (showPlanLine)
+                _TotalRow(
+                  label: l10n.accountPlanTimesKids(
+                    planName!,
+                    selectedChildCount,
+                  ),
+                  amount: planGross,
+                  amountText: planPrepaid ? null : l10n.accountAtExit,
+                ),
+              if (cartLines.isNotEmpty)
+                for (final line in cartLines)
+                  _TotalRow(
+                    label: '${line.name} ×${line.qty}',
+                    amount: line.totalUzs,
+                  )
+              else if (cartTotal > 0)
+                _TotalRow(label: l10n.products, amount: cartTotal),
+              if (cartDiscountUzs > 0)
+                _TotalRow(
+                  label: '${l10n.discount} (${selectedDiscount!.name})',
+                  amount: -cartDiscountUzs,
+                  positive: true,
+                ),
+              if (promoDiscountUzs > 0)
+                _TotalRow(
+                  label: '${l10n.promoCode} ($promoName)',
+                  amount: -promoDiscountUzs,
+                  positive: true,
+                ),
+              if (checkDiscountUzs > 0)
+                _TotalRow(
+                  label: '${l10n.checkDiscount} ($checkDiscountName)',
+                  amount: -checkDiscountUzs,
+                  positive: true,
+                ),
+              if (companionsTotal > 0)
+                _TotalRow(
+                  label: 'HAMROH QR ×$companions',
+                  amount: companionsTotal,
+                ),
+              if (hasTotals && showTotal) ...[
+                const _ReceiptRule(),
+                Row(
                   children: [
+                    Text(l10n.total, style: p.body.copyWith(fontSize: 14)),
+                    const Spacer(),
                     Text(
-                      'HAMROH QR',
-                      style: AppTextStyles.body.copyWith(
-                        fontSize: 13,
-                        color: companions > 0
-                            ? NocturneColors.accent
-                            : NocturneColors.text,
+                      neededTotal == 0 ? l10n.free : formatUzs(neededTotal),
+                      style: p.heading.copyWith(
+                        fontSize: 15,
+                        fontFeatures: const [FontFeature.tabularFigures()],
                       ),
-                    ),
-                    Text(
-                      l10n.companionDescription(formatUzs(companionPriceUzs)),
-                      style: AppTextStyles.muted(
-                        AppTextStyles.body,
-                      ).copyWith(fontSize: 11),
                     ),
                   ],
                 ),
-              ),
-              if (companions > 0) ...[
-                _StepButton(
-                  icon: PhosphorIconsRegular.minus,
-                  onTap: onCompanionRemove,
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Text('$companions', style: AppTextStyles.h5),
-                ),
               ],
-              _StepButton(
-                icon: PhosphorIconsRegular.plus,
-                onTap: onCompanionAdd,
-              ),
+              if (hasTotals) ...[
+                if (fromBalanceUzs > 0) ...[
+                  const SizedBox(height: 6),
+                  _TotalRow(
+                    label: l10n.accountFromBalanceLine,
+                    amount: -fromBalanceUzs,
+                    positive: true,
+                  ),
+                ],
+                if (neededTotal > 0) ...[
+                  const _ReceiptRule(strong: true),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(
+                        l10n.accountToPay,
+                        style: p.heading.copyWith(fontSize: 15),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              formatUzs(requiredPayment),
+                              key: const ValueKey('pay-due'),
+                              style: AppTextStyles.h3.copyWith(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w800,
+                                color: requiredPayment == 0
+                                    ? p.positive
+                                    : p.text,
+                                fontFeatures: const [
+                                  FontFeature.tabularFigures(),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (requiredPayment == 0 && fromBalanceUzs > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        '${l10n.accountLeftOnBalance}: '
+                        '${formatUzs(balance - fromBalanceUzs)}',
+                        textAlign: TextAlign.end,
+                        style: p.bodyMuted.copyWith(fontSize: 12),
+                      ),
+                    ),
+                ],
+              ],
             ],
           ),
-        ),
+        ],
+        // Standard only: nothing is due at the register — billing happens
+        // at exit by played time.
+        if (planName != null && !planPrepaid && neededTotal == 0) ...[
+          const SizedBox(height: 10),
+          _Note(
+            text: l10n.noPaymentNow,
+            tone: ChipTone.positive,
+            icon: PhosphorIconsRegular.info,
+          ),
+        ],
         for (final note in alreadyNotes)
           Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Text(
-              note,
-              style: AppTextStyles.muted(
-                AppTextStyles.body,
-              ).copyWith(fontSize: 11),
-            ),
+            padding: const EdgeInsets.only(top: 8),
+            child: _Note(text: note, icon: PhosphorIconsRegular.checkCircle),
           ),
-        if (neededTotal > 0 ||
-            cartDiscountUzs > 0 ||
-            promoDiscountUzs > 0 ||
-            checkDiscountUzs > 0) ...[
-          const SizedBox(height: 12),
-          if ([
-                    cartTotal,
-                    vipTotal,
-                    companionsTotal,
-                  ].where((amount) => amount > 0).length >
-                  1 ||
-              cartDiscountUzs > 0 ||
-              promoDiscountUzs > 0 ||
-              checkDiscountUzs > 0) ...[
-            if (cartTotal > 0)
-              _TotalRow(label: l10n.products, amount: cartTotal),
-            if (cartDiscountUzs > 0)
-              _TotalRow(
-                label: '${l10n.discount} (${selectedDiscount!.name})',
-                amount: -cartDiscountUzs,
-              ),
-            if (vipTotal + promoDiscountUzs + checkDiscountUzs > 0)
-              _TotalRow(
-                label: hourPlan != null
-                    ? (_isBuiltInHour ? l10n.hourTariff : hourPlan!.name)
-                    : l10n.vipTariff,
-                amount: vipTotal + promoDiscountUzs + checkDiscountUzs,
-              ),
-            if (promoDiscountUzs > 0)
-              _TotalRow(
-                label: '${l10n.promoCode} ($promoName)',
-                amount: -promoDiscountUzs,
-              ),
-            if (checkDiscountUzs > 0)
-              _TotalRow(
-                label: '${l10n.checkDiscount} ($checkDiscountName)',
-                amount: -checkDiscountUzs,
-              ),
-            if (companionsTotal > 0)
-              _TotalRow(
-                label: 'HAMROH QR ×$companions',
-                amount: companionsTotal,
-              ),
-            const SizedBox(height: 4),
+        // How the customer pays what is left.
+        if (requiredPayment > 0) ...[
+          const SizedBox(height: 14),
+          PaymentMethodPills(
+            selected: payMethod,
+            onChanged: onPayMethodChanged,
+          ),
+          if (payMethod == PaymentMethod.split) ...[
+            const SizedBox(height: 10),
+            SplitAmountFields(
+              cashController: payCashController,
+              cardController: payCardController,
+              split: paySplit,
+              totalUzs: payAmount,
+              onChanged: onChanged,
+              autoComplete: true,
+            ),
           ],
-          Row(
-            children: [
-              Text(l10n.total, style: AppTextStyles.muted(AppTextStyles.body)),
-              const Spacer(),
-              Text(
-                neededTotal == 0 ? l10n.free : formatUzs(neededTotal),
-                style: AppTextStyles.h5,
-              ),
-            ],
-          ),
-          if (vipTotal > 0)
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Text(
-                hourPlan != null
-                    ? (_isBuiltInHour
-                          ? l10n.hourChargedImmediately
-                          : l10n.planChargedImmediately(hourPlan!.name))
-                    : l10n.vipChargedImmediately,
-                style: AppTextStyles.muted(
-                  AppTextStyles.body,
-                ).copyWith(fontSize: 11),
-              ),
-            ),
-          const SizedBox(height: 8),
-          if (neededTotal == 0)
-            const SizedBox.shrink()
-          else if (balanceCovers)
-            // Transparent Material like the parent-QR tile below — the
-            // card's DecoratedBox otherwise trips ListTile's ink assert.
-            Material(
-              type: MaterialType.transparency,
-              child: SwitchListTile(
-                value: payFromBalance,
-                onChanged: onPayFromBalanceChanged,
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                activeThumbColor: NocturneColors.accent,
-                title: Text(
-                  l10n.payFromBalance,
-                  style: AppTextStyles.body.copyWith(fontSize: 13),
-                ),
-                subtitle: Text(
-                  l10n.currentBalanceValue(formatUzs(balance)),
-                  style: AppTextStyles.muted(
-                    AppTextStyles.body,
-                  ).copyWith(fontSize: 11),
-                ),
-              ),
-            )
-          else
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                color: NocturneColors.accent.withValues(alpha: 0.12),
-                border: Border.all(color: NocturneColors.accent),
-              ),
-              child: Text(
-                l10n.balanceInsufficient(formatUzs(shortfall)),
-                style: AppTextStyles.body.copyWith(fontSize: 12),
-              ),
-            ),
-          if (requiredPayment > 0) ...[
-            const SizedBox(height: 8),
+          // Taking more than owed is rare (the rest stays on the balance) —
+          // a quiet link, not a field on every sale.
+          if (showPayAmount || payDelta != 0) ...[
+            const SizedBox(height: 10),
             TextField(
               controller: payAmountController,
               keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              style: AppTextStyles.body.copyWith(
+              inputFormatters: const [ThousandsInputFormatter()],
+              style: p.body.copyWith(
                 fontFamily: null,
                 fontSize: 16,
+                fontWeight: FontWeight.w600,
               ),
               onChanged: (_) {
                 onPayAmountEdited();
@@ -1853,80 +2938,219 @@ class _CheckoutSection extends StatelessWidget {
               },
               decoration: InputDecoration(
                 labelText: l10n.paymentAmount,
-                helperText: l10n.paymentMinimumHint(formatUzs(requiredPayment)),
+                suffixText: "so'm",
+                errorText: payDelta < 0
+                    ? l10n.paymentMinimumHint(formatUzs(requiredPayment))
+                    : null,
+                helperText: payDelta > 0
+                    ? l10n.accountExcessToBalance(formatUzs(payDelta))
+                    : null,
               ),
             ),
-            const SizedBox(height: 8),
-            PaymentMethodPills(
-              selected: payMethod,
-              onChanged: onPayMethodChanged,
-            ),
-            if (payMethod == PaymentMethod.split) ...[
-              const SizedBox(height: 8),
-              SplitAmountFields(
-                cashController: payCashController,
-                cardController: payCardController,
-                split: paySplit,
-                totalUzs: payAmount,
-                onChanged: onChanged,
+          ] else
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: onShowPayAmount,
+                icon: const Icon(PhosphorIconsRegular.pencilSimple, size: 14),
+                label: Text(
+                  l10n.accountOtherAmount,
+                  style: const TextStyle(fontSize: 12.5),
+                ),
               ),
-            ],
-          ],
+            ),
         ],
-        const SizedBox(height: 4),
-        // Transparent Material keeps the tile's ink plumbing happy inside
+        const SizedBox(height: 8),
+        // Transparent Material keeps the row's ink plumbing happy inside
         // the card's DecoratedBox (asserts in widget tests otherwise).
         Material(
           type: MaterialType.transparency,
-          child: SwitchListTile(
-            value: printParentQr,
-            onChanged: onPrintParentQrChanged,
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            activeThumbColor: NocturneColors.accent,
-            title: Text(
-              l10n.printParentQr,
-              style: AppTextStyles.body.copyWith(fontSize: 13),
-            ),
-            subtitle: Text(
-              l10n.unlimitedFreeEntry,
-              style: AppTextStyles.muted(
-                AppTextStyles.body,
-              ).copyWith(fontSize: 11),
-            ),
-          ),
-        ),
-        if (checkDiscountButton != null) ...[
-          const SizedBox(height: 8),
-          checkDiscountButton!,
-        ],
-        const SizedBox(height: 8),
-        SizedBox(
-          height: 48,
-          child: FilledButton.icon(
-            onPressed: canSubmit ? onSubmit : null,
-            icon: isBusy
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Icon(
-                    neededTotal > 0
-                        ? PhosphorIconsRegular.printer
-                        : PhosphorIconsRegular.doorOpen,
-                    size: 18,
+          child: InkWell(
+            onTap: () => onPrintParentQrChanged(!printParentQr),
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: Checkbox(
+                      value: printParentQr,
+                      onChanged: (v) => onPrintParentQrChanged(v ?? false),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                    ),
                   ),
-            label: Text(
-              neededTotal > 0
-                  ? l10n.paymentAndPrint
-                  : selectedChildCount > 0
-                  ? l10n.enterCount(selectedChildCount)
-                  : l10n.enter,
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Tooltip(
+                      message: l10n.unlimitedFreeEntry,
+                      child: Text(
+                        l10n.printParentQr,
+                        overflow: TextOverflow.ellipsis,
+                        style: p.body.copyWith(fontSize: 13.5),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ],
+    );
+    final action = SizedBox(
+      height: 56,
+      child: FilledButton.icon(
+        onPressed: canSubmit ? onSubmit : null,
+        icon: isBusy
+            ? SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: p.onAccent,
+                ),
+              )
+            : Icon(
+                neededTotal > 0
+                    ? PhosphorIconsRegular.printer
+                    : PhosphorIconsRegular.doorOpen,
+                size: 20,
+              ),
+        // When the check scrolls away under the pinned button, the amount
+        // to collect rides on the button itself.
+        label: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                neededTotal > 0
+                    ? l10n.paymentAndPrint
+                    : selectedChildCount > 0
+                    ? l10n.enterCount(selectedChildCount)
+                    : l10n.enter,
+              ),
+              if (amountOnAction && neededTotal > 0 && requiredPayment > 0)
+                Text(' · ${formatUzs(requiredPayment)}'),
+            ],
+          ),
+        ),
+      ),
+    );
+    return (body: body, action: action);
+  }
+}
+
+/// A printed-receipt look for the check: a quiet tinted slip.
+class _Receipt extends StatelessWidget {
+  const _Receipt({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = PosPalette.of(context);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        color: p.surfaceMuted,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: children,
+      ),
+    );
+  }
+}
+
+/// The receipt's dashed separator; [strong] is the solid rule above the
+/// amount to pay.
+class _ReceiptRule extends StatelessWidget {
+  const _ReceiptRule({this.strong = false});
+
+  final bool strong;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = PosPalette.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: strong
+          ? Container(height: 1.5, color: p.borderStrong)
+          : LayoutBuilder(
+              builder: (context, constraints) {
+                final dashes = (constraints.maxWidth / 8).floor();
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    for (var i = 0; i < dashes; i++)
+                      Container(width: 4, height: 1, color: p.borderStrong),
+                  ],
+                );
+              },
+            ),
+    );
+  }
+}
+
+/// "Balansdan yechish" as a tappable row: switch and the current balance —
+/// how much it pays is a line on the receipt below.
+class _BalanceSwitch extends StatelessWidget {
+  const _BalanceSwitch({
+    required this.value,
+    required this.onChanged,
+    required this.balance,
+  });
+
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final int balance;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
+    final p = PosPalette.of(context);
+    final radius = BorderRadius.circular(12);
+    return Material(
+      color: value ? p.accentSoft : p.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: radius,
+        side: BorderSide(color: value ? p.accent : p.border, width: 1.5),
+      ),
+      child: InkWell(
+        onTap: () => onChanged(!value),
+        borderRadius: radius,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(6, 6, 12, 6),
+          child: Row(
+            children: [
+              Switch(value: value, onChanged: onChanged),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      l10n.payFromBalance,
+                      style: p.heading.copyWith(fontSize: 13.5),
+                    ),
+                    Text(
+                      l10n.currentBalanceValue(formatUzs(balance)),
+                      style: p.bodyMuted.copyWith(fontSize: 11.5),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1968,6 +3192,7 @@ class _PromoSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalization.of(context);
+    final p = PosPalette.of(context);
     if (promo == null) {
       return PromoCodeField(
         busy: isChecking,
@@ -1978,13 +3203,16 @@ class _PromoSection extends StatelessWidget {
     final promoChild = selectedChildren
         .where((c) => c.id == promoChildId)
         .firstOrNull;
-    final childStyle = AppTextStyles.body.copyWith(fontSize: 12);
+    final childStyle = p.body.copyWith(
+      fontSize: 12.5,
+      fontWeight: FontWeight.w600,
+    );
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: NocturneColors.accent),
-        color: NocturneColors.accent.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: p.positive.withValues(alpha: 0.35)),
+        color: p.positiveSoft,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1995,9 +3223,9 @@ class _PromoSection extends StatelessWidget {
               Icon(
                 promo!.isBlogger
                     ? PhosphorIconsRegular.megaphone
-                    : PhosphorIconsRegular.qrCode,
-                size: 16,
-                color: NocturneColors.accent,
+                    : PhosphorIconsRegular.checkCircle,
+                size: 18,
+                color: p.positive,
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -2010,15 +3238,14 @@ class _PromoSection extends StatelessWidget {
                     if (promo!.isBlogger)
                       Text(
                         '${l10n.promoCodeBlogger} · ${promo!.code}',
-                        style: AppTextStyles.muted(
-                          AppTextStyles.body,
-                        ).copyWith(fontSize: 11),
+                        style: p.bodyMuted.copyWith(fontSize: 11),
                       ),
                     Text(
                       label!,
                       style: AppTextStyles.body.copyWith(
                         fontSize: 13,
-                        color: NocturneColors.accent,
+                        fontWeight: FontWeight.w600,
+                        color: p.positive,
                       ),
                     ),
                   ],
@@ -2028,11 +3255,7 @@ class _PromoSection extends StatelessWidget {
                 tooltip: l10n.promoCodeRemove,
                 visualDensity: VisualDensity.compact,
                 onPressed: onClear,
-                icon: const Icon(
-                  PhosphorIconsRegular.x,
-                  size: 16,
-                  color: NocturneColors.danger,
-                ),
+                icon: Icon(PhosphorIconsRegular.x, size: 16, color: p.danger),
               ),
             ],
           ),
@@ -2042,18 +3265,14 @@ class _PromoSection extends StatelessWidget {
                       selectedChildren.every((c) => passChildIds.contains(c.id))
                   ? l10n.promoCodeChildHasPass
                   : l10n.promoCodeNoChild,
-              style: AppTextStyles.muted(
-                AppTextStyles.body,
-              ).copyWith(fontSize: 11),
+              style: p.bodyMuted.copyWith(fontSize: 11.5),
             )
           else
             Row(
               children: [
                 Text(
                   '${l10n.promoCodeForChild}: ',
-                  style: AppTextStyles.muted(
-                    AppTextStyles.body,
-                  ).copyWith(fontSize: 12),
+                  style: p.bodyMuted.copyWith(fontSize: 12),
                 ),
                 if (selectedChildren.length == 1)
                   Flexible(
@@ -2067,7 +3286,7 @@ class _PromoSection extends StatelessWidget {
                   Flexible(
                     child: PopupMenuButton<String>(
                       tooltip: l10n.promoCodeForChild,
-                      color: NocturneColors.surface,
+                      color: p.surface,
                       onSelected: onChildPicked,
                       itemBuilder: (context) => [
                         for (final child in selectedChildren)
@@ -2084,15 +3303,13 @@ class _PromoSection extends StatelessWidget {
                                       : PhosphorIconsRegular.circle,
                                   size: 16,
                                   color: child.id == promoChildId
-                                      ? NocturneColors.accent
-                                      : NocturneColors.text,
+                                      ? p.accent
+                                      : p.textMuted,
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
                                   child.fullName,
-                                  style: AppTextStyles.body.copyWith(
-                                    fontSize: 13,
-                                  ),
+                                  style: p.body.copyWith(fontSize: 13),
                                 ),
                               ],
                             ),
@@ -2108,10 +3325,10 @@ class _PromoSection extends StatelessWidget {
                               style: childStyle,
                             ),
                           ),
-                          const Icon(
+                          Icon(
                             PhosphorIconsRegular.caretDown,
                             size: 14,
-                            color: NocturneColors.text,
+                            color: p.text,
                           ),
                         ],
                       ),
@@ -2124,10 +3341,7 @@ class _PromoSection extends StatelessWidget {
               padding: const EdgeInsets.only(top: 4, right: 8),
               child: Text(
                 errorText!,
-                style: const TextStyle(
-                  color: NocturneColors.danger,
-                  fontSize: 11,
-                ),
+                style: TextStyle(color: p.danger, fontSize: 11.5),
               ),
             ),
         ],
@@ -2137,27 +3351,45 @@ class _PromoSection extends StatelessWidget {
 }
 
 class _TotalRow extends StatelessWidget {
-  const _TotalRow({required this.label, required this.amount});
+  const _TotalRow({
+    required this.label,
+    required this.amount,
+    this.positive = false,
+    this.amountText,
+  });
 
   final String label;
   final int amount;
 
+  /// Discount lines read green.
+  final bool positive;
+
+  /// Shown instead of [amount] — "chiqishda" for a tariff billed at exit.
+  final String? amountText;
+
   @override
   Widget build(BuildContext context) {
+    final p = PosPalette.of(context);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 2),
+      padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         children: [
-          Text(
-            label,
-            style: AppTextStyles.muted(
-              AppTextStyles.body,
-            ).copyWith(fontSize: 12),
+          Expanded(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: p.bodyMuted.copyWith(fontSize: 13),
+            ),
           ),
-          const Spacer(),
+          const SizedBox(width: 8),
           Text(
-            formatUzs(amount),
-            style: AppTextStyles.body.copyWith(fontSize: 13),
+            amountText ?? formatUzs(amount),
+            style: AppTextStyles.body.copyWith(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w600,
+              color: positive ? p.positive : p.text,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
           ),
         ],
       ),
@@ -2182,22 +3414,20 @@ class _ProductChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = PosPalette.of(context);
     final selected = qty > 0;
+    final fg = selected ? p.accent : p.text;
     return Material(
-      color: selected
-          ? NocturneColors.accent.withValues(alpha: 0.12)
-          : Colors.transparent,
-      borderRadius: BorderRadius.circular(AppRadius.md),
+      color: selected ? p.accentSoft : Colors.transparent,
+      borderRadius: BorderRadius.circular(10),
       child: InkWell(
         onTap: selected ? null : onAdd,
-        borderRadius: BorderRadius.circular(AppRadius.md),
+        borderRadius: BorderRadius.circular(10),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            border: Border.all(
-              color: selected ? NocturneColors.accent : NocturneColors.divider,
-            ),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: selected ? p.accent : p.border),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -2208,22 +3438,13 @@ class _ProductChip extends StatelessWidget {
                 children: [
                   Text(
                     product.name,
-                    style: AppTextStyles.body.copyWith(
-                      fontSize: 13,
-                      color: selected
-                          ? NocturneColors.accent
-                          : NocturneColors.text,
-                    ),
+                    style: AppTextStyles.body.copyWith(fontSize: 13, color: fg),
                   ),
                   Text(
                     formatUzs(product.priceUzs),
                     style: AppTextStyles.body.copyWith(
                       fontSize: 11,
-                      color:
-                          (selected
-                                  ? NocturneColors.accent
-                                  : NocturneColors.text)
-                              .withValues(alpha: 0.7),
+                      color: fg.withValues(alpha: 0.7),
                     ),
                   ),
                 ],
@@ -2233,7 +3454,7 @@ class _ProductChip extends StatelessWidget {
                 _StepButton(icon: PhosphorIconsRegular.minus, onTap: onRemove),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Text('$qty', style: AppTextStyles.h5),
+                  child: Text('$qty', style: p.heading),
                 ),
                 _StepButton(icon: PhosphorIconsRegular.plus, onTap: onAdd),
               ],
@@ -2249,21 +3470,31 @@ class _StepButton extends StatelessWidget {
   const _StepButton({required this.icon, required this.onTap});
 
   final IconData icon;
-  final VoidCallback onTap;
+
+  /// Null greys the button out (e.g. "−" at zero).
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.sm),
-      child: Container(
-        width: 26,
-        height: 26,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppRadius.sm),
-          border: Border.all(color: NocturneColors.accent),
+    final p = PosPalette.of(context);
+    return Material(
+      color: p.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(9),
+        side: BorderSide(color: p.borderStrong),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(9),
+        child: SizedBox(
+          width: 34,
+          height: 34,
+          child: Icon(
+            icon,
+            size: 15,
+            color: onTap == null ? p.textFaint : p.accent,
+          ),
         ),
-        child: Icon(icon, size: 13, color: NocturneColors.accent),
       ),
     );
   }
@@ -2271,7 +3502,7 @@ class _StepButton extends StatelessWidget {
 
 /// The customer's currently-inside children with their live running cost —
 /// the cashier's instant answer when a parent walks up because the exit QR
-/// refused on a low balance. The top-up card sits right above it.
+/// refused on a low balance. A table: child · tariff · entered · time · due.
 class _PlayingCard extends StatelessWidget {
   const _PlayingCard({
     required this.rows,
@@ -2283,532 +3514,138 @@ class _PlayingCard extends StatelessWidget {
   final int balance;
   final VoidCallback onRefresh;
 
+  static const _flex = [5, 4, 3, 3, 4];
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalization.of(context);
+    final p = PosPalette.of(context);
     final totalDue = rows.fold<int>(0, (sum, row) => sum + row.dueUzs);
     final short = totalDue - balance;
-    return _Card(
+    final headStyle = AppTextStyles.kicker.copyWith(
+      fontSize: 10.5,
+      color: p.textFaint,
+    );
+    Widget cells(List<Widget> children) => Row(
+      children: [
+        for (var i = 0; i < children.length; i++)
+          Expanded(flex: _flex[i], child: children[i]),
+      ],
+    );
+    return AccountCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Text(l10n.currentlyInside, style: AppTextStyles.h5),
-              const SizedBox(width: 8),
-              Text(
-                l10n.childCount(rows.length),
-                style: AppTextStyles.muted(
-                  AppTextStyles.body,
-                ).copyWith(fontSize: 11),
-              ),
-              const Spacer(),
-              SizedBox(
-                height: 30,
-                child: OutlinedButton.icon(
-                  onPressed: onRefresh,
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
+          StepHeader(
+            icon: PhosphorIconsRegular.doorOpen,
+            title: l10n.currentlyInside,
+            subtitle: l10n.childCount(rows.length),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${l10n.totalBill}: ',
+                  style: p.bodyMuted.copyWith(fontSize: 12.5),
+                ),
+                Text(
+                  formatUzs(totalDue),
+                  style: AppTextStyles.body.copyWith(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: short > 0 ? p.danger : p.text,
                   ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  tooltip: l10n.refresh,
+                  visualDensity: VisualDensity.compact,
+                  onPressed: onRefresh,
                   icon: const Icon(
                     PhosphorIconsRegular.arrowsClockwise,
-                    size: 13,
+                    size: 17,
                   ),
-                  label: Text(l10n.refresh),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          for (final row in rows)
-            Container(
-              margin: const EdgeInsets.only(bottom: 6),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-              decoration: BoxDecoration(
-                color: NocturneColors.bg,
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                border: Border.all(color: NocturneColors.divider),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          row.childName,
-                          style: AppTextStyles.body.copyWith(fontSize: 14),
-                        ),
-                        Text(
-                          l10n.enteredAtMinutes(
-                            row.planName,
-                            '${row.enteredAt.hour.toString().padLeft(2, '0')}:${row.enteredAt.minute.toString().padLeft(2, '0')}',
-                            row.minutes,
-                          ),
-                          style: AppTextStyles.muted(
-                            AppTextStyles.body,
-                          ).copyWith(fontSize: 11),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(formatUzs(row.dueUzs), style: AppTextStyles.h5),
-                      if (row.discountName != null)
-                        Text(
-                          '${l10n.discount}: ${row.discountName}',
-                          style: AppTextStyles.muted(AppTextStyles.body)
-                              .copyWith(
-                                fontSize: 10,
-                                color: NocturneColors.accent,
-                              ),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              Text(
-                l10n.totalBill,
-                style: AppTextStyles.muted(AppTextStyles.body),
-              ),
-              const Spacer(),
-              Text(
-                formatUzs(totalDue),
-                style: AppTextStyles.h5.copyWith(
-                  color: short > 0
-                      ? NocturneColors.danger
-                      : NocturneColors.accent300,
-                ),
-              ),
-            ],
-          ),
-          if (short > 0)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                l10n.exitBalanceInsufficient(formatUzs(short)),
-                style: AppTextStyles.body.copyWith(
-                  fontSize: 12,
-                  color: NocturneColors.danger,
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ChildRow extends StatelessWidget {
-  const _ChildRow({
-    required this.child,
-    required this.activePass,
-    required this.selected,
-    required this.onToggle,
-    required this.onRename,
-    required this.entryDiscounts,
-    required this.selectedDiscountId,
-    required this.onEntryDiscountChanged,
-    this.promoLabel,
-    this.checkShareLabel,
-  });
-
-  final Child child;
-
-  /// The child's still-valid day pass, or null — shown as a badge (plan +
-  /// today's running cost) so the cashier both notices the existing tariff
-  /// before printing and can answer a parent's "qancha bo'ldi?" on sight.
-  final ActivePass? activePass;
-  final bool selected;
-  final VoidCallback onToggle;
-  final ValueChanged<String> onRename;
-
-  /// Active ENTRY-scoped discount catalog — the menu below picks from this
-  /// list instead of the old hardcoded `FreeReason` enum.
-  final List<Discount> entryDiscounts;
-
-  /// This checkout's entry-discount pick for the child, or null (bills
-  /// normally). Chosen from the 3-dots menu; null in the callback clears.
-  final String? selectedDiscountId;
-  final ValueChanged<String?> onEntryDiscountChanged;
-
-  /// Set on the child the partner promo code discounts — shown instead of
-  /// the 3-dots pick (the code's tier replaces it), and the menu is hidden.
-  final String? promoLabel;
-
-  /// This child's share of the selected check discount ("−10 000 so'm"),
-  /// or null — a badge, since the check discount replaces the 3-dots pick.
-  final String? checkShareLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalization.of(context);
-    final hasPromo = promoLabel != null;
-    final selectedDiscount = selectedDiscountId == null || hasPromo
-        ? null
-        : entryDiscounts.where((d) => d.id == selectedDiscountId).firstOrNull;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
-      decoration: BoxDecoration(
-        color: NocturneColors.bg,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(
-          color: selected ? NocturneColors.accent : NocturneColors.divider,
-        ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _InlineEditableName(
-              value: child.fullName,
-              style: AppTextStyles.body.copyWith(fontSize: 14),
-              onSave: onRename,
-            ),
-          ),
-          if (hasPromo) ...[
-            Flexible(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: NocturneColors.accent.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                  border: Border.all(color: NocturneColors.accent),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      PhosphorIconsRegular.qrCode,
-                      size: 12,
-                      color: NocturneColors.accent,
-                    ),
-                    const SizedBox(width: 4),
-                    Flexible(
-                      child: Text(
-                        promoLabel!,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.body.copyWith(
-                          fontSize: 11,
-                          color: NocturneColors.accent,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-          ],
-          if (selectedDiscount != null) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: NocturneColors.accent.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-                border: Border.all(color: NocturneColors.accent),
-              ),
-              child: Text(
-                '${l10n.discount}: ${selectedDiscount.name}',
-                style: AppTextStyles.body.copyWith(
-                  fontSize: 11,
-                  color: NocturneColors.accent,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-          ],
-          if (checkShareLabel != null) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: NocturneColors.accent.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-                border: Border.all(color: NocturneColors.accent),
-              ),
-              child: Text(
-                checkShareLabel!,
-                style: AppTextStyles.body.copyWith(
-                  fontSize: 11,
-                  color: NocturneColors.accent,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-          ],
-          if (activePass != null) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: NocturneColors.accent900,
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-              ),
-              child: Text(
-                '${activePass!.planLabel} · ${_activePassBadge(l10n, activePass!)}',
-                style: AppTextStyles.body.copyWith(
-                  fontSize: 11,
-                  color: NocturneColors.accent300,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-          ],
-          SizedBox(
-            height: 34,
-            child: OutlinedButton.icon(
-              onPressed: onToggle,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: NocturneColors.accent,
-                side: const BorderSide(color: NocturneColors.accent),
-                backgroundColor: selected
-                    ? NocturneColors.accent.withValues(alpha: 0.2)
-                    : Colors.transparent,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-              ),
-              icon: Icon(
-                selected
-                    ? PhosphorIconsRegular.check
-                    : PhosphorIconsRegular.plus,
-                size: 15,
-              ),
-              label: const Text('QR'),
-            ),
-          ),
-          if (!hasPromo &&
-              (entryDiscounts.isNotEmpty || selectedDiscountId != null)) ...[
-            const SizedBox(width: 4),
-            // `Object` values: a null-valued PopupMenuItem never reaches
-            // onSelected (Flutter reads it as a cancel), so clearing uses
-            // the `_clearEntryDiscount` sentinel instead.
-            PopupMenuButton<Object>(
-              tooltip: l10n.discount,
-              icon: const Icon(
-                PhosphorIconsRegular.dotsThreeVertical,
-                size: 18,
-                color: NocturneColors.text,
-              ),
-              color: NocturneColors.surface,
-              onSelected: (value) =>
-                  onEntryDiscountChanged(value is Discount ? value.id : null),
-              itemBuilder: (context) => [
-                for (final discount in entryDiscounts)
-                  PopupMenuItem<Object>(
-                    value: discount,
-                    child: Row(
-                      children: [
-                        Icon(
-                          selectedDiscountId == discount.id
-                              ? PhosphorIconsRegular.checkCircle
-                              : PhosphorIconsRegular.circle,
-                          size: 16,
-                          color: selectedDiscountId == discount.id
-                              ? NocturneColors.accent
-                              : NocturneColors.text,
-                        ),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            '${discount.name} '
-                            '(${discount.kind == DiscountKind.percent ? '${discount.value}%' : formatUzs(discount.value)})',
-                            style: AppTextStyles.body.copyWith(fontSize: 13),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                if (selectedDiscountId != null)
-                  PopupMenuItem<Object>(
-                    value: _clearEntryDiscount,
-                    child: Row(
-                      children: [
-                        const Icon(
-                          PhosphorIconsRegular.x,
-                          size: 16,
-                          color: NocturneColors.danger,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          l10n.cancel,
-                          style: AppTextStyles.body.copyWith(
-                            fontSize: 13,
-                            color: NocturneColors.danger,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
               ],
             ),
-          ],
+          ),
+          const SizedBox(height: 10),
+          cells([
+            Text(l10n.accountColChild.toUpperCase(), style: headStyle),
+            Text(l10n.tariff.toUpperCase(), style: headStyle),
+            Text(l10n.enteredAt.toUpperCase(), style: headStyle),
+            Text(l10n.accountColTime.toUpperCase(), style: headStyle),
+            Text(
+              l10n.accountColSoFar.toUpperCase(),
+              textAlign: TextAlign.end,
+              style: headStyle,
+            ),
+          ]),
+          const SizedBox(height: 6),
+          for (final row in rows)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: p.border)),
+              ),
+              child: cells([
+                Text(
+                  row.childName,
+                  overflow: TextOverflow.ellipsis,
+                  style: p.heading.copyWith(fontSize: 14),
+                ),
+                Text(
+                  row.planName,
+                  overflow: TextOverflow.ellipsis,
+                  style: p.body.copyWith(fontSize: 13),
+                ),
+                Text(
+                  '${row.enteredAt.hour.toString().padLeft(2, '0')}:${row.enteredAt.minute.toString().padLeft(2, '0')}',
+                  style: p.body.copyWith(fontSize: 13),
+                ),
+                Text(
+                  l10n.minutesCount(row.minutes),
+                  style: p.body.copyWith(fontSize: 13),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      formatUzs(row.dueUzs),
+                      style: p.heading.copyWith(
+                        fontSize: 14,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                    if (row.discountName != null)
+                      Text(
+                        '${l10n.discount}: ${row.discountName}',
+                        style: AppTextStyles.body.copyWith(
+                          fontSize: 11,
+                          color: p.positive,
+                        ),
+                      ),
+                  ],
+                ),
+              ]),
+            ),
+          if (short > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: _Note(
+                text: l10n.exitBalanceInsufficient(formatUzs(short)),
+                tone: ChipTone.warning,
+                icon: PhosphorIconsRegular.warning,
+              ),
+            ),
         ],
       ),
     );
   }
-
-  /// LEGACY passes show the raw free-reason label; new passes show the
-  /// discount name when fully free, or the running due amount otherwise (a
-  /// partial discount is already netted into `dueTodayUzs` server-side).
-  String _activePassBadge(AppLocalization l10n, ActivePass pass) {
-    if (pass.freeReason != null) return l10n.free;
-    if (pass.dueTodayUzs == 0 && pass.discountName != null) return l10n.free;
-    return formatUzs(pass.dueTodayUzs);
-  }
 }
 
-/// "Already on a pass — no second charge" line for a child who holds a live
-/// pass on the selected plan, or on a covering VIP/day pass. The built-in
-/// VIP and 1 soat keep their own wording; any other plan is named.
-String _alreadyActiveNote(
-  AppLocalization l10n,
-  String childName,
-  KidsPlan selected,
-  String? activeKey,
-  Map<String, KidsPlan> plansByKey,
-) {
-  final holdKey = activeKey ?? selected.key;
-  if (holdKey == 'vip') return l10n.vipAlreadyActive(childName);
-  if (holdKey == 'hour') return l10n.hourAlreadyActive(childName);
-  final name = (holdKey == selected.key ? selected : plansByKey[holdKey])?.name;
-  return l10n.planAlreadyActive(childName, name ?? holdKey);
-}
-
-class _TariffPill extends StatelessWidget {
-  const _TariffPill({
-    required this.plan,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final KidsPlan plan;
-  final bool selected;
-  final VoidCallback onTap;
-
-  IconData get _icon => switch (plan.kind) {
-    KidsPlanKind.flatDay => PhosphorIconsRegular.crownSimple,
-    KidsPlanKind.flatHour =>
-      plan.isVip
-          ? PhosphorIconsRegular.crownSimple
-          : PhosphorIconsRegular.timer,
-    KidsPlanKind.perMinuteTiers => PhosphorIconsRegular.ticket,
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalization.of(context);
-    final priceLabel = switch (plan.kind) {
-      KidsPlanKind.flatDay => l10n.pricePerDay(formatUzs(plan.flatUzs ?? 0)),
-      KidsPlanKind.flatHour =>
-        plan.durationMinutes == null || plan.durationMinutes == 60
-            ? l10n.pricePerHour(formatUzs(plan.flatUzs ?? 0))
-            : '${l10n.minutesCount(plan.durationMinutes!)} · '
-                  '${formatUzs(plan.flatUzs ?? 0)}',
-      KidsPlanKind.perMinuteTiers => l10n.priceFromPerMinute(
-        formatUzs(plan.firstMinuteUzs ?? 0),
-      ),
-    };
-    return Material(
-      color: selected
-          ? NocturneColors.accent.withValues(alpha: 0.12)
-          : Colors.transparent,
-      borderRadius: BorderRadius.circular(AppRadius.md),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            border: Border.all(
-              color: selected ? NocturneColors.accent : NocturneColors.divider,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.max,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                _icon,
-                size: 15,
-                color: selected ? NocturneColors.accent : NocturneColors.text,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Flexible(
-                          child: Text(
-                            plan.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTextStyles.body.copyWith(
-                              fontSize: 13,
-                              color: selected
-                                  ? NocturneColors.accent
-                                  : NocturneColors.text,
-                            ),
-                          ),
-                        ),
-                        if (plan.isVip) ...[
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 5,
-                              vertical: 1,
-                            ),
-                            decoration: BoxDecoration(
-                              color: NocturneColors.accent.withValues(
-                                alpha: 0.2,
-                              ),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              'VIP',
-                              style: AppTextStyles.body.copyWith(
-                                fontSize: 9,
-                                color: NocturneColors.accent,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    Text(
-                      priceLabel,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.body.copyWith(
-                        fontSize: 11,
-                        color:
-                            (selected
-                                    ? NocturneColors.accent
-                                    : NocturneColors.text)
-                                .withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
+/// The "To'ldirish" tab: amount (quick picks or typed), how it's paid, the
+/// resulting balance, and the button.
 class _BalanceCard extends StatelessWidget {
   const _BalanceCard({
     required this.customer,
@@ -2841,84 +3678,98 @@ class _BalanceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalization.of(context);
-    return _Card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(l10n.topupBalance, style: AppTextStyles.h5),
-          const SizedBox(height: 4),
-          Text(
-            l10n.currentBalanceValue(formatUzs(customer.balance)),
-            style: AppTextStyles.muted(
-              AppTextStyles.body,
-            ).copyWith(fontSize: 12),
+    final p = PosPalette.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          l10n.currentBalanceValue(formatUzs(customer.balance)),
+          style: p.bodyMuted.copyWith(fontSize: 12.5),
+        ),
+        const SizedBox(height: 10),
+        TextField(
+          controller: amountController,
+          keyboardType: TextInputType.number,
+          inputFormatters: const [ThousandsInputFormatter()],
+          style: p.body.copyWith(
+            fontFamily: null,
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
           ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final quick in _quickTopupAmounts)
-                _AmountChip(
+          onChanged: (_) => onAmountChanged(),
+          decoration: InputDecoration(
+            labelText: l10n.amount,
+            suffixText: "so'm",
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            for (final quick in _quickTopupAmounts) ...[
+              if (quick != _quickTopupAmounts.first) const SizedBox(width: 6),
+              Expanded(
+                child: _AmountChip(
                   amount: quick,
                   selected: amount == quick,
-                  onTap: () => amountController.text = quick.toString(),
+                  onTap: () => amountController.text = groupDigits(quick),
                   onChanged: onAmountChanged,
                 ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: amountController,
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            style: AppTextStyles.body.copyWith(fontFamily: null, fontSize: 18),
-            onChanged: (_) => onAmountChanged(),
-            decoration: InputDecoration(labelText: l10n.amount),
-          ),
-          const SizedBox(height: 10),
-          PaymentMethodPills(selected: method, onChanged: onMethodChanged),
-          if (method == PaymentMethod.split) ...[
-            const SizedBox(height: 8),
-            SplitAmountFields(
-              cashController: cashController,
-              cardController: cardController,
-              split: split,
-              totalUzs: amount,
-              onChanged: onAmountChanged,
-            ),
-          ],
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Text(
-                l10n.newBalance,
-                style: AppTextStyles.muted(AppTextStyles.body),
               ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 12),
+        PaymentMethodPills(selected: method, onChanged: onMethodChanged),
+        if (method == PaymentMethod.split) ...[
+          const SizedBox(height: 8),
+          SplitAmountFields(
+            cashController: cashController,
+            cardController: cardController,
+            split: split,
+            totalUzs: amount,
+            onChanged: onAmountChanged,
+          ),
+        ],
+        const SizedBox(height: 14),
+        Container(
+          padding: const EdgeInsets.only(top: 12),
+          decoration: BoxDecoration(
+            border: Border(top: BorderSide(color: p.border)),
+          ),
+          child: Row(
+            children: [
+              Text(l10n.newBalance, style: p.bodyMuted),
               const Spacer(),
               Text(
                 formatUzs(customer.balance + amount),
-                style: AppTextStyles.h5,
+                style: AppTextStyles.h4.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: p.accentStrong,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 48,
-            child: FilledButton.icon(
-              onPressed: canTopup ? onTopup : null,
-              icon: isBusy
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(PhosphorIconsRegular.wallet, size: 18),
-              label: Text(l10n.topup),
-            ),
+        ),
+        const SizedBox(height: 14),
+        SizedBox(
+          height: 56,
+          child: FilledButton.icon(
+            onPressed: canTopup ? onTopup : null,
+            icon: isBusy
+                ? SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: p.onAccent,
+                    ),
+                  )
+                : const Icon(PhosphorIconsRegular.wallet, size: 20),
+            label: Text(l10n.topup),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -2938,29 +3789,39 @@ class _AmountChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = PosPalette.of(context);
+    final radius = BorderRadius.circular(10);
     return Material(
-      color: selected
-          ? NocturneColors.accent.withValues(alpha: 0.12)
-          : Colors.transparent,
+      color: selected ? p.accentSoft : p.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: radius,
+        side: BorderSide(
+          color: selected ? p.accent : p.border,
+          width: selected ? 1.5 : 1,
+        ),
+      ),
       child: InkWell(
         onTap: () {
           onTap();
           onChanged();
         },
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            border: Border.all(
-              color: selected ? NocturneColors.accent : NocturneColors.divider,
-            ),
-          ),
-          child: Text(
-            formatUzs(amount),
-            style: AppTextStyles.body.copyWith(
-              fontSize: 13,
-              color: selected ? NocturneColors.accent : NocturneColors.text,
+        borderRadius: radius,
+        child: SizedBox(
+          height: 42,
+          child: Center(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: Text(
+                  formatUzs(amount).replaceAll(" so'm", ''),
+                  style: AppTextStyles.body.copyWith(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: selected ? p.accent : p.text,
+                  ),
+                ),
+              ),
             ),
           ),
         ),

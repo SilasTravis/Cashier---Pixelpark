@@ -4,6 +4,8 @@ import 'package:phosphor_icons/phosphor_icons.dart';
 
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
+import '../../../../core/theme/pos_palette.dart';
+import 'account_ui.dart';
 import '../../../../core/utils/currency.dart';
 import '../../../../core/utils/phone_number.dart';
 import '../../domain/customer.dart';
@@ -23,7 +25,7 @@ class CustomerResultsList extends StatefulWidget {
 
 class _CustomerResultsListState extends State<CustomerResultsList> {
   final _searchController = TextEditingController();
-  bool _showAll = true;
+  bool _showAll = false;
 
   @override
   void dispose() {
@@ -170,28 +172,22 @@ class _CustomerTileList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = PosPalette.of(context);
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
             children: [
-              Text(title, style: AppTextStyles.h5),
+              Text(title, style: p.heading.copyWith(fontSize: 15)),
               const SizedBox(width: 8),
-              Text(
-                subtitle,
-                style: AppTextStyles.muted(
-                  AppTextStyles.body,
-                ).copyWith(fontSize: 12),
-              ),
+              StatusChip(label: subtitle, tone: ChipTone.neutral),
             ],
           ),
           const SizedBox(height: 10),
           for (final customer in customers)
             Padding(
-              padding: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.only(bottom: 6),
               child: _CustomerTile(
                 name: customer.fullName,
                 phone: customer.phoneNumber,
@@ -216,25 +212,24 @@ class _CenteredHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = PosPalette.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 34,
-              color: NocturneColors.text.withValues(alpha: 0.4),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              text,
-              textAlign: TextAlign.center,
-              style: AppTextStyles.body.copyWith(
-                color: NocturneColors.text.withValues(alpha: 0.4),
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: p.accentSoft,
+                shape: BoxShape.circle,
               ),
+              child: Icon(icon, size: 30, color: p.accent),
             ),
+            const SizedBox(height: 12),
+            Text(text, textAlign: TextAlign.center, style: p.bodyMuted),
           ],
         ),
       ),
@@ -257,82 +252,68 @@ class _CustomerTile extends StatelessWidget {
   final int balance;
   final VoidCallback onTap;
 
-  String _initials(String value) {
-    final trimmed = value.trim();
-    if (trimmed.isEmpty) return '?';
-    final parts = trimmed.split(RegExp(r'\s+'));
-    return parts.take(2).map((p) => p[0].toUpperCase()).join();
-  }
-
   @override
   Widget build(BuildContext context) {
+    final p = PosPalette.of(context);
+    final l10n = AppLocalization.of(context);
     final displayName = name.isEmpty ? phone : name;
+    final radius = BorderRadius.circular(12);
     return Material(
-      color: NocturneColors.surface,
-      borderRadius: BorderRadius.circular(AppRadius.md),
+      color: p.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: radius,
+        side: BorderSide(color: p.border),
+      ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            boxShadow: AppShadow.sm,
-          ),
+        borderRadius: radius,
+        hoverColor: p.accentSoft,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           child: Row(
             children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: NocturneColors.accent900,
-                child: Text(
-                  _initials(displayName),
-                  style: const TextStyle(
-                    color: NocturneColors.accent300,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 14),
+              AccountAvatar(name: displayName),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(displayName, style: AppTextStyles.h5),
                     Text(
-                      AppLocalization.of(context).childCount(childCount),
-                      style: AppTextStyles.muted(
-                        AppTextStyles.body,
-                      ).copyWith(fontSize: 12),
+                      displayName,
+                      overflow: TextOverflow.ellipsis,
+                      style: p.heading.copyWith(fontSize: 14.5),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${formatPhoneNumber(phone)} · '
+                      '${l10n.childCount(childCount)}',
+                      overflow: TextOverflow.ellipsis,
+                      style: p.bodyMuted.copyWith(fontSize: 12),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  Text(l10n.balance, style: p.bodyMuted.copyWith(fontSize: 11)),
                   Text(
                     formatUzs(balance),
                     style: AppTextStyles.h5.copyWith(
-                      color: NocturneColors.accent300,
-                    ),
-                  ),
-                  Text(
-                    formatPhoneNumber(phone),
-                    style: AppTextStyles.body.copyWith(
-                      fontSize: 11,
-                      color: NocturneColors.text.withValues(alpha: 0.45),
+                      fontWeight: FontWeight.w700,
+                      color: balance > 0 ? p.accentStrong : p.textMuted,
                     ),
                   ),
                 ],
               ),
               const SizedBox(width: 10),
-              const Icon(
+              Icon(
                 PhosphorIconsRegular.caretRight,
                 size: 16,
-                color: NocturneColors.neutral500,
+                color: p.textFaint,
               ),
             ],
           ),
@@ -364,31 +345,30 @@ class _NotFoundCardState extends State<_NotFoundCard> {
     return BlocBuilder<PosAccountBloc, PosAccountState>(
       builder: (context, state) {
         final l10n = AppLocalization.of(context);
+        final p = PosPalette.of(context);
         return Align(
           alignment: Alignment.topLeft,
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: NocturneColors.surface,
+              color: p.surfaceMuted,
               borderRadius: BorderRadius.circular(AppRadius.lg),
-              boxShadow: AppShadow.sm,
+              border: Border.all(color: p.border),
             ),
-            constraints: const BoxConstraints(maxWidth: 420),
+            constraints: const BoxConstraints(maxWidth: 440),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(l10n.phoneNotFound, style: AppTextStyles.h5),
+                Text(l10n.phoneNotFound, style: p.heading),
                 const SizedBox(height: 2),
                 Text(
                   l10n.accountNotFoundForPhone(state.phoneDigits),
-                  style: AppTextStyles.muted(
-                    AppTextStyles.body,
-                  ).copyWith(fontSize: 13),
+                  style: p.bodyMuted.copyWith(fontSize: 13),
                 ),
                 const SizedBox(height: 14),
                 if (!_adding)
-                  OutlinedButton.icon(
+                  FilledButton.icon(
                     onPressed: () => setState(() => _adding = true),
                     icon: const Icon(PhosphorIconsRegular.userPlus, size: 16),
                     label: Text(l10n.addCustomer),
@@ -404,7 +384,7 @@ class _NotFoundCardState extends State<_NotFoundCard> {
                         child: TextField(
                           controller: _nameController,
                           autofocus: true,
-                          style: AppTextStyles.body,
+                          style: p.body,
                           onChanged: (_) => setState(() {}),
                           decoration: InputDecoration(labelText: l10n.fullName),
                         ),

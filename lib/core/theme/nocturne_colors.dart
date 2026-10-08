@@ -1,49 +1,66 @@
 import 'package:flutter/material.dart';
 
-/// Color tokens lifted 1:1 from the Cashier design system's "Nocturne"
-/// `styles.css` (dark-only — this POS terminal has no light theme).
+/// The till's color tokens. Originally the dark "Nocturne" palette; since
+/// the light / primary-blue redesign every token keeps its ROLE (page,
+/// card, text, tint, tint text, border …) with a light value, so screens
+/// that still read these constants directly render in the new design.
+///
+/// Prefer `PosPalette.of(context)` in new code.
 abstract final class NocturneColors {
-  static const Color bg = Color(0xFF161826);
-  static const Color surface = Color(0xFF232532);
-  static const Color text = Color(0xFFE9E9ED);
-  static const Color divider = Color(0x29E9E9ED); // 16% alpha
+  /// Page canvas behind the cards.
+  static const Color bg = Color(0xFFF4F6FA);
 
-  static const Color accent = Color(0xFF9184D9);
-  static const Color accent2 = Color(0xFFA7A1DB);
+  /// Cards, panels, dialogs.
+  static const Color surface = Color(0xFFFFFFFF);
 
-  static const Color accent100 = Color(0xFFF5F4FF);
-  static const Color accent200 = Color(0xFFE7E5FE);
-  static const Color accent300 = Color(0xFFD2CEFD);
-  static const Color accent400 = Color(0xFFB5ABFC);
-  static const Color accent500 = Color(0xFF968AE0);
-  static const Color accent600 = Color(0xFF796CBF);
-  static const Color accent700 = Color(0xFF5D5294);
-  static const Color accent800 = Color(0xFF423A6A);
-  static const Color accent900 = Color(0xFF2B2741);
+  /// Body text.
+  static const Color text = Color(0xFF0F172A);
 
-  static const Color neutral100 = Color(0xFFF3F5FE);
-  static const Color neutral200 = Color(0xFFE4E7F5);
-  static const Color neutral300 = Color(0xFFCFD3E5);
-  static const Color neutral400 = Color(0xFFB2B6CA);
-  static const Color neutral500 = Color(0xFF9397AB);
-  static const Color neutral600 = Color(0xFF75798C);
-  static const Color neutral700 = Color(0xFF595D6C);
-  static const Color neutral800 = Color(0xFF3F424D);
-  static const Color neutral900 = Color(0xFF292B31);
+  /// Hairlines and field borders.
+  static const Color divider = Color(0xFFE4E8F0);
+
+  /// Primary blue — selected states, links, primary actions.
+  static const Color accent = Color(0xFF2563EB);
+  static const Color accent2 = Color(0xFF3B82F6);
+
+  // Accent scale by ROLE (it reads "inverted" against a light canvas):
+  // 900 = tint fill, 700 = tint border, 300 = text/icon on a tint.
+  static const Color accent100 = Color(0xFF172554);
+  static const Color accent200 = Color(0xFF1E3A8A);
+  static const Color accent300 = Color(0xFF1E40AF);
+  static const Color accent400 = Color(0xFF3B82F6);
+  static const Color accent500 = Color(0xFF2563EB);
+  static const Color accent600 = Color(0xFF1D4ED8);
+  static const Color accent700 = Color(0xFFBFD3FE);
+  static const Color accent800 = Color(0xFFDBE6FE);
+  static const Color accent900 = Color(0xFFEFF4FF);
+
+  // Neutral scale by ROLE: 100 = text on a solid accent, 200/300 = strong
+  // text on a tint, 400–600 = muted icons/text, 700/800 = borders,
+  // 900 = inset fill.
+  static const Color neutral100 = Color(0xFFFFFFFF);
+  static const Color neutral200 = Color(0xFF1E293B);
+  static const Color neutral300 = Color(0xFF334155);
+  static const Color neutral400 = Color(0xFF94A3B8);
+  static const Color neutral500 = Color(0xFF94A3B8);
+  static const Color neutral600 = Color(0xFF64748B);
+  static const Color neutral700 = Color(0xFFD5DBE6);
+  static const Color neutral800 = Color(0xFFE4E8F0);
+  static const Color neutral900 = Color(0xFFF1F5F9);
 
   /// Semantic aliases used across the app — a single place to retune status
   /// colors without hunting through every screen.
-  static const Color danger = Color(0xFF8C2F3C);
-  static const Color success = accent400;
+  static const Color danger = Color(0xFFDC2626);
+  static const Color success = Color(0xFF16A34A);
 
   /// Offline-mode amber — the banner and "waiting" chips.
-  static const Color warning = Color(0xFFF5A524);
+  static const Color warning = Color(0xFFD97706);
 }
 
 /// Border radii — `--radius-sm/md/lg`.
 abstract final class AppRadius {
-  static const double sm = 4;
-  static const double md = 8;
+  static const double sm = 6;
+  static const double md = 10;
   static const double lg = 14;
 }
 
@@ -57,19 +74,18 @@ abstract final class AppSpacing {
   static const double x8 = 22.4;
 }
 
-/// Box shadows — `--shadow-sm/md/lg`, expressed as a hairline border (this
-/// design's "shadow" is really a 1px outline plus, at md/lg, an ambient
-/// drop shadow) since Nocturne is a dark theme.
+/// Box shadows: a 1px hairline (the cards' border) plus, at md/lg, a soft
+/// drop shadow for floating surfaces.
 abstract final class AppShadow {
   static const List<BoxShadow> sm = [
-    BoxShadow(color: NocturneColors.neutral800, spreadRadius: 1, blurRadius: 0),
+    BoxShadow(color: NocturneColors.divider, spreadRadius: 1, blurRadius: 0),
   ];
   static const List<BoxShadow> md = [
-    BoxShadow(color: NocturneColors.neutral700, spreadRadius: 1, blurRadius: 0),
-    BoxShadow(color: Color(0x8C000000), blurRadius: 18, offset: Offset(0, 6)),
+    BoxShadow(color: NocturneColors.divider, spreadRadius: 1, blurRadius: 0),
+    BoxShadow(color: Color(0x140F172A), blurRadius: 18, offset: Offset(0, 6)),
   ];
   static const List<BoxShadow> lg = [
-    BoxShadow(color: NocturneColors.neutral500, spreadRadius: 1, blurRadius: 0),
-    BoxShadow(color: Color(0xA6000000), blurRadius: 40, offset: Offset(0, 16)),
+    BoxShadow(color: NocturneColors.neutral700, spreadRadius: 1, blurRadius: 0),
+    BoxShadow(color: Color(0x1F0F172A), blurRadius: 40, offset: Offset(0, 16)),
   ];
 }

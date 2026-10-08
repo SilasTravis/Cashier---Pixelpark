@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:phosphor_icons/phosphor_icons.dart';
 import '../../../../generated/l10n.dart';
@@ -43,7 +45,10 @@ class _TitleBarState extends State<TitleBar> with WindowListener {
   Widget build(BuildContext context) {
     return Container(
       height: 36,
-      color: NocturneColors.bg,
+      decoration: const BoxDecoration(
+        color: NocturneColors.surface,
+        border: Border(bottom: BorderSide(color: NocturneColors.divider)),
+      ),
       child: Row(
         children: [
           Expanded(
@@ -56,7 +61,9 @@ class _TitleBarState extends State<TitleBar> with WindowListener {
                     : windowManager.maximize(),
               ),
               child: Padding(
-                padding: const EdgeInsets.only(left: 12),
+                // macOS keeps its traffic-light buttons top-left — start the
+                // title after them.
+                padding: EdgeInsets.only(left: Platform.isMacOS ? 78 : 12),
                 child: Row(
                   children: [
                     const Icon(

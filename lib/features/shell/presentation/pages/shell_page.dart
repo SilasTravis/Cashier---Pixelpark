@@ -19,9 +19,9 @@ import '../../../settings/presentation/pages/settings_page.dart';
 import '../../../shift/presentation/bloc/shift_bloc.dart';
 import '../model/shell_tab.dart';
 import '../widgets/close_shift_dialog.dart';
-import '../widgets/header_bar.dart';
 import '../widgets/open_shift_dialog.dart';
-import '../widgets/sidebar.dart';
+import '../widgets/shift_revenue_chip.dart';
+import '../widgets/top_nav.dart';
 import '../widgets/title_bar.dart';
 import '../../../../generated/l10n.dart';
 import '../../../pos_account/domain/customer.dart';
@@ -57,7 +57,6 @@ class _ShellView extends StatefulWidget {
 class _ShellViewState extends State<_ShellView> {
   ShellTab _tab = ShellTab.posAccount;
   Customer? _initialCustomer;
-  bool? _sidebarCollapsed;
 
   @override
   void initState() {
@@ -109,15 +108,9 @@ class _ShellViewState extends State<_ShellView> {
                     if (!state.hasOpenShift) {
                       return const OpenShiftPrompt();
                     }
-                    final isCompact = MediaQuery.sizeOf(context).width < 1100;
-                    final sidebarCollapsed = _sidebarCollapsed ?? isCompact;
-                    return Row(
+                    return Column(
                       children: [
-                        Sidebar(
-                          collapsed: sidebarCollapsed,
-                          onToggle: () => setState(
-                            () => _sidebarCollapsed = !sidebarCollapsed,
-                          ),
+                        TopNav(
                           selected: tab,
                           tabs: tabs,
                           disabledTabs: disabled,
@@ -128,6 +121,10 @@ class _ShellViewState extends State<_ShellView> {
                               _initialCustomer = null;
                             }
                           }),
+                          revenue: ShiftRevenueChip(
+                            shift: state.shift,
+                            compact: MediaQuery.sizeOf(context).width < 1100,
+                          ),
                           cashierName:
                               sl<LocalSource>().getCashierFullName() ?? '',
                           shiftOpenedAt: state.shift?.openedAt,
@@ -141,20 +138,13 @@ class _ShellViewState extends State<_ShellView> {
                           updateAvailable: sl<UpdateService>().hasUpdate,
                         ),
                         Expanded(
-                          child: Column(
-                            children: [
-                              HeaderBar(tab: tab, shift: state.shift),
-                              Expanded(
-                                child: _TabContent(
-                                  tab: tab,
-                                  initialCustomer: _initialCustomer,
-                                  onOpenCustomer: (customer) => setState(() {
-                                    _initialCustomer = customer;
-                                    _tab = ShellTab.posAccount;
-                                  }),
-                                ),
-                              ),
-                            ],
+                          child: _TabContent(
+                            tab: tab,
+                            initialCustomer: _initialCustomer,
+                            onOpenCustomer: (customer) => setState(() {
+                              _initialCustomer = customer;
+                              _tab = ShellTab.posAccount;
+                            }),
                           ),
                         ),
                       ],
@@ -191,7 +181,7 @@ class _TabContent extends StatelessWidget {
       ShellTab.posSale => const PosSalePage(),
       ShellTab.salesHistory => SalesHistoryPage(onOpenCustomer: onOpenCustomer),
       ShellTab.visitHistory => VisitHistoryPage(onOpenCustomer: onOpenCustomer),
-      ShellTab.inside => const InsidePage(),
+      ShellTab.inside => InsidePage(onOpenCustomer: onOpenCustomer),
       ShellTab.settings => const SettingsPage(),
       ShellTab.unsynced => UnsyncedSalesPage(
         store: sl<OfflineStore>(),

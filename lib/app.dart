@@ -32,7 +32,7 @@ class App extends StatelessWidget {
           navigatorKey: rootNavigatorKey,
           theme: appTheme,
           darkTheme: appTheme,
-          themeMode: ThemeMode.dark,
+          themeMode: ThemeMode.light,
           locale: locale,
           supportedLocales: AppLocalization.delegate.supportedLocales,
           localizationsDelegates: const [

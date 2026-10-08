@@ -159,6 +159,18 @@ class PosAccountProductsRequested extends PosAccountEvent {
   const PosAccountProductsRequested();
 }
 
+/// Loads one page of the selected customer's balance ledger (the "Amallar"
+/// accordion: on first open, on page change, and again after the balance
+/// moved).
+class PosAccountTransactionsRequested extends PosAccountEvent {
+  const PosAccountTransactionsRequested({this.page = 1});
+
+  final int page;
+
+  @override
+  List<Object?> get props => [page];
+}
+
 /// Refreshes the selected customer's currently-inside children (fired on
 /// selection and after a checkout enters new children).
 class PosAccountPlayingRequested extends PosAccountEvent {
@@ -190,7 +202,8 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
     this.replacePlan = false,
   });
 
-  final String planKey;
+  /// Null with no children — a HAMROH / "Qo'shimcha"-products-only sale.
+  final String? planKey;
   final List<String> childIds;
   final List<CheckoutLine> products;
   final int cashUzs;

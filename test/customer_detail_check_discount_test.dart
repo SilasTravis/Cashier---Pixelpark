@@ -12,6 +12,7 @@ import 'package:cashier_app/features/pos_account/domain/kids_plan.dart';
 import 'package:cashier_app/features/pos_account/domain/playing_child.dart';
 import 'package:cashier_app/features/pos_account/domain/pos_entry.dart';
 import 'package:cashier_app/features/pos_account/presentation/bloc/pos_account_bloc.dart';
+import 'package:cashier_app/features/pos_account/presentation/widgets/check_discount_sheet.dart';
 import 'package:cashier_app/features/pos_account/presentation/widgets/customer_detail_panel.dart';
 import 'package:cashier_app/features/pos_sale/domain/discount.dart';
 
@@ -32,7 +33,7 @@ class _FakeRemote implements PosAccountRemoteDataSource {
   @override
   Future<PosEntryResult> planEntryCheckout({
     required int customerId,
-    required String planKey,
+    required String? planKey,
     required List<String> childIds,
     required List<CheckoutLine> products,
     required int cashUzs,
@@ -189,7 +190,9 @@ Future<void> pumpPanel(
 }
 
 Future<void> tapChildRow(WidgetTester tester, String childId) async {
-  await tester.tap(find.text('QR').at(_childIds.indexOf(childId)));
+  await tester.tap(
+    find.byKey(const ValueKey('child-select')).at(_childIds.indexOf(childId)),
+  );
   await tester.pump();
 }
 
@@ -291,23 +294,25 @@ void main() {
   ) async {
     await pumpPanel(tester);
     await selectChildrenAndPlan(tester, ['k1'], 'VIP');
-    expect(find.byType(PopupMenuButton<Object>), findsWidgets);
+    expect(find.byKey(const ValueKey('child-discount-button')), findsWidgets);
 
     await pickCheckDiscount(tester, 'Oila');
 
-    expect(find.byType(PopupMenuButton<Object>), findsNothing);
+    expect(find.byKey(const ValueKey('child-discount-button')), findsNothing);
     expect(find.text(_locked), findsOneWidget);
   });
 
-  testWidgets('the button stays hidden until a child is selected', (
+  testWidgets('the picker stays greyed until a child is selected', (
     tester,
   ) async {
     await pumpPanel(tester);
-    expect(find.text(_checkDiscount), findsNothing);
+    expect(find.byType(CheckDiscountButton), findsNothing);
+    expect(find.text('Select a child first'), findsOneWidget);
 
     await tapChildRow(tester, 'k1');
     await tester.pumpAndSettle();
-    expect(find.text(_checkDiscount), findsOneWidget);
+    expect(find.byType(CheckDiscountButton), findsOneWidget);
+    expect(find.text('Select a child first'), findsNothing);
   });
   testWidgets('a child heading for a plan-switch conflict gets no share', (
     tester,

@@ -59,7 +59,7 @@ class _FakeRemote implements PosAccountRemoteDataSource {
   @override
   Future<PosEntryResult> planEntryCheckout({
     required int customerId,
-    required String planKey,
+    required String? planKey,
     required List<String> childIds,
     required List<CheckoutLine> products,
     required int cashUzs,

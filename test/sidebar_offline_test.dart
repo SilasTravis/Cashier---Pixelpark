@@ -1,5 +1,5 @@
 import 'package:cashier_app/features/shell/presentation/model/shell_tab.dart';
-import 'package:cashier_app/features/shell/presentation/widgets/sidebar.dart';
+import 'package:cashier_app/features/shell/presentation/widgets/top_nav.dart';
 import 'package:cashier_app/generated/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,6 +8,9 @@ void main() {
   testWidgets(
     'offline, internet-only tabs ignore taps; the unsynced tab shows its count',
     (tester) async {
+      tester.view.physicalSize = const Size(1440, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
       final tapped = <ShellTab>[];
       await tester.pumpWidget(
         MaterialApp(
@@ -15,12 +18,10 @@ void main() {
           supportedLocales: AppLocalization.delegate.supportedLocales,
           locale: const Locale('en'),
           home: Scaffold(
-            body: Row(
+            body: Column(
               children: [
-                Sidebar(
+                TopNav(
                   selected: ShellTab.posSale,
-                  collapsed: false,
-                  onToggle: () {},
                   onSelect: tapped.add,
                   cashierName: 'Zaira',
                   shiftOpenedAt: DateTime(2026, 9, 23, 9),
@@ -39,11 +40,9 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      final l10n = AppLocalization.current;
-
-      await tester.tap(find.text(l10n.tabAccount));
-      await tester.tap(find.text(l10n.tabSales));
-      await tester.tap(find.text(l10n.tabUnsynced));
+      await tester.tap(find.byIcon(ShellTab.posAccount.icon));
+      await tester.tap(find.byIcon(ShellTab.posSale.icon));
+      await tester.tap(find.byIcon(ShellTab.unsynced.icon));
 
       expect(tapped, [ShellTab.posSale, ShellTab.unsynced]);
       expect(find.byKey(const Key('nav-count-unsynced')), findsOneWidget);
@@ -58,12 +57,10 @@ void main() {
         supportedLocales: AppLocalization.delegate.supportedLocales,
         locale: const Locale('en'),
         home: Scaffold(
-          body: Row(
+          body: Column(
             children: [
-              Sidebar(
+              TopNav(
                 selected: ShellTab.posSale,
-                collapsed: false,
-                onToggle: () {},
                 onSelect: (_) {},
                 cashierName: 'Zaira',
                 shiftOpenedAt: DateTime(2026, 9, 23, 9),

@@ -11,9 +11,9 @@ import '../../../../core/utils/currency.dart';
 import '../../../../core/utils/phone_number.dart';
 import '../../../../generated/l10n.dart';
 import '../../../../injector_container.dart';
+import '../../../pos_account/presentation/open_customer.dart';
 import '../../domain/shift_visit.dart';
 import '../bloc/visit_history_cubit.dart';
-import '../../../pos_account/data/pos_account_repository_impl.dart';
 import '../../../pos_account/domain/customer.dart';
 
 class VisitHistoryPage extends StatelessWidget {
@@ -255,13 +255,14 @@ class _VisitRow extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => _showDetails(context),
+        onTap: () => _openAccount(context),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           child: Row(
             children: [
               CircleAvatar(
                 backgroundColor: NocturneColors.accent900,
+                foregroundColor: NocturneColors.accent,
                 child: Text(visit.childName.characters.first.toUpperCase()),
               ),
               const SizedBox(width: 12),
@@ -336,175 +337,12 @@ class _VisitRow extends StatelessWidget {
     );
   }
 
-  Future<void> _showDetails(BuildContext context) async {
-    final l10n = AppLocalization.of(context);
-    final customer = await _loadCustomer(context);
-    if (!context.mounted) return;
-    final openProfile = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Row(
-          children: [
-            const Icon(
-              PhosphorIconsRegular.arrowsLeftRight,
-              color: NocturneColors.accent,
-            ),
-            const SizedBox(width: 10),
-            Text(l10n.visitDetails),
-          ],
-        ),
-        content: SizedBox(
-          width: 480,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _VisitDetailRow(
-                label: l10n.accountOwner,
-                value: customer?.fullName.isNotEmpty == true
-                    ? customer!.fullName
-                    : visit.parentName,
-              ),
-              _VisitDetailRow(
-                label: l10n.phoneNumber,
-                value: formatPhoneNumber(
-                  customer?.phoneNumber ?? visit.parentPhone,
-                ),
-              ),
-              if (customer != null) ...[
-                _VisitDetailRow(
-                  label: l10n.accountId,
-                  value: '#${customer.id}',
-                ),
-                _VisitDetailRow(
-                  label: l10n.balance,
-                  value: formatUzs(customer.balance),
-                  emphasized: true,
-                ),
-                _VisitDetailRow(
-                  label: l10n.children,
-                  value: customer.children.isEmpty
-                      ? l10n.noChildren
-                      : customer.children
-                            .map((child) => child.fullName)
-                            .join(', '),
-                ),
-              ],
-              _VisitDetailRow(label: l10n.visitChild, value: visit.childName),
-              const Divider(height: 24),
-              _VisitDetailRow(
-                label: l10n.visitEntered,
-                value: DateFormat(
-                  'dd.MM.yyyy HH:mm:ss',
-                ).format(visit.enteredAt),
-              ),
-              _VisitDetailRow(
-                label: l10n.visitExited,
-                value: visit.exitedAt == null
-                    ? l10n.visitStillInside
-                    : DateFormat('dd.MM.yyyy HH:mm:ss').format(visit.exitedAt!),
-              ),
-              _VisitDetailRow(
-                label: l10n.elapsedTime,
-                value: visit.minutes == null
-                    ? l10n.visitStillInside
-                    : l10n.minutesCount(visit.minutes!),
-              ),
-              _VisitDetailRow(
-                label: l10n.total,
-                value: formatUzs(visit.amountUzs),
-                emphasized: true,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(l10n.close),
-          ),
-          FilledButton.icon(
-            onPressed: customer == null
-                ? null
-                : () => Navigator.pop(dialogContext, true),
-            icon: const Icon(PhosphorIconsRegular.userCircle, size: 18),
-            label: Text(l10n.openCustomerProfile),
-          ),
-        ],
-      ),
-    );
-    if (openProfile != true || !context.mounted) return;
-    onOpenCustomer(customer!);
+  /// Straight to the parent's account page — the visit's details live
+  /// there ("Hozir ichkarida", the transaction history).
+  Future<void> _openAccount(BuildContext context) async {
+    final customer = await findCustomerByPhone(context, visit.parentPhone);
+    if (customer != null) onOpenCustomer(customer);
   }
-
-  Future<Customer?> _loadCustomer(BuildContext context) async {
-    final navigator = Navigator.of(context);
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
-    final result = await sl<PosAccountRepository>().searchCustomers(
-      visit.parentPhone,
-    );
-    if (navigator.canPop()) navigator.pop();
-    if (!context.mounted) return null;
-    Customer? customer;
-    result.fold((_) {}, (customers) {
-      for (final item in customers) {
-        if (_digits(item.phoneNumber) == _digits(visit.parentPhone)) {
-          customer = item;
-          break;
-        }
-      }
-    });
-    if (customer == null && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalization.of(
-              context,
-            ).accountNotFoundForPhone(visit.parentPhone),
-          ),
-        ),
-      );
-    }
-    return customer;
-  }
-
-  String _digits(String value) => value.replaceAll(RegExp(r'\D'), '');
-}
-
-class _VisitDetailRow extends StatelessWidget {
-  const _VisitDetailRow({
-    required this.label,
-    required this.value,
-    this.emphasized = false,
-  });
-  final String label;
-  final String value;
-  final bool emphasized;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 6),
-    child: Row(
-      children: [
-        Expanded(
-          child: Text(label, style: AppTextStyles.muted(AppTextStyles.body)),
-        ),
-        const SizedBox(width: 16),
-        Flexible(
-          child: Text(
-            value,
-            textAlign: TextAlign.end,
-            style: emphasized
-                ? AppTextStyles.h5.copyWith(color: NocturneColors.accent)
-                : AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
-          ),
-        ),
-      ],
-    ),
-  );
 }
 
 class _TimeFact extends StatelessWidget {

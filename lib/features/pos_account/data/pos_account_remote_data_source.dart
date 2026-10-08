@@ -8,6 +8,7 @@ import '../domain/active_pass.dart';
 import '../domain/customer.dart';
 import '../domain/kids_plan.dart';
 import '../domain/parent_pass.dart';
+import '../domain/customer_transaction.dart';
 import '../domain/playing_child.dart';
 import '../domain/pos_entry.dart';
 import '../domain/promo_code_check.dart';
@@ -75,6 +76,13 @@ abstract class PosAccountRemoteDataSource {
   /// The customer's currently-inside children with live due-so-far.
   Future<List<PlayingChild>> listPlaying(int customerId);
 
+  /// One page of the customer's balance ledger, newest first.
+  Future<CustomerTransactionsPage> listTransactions(
+    int customerId, {
+    int page = 1,
+    int limit = 10,
+  });
+
   /// Each child's still-valid day pass — the children-list plan badge.
   Future<List<ActivePass>> listActivePasses(int customerId);
 
@@ -94,7 +102,7 @@ abstract class PosAccountRemoteDataSource {
   /// backends never see it.
   Future<PosEntryResult> planEntryCheckout({
     required int customerId,
-    required String planKey,
+    required String? planKey,
     required List<String> childIds,
     required List<CheckoutLine> products,
     required int cashUzs,
@@ -290,15 +298,43 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
         .toList();
   }
 
-  Product _productFromJson(Map<String, dynamic> json) {
-    return Product(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      priceUzs: json['priceUzs'] as int,
-      category: json['category'] as String,
-      icon: json['icon'] as String,
+  // Same item shape as the Savdo catalog — photo and the "Qo'shimcha" flag
+  // included.
+  Product _productFromJson(Map<String, dynamic> json) => Product.fromJson(json);
+
+  @override
+  Future<CustomerTransactionsPage> listTransactions(
+    int customerId, {
+    int page = 1,
+    int limit = 10,
+  }) async {
+    final response =
+        await _request(
+              () => dio.get(
+                '/v1/pos/customers/$customerId/transactions',
+                queryParameters: {'page': page, 'limit': limit},
+              ),
+            )
+            as Map<String, dynamic>;
+    return CustomerTransactionsPage(
+      items: (response['items'] as List)
+          .map((json) => _transactionFromJson(json as Map<String, dynamic>))
+          .toList(),
+      total: response['total'] as int,
     );
   }
+
+  CustomerTransaction _transactionFromJson(Map<String, dynamic> json) =>
+      CustomerTransaction(
+        id: json['id'] as int,
+        createdAt: DateTime.parse(json['createdAt'] as String).toLocal(),
+        kind: json['kind'] as String,
+        type: json['transactionType'] as String,
+        status: json['status'] as String,
+        amountUzs: json['amountUzs'] as int,
+        note: json['note'] as String?,
+        cashierName: json['cashierName'] as String?,
+      );
 
   @override
   Future<List<PlayingChild>> listPlaying(int customerId) async {
@@ -364,7 +400,7 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
   @override
   Future<PosEntryResult> planEntryCheckout({
     required int customerId,
-    required String planKey,
+    required String? planKey,
     required List<String> childIds,
     required List<CheckoutLine> products,
     required int cashUzs,
@@ -384,7 +420,8 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
         // kinds — Standard/VIP checkouts are unaffected.
         queryParameters: {'kinds': 'flat_hour'},
         data: {
-          'planKey': planKey,
+          // No children (HAMROH / extras only) → no plan either.
+          'planKey': ?planKey,
           'childIds': childIds,
           'products': [
             for (final line in products)

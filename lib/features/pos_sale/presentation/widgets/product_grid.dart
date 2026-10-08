@@ -68,6 +68,57 @@ class _ProductCard extends StatelessWidget {
   final int qtyInCart;
   final VoidCallback onTap;
 
+  static const _nameFontSize = 13.0;
+  static const _minNameFontSize = 9.0;
+  static const _nameLineHeight = 1.3;
+  static const _gap = 8.0;
+  static const _textInset = 4.0;
+
+  /// What a very long name always leaves the photo (or icon).
+  static const _minPhotoHeight = 40.0;
+
+  static TextStyle _nameStyle(double fontSize) =>
+      AppTextStyles.body.copyWith(fontSize: fontSize, height: _nameLineHeight);
+
+  static final _priceStyle = AppTextStyles.muted(
+    AppTextStyles.body,
+  ).copyWith(fontSize: 12);
+
+  /// 13px, unless the full name wouldn't fit above the price with at least
+  /// [_minPhotoHeight] of photo left — then the font shrinks (never below
+  /// 9px) rather than the name being cut short.
+  double _fittingNameSize(
+    BuildContext context,
+    BoxConstraints box,
+    TextScaler scaler,
+  ) {
+    if (!box.hasBoundedHeight) return _nameFontSize;
+    final textWidth = box.maxWidth - _textInset * 2;
+    double height(String text, TextStyle style) {
+      final painter = TextPainter(
+        text: TextSpan(text: text, style: style),
+        textDirection: Directionality.of(context),
+        textScaler: scaler,
+      )..layout(maxWidth: textWidth);
+      final h = painter.height;
+      painter.dispose();
+      return h;
+    }
+
+    final room =
+        box.maxHeight -
+        _minPhotoHeight -
+        _gap -
+        2 -
+        height(formatUzs(product.priceUzs), _priceStyle);
+    var size = _nameFontSize;
+    while (size > _minNameFontSize &&
+        height(product.name, _nameStyle(size)) > room) {
+      size -= 0.5;
+    }
+    return size;
+  }
+
   @override
   Widget build(BuildContext context) {
     final inCart = qtyInCart > 0;
@@ -78,7 +129,7 @@ class _ProductCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
@@ -87,35 +138,55 @@ class _ProductCard extends StatelessWidget {
           ),
           child: Stack(
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Icon(
-                    productIconFor(product.icon),
-                    size: 28,
-                    color: NocturneColors.accent,
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    product.name,
-                    style: AppTextStyles.body.copyWith(fontSize: 13),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    formatUzs(product.priceUzs),
-                    style: AppTextStyles.muted(
-                      AppTextStyles.body,
-                    ).copyWith(fontSize: 12),
-                  ),
-                ],
+              LayoutBuilder(
+                builder: (context, box) {
+                  final scaler = MediaQuery.textScalerOf(context);
+                  final nameStyle = _nameStyle(
+                    _fittingNameSize(context, box, scaler),
+                  );
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Takes whatever height the name and price leave, so
+                      // every tile is the same size with or without a photo.
+                      Expanded(child: ProductImage(product: product)),
+                      const SizedBox(height: _gap),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: _textInset,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // The name is what the cashier reads — never cut.
+                            // At least two lines tall so a short name doesn't
+                            // make its photo taller than the row's others; a
+                            // longer one shrinks the photo instead.
+                            ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minHeight: scaler.scale(
+                                  _nameFontSize * _nameLineHeight * 2,
+                                ),
+                              ),
+                              child: Text(product.name, style: nameStyle),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              formatUzs(product.priceUzs),
+                              style: _priceStyle,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
               if (inCart)
                 Positioned(
-                  top: 0,
-                  right: 0,
+                  top: 6,
+                  right: 6,
                   child: Container(
                     width: 22,
                     height: 22,
@@ -135,6 +206,79 @@ class _ProductCard extends StatelessWidget {
                   ),
                 ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The tile's photo, whole and centered in its box — scaled to fit, never
+/// cropped or stretched. No photo, still loading, or failed → the icon.
+class ProductImage extends StatelessWidget {
+  const ProductImage({super.key, required this.product});
+
+  final Product product;
+
+  @override
+  Widget build(BuildContext context) {
+    final fallback = _ProductIconFallback(icon: product.icon);
+    final url = product.imageUrl;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: url == null
+          ? fallback
+          : LayoutBuilder(
+              builder: (context, constraints) => Image.network(
+                url,
+                fit: BoxFit.contain,
+                alignment: Alignment.center,
+                width: double.infinity,
+                height: double.infinity,
+                // Decode at tile size, not the photo's full resolution: a
+                // 2000px upload costs the memory of a ~200px thumbnail.
+                cacheWidth: _cacheWidth(
+                  constraints.maxWidth,
+                  MediaQuery.devicePixelRatioOf(context),
+                ),
+                filterQuality: FilterQuality.medium,
+                gaplessPlayback: true,
+                excludeFromSemantics: true,
+                frameBuilder: (context, child, frame, wasSynchronouslyLoaded) =>
+                    wasSynchronouslyLoaded || frame != null ? child : fallback,
+                errorBuilder: (context, error, stackTrace) => fallback,
+              ),
+            ),
+    );
+  }
+
+  /// Rounded up to a 64px bucket so resizing the window by a few pixels
+  /// reuses the decoded image instead of decoding it again.
+  static int? _cacheWidth(double logicalWidth, double devicePixelRatio) {
+    if (!logicalWidth.isFinite || logicalWidth <= 0) return null;
+    final px = logicalWidth * devicePixelRatio;
+    return ((px / 64).ceil() * 64).clamp(64, 1024);
+  }
+}
+
+/// The no-photo look: the product's icon on a soft blue tint.
+class _ProductIconFallback extends StatelessWidget {
+  const _ProductIconFallback({required this.icon});
+
+  final String icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: NocturneColors.accent900,
+      child: Center(
+        // Scales down when a long name leaves the photo box short.
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Icon(
+            productIconFor(icon),
+            size: 32,
+            color: NocturneColors.accent,
           ),
         ),
       ),

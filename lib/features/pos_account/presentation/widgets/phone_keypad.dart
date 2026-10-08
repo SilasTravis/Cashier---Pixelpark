@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:phosphor_icons/phosphor_icons.dart';
 
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/theme/nocturne_colors.dart';
+import '../../../../core/theme/pos_palette.dart';
 import '../../../../core/utils/responsive.dart';
 import '../bloc/pos_account_bloc.dart';
 import '../../../../generated/l10n.dart';
@@ -27,61 +27,78 @@ class PhoneKeypad extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = PosPalette.of(context);
+    final compact = breakpointOfContext(context) == Breakpoint.compact;
     return BlocBuilder<PosAccountBloc, PosAccountState>(
       buildWhen: (previous, current) =>
           previous.phoneDigits != current.phoneDigits ||
           previous.isSearching != current.isSearching,
       builder: (context, state) {
         final bloc = context.read<PosAccountBloc>();
+        final typing = state.phoneDigits.isNotEmpty;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Text(
+              AppLocalization.of(context).phoneNumber,
+              style: p.bodyMuted.copyWith(fontSize: 12),
+            ),
+            const SizedBox(height: 6),
             Container(
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+              height: compact ? 48 : 56,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
               decoration: BoxDecoration(
-                color: NocturneColors.bg,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: NocturneColors.divider),
+                color: p.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: typing ? p.accent : p.borderStrong,
+                  width: typing ? 2 : 1,
+                ),
               ),
               child: Row(
                 children: [
                   Expanded(
-                    child: Text(
-                      state.phoneDigits.isEmpty
-                          ? '+998'
-                          : _formatPhone(state.phoneDigits),
-                      maxLines: 1,
-                      softWrap: false,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.h4.copyWith(
-                        fontSize:
-                            breakpointOfContext(context) == Breakpoint.compact
-                            ? 16
-                            : null,
+                    // Never "+998 90 847 4…": a long number scales down to
+                    // fit instead of being cut.
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        typing ? _formatPhone(state.phoneDigits) : '+998',
+                        maxLines: 1,
+                        softWrap: false,
+                        style: AppTextStyles.h4.copyWith(
+                          fontSize: compact ? 17 : 21,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5,
+                          color: typing ? p.text : p.textFaint,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
                       ),
                     ),
                   ),
                   if (state.isSearching)
                     const SizedBox(
-                      width: 15,
-                      height: 15,
+                      width: 16,
+                      height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   else
                     Icon(
                       PhosphorIconsRegular.magnifyingGlass,
-                      size: 15,
-                      color: NocturneColors.accent400,
+                      size: 17,
+                      color: typing ? p.accent : p.textFaint,
                     ),
                 ],
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             GridView.count(
               shrinkWrap: true,
               crossAxisCount: 3,
               mainAxisSpacing: 8,
               crossAxisSpacing: 8,
+              childAspectRatio: compact ? 1.25 : 1.45,
               physics: const NeverScrollableScrollPhysics(),
               children: [
                 for (final key in _keys)
@@ -104,7 +121,7 @@ class PhoneKeypad extends StatelessWidget {
               AppLocalization.of(context).keypadHint,
               style: AppTextStyles.body.copyWith(
                 fontSize: 11,
-                color: NocturneColors.text.withValues(alpha: 0.45),
+                color: p.textFaint,
               ),
             ),
           ],
@@ -122,13 +139,35 @@ class _KeypadButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = PosPalette.of(context);
+    final isBackspace = label == '⌫';
     return Material(
-      color: NocturneColors.bg,
-      borderRadius: BorderRadius.circular(8),
+      color: p.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: p.border),
+      ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Center(child: Text(label, style: AppTextStyles.h5)),
+        borderRadius: BorderRadius.circular(12),
+        hoverColor: p.accentSoft,
+        splashColor: p.accentBorder,
+        child: Center(
+          child: isBackspace
+              ? Icon(
+                  PhosphorIconsRegular.backspace,
+                  size: 20,
+                  color: p.textMuted,
+                )
+              : Text(
+                  label,
+                  style: AppTextStyles.h4.copyWith(
+                    fontSize: 21,
+                    fontWeight: FontWeight.w600,
+                    color: p.text,
+                  ),
+                ),
+        ),
       ),
     );
   }

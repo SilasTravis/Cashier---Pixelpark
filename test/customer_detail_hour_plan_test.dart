@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:cashier_app/core/utils/currency.dart';
+
 import 'package:cashier_app/generated/l10n.dart';
 import 'package:cashier_app/features/pos_account/data/pos_account_remote_data_source.dart';
 import 'package:cashier_app/features/pos_account/data/pos_account_repository_impl.dart';
@@ -28,7 +30,7 @@ class _FakeRemote implements PosAccountRemoteDataSource {
   @override
   Future<PosEntryResult> planEntryCheckout({
     required int customerId,
-    required String planKey,
+    required String? planKey,
     required List<String> childIds,
     required List<CheckoutLine> products,
     required int cashUzs,
@@ -143,7 +145,7 @@ Future<PosAccountBloc> _pumpPanel(
 }
 
 Future<void> _pickChildAndPlan(WidgetTester tester, String planName) async {
-  await tester.tap(find.text('QR'));
+  await tester.tap(find.byKey(const ValueKey('child-select')));
   await tester.pump();
   await tester.tap(find.text(planName));
   await tester.pumpAndSettle();
@@ -204,19 +206,9 @@ void _multiDayTests() {
 
     await _pickChildAndPlan(tester, 'Weekend pass');
 
-    expect(find.widgetWithText(TextField, '150000'), findsOneWidget);
-    expect(
-      find.text(
-        'The «Weekend pass» tariff is debited from the balance immediately when printed.',
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.text(
-        'The VIP tariff is debited from the balance immediately when printed.',
-      ),
-      findsNothing,
-    );
+    expect(_due(150000), findsOneWidget);
+    expect(find.text('Weekend pass × 1'), findsOneWidget);
+    expect(find.text('VIP × 1'), findsNothing);
   });
 
   testWidgets('a live custom day pass is not charged again for itself', (
@@ -230,7 +222,7 @@ void _multiDayTests() {
 
     await _pickChildAndPlan(tester, 'Weekend pass');
 
-    expect(find.widgetWithText(TextField, '150000'), findsNothing);
+    expect(_due(150000), findsNothing);
     expect(
       find.text(
         '«Aziza» already has an active «Weekend pass» tariff — no second charge.',
@@ -248,7 +240,7 @@ void _multiDayTests() {
 
     await _pickChildAndPlan(tester, '1 soat');
 
-    expect(find.widgetWithText(TextField, '50000'), findsNothing);
+    expect(_due(50000), findsNothing);
     expect(
       find.text(
         '«Aziza» already has an active «Weekend pass» tariff — no second charge.',
@@ -268,7 +260,7 @@ void _multiDayTests() {
 
     await _pickChildAndPlan(tester, '1 soat');
 
-    expect(find.widgetWithText(TextField, '50000'), findsNothing);
+    expect(_due(50000), findsNothing);
   });
 
   testWidgets('a live non-VIP custom hour pass does not cover a 1 soat sale', (
@@ -282,7 +274,7 @@ void _multiDayTests() {
 
     await _pickChildAndPlan(tester, '1 soat');
 
-    expect(find.widgetWithText(TextField, '50000'), findsOneWidget);
+    expect(_due(50000), findsOneWidget);
   });
 
   testWidgets('a live built-in VIP is still charged when selling the custom '
@@ -295,7 +287,7 @@ void _multiDayTests() {
 
     await _pickChildAndPlan(tester, 'Weekend pass');
 
-    expect(find.widgetWithText(TextField, '150000'), findsOneWidget);
+    expect(_due(150000), findsOneWidget);
   });
 }
 
@@ -323,13 +315,8 @@ void main() {
 
     await _pickChildAndPlan(tester, 'Quick 30');
 
-    expect(find.widgetWithText(TextField, '30000'), findsOneWidget);
-    expect(
-      find.text(
-        'The «Quick 30» tariff is debited from the balance immediately when printed.',
-      ),
-      findsOneWidget,
-    );
+    expect(_due(30000), findsOneWidget);
+    expect(find.text('Quick 30 × 1'), findsOneWidget);
     expect(find.text('1 hour tariff'), findsNothing);
   });
 
@@ -359,7 +346,7 @@ void main() {
 
     await _pickChildAndPlan(tester, '1 soat');
 
-    expect(find.widgetWithText(TextField, '50000'), findsOneWidget);
+    expect(_due(50000), findsOneWidget);
     // Prepaid: no "nothing is paid now" Standard note.
     expect(find.text(AppLocalization.current.noPaymentNow), findsNothing);
   });
@@ -371,18 +358,8 @@ void main() {
 
     await _pickChildAndPlan(tester, '1 soat');
 
-    expect(
-      find.text(
-        'The 1 hour tariff is debited from the balance immediately when printed.',
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.text(
-        'The VIP tariff is debited from the balance immediately when printed.',
-      ),
-      findsNothing,
-    );
+    expect(find.text('1 soat × 1'), findsOneWidget);
+    expect(find.text('VIP × 1'), findsNothing);
   });
 
   testWidgets('VIP keeps its own wording', (tester) async {
@@ -390,12 +367,7 @@ void main() {
 
     await _pickChildAndPlan(tester, 'VIP');
 
-    expect(
-      find.text(
-        'The VIP tariff is debited from the balance immediately when printed.',
-      ),
-      findsOneWidget,
-    );
+    expect(find.text('VIP × 1'), findsOneWidget);
   });
 
   testWidgets('a child with a live hour pass is not charged again', (
@@ -416,7 +388,7 @@ void main() {
 
     await _pickChildAndPlan(tester, '1 soat');
 
-    expect(find.widgetWithText(TextField, '50000'), findsNothing);
+    expect(_due(50000), findsNothing);
     expect(
       find.text(
         '«Aziza» already has an active 1 hour tariff — no second charge.',
@@ -433,7 +405,7 @@ void main() {
 
     await _pickChildAndPlan(tester, '1 soat');
 
-    expect(find.widgetWithText(TextField, '50000'), findsNothing);
+    expect(_due(50000), findsNothing);
     expect(
       find.text('«Aziza» already has an active VIP tariff — no second charge.'),
       findsOneWidget,
@@ -453,7 +425,7 @@ void main() {
 
     await _pickChildAndPlan(tester, 'VIP');
 
-    expect(find.widgetWithText(TextField, '75000'), findsNothing);
+    expect(_due(75000), findsNothing);
     expect(
       find.text('«Aziza» already has an active VIP tariff — no second charge.'),
       findsOneWidget,
@@ -470,7 +442,7 @@ void main() {
 
     await _pickChildAndPlan(tester, 'VIP');
 
-    expect(find.widgetWithText(TextField, '75000'), findsOneWidget);
+    expect(_due(75000), findsOneWidget);
   });
 
   testWidgets('the hour → VIP conflict from the panel says no refund', (
@@ -550,3 +522,11 @@ ActivePass _livePass(String planKey, String label, int dueTodayUzs) =>
       expiresAt: DateTime.now().add(const Duration(minutes: 30)),
       dueTodayUzs: dueTodayUzs,
     );
+
+/// The "To'lanadi" amount on the account checkout's receipt.
+Finder _due(int uzs) => find.byWidgetPredicate(
+  (w) =>
+      w is Text &&
+      w.key == const ValueKey('pay-due') &&
+      w.data == formatUzs(uzs),
+);

@@ -13,6 +13,7 @@ import '../../domain/active_pass.dart';
 import '../../domain/customer.dart';
 import '../../domain/kids_plan.dart';
 import '../../domain/parent_pass.dart';
+import '../../domain/customer_transaction.dart';
 import '../../domain/playing_child.dart';
 import '../../domain/pos_entry.dart';
 import '../../domain/promo_code_check.dart';
@@ -45,6 +46,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     on<PosAccountEntryAcknowledged>(_onEntryAcknowledged);
     on<PosAccountProductsRequested>(_onProductsRequested);
     on<PosAccountPlayingRequested>(_onPlayingRequested);
+    on<PosAccountTransactionsRequested>(_onTransactionsRequested);
     on<PosAccountActivePassesRequested>(_onActivePassesRequested);
     on<PosAccountCheckoutRequested>(_onCheckoutRequested);
     on<PosAccountConfigRequested>(_onConfigRequested);
@@ -231,6 +233,11 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
         selectedCustomer: event.customer,
         customerHistory: history,
         playing: [],
+        transactions: [],
+        transactionsTotal: 0,
+        transactionsPage: 0,
+        isLoadingTransactions: false,
+        transactionsFailed: false,
         activePasses: [],
         clearPromo: !keepPromo,
         clearPromoError: !keepPromo,
@@ -418,6 +425,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
         await _replaceCustomer(refreshed, emit);
         add(const PosAccountPlayingRequested());
         add(const PosAccountActivePassesRequested());
+        _refreshTransactionsIfOpened();
       },
     );
   }
@@ -579,12 +587,15 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
       (failure) => emit(
         state.copyWith(isBusy: false, errorMessage: _messageOf(failure)),
       ),
-      (topup) => emit(
-        state.copyWith(
-          isBusy: false,
-          selectedCustomer: customer.copyWith(balance: topup.balance),
-        ),
-      ),
+      (topup) {
+        emit(
+          state.copyWith(
+            isBusy: false,
+            selectedCustomer: customer.copyWith(balance: topup.balance),
+          ),
+        );
+        _refreshTransactionsIfOpened();
+      },
     );
   }
 
@@ -649,6 +660,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
           // A confirmed switch changes both who is inside and the badges.
           add(const PosAccountPlayingRequested());
           add(const PosAccountActivePassesRequested());
+          _refreshTransactionsIfOpened();
         }
       },
     );
@@ -659,6 +671,45 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     Emitter<PosAccountState> emit,
   ) {
     emit(state.copyWith(clearLastEntryResult: true));
+  }
+
+  /// Once the "Amallar" accordion has been opened, a balance-moving action
+  /// (top-up, checkout, refresh) re-reads the ledger from its first page so
+  /// the new rows show without the cashier reopening it.
+  void _refreshTransactionsIfOpened() {
+    if (state.transactionsPage > 0) {
+      add(const PosAccountTransactionsRequested());
+    }
+  }
+
+  Future<void> _onTransactionsRequested(
+    PosAccountTransactionsRequested event,
+    Emitter<PosAccountState> emit,
+  ) async {
+    final customer = state.selectedCustomer;
+    if (customer == null) return;
+    emit(
+      state.copyWith(isLoadingTransactions: true, transactionsFailed: false),
+    );
+    final result = await _repository.listTransactions(
+      customer.id,
+      page: event.page,
+    );
+    // The cashier may have moved to another customer while it loaded.
+    if (state.selectedCustomer?.id != customer.id) return;
+    result.fold(
+      (failure) => emit(
+        state.copyWith(isLoadingTransactions: false, transactionsFailed: true),
+      ),
+      (page) => emit(
+        state.copyWith(
+          isLoadingTransactions: false,
+          transactions: page.items,
+          transactionsTotal: page.total,
+          transactionsPage: event.page,
+        ),
+      ),
+    );
   }
 
   Future<void> _onPlayingRequested(
@@ -828,6 +879,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
         // Fresh entries mean fresh inside-children rows and badges.
         add(const PosAccountPlayingRequested());
         add(const PosAccountActivePassesRequested());
+        _refreshTransactionsIfOpened();
         // The free parent sticker rides along with the checkout print —
         // never the other way around: a parent-pass hiccup must not undo
         // an already-settled checkout, so it only surfaces as an error.

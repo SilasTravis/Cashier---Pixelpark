@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:phosphor_icons/phosphor_icons.dart';
 import 'package:uuid/uuid.dart';
@@ -75,7 +74,7 @@ class _RefundSaleDialogState extends State<_RefundSaleDialog> {
 
   int get _limit => widget.sale.refundCeilingFor(_method);
   int? get _amount =>
-      _picksPasses ? _selectedPassTotal : int.tryParse(_amountController.text);
+      _picksPasses ? _selectedPassTotal : parseUzs(_amountController.text);
 
   @override
   Widget build(BuildContext context) {
@@ -214,9 +213,7 @@ class _RefundSaleDialogState extends State<_RefundSaleDialog> {
                         enabled: !submitting,
                         autofocus: true,
                         keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
+                        inputFormatters: const [ThousandsInputFormatter()],
                         decoration: InputDecoration(
                           labelText: l10n.refundAmount,
                           suffixText: "so'm",
@@ -231,7 +228,7 @@ class _RefundSaleDialogState extends State<_RefundSaleDialog> {
                           ),
                         ),
                         validator: (value) {
-                          final amount = int.tryParse(value ?? '');
+                          final amount = parseUzs(value ?? '');
                           if (amount == null || amount < 1 || amount > _limit) {
                             return '1 — ${formatUzs(_limit)}';
                           }

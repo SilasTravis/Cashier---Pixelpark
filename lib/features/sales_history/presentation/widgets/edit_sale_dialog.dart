@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:phosphor_icons/phosphor_icons.dart';
 
@@ -75,7 +74,7 @@ class _EditSaleDialogState extends State<_EditSaleDialog> {
   }
 
   int _amount(TextEditingController controller) =>
-      int.tryParse(controller.text) ?? 0;
+      parseUzs(controller.text) ?? 0;
 
   int get _target => _amount(_totalController);
 
@@ -299,7 +298,7 @@ class _EditSaleDialogState extends State<_EditSaleDialog> {
     enabled: enabled,
     autofocus: autofocus,
     keyboardType: TextInputType.number,
-    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+    inputFormatters: const [ThousandsInputFormatter()],
     onChanged: (_) => setState(() {}),
     decoration: InputDecoration(
       labelText: label,
@@ -307,7 +306,7 @@ class _EditSaleDialogState extends State<_EditSaleDialog> {
       helperText: '$min — ${formatUzs(_physicalUzs)}',
     ),
     validator: (value) {
-      final amount = int.tryParse(value ?? '');
+      final amount = parseUzs(value ?? '');
       if (amount == null || amount < min || amount > _physicalUzs) {
         return '$min — ${formatUzs(_physicalUzs)}';
       }

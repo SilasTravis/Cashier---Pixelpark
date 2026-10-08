@@ -92,6 +92,13 @@ class LocalSource {
   String? getReceiptPrinterName() =>
       box.get(AppKeys.receiptPrinterName) as String?;
 
+  Future<void> setPrintParentQr(bool value) =>
+      box.put(AppKeys.printParentQr, value);
+
+  /// OFF until the cashier first turns it on.
+  bool getPrintParentQr() =>
+      box.get(AppKeys.printParentQr, defaultValue: false) as bool;
+
   /// This installation's terminal id — a UUID v4 generated on first call
   /// and kept for good. It lives in this box (not the app folder), so a
   /// self-update, which replaces the app folder, keeps it; and it is not in

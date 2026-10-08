@@ -11,21 +11,28 @@ import '../../../../core/utils/currency.dart';
 import '../../../../core/utils/phone_number.dart';
 import '../../../../generated/l10n.dart';
 import '../../../../injector_container.dart';
+import '../../../pos_account/domain/customer.dart';
+import '../../../pos_account/presentation/open_customer.dart';
 import '../../domain/inside_child.dart';
 import '../bloc/inside_cubit.dart';
 
 class InsidePage extends StatelessWidget {
-  const InsidePage({super.key});
+  const InsidePage({super.key, required this.onOpenCustomer});
+
+  /// Tapping a child's card opens its parent's account page.
+  final ValueChanged<Customer> onOpenCustomer;
 
   @override
   Widget build(BuildContext context) => BlocProvider(
     create: (_) => sl<InsideCubit>()..load(),
-    child: const _InsideView(),
+    child: _InsideView(onOpenCustomer: onOpenCustomer),
   );
 }
 
 class _InsideView extends StatefulWidget {
-  const _InsideView();
+  const _InsideView({required this.onOpenCustomer});
+
+  final ValueChanged<Customer> onOpenCustomer;
 
   @override
   State<_InsideView> createState() => _InsideViewState();
@@ -160,6 +167,8 @@ class _InsideViewState extends State<_InsideView> {
                                 state.exitingVisitId == children[index].visitId,
                             onExit: () =>
                                 _confirmExit(context, children[index]),
+                            onOpen: () =>
+                                _openAccount(context, children[index]),
                           ),
                         );
                       },
@@ -169,6 +178,11 @@ class _InsideViewState extends State<_InsideView> {
         );
       },
     );
+  }
+
+  Future<void> _openAccount(BuildContext context, InsideChild child) async {
+    final customer = await findCustomerByPhone(context, child.parentPhone);
+    if (customer != null) widget.onOpenCustomer(customer);
   }
 
   Future<void> _confirmExit(BuildContext context, InsideChild child) async {
@@ -204,10 +218,12 @@ class _ChildCard extends StatelessWidget {
     required this.child,
     required this.exiting,
     required this.onExit,
+    required this.onOpen,
   });
   final InsideChild child;
   final bool exiting;
   final VoidCallback onExit;
+  final VoidCallback onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -216,113 +232,121 @@ class _ChildCard extends StatelessWidget {
         .difference(child.enteredAt)
         .inMinutes
         .clamp(0, 999999);
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: NocturneColors.surface,
+    return Material(
+      color: NocturneColors.surface,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: NocturneColors.divider),
+        side: const BorderSide(color: NocturneColors.divider),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onOpen,
+        hoverColor: NocturneColors.neutral900,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                backgroundColor: NocturneColors.accent900,
-                child: Text(child.childName.characters.first.toUpperCase()),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      child.childName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.h5,
-                    ),
-                    Text(
-                      child.parentName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.muted(
-                        AppTextStyles.body.copyWith(fontSize: 13.5),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (child.planName != null)
-                Chip(
-                  label: Text(child.planName!),
-                  visualDensity: VisualDensity.compact,
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const Icon(
-                PhosphorIconsRegular.phone,
-                size: 17,
-                color: NocturneColors.accent,
-              ),
-              const SizedBox(width: 7),
-              Expanded(
-                child: SelectionArea(
-                  child: Text(
-                    formatPhoneNumber(child.parentPhone),
-                    maxLines: 1,
-                    style: AppTextStyles.body.copyWith(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: .15,
+              Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: NocturneColors.accent900,
+                    foregroundColor: NocturneColors.accent,
+                    child: Text(child.childName.characters.first.toUpperCase()),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          child.childName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.h5,
+                        ),
+                        Text(
+                          child.parentName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.muted(
+                            AppTextStyles.body.copyWith(fontSize: 13.5),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+                  if (child.planName != null)
+                    Chip(
+                      label: Text(child.planName!),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(
+                    PhosphorIconsRegular.phone,
+                    size: 17,
+                    color: NocturneColors.accent,
+                  ),
+                  const SizedBox(width: 7),
+                  Expanded(
+                    child: SelectionArea(
+                      child: Text(
+                        formatPhoneNumber(child.parentPhone),
+                        maxLines: 1,
+                        style: AppTextStyles.body.copyWith(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: .15,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _Fact(
+                      label: l10n.enteredAt,
+                      value: DateFormat('HH:mm').format(child.enteredAt),
+                    ),
+                  ),
+                  Expanded(
+                    child: _Fact(
+                      label: l10n.elapsedTime,
+                      value: l10n.minutesCount(elapsed),
+                    ),
+                  ),
+                  Expanded(
+                    child: _Fact(
+                      label: l10n.accruedAmount,
+                      value: formatUzs(child.accruedUzs),
+                    ),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              Align(
+                alignment: Alignment.centerRight,
+                child: OutlinedButton.icon(
+                  onPressed: exiting ? null : onExit,
+                  icon: exiting
+                      ? const SizedBox.square(
+                          dimension: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(PhosphorIconsRegular.signOut, size: 17),
+                  label: Text(l10n.markExited),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: _Fact(
-                  label: l10n.enteredAt,
-                  value: DateFormat('HH:mm').format(child.enteredAt),
-                ),
-              ),
-              Expanded(
-                child: _Fact(
-                  label: l10n.elapsedTime,
-                  value: l10n.minutesCount(elapsed),
-                ),
-              ),
-              Expanded(
-                child: _Fact(
-                  label: l10n.accruedAmount,
-                  value: formatUzs(child.accruedUzs),
-                ),
-              ),
-            ],
-          ),
-          const Spacer(),
-          Align(
-            alignment: Alignment.centerRight,
-            child: OutlinedButton.icon(
-              onPressed: exiting ? null : onExit,
-              icon: exiting
-                  ? const SizedBox.square(
-                      dimension: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(PhosphorIconsRegular.signOut, size: 17),
-              label: Text(l10n.markExited),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

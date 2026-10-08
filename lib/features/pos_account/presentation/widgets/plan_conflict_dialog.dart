@@ -4,6 +4,7 @@ import 'package:phosphor_icons/phosphor_icons.dart';
 
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
+import '../../../../core/theme/pos_palette.dart';
 import '../../../../core/utils/currency.dart';
 import '../../domain/pos_entry.dart';
 import '../bloc/pos_account_bloc.dart';
@@ -54,9 +55,13 @@ Future<void> showPlanConflictDialog(
     barrierDismissible: true,
     builder: (dialogContext) {
       final l10n = AppLocalization.of(dialogContext);
+      final p = PosPalette.of(dialogContext);
       return AlertDialog(
-        backgroundColor: NocturneColors.surface,
-        title: Text(l10n.planSwitch, style: AppTextStyles.h4),
+        backgroundColor: p.surface,
+        title: Text(
+          l10n.planSwitch,
+          style: AppTextStyles.h4.copyWith(color: p.text),
+        ),
         content: SizedBox(
           width: 380,
           child: Column(
@@ -80,7 +85,7 @@ Future<void> showPlanConflictDialog(
                           requestedPlanName,
                           formatUzs(requestedPlanFlatUzs),
                         ),
-                  style: AppTextStyles.body.copyWith(fontSize: 13),
+                  style: p.body.copyWith(fontSize: 13),
                 ),
             ],
           ),
@@ -180,12 +185,13 @@ class _ConflictRow extends StatelessWidget {
       // is expired, nothing refunded (backend only offers switches TO VIP).
       if (conflict.switchable && fromHourPlan) l10n.planSwitchHourToVipNote,
     ];
+    final p = PosPalette.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: NocturneColors.bg,
+        color: p.surfaceMuted,
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: NocturneColors.divider),
+        border: Border.all(color: p.border),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -195,13 +201,13 @@ class _ConflictRow extends StatelessWidget {
                 ? PhosphorIconsRegular.arrowsClockwise
                 : PhosphorIconsRegular.warning,
             size: 16,
-            color: NocturneColors.accent300,
+            color: p.accentStrong,
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               details.join(' '),
-              style: AppTextStyles.body.copyWith(fontSize: 13),
+              style: p.body.copyWith(fontSize: 13),
             ),
           ),
         ],

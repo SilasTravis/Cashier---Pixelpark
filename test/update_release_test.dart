@@ -9,8 +9,10 @@ Map<String, dynamic> _json({
 }) => <String, dynamic>{
   'tag_name': tag,
   'body': body,
-  'html_url': 'https://github.com/SilasTravis/Cashier---Pixelpark/releases/tag/$tag',
-  'assets': assets ??
+  'html_url':
+      'https://github.com/SilasTravis/Cashier---Pixelpark/releases/tag/$tag',
+  'assets':
+      assets ??
       <Map<String, dynamic>>[
         {
           'name': 'cashier_app-windows-$tag.zip',
@@ -45,13 +47,15 @@ void main() {
   });
 
   test('returns null when no zip asset is attached', () {
-    final json = _json(assets: <Map<String, dynamic>>[
-      {
-        'name': 'notes.txt',
-        'size': 12,
-        'browser_download_url': 'https://example.test/notes.txt',
-      },
-    ]);
+    final json = _json(
+      assets: <Map<String, dynamic>>[
+        {
+          'name': 'notes.txt',
+          'size': 12,
+          'browser_download_url': 'https://example.test/notes.txt',
+        },
+      ],
+    );
 
     expect(UpdateRelease.fromGithubJson(json), isNull);
   });
@@ -61,13 +65,15 @@ void main() {
   });
 
   test('tolerates a missing sha256 asset and a null body', () {
-    final json = _json(assets: <Map<String, dynamic>>[
-      {
-        'name': 'cashier_app-windows-v1.2.3.zip',
-        'size': 10,
-        'browser_download_url': 'https://example.test/v1.2.3.zip',
-      },
-    ]);
+    final json = _json(
+      assets: <Map<String, dynamic>>[
+        {
+          'name': 'cashier_app-windows-v1.2.3.zip',
+          'size': 10,
+          'browser_download_url': 'https://example.test/v1.2.3.zip',
+        },
+      ],
+    );
     json['body'] = null;
 
     final release = UpdateRelease.fromGithubJson(json)!;
@@ -76,25 +82,29 @@ void main() {
   });
 
   test('returns null when the zip asset has no browser_download_url', () {
-    final json = _json(assets: <Map<String, dynamic>>[
-      {
-        'name': 'cashier_app-windows-v1.2.3.zip',
-        'size': 10,
-        // No browser_download_url at all.
-      },
-    ]);
+    final json = _json(
+      assets: <Map<String, dynamic>>[
+        {
+          'name': 'cashier_app-windows-v1.2.3.zip',
+          'size': 10,
+          // No browser_download_url at all.
+        },
+      ],
+    );
 
     expect(UpdateRelease.fromGithubJson(json), isNull);
   });
 
   test('returns null when the zip asset download url is not a string', () {
-    final json = _json(assets: <Map<String, dynamic>>[
-      {
-        'name': 'cashier_app-windows-v1.2.3.zip',
-        'size': 10,
-        'browser_download_url': 12345,
-      },
-    ]);
+    final json = _json(
+      assets: <Map<String, dynamic>>[
+        {
+          'name': 'cashier_app-windows-v1.2.3.zip',
+          'size': 10,
+          'browser_download_url': 12345,
+        },
+      ],
+    );
 
     expect(UpdateRelease.fromGithubJson(json), isNull);
   });

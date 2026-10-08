@@ -279,6 +279,46 @@ class AppLocalization {
     return Intl.message('No discount', name: 'noDiscount', desc: '', args: []);
   }
 
+  /// `Free (100%)`
+  String get discountGroupFree {
+    return Intl.message(
+      'Free (100%)',
+      name: 'discountGroupFree',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Percentage`
+  String get discountGroupPercent {
+    return Intl.message(
+      'Percentage',
+      name: 'discountGroupPercent',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Fixed amount`
+  String get discountGroupFixed {
+    return Intl.message(
+      'Fixed amount',
+      name: 'discountGroupFixed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Search by name`
+  String get discountSearchHint {
+    return Intl.message(
+      'Search by name',
+      name: 'discountSearchHint',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Check discount`
   String get checkDiscount {
     return Intl.message(
@@ -2764,10 +2804,10 @@ class AppLocalization {
     return Intl.message('Promo code', name: 'promoCode', desc: '', args: []);
   }
 
-  /// `Scan or type the code`
+  /// `Scan or type`
   String get promoCodeHint {
     return Intl.message(
-      'Scan or type the code',
+      'Scan or type',
       name: 'promoCodeHint',
       desc: '',
       args: [],
@@ -2904,6 +2944,441 @@ class AppLocalization {
     return Intl.message(
       'This customer has already used this promo code',
       name: 'promoCodeAlreadyUsedByCustomer',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Who's entering?`
+  String get accountStepWho {
+    return Intl.message(
+      'Who\'s entering?',
+      name: 'accountStepWho',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Extras`
+  String get accountStepExtras {
+    return Intl.message(
+      'Extras',
+      name: 'accountStepExtras',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `optional`
+  String get accountOptional {
+    return Intl.message(
+      'optional',
+      name: 'accountOptional',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Amount still due`
+  String get accountDueShortfall {
+    return Intl.message(
+      'Amount still due',
+      name: 'accountDueShortfall',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Customer pays`
+  String get accountDueFull {
+    return Intl.message(
+      'Customer pays',
+      name: 'accountDueFull',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Taken from balance`
+  String get accountFromBalance {
+    return Intl.message(
+      'Taken from balance',
+      name: 'accountFromBalance',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Fully covered by balance · {value} left`
+  String accountCoveredByBalance(String value) {
+    return Intl.message(
+      'Fully covered by balance · $value left',
+      name: 'accountCoveredByBalance',
+      desc: '',
+      args: [value],
+    );
+  }
+
+  /// `{count} inside`
+  String accountInsideCount(int count) {
+    return Intl.message(
+      '$count inside',
+      name: 'accountInsideCount',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `{count} y.o.`
+  String accountAgeYears(int count) {
+    return Intl.message(
+      '$count y.o.',
+      name: 'accountAgeYears',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `Inside · {minutes} min`
+  String accountInsideMinutes(int minutes) {
+    return Intl.message(
+      'Inside · $minutes min',
+      name: 'accountInsideMinutes',
+      desc: '',
+      args: [minutes],
+    );
+  }
+
+  /// `Paid now`
+  String get accountPayNow {
+    return Intl.message('Paid now', name: 'accountPayNow', desc: '', args: []);
+  }
+
+  /// `Billed at exit`
+  String get accountPayAtExit {
+    return Intl.message(
+      'Billed at exit',
+      name: 'accountPayAtExit',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `at exit`
+  String get accountAtExit {
+    return Intl.message('at exit', name: 'accountAtExit', desc: '', args: []);
+  }
+
+  /// `{plan} × {count}`
+  String accountPlanTimesKids(String plan, int count) {
+    return Intl.message(
+      '$plan × $count',
+      name: 'accountPlanTimesKids',
+      desc: '',
+      args: [plan, count],
+    );
+  }
+
+  /// `Child`
+  String get accountColChild {
+    return Intl.message('Child', name: 'accountColChild', desc: '', args: []);
+  }
+
+  /// `Time`
+  String get accountColTime {
+    return Intl.message('Time', name: 'accountColTime', desc: '', args: []);
+  }
+
+  /// `So far`
+  String get accountColSoFar {
+    return Intl.message('So far', name: 'accountColSoFar', desc: '', args: []);
+  }
+
+  /// `{value} goes to the balance`
+  String accountExcessToBalance(String value) {
+    return Intl.message(
+      '$value goes to the balance',
+      name: 'accountExcessToBalance',
+      desc: '',
+      args: [value],
+    );
+  }
+
+  /// `To pay`
+  String get accountToPay {
+    return Intl.message('To pay', name: 'accountToPay', desc: '', args: []);
+  }
+
+  /// `From balance`
+  String get accountFromBalanceLine {
+    return Intl.message(
+      'From balance',
+      name: 'accountFromBalanceLine',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Left on balance`
+  String get accountLeftOnBalance {
+    return Intl.message(
+      'Left on balance',
+      name: 'accountLeftOnBalance',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Take a different amount`
+  String get accountOtherAmount {
+    return Intl.message(
+      'Take a different amount',
+      name: 'accountOtherAmount',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No active check discounts`
+  String get accountNoCheckDiscounts {
+    return Intl.message(
+      'No active check discounts',
+      name: 'accountNoCheckDiscounts',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Select a child first`
+  String get accountPickChildFirst {
+    return Intl.message(
+      'Select a child first',
+      name: 'accountPickChildFirst',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Today's QR codes`
+  String get accountTodayQrs {
+    return Intl.message(
+      'Today\'s QR codes',
+      name: 'accountTodayQrs',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Reprint a lost or damaged sticker: nothing is charged and the old sticker keeps working.`
+  String get accountTodayQrsHint {
+    return Intl.message(
+      'Reprint a lost or damaged sticker: nothing is charged and the old sticker keeps working.',
+      name: 'accountTodayQrsHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `until {time}`
+  String accountValidUntil(String time) {
+    return Intl.message(
+      'until $time',
+      name: 'accountValidUntil',
+      desc: '',
+      args: [time],
+    );
+  }
+
+  /// `Reprint all`
+  String get reprintAll {
+    return Intl.message('Reprint all', name: 'reprintAll', desc: '', args: []);
+  }
+
+  /// `Transaction history`
+  String get accountTxTitle {
+    return Intl.message(
+      'Transaction history',
+      name: 'accountTxTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{count}`
+  String accountTxCount(int count) {
+    return Intl.message(
+      '$count',
+      name: 'accountTxCount',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `No transactions for this customer yet`
+  String get accountTxEmpty {
+    return Intl.message(
+      'No transactions for this customer yet',
+      name: 'accountTxEmpty',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Couldn't load the transactions`
+  String get accountTxFailed {
+    return Intl.message(
+      'Couldn\'t load the transactions',
+      name: 'accountTxFailed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{from}–{to} / {total}`
+  String accountTxRange(int from, int to, int total) {
+    return Intl.message(
+      '$from–$to / $total',
+      name: 'accountTxRange',
+      desc: '',
+      args: [from, to, total],
+    );
+  }
+
+  /// `Previous`
+  String get accountTxPrev {
+    return Intl.message('Previous', name: 'accountTxPrev', desc: '', args: []);
+  }
+
+  /// `Next`
+  String get accountTxNext {
+    return Intl.message('Next', name: 'accountTxNext', desc: '', args: []);
+  }
+
+  /// `Other`
+  String get accountTxMore {
+    return Intl.message('Other', name: 'accountTxMore', desc: '', args: []);
+  }
+
+  /// `Bonus`
+  String get txBonus {
+    return Intl.message('Bonus', name: 'txBonus', desc: '', args: []);
+  }
+
+  /// `App top-up`
+  String get txPayment {
+    return Intl.message('App top-up', name: 'txPayment', desc: '', args: []);
+  }
+
+  /// `Manual adjustment`
+  String get txManualAdjustment {
+    return Intl.message(
+      'Manual adjustment',
+      name: 'txManualAdjustment',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Tariff (entry)`
+  String get txKidsCharge {
+    return Intl.message(
+      'Tariff (entry)',
+      name: 'txKidsCharge',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Cash-desk top-up`
+  String get txCashierTopup {
+    return Intl.message(
+      'Cash-desk top-up',
+      name: 'txCashierTopup',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Cash-desk purchase`
+  String get txPosPurchase {
+    return Intl.message(
+      'Cash-desk purchase',
+      name: 'txPosPurchase',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Top-up refunded`
+  String get txCashierTopupRefund {
+    return Intl.message(
+      'Top-up refunded',
+      name: 'txCashierTopupRefund',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Purchase refunded`
+  String get txPosPurchaseRefund {
+    return Intl.message(
+      'Purchase refunded',
+      name: 'txPosPurchaseRefund',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Legacy record`
+  String get txLegacy {
+    return Intl.message('Legacy record', name: 'txLegacy', desc: '', args: []);
+  }
+
+  /// `Game reward`
+  String get txGameReward {
+    return Intl.message(
+      'Game reward',
+      name: 'txGameReward',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Market purchase`
+  String get txMarketPurchase {
+    return Intl.message(
+      'Market purchase',
+      name: 'txMarketPurchase',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Market refund`
+  String get txMarketRefund {
+    return Intl.message(
+      'Market refund',
+      name: 'txMarketRefund',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Pending`
+  String get txStatusPending {
+    return Intl.message('Pending', name: 'txStatusPending', desc: '', args: []);
+  }
+
+  /// `Failed`
+  String get txStatusFailed {
+    return Intl.message('Failed', name: 'txStatusFailed', desc: '', args: []);
+  }
+
+  /// `Cancelled`
+  String get txStatusCancelled {
+    return Intl.message(
+      'Cancelled',
+      name: 'txStatusCancelled',
       desc: '',
       args: [],
     );

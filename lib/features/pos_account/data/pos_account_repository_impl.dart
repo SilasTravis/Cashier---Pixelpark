@@ -8,6 +8,7 @@ import '../domain/active_pass.dart';
 import '../domain/customer.dart';
 import '../domain/kids_plan.dart';
 import '../domain/parent_pass.dart';
+import '../domain/customer_transaction.dart';
 import '../domain/playing_child.dart';
 import '../domain/pos_entry.dart';
 import '../domain/promo_code_check.dart';
@@ -102,6 +103,14 @@ class PosAccountRepository {
   Future<Either<Failure, List<PlayingChild>>> listPlaying(int customerId) =>
       _call(() => remote.listPlaying(customerId));
 
+  Future<Either<Failure, CustomerTransactionsPage>> listTransactions(
+    int customerId, {
+    int page = 1,
+    int limit = 10,
+  }) => _call(
+    () => remote.listTransactions(customerId, page: page, limit: limit),
+  );
+
   Future<Either<Failure, List<ActivePass>>> listActivePasses(int customerId) =>
       _call(() => remote.listActivePasses(customerId));
 
@@ -110,7 +119,7 @@ class PosAccountRepository {
 
   Future<Either<Failure, PosEntryResult>> planEntryCheckout({
     required int customerId,
-    required String planKey,
+    required String? planKey,
     required List<String> childIds,
     required List<CheckoutLine> products,
     required int cashUzs,

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:phosphor_icons/phosphor_icons.dart';
 
-import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/theme/nocturne_colors.dart';
+import '../../../../core/theme/pos_palette.dart';
 import '../../../../core/utils/currency.dart';
 import '../../../../core/widgets/payment_method_selector.dart';
 import '../../../../generated/l10n.dart';
@@ -31,6 +30,7 @@ Future<bool?> showConfirmTopupDialog(
           '${l10n.paymentCard} ${formatUzs(cardUzs)}',
   };
 
+  final p = PosPalette.of(context);
   return showDialog<bool>(
     context: context,
     barrierDismissible: false,
@@ -41,13 +41,10 @@ Future<bool?> showConfirmTopupDialog(
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: NocturneColors.accent900,
+              color: p.accentSoft,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(
-              PhosphorIconsRegular.wallet,
-              color: NocturneColors.neutral200,
-            ),
+            child: Icon(PhosphorIconsRegular.wallet, color: p.accent),
           ),
           const SizedBox(width: 12),
           Expanded(child: Text(l10n.topupConfirmTitle)),
@@ -78,26 +75,23 @@ Future<bool?> showConfirmTopupDialog(
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: NocturneColors.accent900,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: NocturneColors.accent700),
+                color: p.accentSoft,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: p.accentBorder),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(
+                  Icon(
                     PhosphorIconsRegular.info,
                     size: 19,
-                    color: NocturneColors.accent300,
+                    color: p.accentStrong,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       l10n.topupConfirmWarning,
-                      style: AppTextStyles.body.copyWith(
-                        fontSize: 12,
-                        color: NocturneColors.neutral200,
-                      ),
+                      style: p.body.copyWith(fontSize: 12),
                     ),
                   ),
                 ],
@@ -133,26 +127,29 @@ class _Row extends StatelessWidget {
   final bool emphasized;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: AppTextStyles.muted(AppTextStyles.body)),
-        const SizedBox(width: 12),
-        Flexible(
-          child: Text(
-            value,
-            textAlign: TextAlign.end,
-            style: emphasized
-                ? AppTextStyles.body.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: NocturneColors.accent,
-                  )
-                : AppTextStyles.body,
+  Widget build(BuildContext context) {
+    final p = PosPalette.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: p.bodyMuted),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: emphasized
+                  ? p.body.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: p.accent,
+                    )
+                  : p.body,
+            ),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 }

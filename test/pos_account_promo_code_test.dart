@@ -7,6 +7,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:cashier_app/core/utils/currency.dart';
+
 import 'package:cashier_app/core/error/exceptions.dart';
 import 'package:cashier_app/core/widgets/promo_code_field.dart';
 import 'package:cashier_app/features/pos_account/data/pos_account_remote_data_source.dart';
@@ -98,7 +100,7 @@ class _FakeRemote implements PosAccountRemoteDataSource {
   @override
   Future<PosEntryResult> planEntryCheckout({
     required int customerId,
-    required String planKey,
+    required String? planKey,
     required List<String> childIds,
     required List<CheckoutLine> products,
     required int cashUzs,
@@ -739,7 +741,10 @@ void main() {
     );
 
     Future<void> scan(WidgetTester tester) async {
-      await tester.enterText(find.widgetWithText(TextField, 'Promokod'), _code);
+      await tester.enterText(
+        find.byKey(const ValueKey('promo-code-input')),
+        _code,
+      );
       await tester.testTextInput.receiveAction(TextInputAction.done);
       await tester.pumpAndSettle();
     }
@@ -752,11 +757,11 @@ void main() {
       final remote = _FakeRemote();
       await pumpPanel(tester, remote, [child('child-1', 'Aziza')]);
 
-      await tester.tap(find.text('QR'));
+      await tester.tap(find.byKey(const ValueKey('child-select')));
       await tester.pump();
       await tester.tap(find.text('VIP'));
       await tester.pumpAndSettle();
-      expect(find.widgetWithText(TextField, '75000'), findsOneWidget);
+      expect(_due(75000), findsOneWidget);
 
       await scan(tester);
 
@@ -765,7 +770,7 @@ void main() {
       expect(find.text(label), findsNWidgets(2));
       expect(find.byTooltip('Chegirma'), findsNothing);
       // 75 000 − 30% = 52 500 still due.
-      expect(find.widgetWithText(TextField, '52500'), findsOneWidget);
+      expect(_due(52500), findsOneWidget);
 
       await tester.tap(find.text('To‘lov va chop etish'));
       await tester.pumpAndSettle();
@@ -794,9 +799,9 @@ void main() {
         child('child-2', 'Bobur'),
       ]);
 
-      await tester.tap(find.text('QR').at(0));
+      await tester.tap(find.byKey(const ValueKey('child-select')).at(0));
       await tester.pump();
-      await tester.tap(find.text('QR').at(1));
+      await tester.tap(find.byKey(const ValueKey('child-select')).at(1));
       await tester.pump();
       await tester.tap(find.text('Standart').first);
       await tester.pumpAndSettle();
@@ -823,7 +828,7 @@ void main() {
           ),
         ];
       await pumpPanel(tester, remote, [child('child-1', 'Aziza')]);
-      await tester.tap(find.text('QR'));
+      await tester.tap(find.byKey(const ValueKey('child-select')));
       await tester.pump();
       await tester.tap(find.text('Standart').first);
       await tester.pumpAndSettle();
@@ -851,7 +856,7 @@ void main() {
       await pumpPanel(tester, remote, [
         child('child-1', 'Aziza'),
       ], percent: 100);
-      await tester.tap(find.text('QR'));
+      await tester.tap(find.byKey(const ValueKey('child-select')));
       await tester.pump();
       await tester.tap(find.text('VIP'));
       await tester.pumpAndSettle();
@@ -878,7 +883,7 @@ void main() {
           ),
         ];
       await pumpPanel(tester, remote, [child('child-1', 'Aziza')]);
-      await tester.tap(find.text('QR'));
+      await tester.tap(find.byKey(const ValueKey('child-select')));
       await tester.pump();
       await tester.tap(find.text('VIP'));
       await tester.pumpAndSettle();
@@ -886,7 +891,7 @@ void main() {
       await scan(tester);
 
       // 75 000 − 30% = 52 500 due for the upgrade.
-      expect(find.widgetWithText(TextField, '52500'), findsOneWidget);
+      expect(_due(52500), findsOneWidget);
       await tester.tap(find.text('To‘lov va chop etish'));
       await tester.pumpAndSettle();
       expect(remote.lastPromoCode, (code: _code, childId: 'child-1'));
@@ -927,7 +932,7 @@ void main() {
         ],
         promoCode: PromoCodeOutcome(applied: false, childId: 'child-1'),
       );
-      await tester.tap(find.text('QR'));
+      await tester.tap(find.byKey(const ValueKey('child-select')));
       await tester.pump();
       await tester.tap(find.text('VIP'));
       await tester.pumpAndSettle();
@@ -951,12 +956,12 @@ void main() {
     ) async {
       final remote = _FakeRemote();
       await pumpPanel(tester, remote, [child('child-1', 'Aziza')]);
-      await tester.tap(find.text('QR'));
+      await tester.tap(find.byKey(const ValueKey('child-select')));
       await tester.pump();
 
       await tester.tap(find.byTooltip('Chegirma'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Flayer (10%)'));
+      await tester.tap(find.text('Flayer'));
       await tester.pumpAndSettle();
       await scan(tester);
       expect(find.text('Chegirma: Flayer'), findsNothing);
@@ -1029,12 +1034,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('QR'));
+    await tester.tap(find.byKey(const ValueKey('child-select')));
     await tester.pump();
     await tester.tap(find.text('VIP'));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.widgetWithText(TextField, 'Promokod'), 'фдш20');
+    await tester.enterText(
+      find.byKey(const ValueKey('promo-code-input')),
+      'фдш20',
+    );
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
 
@@ -1043,7 +1051,7 @@ void main() {
     expect(find.text('Blogger · ALI20'), findsOneWidget);
     expect(find.text('Ali · Oltin · −20%'), findsNWidgets(2));
     // 75 000 − 20% = 60 000 still due.
-    expect(find.widgetWithText(TextField, '60000'), findsOneWidget);
+    expect(_due(60000), findsOneWidget);
 
     await tester.tap(find.text('To‘lov va chop etish'));
     await tester.pumpAndSettle();
@@ -1112,3 +1120,11 @@ void main() {
     });
   });
 }
+
+/// The "To'lanadi" amount on the account checkout's receipt.
+Finder _due(int uzs) => find.byWidgetPredicate(
+  (w) =>
+      w is Text &&
+      w.key == const ValueKey('pay-due') &&
+      w.data == formatUzs(uzs),
+);

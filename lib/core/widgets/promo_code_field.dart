@@ -3,8 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:phosphor_icons/phosphor_icons.dart';
 
 import '../../generated/l10n.dart';
-import '../theme/app_text_styles.dart';
-import '../theme/nocturne_colors.dart';
+import '../theme/pos_palette.dart';
+import '../utils/responsive.dart';
 
 /// The cashier's "Promokod" input. The cashier focuses it and fires the
 /// handheld scanner gun at the partner app's QR: the gun "types" the 16
@@ -65,11 +65,23 @@ class _PromoCodeFieldState extends State<PromoCodeField> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalization.of(context);
+    final p = PosPalette.of(context);
+    // Same look as the phone field right below it: a small caption, then a
+    // 56px (48px compact) rounded box that turns blue while focused.
+    final compact = breakpointOfContext(context) == Breakpoint.compact;
+    OutlineInputBorder border(Color color, [double width = 1]) =>
+        OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: color, width: width),
+        );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
+        Text(l10n.promoCode, style: p.bodyMuted.copyWith(fontSize: 12)),
+        const SizedBox(height: 6),
         TextField(
+          key: const ValueKey('promo-code-input'),
           controller: _controller,
           focusNode: _focusNode,
           autofocus: widget.autofocus,
@@ -86,21 +98,45 @@ class _PromoCodeFieldState extends State<PromoCodeField> {
           // would turn a wrong code into another one. 64 = the server's max.
           inputFormatters: [LengthLimitingTextInputFormatter(64)],
           onSubmitted: (_) => _submit(),
-          style: AppTextStyles.body.copyWith(
-            fontSize: 14,
+          style: p.body.copyWith(
+            fontSize: compact ? 15 : 17,
+            fontWeight: FontWeight.w600,
             letterSpacing: 1.2,
             fontFeatures: const [FontFeature.tabularFigures()],
           ),
           decoration: InputDecoration(
-            isDense: true,
-            labelText: l10n.promoCode,
+            filled: true,
+            fillColor: p.surface,
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: compact ? 14 : 18,
+            ),
             hintText: l10n.promoCodeHint,
+            hintStyle: p.bodyMuted.copyWith(
+              fontSize: compact ? 14 : 15,
+              letterSpacing: 0,
+              fontWeight: FontWeight.w400,
+            ),
             errorText: widget.errorText,
             errorMaxLines: 2,
-            prefixIcon: const Icon(PhosphorIconsRegular.qrCode, size: 18),
+            border: border(p.borderStrong),
+            enabledBorder: border(p.borderStrong),
+            focusedBorder: border(p.accent, 2),
+            errorBorder: border(p.danger),
+            focusedErrorBorder: border(p.danger, 2),
+            prefixIcon: Icon(
+              PhosphorIconsRegular.qrCode,
+              size: 20,
+              color: p.textMuted,
+            ),
+            prefixIconConstraints: const BoxConstraints(minWidth: 44),
+            suffixIconConstraints: const BoxConstraints(
+              minWidth: 44,
+              minHeight: 44,
+            ),
             suffixIcon: widget.busy
                 ? const Padding(
-                    padding: EdgeInsets.all(12),
+                    padding: EdgeInsets.all(14),
                     child: SizedBox(
                       width: 16,
                       height: 16,
@@ -110,10 +146,10 @@ class _PromoCodeFieldState extends State<PromoCodeField> {
                 : IconButton(
                     tooltip: l10n.promoCodeCheck,
                     onPressed: _submit,
-                    icon: const Icon(
+                    icon: Icon(
                       PhosphorIconsRegular.arrowRight,
-                      size: 18,
-                      color: NocturneColors.accent,
+                      size: 20,
+                      color: p.accent,
                     ),
                   ),
           ),

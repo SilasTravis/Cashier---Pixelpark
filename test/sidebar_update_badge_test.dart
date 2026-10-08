@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:cashier_app/generated/l10n.dart';
 import 'package:cashier_app/features/shell/presentation/model/shell_tab.dart';
-import 'package:cashier_app/features/shell/presentation/widgets/sidebar.dart';
+import 'package:cashier_app/features/shell/presentation/widgets/top_nav.dart';
 
 Key _badgeKey(ShellTab tab) => Key('nav-update-badge-${tab.name}');
 
@@ -14,12 +14,10 @@ Future<void> _pump(WidgetTester tester, ValueNotifier<bool> flag) async {
       supportedLocales: AppLocalization.delegate.supportedLocales,
       locale: const Locale('en'),
       home: Scaffold(
-        body: Row(
+        body: Column(
           children: [
-            Sidebar(
+            TopNav(
               selected: ShellTab.posAccount,
-              collapsed: false,
-              onToggle: () {},
               onSelect: (_) {},
               cashierName: 'Zaira',
               shiftOpenedAt: DateTime(2026, 8, 23, 9),
@@ -37,6 +35,9 @@ Future<void> _pump(WidgetTester tester, ValueNotifier<bool> flag) async {
 void main() {
   testWidgets('the badge appears only on the Settings tile, and clears from it '
       'when the flag flips back to false', (tester) async {
+    tester.view.physicalSize = const Size(1440, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
     final flag = ValueNotifier<bool>(false);
     await _pump(tester, flag);
 

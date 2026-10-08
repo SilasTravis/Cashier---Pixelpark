@@ -4,6 +4,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'package:cashier_app/core/utils/currency.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:phosphor_icons/phosphor_icons.dart';
 
@@ -228,7 +230,7 @@ void main() {
   });
 
   group('panel', () {
-    testWidgets('cashier can pick an entry discount from the 3-dots menu', (
+    testWidgets('cashier can pick an entry discount from the discount dialog', (
       tester,
     ) async {
       await _pumpPanel(tester);
@@ -236,7 +238,7 @@ void main() {
       await tester.tap(find.byTooltip('Chegirma'));
       await tester.pumpAndSettle();
 
-      final option = find.text('Nogiron bola (100%)');
+      final option = find.text('Nogiron bola');
       expect(option, findsOneWidget);
       await tester.tap(option);
       await tester.pumpAndSettle();
@@ -250,21 +252,21 @@ void main() {
       await _pumpPanel(tester);
 
       // Child + VIP: 75 000 required on a zero balance.
-      await tester.tap(find.text('QR'));
+      await tester.tap(find.byKey(const ValueKey('child-select')));
       await tester.pump();
       await tester.tap(find.text('VIP'));
       await tester.pumpAndSettle();
-      expect(find.widgetWithText(TextField, '75000'), findsOneWidget);
+      expect(_due(75000), findsOneWidget);
 
-      // Pick the 100%-off entry discount from the row's 3-dots menu.
+      // Pick the 100%-off entry discount from the row's discount dialog.
       await tester.tap(find.byTooltip('Chegirma'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Nogiron bola (100%)'));
+      await tester.tap(find.text('Nogiron bola'));
       await tester.pumpAndSettle();
 
       expect(find.text('Chegirma: Nogiron bola'), findsOneWidget);
       // Nothing to pay any more — the payment field is gone.
-      expect(find.widgetWithText(TextField, '75000'), findsNothing);
+      expect(_due(75000), findsNothing);
       expect(find.text('Kirish (1)'), findsOneWidget);
     });
 
@@ -273,20 +275,20 @@ void main() {
     ) async {
       await _pumpPanel(tester);
 
-      await tester.tap(find.text('QR'));
+      await tester.tap(find.byKey(const ValueKey('child-select')));
       await tester.pump();
       await tester.tap(find.text('VIP'));
       await tester.pumpAndSettle();
-      expect(find.widgetWithText(TextField, '75000'), findsOneWidget);
+      expect(_due(75000), findsOneWidget);
 
       await tester.tap(find.byTooltip('Chegirma'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Flayer 30% (30%)'));
+      await tester.tap(find.text('Flayer 30%'));
       await tester.pumpAndSettle();
 
       expect(find.text('Chegirma: Flayer 30%'), findsOneWidget);
       // 75 000 * 70% = 52 500 — still due, just discounted.
-      expect(find.widgetWithText(TextField, '52500'), findsOneWidget);
+      expect(_due(52500), findsOneWidget);
     });
 
     testWidgets('each HAMROH companion adds its price to the required total', (
@@ -294,7 +296,7 @@ void main() {
     ) async {
       await _pumpPanel(tester);
 
-      await tester.tap(find.text('QR'));
+      await tester.tap(find.byKey(const ValueKey('child-select')));
       await tester.pump();
       await tester.tap(find.text('Standart'));
       await tester.pumpAndSettle();
@@ -311,7 +313,15 @@ void main() {
       await tester.pumpAndSettle();
 
       // One companion at the default 10 000 price, zero balance → required.
-      expect(find.widgetWithText(TextField, '10000'), findsOneWidget);
+      expect(_due(10000), findsOneWidget);
     });
   });
 }
+
+/// The "To'lanadi" amount on the account checkout's receipt.
+Finder _due(int uzs) => find.byWidgetPredicate(
+  (w) =>
+      w is Text &&
+      w.key == const ValueKey('pay-due') &&
+      w.data == formatUzs(uzs),
+);
