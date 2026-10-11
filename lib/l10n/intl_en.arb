@@ -690,5 +690,19 @@
   "planSwitchUpgradeQuestion": "Switch to «{plan}»? Only the surcharge ({price}) is debited from the balance. The old sticker is stopped and the new QR prints as an upgrade.",
   "@planSwitchUpgradeQuestion": { "placeholders": { "plan": { "type": "String" }, "price": { "type": "String" } } },
   "upgradeCredit": "{paid} already paid — surcharge: {due}.",
-  "@upgradeCredit": { "placeholders": { "paid": { "type": "String" }, "due": { "type": "String" } } }
+  "@upgradeCredit": { "placeholders": { "paid": { "type": "String" }, "due": { "type": "String" } } },
+  "insideFilterAll": "All",
+  "insideFilterHour": "1 hour",
+  "insideFilterOvertime": "Time is up",
+  "hourOvertimeBanner": "{count} children are past their 1 hour — call the parents",
+  "@hourOvertimeBanner": { "placeholders": { "count": { "type": "int" } } },
+  "hourOvertimeShow": "Show",
+  "hourOvertimeBy": "+{count} min over",
+  "@hourOvertimeBy": { "placeholders": { "count": { "type": "int" } } },
+  "hourRemaining": "{count} min left",
+  "@hourRemaining": { "placeholders": { "count": { "type": "int" } } },
+  "hourEndsAtLabel": "Ends",
+  "hourEndedAtLabel": "Ended",
+  "insideHourEmpty": "No children on the 1 hour tariff right now",
+  "insideOvertimeEmpty": "Nobody is over time"
 }

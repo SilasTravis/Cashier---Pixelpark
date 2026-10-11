@@ -30,6 +30,11 @@ class InsideRepository {
           elapsedMinutes: json['elapsedMinutes'] as int,
           accruedUzs: json['accruedUzs'] as int,
           planName: json['planName'] as String?,
+          planKind: json['planKind'] as String?,
+          hourEndsAt: json['hourEndsAt'] == null
+              ? null
+              : DateTime.parse(json['hourEndsAt'] as String).toLocal(),
+          durationMinutes: json['durationMinutes'] as int?,
         );
       }).toList();
     } on DioException catch (error) {

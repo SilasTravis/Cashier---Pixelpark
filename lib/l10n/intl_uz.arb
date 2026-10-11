@@ -766,5 +766,19 @@
   "planSwitchUpgradeQuestion": "«{plan}» rejasiga o‘tkazilsinmi? Faqat qo‘shimcha to‘lov ({price}) balansdan yechiladi. Eski stiker to‘xtatiladi va yangi QR «upgrade» bo‘lib chop etiladi.",
   "@planSwitchUpgradeQuestion": { "placeholders": { "plan": { "type": "String" }, "price": { "type": "String" } } },
   "upgradeCredit": "{paid} allaqachon to‘langan — qo‘shimcha to‘lov: {due}.",
-  "@upgradeCredit": { "placeholders": { "paid": { "type": "String" }, "due": { "type": "String" } } }
+  "@upgradeCredit": { "placeholders": { "paid": { "type": "String" }, "due": { "type": "String" } } },
+  "insideFilterAll": "Hammasi",
+  "insideFilterHour": "1 soat",
+  "insideFilterOvertime": "Vaqti tugagan",
+  "hourOvertimeBanner": "{count} ta bolaning 1 soati tugagan — ota-onasini chaqiring",
+  "@hourOvertimeBanner": { "placeholders": { "count": { "type": "int" } } },
+  "hourOvertimeShow": "Ko‘rsatish",
+  "hourOvertimeBy": "{count} daq oshdi",
+  "@hourOvertimeBy": { "placeholders": { "count": { "type": "int" } } },
+  "hourRemaining": "{count} daq qoldi",
+  "@hourRemaining": { "placeholders": { "count": { "type": "int" } } },
+  "hourEndsAtLabel": "Tugaydi",
+  "hourEndedAtLabel": "Tugadi",
+  "insideHourEmpty": "Hozir 1 soatlik tarifdagi bolalar yo‘q",
+  "insideOvertimeEmpty": "Vaqti tugagan bola yo‘q"
 }

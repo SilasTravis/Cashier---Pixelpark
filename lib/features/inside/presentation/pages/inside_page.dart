@@ -38,9 +38,14 @@ class _InsideView extends StatefulWidget {
   State<_InsideView> createState() => _InsideViewState();
 }
 
+/// Which children the list shows. 1 soat children are the ones a cashier
+/// must watch: their hour ends while they are still inside.
+enum _InsideFilter { all, hour, overtime }
+
 class _InsideViewState extends State<_InsideView> {
   final _search = TextEditingController();
   Timer? _clock;
+  _InsideFilter _filter = _InsideFilter.all;
 
   @override
   void initState() {
@@ -79,12 +84,33 @@ class _InsideViewState extends State<_InsideView> {
       },
       builder: (context, state) {
         final query = _search.text.trim().toLowerCase();
-        final children = state.children.where((child) {
-          if (query.isEmpty) return true;
-          return child.childName.toLowerCase().contains(query) ||
-              child.parentName.toLowerCase().contains(query) ||
-              child.parentPhone.toLowerCase().contains(query);
-        }).toList();
+        final now = DateTime.now();
+        final hourCount = state.children.where((c) => c.isHourPlan).length;
+        final overtimeCount = state.children
+            .where((c) => c.isOvertime(now))
+            .length;
+        final children = sortInsideChildren(
+          state.children.where((child) {
+            final inFilter = switch (_filter) {
+              _InsideFilter.all => true,
+              _InsideFilter.hour => child.isHourPlan,
+              _InsideFilter.overtime => child.isOvertime(now),
+            };
+            if (!inFilter) return false;
+            if (query.isEmpty) return true;
+            return child.childName.toLowerCase().contains(query) ||
+                child.parentName.toLowerCase().contains(query) ||
+                child.parentPhone.toLowerCase().contains(query);
+          }).toList(),
+          now,
+        );
+        final emptyMessage = query.isNotEmpty
+            ? l10n.insideSearchEmpty
+            : switch (_filter) {
+                _InsideFilter.all => l10n.insideEmpty,
+                _InsideFilter.hour => l10n.insideHourEmpty,
+                _InsideFilter.overtime => l10n.insideOvertimeEmpty,
+              };
         return Column(
           children: [
             Padding(
@@ -140,14 +166,52 @@ class _InsideViewState extends State<_InsideView> {
                 ],
               ),
             ),
+            if (hourCount > 0)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _FilterChip(
+                        label: l10n.insideFilterAll,
+                        count: state.children.length,
+                        selected: _filter == _InsideFilter.all,
+                        onTap: () =>
+                            setState(() => _filter = _InsideFilter.all),
+                      ),
+                      _FilterChip(
+                        label: l10n.insideFilterHour,
+                        count: hourCount,
+                        icon: PhosphorIconsRegular.timer,
+                        selected: _filter == _InsideFilter.hour,
+                        onTap: () =>
+                            setState(() => _filter = _InsideFilter.hour),
+                      ),
+                      _FilterChip(
+                        label: l10n.insideFilterOvertime,
+                        count: overtimeCount,
+                        icon: PhosphorIconsRegular.alarm,
+                        danger: overtimeCount > 0,
+                        selected: _filter == _InsideFilter.overtime,
+                        onTap: () =>
+                            setState(() => _filter = _InsideFilter.overtime),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            if (overtimeCount > 0 && _filter != _InsideFilter.overtime)
+              _OvertimeBanner(
+                count: overtimeCount,
+                onShow: () => setState(() => _filter = _InsideFilter.overtime),
+              ),
             if (state.loading) const LinearProgressIndicator(minHeight: 2),
             Expanded(
               child: children.isEmpty && !state.loading
-                  ? _Empty(
-                      message: query.isEmpty
-                          ? l10n.insideEmpty
-                          : l10n.insideSearchEmpty,
-                    )
+                  ? _Empty(message: emptyMessage)
                   : LayoutBuilder(
                       builder: (context, constraints) {
                         final columns = constraints.maxWidth >= 760 ? 2 : 1;
@@ -158,11 +222,12 @@ class _InsideViewState extends State<_InsideView> {
                                 crossAxisCount: columns,
                                 crossAxisSpacing: 12,
                                 mainAxisSpacing: 12,
-                                mainAxisExtent: 194,
+                                mainAxisExtent: 202,
                               ),
                           itemCount: children.length,
                           itemBuilder: (_, index) => _ChildCard(
                             child: children[index],
+                            now: now,
                             exiting:
                                 state.exitingVisitId == children[index].visitId,
                             onExit: () =>
@@ -216,11 +281,13 @@ class _InsideViewState extends State<_InsideView> {
 class _ChildCard extends StatelessWidget {
   const _ChildCard({
     required this.child,
+    required this.now,
     required this.exiting,
     required this.onExit,
     required this.onOpen,
   });
   final InsideChild child;
+  final DateTime now;
   final bool exiting;
   final VoidCallback onExit;
   final VoidCallback onOpen;
@@ -228,120 +295,311 @@ class _ChildCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalization.of(context);
-    final elapsed = DateTime.now()
-        .difference(child.enteredAt)
-        .inMinutes
-        .clamp(0, 999999);
+    final elapsed = now.difference(child.enteredAt).inMinutes.clamp(0, 999999);
+    final overtime = child.isOvertime(now);
+    final progress = child.hourProgress(now);
+    final remaining = child.remainingMinutes(now);
+    final tone = overtime
+        ? NocturneColors.danger
+        : (remaining != null && remaining <= 10)
+        ? NocturneColors.warning
+        : NocturneColors.accent;
     return Material(
-      color: NocturneColors.surface,
+      color: overtime
+          ? Color.alphaBlend(
+              NocturneColors.danger.withValues(alpha: .07),
+              NocturneColors.surface,
+            )
+          : NocturneColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        side: BorderSide(color: NocturneColors.divider),
+        side: overtime
+            ? BorderSide(color: NocturneColors.danger, width: 2)
+            : BorderSide(color: NocturneColors.divider),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onOpen,
         hoverColor: NocturneColors.neutral900,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: NocturneColors.accent900,
-                    foregroundColor: NocturneColors.accent,
-                    child: Text(child.childName.characters.first.toUpperCase()),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          child.childName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTextStyles.h5,
-                        ),
-                        Text(
-                          child.parentName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTextStyles.muted(
-                            AppTextStyles.body.copyWith(fontSize: 13.5),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (child.planName != null)
-                    Chip(
-                      label: Text(child.planName!),
-                      visualDensity: VisualDensity.compact,
-                    ),
-                ],
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // 1 soat: how much of the hour is used, along the top edge.
+            if (progress != null)
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 0,
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 4,
+                  color: tone,
+                  backgroundColor: tone.withValues(alpha: .15),
+                ),
               ),
-              const SizedBox(height: 8),
-              Row(
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    PhosphorIconsRegular.phone,
-                    size: 17,
-                    color: NocturneColors.accent,
-                  ),
-                  const SizedBox(width: 7),
-                  Expanded(
-                    child: SelectionArea(
-                      child: Text(
-                        formatPhoneNumber(child.parentPhone),
-                        maxLines: 1,
-                        style: AppTextStyles.body.copyWith(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: .15,
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: NocturneColors.accent900,
+                        foregroundColor: NocturneColors.accent,
+                        child: Text(
+                          child.childName.characters.first.toUpperCase(),
                         ),
                       ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: _Fact(
-                      label: l10n.enteredAt,
-                      value: DateFormat('HH:mm').format(child.enteredAt),
-                    ),
-                  ),
-                  Expanded(
-                    child: _Fact(
-                      label: l10n.elapsedTime,
-                      value: l10n.minutesCount(elapsed),
-                    ),
-                  ),
-                  Expanded(
-                    child: _Fact(
-                      label: l10n.accruedAmount,
-                      value: formatUzs(child.accruedUzs),
-                    ),
-                  ),
-                ],
-              ),
-              const Spacer(),
-              Align(
-                alignment: Alignment.centerRight,
-                child: OutlinedButton.icon(
-                  onPressed: exiting ? null : onExit,
-                  icon: exiting
-                      ? const SizedBox.square(
-                          dimension: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              child.childName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTextStyles.h5,
+                            ),
+                            Text(
+                              child.parentName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTextStyles.muted(
+                                AppTextStyles.body.copyWith(fontSize: 13.5),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (child.isHourPlan && child.hourEndsAt != null)
+                        _HourPill(
+                          text: overtime
+                              ? l10n.hourOvertimeBy(child.overtimeMinutes(now))
+                              : l10n.hourRemaining(remaining ?? 0),
+                          tone: tone,
+                          strong: overtime,
                         )
-                      : const Icon(PhosphorIconsRegular.signOut, size: 17),
-                  label: Text(l10n.markExited),
+                      else if (child.planName != null)
+                        Chip(
+                          label: Text(child.planName!),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        PhosphorIconsRegular.phone,
+                        size: 17,
+                        color: NocturneColors.accent,
+                      ),
+                      const SizedBox(width: 7),
+                      Expanded(
+                        child: SelectionArea(
+                          child: Text(
+                            formatPhoneNumber(child.parentPhone),
+                            maxLines: 1,
+                            style: AppTextStyles.body.copyWith(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: .15,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _Fact(
+                          label: l10n.enteredAt,
+                          value: DateFormat('HH:mm').format(child.enteredAt),
+                        ),
+                      ),
+                      Expanded(
+                        child: _Fact(
+                          label: l10n.elapsedTime,
+                          value: l10n.minutesCount(elapsed),
+                        ),
+                      ),
+                      Expanded(
+                        // A 1 soat child is prepaid — what matters is when the
+                        // hour ends, not a running amount.
+                        child: child.isHourPlan && child.hourEndsAt != null
+                            ? _Fact(
+                                label: overtime
+                                    ? l10n.hourEndedAtLabel
+                                    : l10n.hourEndsAtLabel,
+                                value: DateFormat(
+                                  'HH:mm',
+                                ).format(child.hourEndsAt!),
+                                color: overtime ? NocturneColors.danger : null,
+                              )
+                            : _Fact(
+                                label: l10n.accruedAmount,
+                                value: formatUzs(child.accruedUzs),
+                              ),
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: OutlinedButton.icon(
+                      onPressed: exiting ? null : onExit,
+                      icon: exiting
+                          ? const SizedBox.square(
+                              dimension: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(PhosphorIconsRegular.signOut, size: 17),
+                      label: Text(l10n.markExited),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The 1 soat time status in the card corner: minutes left (accent, amber
+/// in the last 10) or minutes over (solid red) — readable at a glance.
+class _HourPill extends StatelessWidget {
+  const _HourPill({
+    required this.text,
+    required this.tone,
+    required this.strong,
+  });
+  final String text;
+  final Color tone;
+  final bool strong;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+    decoration: BoxDecoration(
+      color: strong ? tone : tone.withValues(alpha: .14),
+      borderRadius: BorderRadius.circular(999),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          strong ? PhosphorIconsFill.alarm : PhosphorIconsRegular.timer,
+          size: 15,
+          color: strong ? Colors.white : tone,
+        ),
+        const SizedBox(width: 5),
+        Text(
+          text,
+          style: AppTextStyles.body.copyWith(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: strong ? Colors.white : tone,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Red strip above the list while any 1 soat child is over time.
+class _OvertimeBanner extends StatelessWidget {
+  const _OvertimeBanner({required this.count, required this.onShow});
+  final int count;
+  final VoidCallback onShow;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
+    final danger = NocturneColors.danger;
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
+      decoration: BoxDecoration(
+        color: danger.withValues(alpha: .1),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: danger.withValues(alpha: .45)),
+      ),
+      child: Row(
+        children: [
+          Icon(PhosphorIconsFill.alarm, color: danger, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              l10n.hourOvertimeBanner(count),
+              style: AppTextStyles.body.copyWith(
+                color: danger,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: onShow,
+            style: TextButton.styleFrom(foregroundColor: danger),
+            child: Text(l10n.hourOvertimeShow),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One filter pill with its count; the over-time pill turns red while
+/// anyone is over time so it reads as an alert, not just a tab.
+class _FilterChip extends StatelessWidget {
+  const _FilterChip({
+    required this.label,
+    required this.count,
+    required this.selected,
+    required this.onTap,
+    this.icon,
+    this.danger = false,
+  });
+  final String label;
+  final int count;
+  final bool selected;
+  final VoidCallback onTap;
+  final IconData? icon;
+  final bool danger;
+
+  @override
+  Widget build(BuildContext context) {
+    final tone = danger ? NocturneColors.danger : NocturneColors.accent;
+    final fg = selected ? Colors.white : (danger ? tone : NocturneColors.text);
+    return Material(
+      color: selected ? tone : tone.withValues(alpha: danger ? .1 : .06),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(999),
+        side: BorderSide(color: selected ? tone : tone.withValues(alpha: .35)),
+      ),
+      child: InkWell(
+        customBorder: const StadiumBorder(),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: 16, color: fg),
+                const SizedBox(width: 6),
+              ],
+              Text(
+                '$label · $count',
+                style: AppTextStyles.body.copyWith(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  color: fg,
                 ),
               ),
             ],
@@ -353,9 +611,10 @@ class _ChildCard extends StatelessWidget {
 }
 
 class _Fact extends StatelessWidget {
-  const _Fact({required this.label, required this.value});
+  const _Fact({required this.label, required this.value, this.color});
   final String label;
   final String value;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -373,6 +632,7 @@ class _Fact extends StatelessWidget {
         style: AppTextStyles.body.copyWith(
           fontWeight: FontWeight.w600,
           fontSize: 13,
+          color: color,
         ),
       ),
     ],

@@ -93,84 +93,91 @@ class MessageLookup extends MessageLookupByLibrary {
   static String m30(name) =>
       "«${name}» уже на активном тарифе «1 час» — повторная оплата не взимается.";
 
-  static String m31(count) => "Внутри: ${count}";
+  static String m31(count) =>
+      "У ${count} детей закончился 1 час — позовите родителей";
 
-  static String m32(count) =>
+  static String m32(count) => "+${count} мин";
+
+  static String m33(count) => "осталось ${count} мин";
+
+  static String m34(count) => "Внутри: ${count}";
+
+  static String m35(count) =>
       "Несинхронизированных продаж: ${count}. Перед выходом синхронизируйте их в онлайн-режиме.";
 
-  static String m33(count) =>
+  static String m36(count) =>
       "${count} продаж не синхронизированы (ошибка). Они сохранятся на кассе. Всё равно выйти?";
 
-  static String m34(child, amount) =>
+  static String m37(child, amount) =>
       "Выход ребёнка ${child} будет отмечен сейчас. Сессия закроется по текущей сумме ${amount}, которая спишется с баланса родителя. Продолжить?";
 
-  static String m35(count) => "${count} мин";
+  static String m38(count) => "${count} мин";
 
-  static String m36(count) => "OFFLINE · ожидают продаж: ${count}";
+  static String m39(count) => "OFFLINE · ожидают продаж: ${count}";
 
-  static String m37(count) =>
+  static String m40(count) =>
       "Перейти в онлайн-режим и синхронизировать продажи (${count})?";
 
-  static String m38(value) => "Баланс: ${value}";
+  static String m41(value) => "Баланс: ${value}";
 
-  static String m39(value) => "Карта: ${value}";
+  static String m42(value) => "Карта: ${value}";
 
-  static String m40(value) => "Наличные: ${value}";
+  static String m43(value) => "Наличные: ${value}";
 
-  static String m41(value) => "Минимум ${value} — остаток останется на балансе";
+  static String m44(value) => "Минимум ${value} — остаток останется на балансе";
 
-  static String m42(name, plan) =>
+  static String m45(name, plan) =>
       "У «${name}» уже действует тариф «${plan}» — повторная оплата не взимается.";
 
-  static String m43(plan) =>
+  static String m46(plan) =>
       "Тариф «${plan}» списывается с баланса сразу при печати.";
 
-  static String m44(plan) =>
+  static String m47(plan) =>
       "Переключить на тариф «${plan}»? Старый стикер будет отменён, новый QR напечатан.";
 
-  static String m45(plan, price) =>
+  static String m48(plan, price) =>
       "Перевести на тариф «${plan}»? С баланса спишется только доплата (${price}). Старый стикер будет остановлен, новый QR напечатается как «апгрейд».";
 
-  static String m46(plan, price) =>
+  static String m49(plan, price) =>
       "Переключить на тариф «${plan}»? Стоимость ${plan} (${price}) будет сразу списана с баланса. Старый стикер будет отменён, новый QR напечатан.";
 
-  static String m47(value) => "от ${value} / мин";
+  static String m50(value) => "от ${value} / мин";
 
-  static String m48(value) => "${value} / день";
+  static String m51(value) => "${value} / день";
 
-  static String m49(value) => "${value} / час";
+  static String m52(value) => "${value} / час";
 
-  static String m50(code) =>
+  static String m53(code) =>
       "Промокод блогера ${code} принят — выберите клиента";
 
-  static String m51(reason) => "Промокод не применён, код возвращён: ${reason}";
+  static String m54(reason) => "Промокод не применён, код возвращён: ${reason}";
 
-  static String m52(date, name) => "${date} · ${name}";
+  static String m55(date, name) => "${date} · ${name}";
 
-  static String m53(amount, method) =>
+  static String m56(amount, method) =>
       "${amount} будет возвращено способом «${method}». Действие навсегда сохранится в истории аудита.";
 
-  static String m54(balance) => "Баланс клиента: ${balance}";
+  static String m57(balance) => "Баланс клиента: ${balance}";
 
-  static String m55(amount) => "Успешно возвращено ${amount}";
+  static String m58(amount) => "Успешно возвращено ${amount}";
 
-  static String m56(count) => "выбрано: ${count}";
+  static String m59(count) => "выбрано: ${count}";
 
-  static String m57(time) => "Смена открыта в ${time}";
+  static String m60(time) => "Смена открыта в ${time}";
 
-  static String m58(synced, failed) =>
+  static String m61(synced, failed) =>
       "Синхронизировано: ${synced}, с ошибкой: ${failed}.";
 
-  static String m59(reason) =>
+  static String m62(reason) =>
       "Не удалось синхронизировать: ${reason}. Офлайн-режим продолжается.";
 
-  static String m60(code) => "Код: ${code}";
+  static String m63(code) => "Код: ${code}";
 
-  static String m61(version) => "Доступна новая версия: ${version}";
+  static String m64(version) => "Доступна новая версия: ${version}";
 
-  static String m62(paid, due) => "Уже оплачено ${paid} — доплата: ${due}.";
+  static String m65(paid, due) => "Уже оплачено ${paid} — доплата: ${due}.";
 
-  static String m63(name) =>
+  static String m66(name) =>
       "«${name}» уже на активном VIP-тарифе — повторная оплата не взимается.";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
@@ -427,10 +434,25 @@ class MessageLookup extends MessageLookupByLibrary {
     "hourChargedImmediately": MessageLookupByLibrary.simpleMessage(
       "Стоимость тарифа «1 час» списывается с баланса сразу при печати.",
     ),
+    "hourEndedAtLabel": MessageLookupByLibrary.simpleMessage("Закончился"),
+    "hourEndsAtLabel": MessageLookupByLibrary.simpleMessage("Заканчивается"),
+    "hourOvertimeBanner": m31,
+    "hourOvertimeBy": m32,
+    "hourOvertimeShow": MessageLookupByLibrary.simpleMessage("Показать"),
+    "hourRemaining": m33,
     "hourTariff": MessageLookupByLibrary.simpleMessage("Тариф «1 час»"),
-    "insideCount": m31,
+    "insideCount": m34,
     "insideEmpty": MessageLookupByLibrary.simpleMessage(
       "Сейчас в парке нет детей",
+    ),
+    "insideFilterAll": MessageLookupByLibrary.simpleMessage("Все"),
+    "insideFilterHour": MessageLookupByLibrary.simpleMessage("1 час"),
+    "insideFilterOvertime": MessageLookupByLibrary.simpleMessage("Время вышло"),
+    "insideHourEmpty": MessageLookupByLibrary.simpleMessage(
+      "Сейчас нет детей на тарифе «1 час»",
+    ),
+    "insideOvertimeEmpty": MessageLookupByLibrary.simpleMessage(
+      "Нет детей с истёкшим временем",
     ),
     "insideSearchEmpty": MessageLookupByLibrary.simpleMessage(
       "По вашему запросу ничего не найдено",
@@ -457,9 +479,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "loginUsername": MessageLookupByLibrary.simpleMessage("Логин"),
     "logout": MessageLookupByLibrary.simpleMessage("Выйти"),
     "logoutAnyway": MessageLookupByLibrary.simpleMessage("Всё равно выйти"),
-    "logoutBlockedUnsynced": m32,
-    "logoutFailedSalesConfirm": m33,
-    "manualExitQuestion": m34,
+    "logoutBlockedUnsynced": m35,
+    "logoutFailedSalesConfirm": m36,
+    "manualExitQuestion": m37,
     "manualExitSucceeded": MessageLookupByLibrary.simpleMessage(
       "Выход ребёнка успешно отмечен",
     ),
@@ -467,7 +489,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "markExited": MessageLookupByLibrary.simpleMessage("Отметить выход"),
     "menuClose": MessageLookupByLibrary.simpleMessage("Закрыть меню"),
     "menuOpen": MessageLookupByLibrary.simpleMessage("Открыть меню"),
-    "minutesCount": m35,
+    "minutesCount": m38,
     "needsInternet": MessageLookupByLibrary.simpleMessage("Нужен интернет"),
     "newBalance": MessageLookupByLibrary.simpleMessage("Новый баланс"),
     "noChildren": MessageLookupByLibrary.simpleMessage("детей нет"),
@@ -481,7 +503,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "notSyncedBadge": MessageLookupByLibrary.simpleMessage(
       "Не синхронизировано",
     ),
-    "offlineBanner": m36,
+    "offlineBanner": m39,
     "offlineBannerSyncing": MessageLookupByLibrary.simpleMessage(
       "Синхронизация…",
     ),
@@ -498,7 +520,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "onlinePromptAccept": MessageLookupByLibrary.simpleMessage(
       "Да, синхронизировать",
     ),
-    "onlinePromptBody": m37,
+    "onlinePromptBody": m40,
     "onlinePromptLater": MessageLookupByLibrary.simpleMessage("Позже"),
     "onlinePromptTitle": MessageLookupByLibrary.simpleMessage(
       "Интернет вернулся",
@@ -514,34 +536,34 @@ class MessageLookup extends MessageLookupByLibrary {
       "Оплатить и напечатать",
     ),
     "paymentBalance": MessageLookupByLibrary.simpleMessage("Продажи с баланса"),
-    "paymentBalanceValue": m38,
+    "paymentBalanceValue": m41,
     "paymentCard": MessageLookupByLibrary.simpleMessage("Карта"),
-    "paymentCardValue": m39,
+    "paymentCardValue": m42,
     "paymentCash": MessageLookupByLibrary.simpleMessage("Наличные"),
-    "paymentCashValue": m40,
+    "paymentCashValue": m43,
     "paymentExcess": MessageLookupByLibrary.simpleMessage(
       "Введена лишняя сумма",
     ),
     "paymentMatched": MessageLookupByLibrary.simpleMessage("Сумма совпадает"),
-    "paymentMinimumHint": m41,
+    "paymentMinimumHint": m44,
     "paymentMissing": MessageLookupByLibrary.simpleMessage(
       "Суммы недостаточно",
     ),
     "paymentSplit": MessageLookupByLibrary.simpleMessage("Смешанная"),
     "phoneNotFound": MessageLookupByLibrary.simpleMessage("Номер не найден"),
     "phoneNumber": MessageLookupByLibrary.simpleMessage("Номер телефона"),
-    "planAlreadyActive": m42,
-    "planChargedImmediately": m43,
+    "planAlreadyActive": m45,
+    "planChargedImmediately": m46,
     "planSwitch": MessageLookupByLibrary.simpleMessage("Смена тарифа"),
     "planSwitchHourToVipNote": MessageLookupByLibrary.simpleMessage(
       "Стоимость тарифа «1 час» не возвращается.",
     ),
-    "planSwitchQuestion": m44,
-    "planSwitchUpgradeQuestion": m45,
-    "planSwitchVipQuestion": m46,
-    "priceFromPerMinute": m47,
-    "pricePerDay": m48,
-    "pricePerHour": m49,
+    "planSwitchQuestion": m47,
+    "planSwitchUpgradeQuestion": m48,
+    "planSwitchVipQuestion": m49,
+    "priceFromPerMinute": m50,
+    "pricePerDay": m51,
+    "pricePerHour": m52,
     "printParentQr": MessageLookupByLibrary.simpleMessage(
       "Также напечатать QR родителя",
     ),
@@ -558,7 +580,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Этот клиент уже использовал этот промокод",
     ),
     "promoCodeBlogger": MessageLookupByLibrary.simpleMessage("Блогер"),
-    "promoCodeBloggerPending": m50,
+    "promoCodeBloggerPending": m53,
     "promoCodeCheck": MessageLookupByLibrary.simpleMessage("Проверить"),
     "promoCodeChildHasPass": MessageLookupByLibrary.simpleMessage(
       "У ребёнка уже есть пропуск на сегодня — промокод действует только на новый вход или переход на VIP",
@@ -582,7 +604,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "promoCodeOwnerNotFound": MessageLookupByLibrary.simpleMessage(
       "Владелец промокода не найден",
     ),
-    "promoCodeReleased": m51,
+    "promoCodeReleased": m54,
     "promoCodeRemove": MessageLookupByLibrary.simpleMessage("Убрать промокод"),
     "promoCodeWrongCustomer": MessageLookupByLibrary.simpleMessage(
       "Этот промокод принадлежит другому клиенту",
@@ -605,7 +627,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "refundAction": MessageLookupByLibrary.simpleMessage("Возврат"),
     "refundAlreadyAmount": MessageLookupByLibrary.simpleMessage("Возвращено"),
     "refundAmount": MessageLookupByLibrary.simpleMessage("Сумма возврата"),
-    "refundAuditBy": m52,
+    "refundAuditBy": m55,
     "refundBalanceLimitNote": MessageLookupByLibrary.simpleMessage(
       "Возврат пополнения списывается с баланса, поэтому вернуть больше, чем на нём осталось, нельзя.",
     ),
@@ -613,11 +635,11 @@ class MessageLookup extends MessageLookupByLibrary {
     "refundCardWarning": MessageLookupByLibrary.simpleMessage(
       "Возврат на карту также нужно отдельно выполнить на платёжном терминале. Это действие не отменяет транзакцию терминала автоматически.",
     ),
-    "refundConfirmMessage": m53,
+    "refundConfirmMessage": m56,
     "refundConfirmTitle": MessageLookupByLibrary.simpleMessage(
       "Подтвердите возврат",
     ),
-    "refundCustomerBalance": m54,
+    "refundCustomerBalance": m57,
     "refundFullBadge": MessageLookupByLibrary.simpleMessage("Полный возврат"),
     "refundHistory": MessageLookupByLibrary.simpleMessage("История возвратов"),
     "refundMax": MessageLookupByLibrary.simpleMessage("Выбрать всю сумму"),
@@ -650,7 +672,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "refundSelectedPassesTotal": MessageLookupByLibrary.simpleMessage(
       "Сумма выбранных пропусков",
     ),
-    "refundSuccess": m55,
+    "refundSuccess": m58,
     "refundTitle": MessageLookupByLibrary.simpleMessage("Возврат платежа"),
     "refundedTotal": MessageLookupByLibrary.simpleMessage("Возвращено"),
     "reprint": MessageLookupByLibrary.simpleMessage("Повторная печать"),
@@ -663,11 +685,11 @@ class MessageLookup extends MessageLookupByLibrary {
     "searchHistory": MessageLookupByLibrary.simpleMessage("История поиска"),
     "searchResult": MessageLookupByLibrary.simpleMessage("Результаты поиска"),
     "selectForQr": MessageLookupByLibrary.simpleMessage("Выберите для QR"),
-    "selectedCount": m56,
+    "selectedCount": m59,
     "shiftClose": MessageLookupByLibrary.simpleMessage("Закрыть смену"),
     "shiftClosed": MessageLookupByLibrary.simpleMessage("Смена закрыта"),
     "shiftOpen": MessageLookupByLibrary.simpleMessage("Открыть смену"),
-    "shiftOpenedAt": m57,
+    "shiftOpenedAt": m60,
     "shiftOpeningCash": MessageLookupByLibrary.simpleMessage(
       "Начальные наличные (сум)",
     ),
@@ -688,11 +710,11 @@ class MessageLookup extends MessageLookupByLibrary {
     "switchAndPrint": MessageLookupByLibrary.simpleMessage(
       "Сменить и напечатать",
     ),
-    "syncResultBody": m58,
+    "syncResultBody": m61,
     "syncResultTitle": MessageLookupByLibrary.simpleMessage(
       "Результат синхронизации",
     ),
-    "syncTransportFailed": m59,
+    "syncTransportFailed": m62,
     "syncViewFailures": MessageLookupByLibrary.simpleMessage("Открыть"),
     "tabAccount": MessageLookupByLibrary.simpleMessage("Счёт и QR"),
     "tabHistory": MessageLookupByLibrary.simpleMessage("История продаж"),
@@ -781,8 +803,8 @@ class MessageLookup extends MessageLookupByLibrary {
     "unsyncedRetryNeedsOnline": MessageLookupByLibrary.simpleMessage(
       "Чтобы отправить заново, перейдите в онлайн-режим",
     ),
-    "unsyncedSupportCode": m60,
-    "updateAvailable": m61,
+    "unsyncedSupportCode": m63,
+    "updateAvailable": m64,
     "updateCancel": MessageLookupByLibrary.simpleMessage("Отмена"),
     "updateCheck": MessageLookupByLibrary.simpleMessage("Проверить обновления"),
     "updateConfirm": MessageLookupByLibrary.simpleMessage("Продолжить"),
@@ -824,9 +846,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "updateWindowsOnly": MessageLookupByLibrary.simpleMessage(
       "Автообновление работает только в Windows",
     ),
-    "upgradeCredit": m62,
+    "upgradeCredit": m65,
     "version": MessageLookupByLibrary.simpleMessage("Версия"),
-    "vipAlreadyActive": m63,
+    "vipAlreadyActive": m66,
     "vipChargedImmediately": MessageLookupByLibrary.simpleMessage(
       "Стоимость VIP-тарифа списывается с баланса сразу при печати.",
     ),

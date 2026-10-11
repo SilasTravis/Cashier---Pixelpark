@@ -3423,6 +3423,91 @@ class AppLocalization {
       args: [paid, due],
     );
   }
+
+  /// `All`
+  String get insideFilterAll {
+    return Intl.message('All', name: 'insideFilterAll', desc: '', args: []);
+  }
+
+  /// `1 hour`
+  String get insideFilterHour {
+    return Intl.message('1 hour', name: 'insideFilterHour', desc: '', args: []);
+  }
+
+  /// `Time is up`
+  String get insideFilterOvertime {
+    return Intl.message(
+      'Time is up',
+      name: 'insideFilterOvertime',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{count} children are past their 1 hour — call the parents`
+  String hourOvertimeBanner(int count) {
+    return Intl.message(
+      '$count children are past their 1 hour — call the parents',
+      name: 'hourOvertimeBanner',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `Show`
+  String get hourOvertimeShow {
+    return Intl.message('Show', name: 'hourOvertimeShow', desc: '', args: []);
+  }
+
+  /// `+{count} min over`
+  String hourOvertimeBy(int count) {
+    return Intl.message(
+      '+$count min over',
+      name: 'hourOvertimeBy',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `{count} min left`
+  String hourRemaining(int count) {
+    return Intl.message(
+      '$count min left',
+      name: 'hourRemaining',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `Ends`
+  String get hourEndsAtLabel {
+    return Intl.message('Ends', name: 'hourEndsAtLabel', desc: '', args: []);
+  }
+
+  /// `Ended`
+  String get hourEndedAtLabel {
+    return Intl.message('Ended', name: 'hourEndedAtLabel', desc: '', args: []);
+  }
+
+  /// `No children on the 1 hour tariff right now`
+  String get insideHourEmpty {
+    return Intl.message(
+      'No children on the 1 hour tariff right now',
+      name: 'insideHourEmpty',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Nobody is over time`
+  String get insideOvertimeEmpty {
+    return Intl.message(
+      'Nobody is over time',
+      name: 'insideOvertimeEmpty',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalization> {
