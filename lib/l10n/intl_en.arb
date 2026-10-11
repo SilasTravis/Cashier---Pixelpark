@@ -686,5 +686,9 @@
   "txMarketRefund": "Market refund",
   "txStatusPending": "Pending",
   "txStatusFailed": "Failed",
-  "txStatusCancelled": "Cancelled"
+  "txStatusCancelled": "Cancelled",
+  "planSwitchUpgradeQuestion": "Switch to «{plan}»? Only the surcharge ({price}) is debited from the balance. The old sticker is stopped and the new QR prints as an upgrade.",
+  "@planSwitchUpgradeQuestion": { "placeholders": { "plan": { "type": "String" }, "price": { "type": "String" } } },
+  "upgradeCredit": "{paid} already paid — surcharge: {due}.",
+  "@upgradeCredit": { "placeholders": { "paid": { "type": "String" }, "due": { "type": "String" } } }
 }

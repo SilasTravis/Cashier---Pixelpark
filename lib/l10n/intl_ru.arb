@@ -686,5 +686,9 @@
   "txMarketRefund": "Возврат в маркете",
   "txStatusPending": "В ожидании",
   "txStatusFailed": "Не выполнено",
-  "txStatusCancelled": "Отменено"
+  "txStatusCancelled": "Отменено",
+  "planSwitchUpgradeQuestion": "Перевести на тариф «{plan}»? С баланса спишется только доплата ({price}). Старый стикер будет остановлен, новый QR напечатается как «апгрейд».",
+  "@planSwitchUpgradeQuestion": { "placeholders": { "plan": { "type": "String" }, "price": { "type": "String" } } },
+  "upgradeCredit": "Уже оплачено {paid} — доплата: {due}.",
+  "@upgradeCredit": { "placeholders": { "paid": { "type": "String" }, "due": { "type": "String" } } }
 }

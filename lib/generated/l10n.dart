@@ -3403,6 +3403,26 @@ class AppLocalization {
       args: [],
     );
   }
+
+  /// `Switch to «{plan}»? Only the surcharge ({price}) is debited from the balance. The old sticker is stopped and the new QR prints as an upgrade.`
+  String planSwitchUpgradeQuestion(String plan, String price) {
+    return Intl.message(
+      'Switch to «$plan»? Only the surcharge ($price) is debited from the balance. The old sticker is stopped and the new QR prints as an upgrade.',
+      name: 'planSwitchUpgradeQuestion',
+      desc: '',
+      args: [plan, price],
+    );
+  }
+
+  /// `{paid} already paid — surcharge: {due}.`
+  String upgradeCredit(String paid, String due) {
+    return Intl.message(
+      '$paid already paid — surcharge: $due.',
+      name: 'upgradeCredit',
+      desc: '',
+      args: [paid, due],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalization> {

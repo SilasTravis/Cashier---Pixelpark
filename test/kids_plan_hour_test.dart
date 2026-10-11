@@ -101,6 +101,7 @@ void main() {
       expect(stickerNameFor('Aziza Karimova', null), 'Aziza Karimova');
       expect(stickerNameFor('Aziza Karimova', 60), '1 SOAT · Aziza Karimova');
       expect(stickerNameFor('Aziza', 120), '2 SOAT · Aziza');
+      expect(stickerNameFor('Aziza', null, upgrade: true), 'UPGRADE · Aziza');
       expect(stickerNameFor('Aziza', 30), '30 DAQ · Aziza');
       expect(stickerNameFor('', 60), '1 SOAT');
     },

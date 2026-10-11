@@ -14,7 +14,14 @@ import '../../../../generated/l10n.dart';
 /// sticker leads with its duration so door staff can tell it from an
 /// all-day Standard/VIP sticker at a glance; every other sticker is exactly
 /// the child's name, as before. The label printer itself is untouched.
-String stickerNameFor(String childName, int? durationMinutes) {
+String stickerNameFor(
+  String childName,
+  int? durationMinutes, {
+  bool upgrade = false,
+}) {
+  // An upgraded sticker says so, so the parent and door staff can tell the
+  // new all-day QR from the stopped one.
+  if (upgrade) return childName.isEmpty ? 'UPGRADE' : 'UPGRADE · $childName';
   if (durationMinutes == null) return childName;
   final tag = durationMinutes % 60 == 0
       ? '${durationMinutes ~/ 60} SOAT'
@@ -56,6 +63,7 @@ void printPlanEntryLabels(
             name: stickerNameFor(
               childNamesById[entry.childId] ?? '',
               entry.durationMinutes,
+              upgrade: entry.upgrade,
             ),
             invertName: false,
           ),
@@ -64,20 +72,33 @@ void printPlanEntryLabels(
       ],
       tickets: [
         for (final entry in result.entries)
-          (
-            qrData: entry.token,
-            childName: childNamesById[entry.childId] ?? '',
-            planName: planName ?? '',
-            priceUzs: planPriceUzs,
-            discountUzs: planPriceUzs == null
-                ? 0
-                : entryDiscountsByChild[entry.childId]?.appliedDiscountUzs(
-                        planPriceUzs,
-                      ) ??
-                      0,
-            discountName: entryDiscountsByChild[entry.childId]?.name,
-            ticketId: _ticketId(entry.childId),
-          ),
+          if (entry.upgrade)
+            // An upgrade prints what was actually charged — the surcharge —
+            // not the plan's list price.
+            (
+              qrData: entry.token,
+              childName: childNamesById[entry.childId] ?? '',
+              planName: 'UPGRADE · ${planName ?? ''}',
+              priceUzs: entry.priceUzs ?? 0,
+              discountUzs: 0,
+              discountName: null,
+              ticketId: _ticketId(entry.childId),
+            )
+          else
+            (
+              qrData: entry.token,
+              childName: childNamesById[entry.childId] ?? '',
+              planName: planName ?? '',
+              priceUzs: planPriceUzs,
+              discountUzs: planPriceUzs == null
+                  ? 0
+                  : entryDiscountsByChild[entry.childId]?.appliedDiscountUzs(
+                          planPriceUzs,
+                        ) ??
+                        0,
+              discountName: entryDiscountsByChild[entry.childId]?.name,
+              ticketId: _ticketId(entry.childId),
+            ),
         for (final companion in result.companionPasses)
           (
             qrData: companion.code,

@@ -47,6 +47,16 @@ Future<void> showPlanConflictDialog(
 }) {
   final bloc = context.read<PosAccountBloc>();
   final switchable = conflicts.where((c) => c.switchable).toList();
+  // A backend that reports the surcharge charges ONLY the difference (what
+  // the live pass already paid is credited) — say that sum, not the full
+  // VIP price. Older backends omit it and keep the full-price wording.
+  final upgradeDues = [
+    for (final c in switchable)
+      if (c.upgradeDueUzs != null) c.upgradeDueUzs!,
+  ];
+  final upgradeDueUzs = upgradeDues.length == switchable.length
+      ? upgradeDues.fold<int>(0, (sum, due) => sum + due)
+      : null;
   // currentPlanKey is null only when the plan row was deleted — nothing to
   // re-print against then.
   final reprintable = conflicts.where((c) => c.currentPlanKey != null).toList();
@@ -81,6 +91,11 @@ Future<void> showPlanConflictDialog(
                 Text(
                   requestedPlanFlatUzs == null
                       ? l10n.planSwitchQuestion(requestedPlanName)
+                      : upgradeDueUzs != null
+                      ? l10n.planSwitchUpgradeQuestion(
+                          requestedPlanName,
+                          formatUzs(upgradeDueUzs),
+                        )
                       : l10n.planSwitchVipQuestion(
                           requestedPlanName,
                           formatUzs(requestedPlanFlatUzs),
@@ -181,9 +196,18 @@ class _ConflictRow extends StatelessWidget {
       if (!conflict.switchable) l10n.downgradeForbidden,
       if (conflict.switchable && conflict.accruedDueUzs > 0)
         l10n.accruedDue(formatUzs(conflict.accruedDueUzs)),
-      // Live hour → VIP is an upgrade at the full VIP price; the hour pass
-      // is expired, nothing refunded (backend only offers switches TO VIP).
-      if (conflict.switchable && fromHourPlan) l10n.planSwitchHourToVipNote,
+      // What the live pass already paid is credited: only the difference is
+      // charged (1 soat 60 000 → VIP 75 000 = 15 000).
+      if (conflict.switchable &&
+          conflict.upgradeDueUzs != null &&
+          conflict.upgradeCreditUzs > 0)
+        l10n.upgradeCredit(
+          formatUzs(conflict.upgradeCreditUzs),
+          formatUzs(conflict.upgradeDueUzs!),
+        ),
+      // Older backends: live hour → VIP at the full VIP price, no refund.
+      if (conflict.switchable && fromHourPlan && conflict.upgradeDueUzs == null)
+        l10n.planSwitchHourToVipNote,
     ];
     final p = PosPalette.of(context);
     return Container(

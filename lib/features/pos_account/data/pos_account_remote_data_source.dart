@@ -522,6 +522,8 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
       isInside: json['isInside'] as bool,
       accruedDueUzs: json['accruedDueUzs'] as int,
       switchable: json['switchable'] as bool,
+      upgradeCreditUzs: (json['upgradeCreditUzs'] as int?) ?? 0,
+      upgradeDueUzs: json['upgradeDueUzs'] as int?,
     );
   }
 
@@ -585,6 +587,9 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
           ? null
           : DateTime.parse(json['expiresAt'] as String),
       durationMinutes: json['durationMinutes'] as int?,
+      priceUzs: json['priceUzs'] as int?,
+      upgrade: json['upgrade'] == true,
+      upgradeCreditUzs: (json['upgradeCreditUzs'] as int?) ?? 0,
     );
   }
 

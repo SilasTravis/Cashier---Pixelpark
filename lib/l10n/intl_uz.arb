@@ -762,5 +762,9 @@
   "txMarketRefund": "Market qaytarilishi",
   "txStatusPending": "Kutilmoqda",
   "txStatusFailed": "Bajarilmadi",
-  "txStatusCancelled": "Bekor qilindi"
+  "txStatusCancelled": "Bekor qilindi",
+  "planSwitchUpgradeQuestion": "«{plan}» rejasiga o‘tkazilsinmi? Faqat qo‘shimcha to‘lov ({price}) balansdan yechiladi. Eski stiker to‘xtatiladi va yangi QR «upgrade» bo‘lib chop etiladi.",
+  "@planSwitchUpgradeQuestion": { "placeholders": { "plan": { "type": "String" }, "price": { "type": "String" } } },
+  "upgradeCredit": "{paid} allaqachon to‘langan — qo‘shimcha to‘lov: {due}.",
+  "@upgradeCredit": { "placeholders": { "paid": { "type": "String" }, "due": { "type": "String" } } }
 }

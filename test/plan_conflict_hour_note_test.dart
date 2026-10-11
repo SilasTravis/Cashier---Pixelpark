@@ -22,6 +22,8 @@ PosEntryConflict _conflict({
   required String label,
   required String requested,
   required bool switchable,
+  int upgradeCreditUzs = 0,
+  int? upgradeDueUzs,
 }) => PosEntryConflict(
   childId: 'child-1',
   currentPlanKey: current,
@@ -30,6 +32,8 @@ PosEntryConflict _conflict({
   isInside: false,
   accruedDueUzs: 0,
   switchable: switchable,
+  upgradeCreditUzs: upgradeCreditUzs,
+  upgradeDueUzs: upgradeDueUzs,
 );
 
 Future<void> _open(
@@ -75,6 +79,35 @@ Future<void> _open(
 }
 
 void main() {
+  testWidgets('1 soat 60 000 → VIP 75 000 asks only the 15 000 surcharge', (
+    tester,
+  ) async {
+    await _open(
+      tester,
+      _conflict(
+        current: 'hour',
+        label: '1 soat',
+        requested: 'vip',
+        switchable: true,
+        upgradeCreditUzs: 60000,
+        upgradeDueUzs: 15000,
+      ),
+      requestedPlanName: 'VIP',
+      requestedPlanFlatUzs: 75000,
+    );
+
+    expect(
+      find.textContaining("60 000 so'm allaqachon to‘langan"),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining("qo‘shimcha to‘lov (15 000 so'm)"),
+      findsOneWidget,
+    );
+    expect(find.textContaining(_note), findsNothing);
+    expect(find.textContaining("VIP narxi (75 000 so'm)"), findsNothing);
+  });
+
   testWidgets('live 1 soat → VIP says the hour price is not refunded', (
     tester,
   ) async {
