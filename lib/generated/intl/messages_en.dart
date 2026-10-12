@@ -445,7 +445,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "insideHourInside": MessageLookupByLibrary.simpleMessage("1 hour inside"),
     "insideNoTurnstileNote": MessageLookupByLibrary.simpleMessage(
-      "No turnstile: 1 hour children are checked in when the ticket prints and out when their hour ends.",
+      "No turnstile: 1 hour children are checked in when the ticket prints — check them out here when they leave.",
     ),
     "insideOvertimeEmpty": MessageLookupByLibrary.simpleMessage(
       "Nobody is over time",

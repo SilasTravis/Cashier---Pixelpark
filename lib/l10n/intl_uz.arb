@@ -785,5 +785,5 @@
   "insideSoldHour": "Bugun 1 soat sotildi",
   "insideHourInside": "1 soat ichkarida",
   "insideHourEndingSoon": "10 daqiqada tugaydi",
-  "insideNoTurnstileNote": "Turniket yo‘q: 1 soat bolalar chipta chiqqanda kiradi, soati tugaganda chiqadi."
+  "insideNoTurnstileNote": "Turniket yo‘q: 1 soat bolalar chipta chiqqanda ichkariga yoziladi — ketganda shu yerdan chiqaring."
 }

@@ -709,5 +709,5 @@
   "insideSoldHour": "1 hour sold today",
   "insideHourInside": "1 hour inside",
   "insideHourEndingSoon": "Ending in 10 min",
-  "insideNoTurnstileNote": "No turnstile: 1 hour children are checked in when the ticket prints and out when their hour ends."
+  "insideNoTurnstileNote": "No turnstile: 1 hour children are checked in when the ticket prints — check them out here when they leave."
 }

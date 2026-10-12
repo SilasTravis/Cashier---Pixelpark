@@ -177,7 +177,7 @@ class _InsideViewState extends State<_InsideView> {
                 hourInside: hourCount,
                 endingSoon: tracked.where((c) => isEndingSoon(c, now)).length,
               ),
-            if (hourCount > 0 && !gateless)
+            if (hourCount > 0)
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
                 child: Align(

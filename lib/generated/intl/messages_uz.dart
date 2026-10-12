@@ -447,7 +447,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "1 soat ichkarida",
     ),
     "insideNoTurnstileNote": MessageLookupByLibrary.simpleMessage(
-      "Turniket yo‘q: 1 soat bolalar chipta chiqqanda kiradi, soati tugaganda chiqadi.",
+      "Turniket yo‘q: 1 soat bolalar chipta chiqqanda ichkariga yoziladi — ketganda shu yerdan chiqaring.",
     ),
     "insideOvertimeEmpty": MessageLookupByLibrary.simpleMessage(
       "Vaqti tugagan bola yo‘q",

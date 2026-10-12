@@ -3549,10 +3549,10 @@ class AppLocalization {
     );
   }
 
-  /// `No turnstile: 1 hour children are checked in when the ticket prints and out when their hour ends.`
+  /// `No turnstile: 1 hour children are checked in when the ticket prints — check them out here when they leave.`
   String get insideNoTurnstileNote {
     return Intl.message(
-      'No turnstile: 1 hour children are checked in when the ticket prints and out when their hour ends.',
+      'No turnstile: 1 hour children are checked in when the ticket prints — check them out here when they leave.',
       name: 'insideNoTurnstileNote',
       desc: '',
       args: [],

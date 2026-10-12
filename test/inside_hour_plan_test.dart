@@ -167,6 +167,7 @@ void main() {
     expect(find.text('Vali Standart'), findsNothing);
     expect(find.text('Malika VIP'), findsNothing);
     expect(find.text('Aziza Karimova'), findsOneWidget);
-    expect(find.text('1 soat · 4'), findsNothing);
+    expect(find.text('1 soat · 4'), findsOneWidget);
+    expect(find.text('Hammasi · 4'), findsOneWidget);
   });
 }
