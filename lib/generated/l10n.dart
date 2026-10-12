@@ -3429,9 +3429,9 @@ class AppLocalization {
     return Intl.message('All', name: 'insideFilterAll', desc: '', args: []);
   }
 
-  /// `1 hour`
+  /// `Timed`
   String get insideFilterHour {
-    return Intl.message('1 hour', name: 'insideFilterHour', desc: '', args: []);
+    return Intl.message('Timed', name: 'insideFilterHour', desc: '', args: []);
   }
 
   /// `Time is up`
@@ -3444,10 +3444,10 @@ class AppLocalization {
     );
   }
 
-  /// `{count} children are past their 1 hour — call the parents`
+  /// `{count} children are past their time — call the parents`
   String hourOvertimeBanner(int count) {
     return Intl.message(
-      '$count children are past their 1 hour — call the parents',
+      '$count children are past their time — call the parents',
       name: 'hourOvertimeBanner',
       desc: '',
       args: [count],
@@ -3489,10 +3489,10 @@ class AppLocalization {
     return Intl.message('Ended', name: 'hourEndedAtLabel', desc: '', args: []);
   }
 
-  /// `No children on the 1 hour tariff right now`
+  /// `No children on a timed tariff right now`
   String get insideHourEmpty {
     return Intl.message(
-      'No children on the 1 hour tariff right now',
+      'No children on a timed tariff right now',
       name: 'insideHourEmpty',
       desc: '',
       args: [],
@@ -3519,20 +3519,20 @@ class AppLocalization {
     );
   }
 
-  /// `1 hour sold today`
+  /// `Timed sold today`
   String get insideSoldHour {
     return Intl.message(
-      '1 hour sold today',
+      'Timed sold today',
       name: 'insideSoldHour',
       desc: '',
       args: [],
     );
   }
 
-  /// `1 hour inside`
+  /// `Timed inside`
   String get insideHourInside {
     return Intl.message(
-      '1 hour inside',
+      'Timed inside',
       name: 'insideHourInside',
       desc: '',
       args: [],
@@ -3549,10 +3549,10 @@ class AppLocalization {
     );
   }
 
-  /// `No turnstile: 1 hour children are checked in when the ticket prints — check them out here when they leave.`
+  /// `No turnstile: a child with a timed ticket (1 hour and others) is checked in when the ticket prints and their time starts then — check them out here when they leave.`
   String get insideNoTurnstileNote {
     return Intl.message(
-      'No turnstile: 1 hour children are checked in when the ticket prints — check them out here when they leave.',
+      'No turnstile: a child with a timed ticket (1 hour and others) is checked in when the ticket prints and their time starts then — check them out here when they leave.',
       name: 'insideNoTurnstileNote',
       desc: '',
       args: [],

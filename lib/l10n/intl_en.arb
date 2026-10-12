@@ -692,9 +692,9 @@
   "upgradeCredit": "{paid} already paid — surcharge: {due}.",
   "@upgradeCredit": { "placeholders": { "paid": { "type": "String" }, "due": { "type": "String" } } },
   "insideFilterAll": "All",
-  "insideFilterHour": "1 hour",
+  "insideFilterHour": "Timed",
   "insideFilterOvertime": "Time is up",
-  "hourOvertimeBanner": "{count} children are past their 1 hour — call the parents",
+  "hourOvertimeBanner": "{count} children are past their time — call the parents",
   "@hourOvertimeBanner": { "placeholders": { "count": { "type": "int" } } },
   "hourOvertimeShow": "Show",
   "hourOvertimeBy": "+{count} min over",
@@ -703,11 +703,11 @@
   "@hourRemaining": { "placeholders": { "count": { "type": "int" } } },
   "hourEndsAtLabel": "Ends",
   "hourEndedAtLabel": "Ended",
-  "insideHourEmpty": "No children on the 1 hour tariff right now",
+  "insideHourEmpty": "No children on a timed tariff right now",
   "insideOvertimeEmpty": "Nobody is over time",
   "insideSoldVip": "VIP sold today",
-  "insideSoldHour": "1 hour sold today",
-  "insideHourInside": "1 hour inside",
+  "insideSoldHour": "Timed sold today",
+  "insideHourInside": "Timed inside",
   "insideHourEndingSoon": "Ending in 10 min",
-  "insideNoTurnstileNote": "No turnstile: 1 hour children are checked in when the ticket prints — check them out here when they leave."
+  "insideNoTurnstileNote": "No turnstile: a child with a timed ticket (1 hour and others) is checked in when the ticket prints and their time starts then — check them out here when they leave."
 }

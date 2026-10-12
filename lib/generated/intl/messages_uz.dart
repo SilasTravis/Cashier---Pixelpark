@@ -93,7 +93,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "«${name}» allaqachon faol 1 soat tarifda — qayta to‘lov olinmaydi.";
 
   static String m31(count) =>
-      "${count} ta bolaning 1 soati tugagan — ota-onasini chaqiring";
+      "${count} ta bolaning vaqti tugagan — ota-onasini chaqiring";
 
   static String m32(count) => "${count} daq oshdi";
 
@@ -433,21 +433,21 @@ class MessageLookup extends MessageLookupByLibrary {
       "Hozir park ichida bolalar yo‘q",
     ),
     "insideFilterAll": MessageLookupByLibrary.simpleMessage("Hammasi"),
-    "insideFilterHour": MessageLookupByLibrary.simpleMessage("1 soat"),
+    "insideFilterHour": MessageLookupByLibrary.simpleMessage("Vaqtli"),
     "insideFilterOvertime": MessageLookupByLibrary.simpleMessage(
       "Vaqti tugagan",
     ),
     "insideHourEmpty": MessageLookupByLibrary.simpleMessage(
-      "Hozir 1 soatlik tarifdagi bolalar yo‘q",
+      "Hozir vaqtli tarifdagi bolalar yo‘q",
     ),
     "insideHourEndingSoon": MessageLookupByLibrary.simpleMessage(
       "10 daqiqada tugaydi",
     ),
     "insideHourInside": MessageLookupByLibrary.simpleMessage(
-      "1 soat ichkarida",
+      "Vaqtli ichkarida",
     ),
     "insideNoTurnstileNote": MessageLookupByLibrary.simpleMessage(
-      "Turniket yo‘q: 1 soat bolalar chipta chiqqanda ichkariga yoziladi — ketganda shu yerdan chiqaring.",
+      "Turniket yo‘q: vaqtli chipta (1 soat va boshqalar) chiqqanda bola ichkariga yoziladi va vaqti shu paytdan boshlanadi — ketganda shu yerdan chiqaring.",
     ),
     "insideOvertimeEmpty": MessageLookupByLibrary.simpleMessage(
       "Vaqti tugagan bola yo‘q",
@@ -459,7 +459,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Bola, ota-ona yoki telefon bo‘yicha qidirish",
     ),
     "insideSoldHour": MessageLookupByLibrary.simpleMessage(
-      "Bugun 1 soat sotildi",
+      "Bugun vaqtli sotildi",
     ),
     "insideSoldVip": MessageLookupByLibrary.simpleMessage("Bugun VIP sotildi"),
     "insideSuffix": MessageLookupByLibrary.simpleMessage(" (hozir ichkarida)"),

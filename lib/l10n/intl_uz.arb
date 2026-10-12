@@ -768,9 +768,9 @@
   "upgradeCredit": "{paid} allaqachon to‘langan — qo‘shimcha to‘lov: {due}.",
   "@upgradeCredit": { "placeholders": { "paid": { "type": "String" }, "due": { "type": "String" } } },
   "insideFilterAll": "Hammasi",
-  "insideFilterHour": "1 soat",
+  "insideFilterHour": "Vaqtli",
   "insideFilterOvertime": "Vaqti tugagan",
-  "hourOvertimeBanner": "{count} ta bolaning 1 soati tugagan — ota-onasini chaqiring",
+  "hourOvertimeBanner": "{count} ta bolaning vaqti tugagan — ota-onasini chaqiring",
   "@hourOvertimeBanner": { "placeholders": { "count": { "type": "int" } } },
   "hourOvertimeShow": "Ko‘rsatish",
   "hourOvertimeBy": "{count} daq oshdi",
@@ -779,11 +779,11 @@
   "@hourRemaining": { "placeholders": { "count": { "type": "int" } } },
   "hourEndsAtLabel": "Tugaydi",
   "hourEndedAtLabel": "Tugadi",
-  "insideHourEmpty": "Hozir 1 soatlik tarifdagi bolalar yo‘q",
+  "insideHourEmpty": "Hozir vaqtli tarifdagi bolalar yo‘q",
   "insideOvertimeEmpty": "Vaqti tugagan bola yo‘q",
   "insideSoldVip": "Bugun VIP sotildi",
-  "insideSoldHour": "Bugun 1 soat sotildi",
-  "insideHourInside": "1 soat ichkarida",
+  "insideSoldHour": "Bugun vaqtli sotildi",
+  "insideHourInside": "Vaqtli ichkarida",
   "insideHourEndingSoon": "10 daqiqada tugaydi",
-  "insideNoTurnstileNote": "Turniket yo‘q: 1 soat bolalar chipta chiqqanda ichkariga yoziladi — ketganda shu yerdan chiqaring."
+  "insideNoTurnstileNote": "Turniket yo‘q: vaqtli chipta (1 soat va boshqalar) chiqqanda bola ichkariga yoziladi va vaqti shu paytdan boshlanadi — ketganda shu yerdan chiqaring."
 }

@@ -93,7 +93,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "«${name}» already has an active 1 hour tariff — no second charge.";
 
   static String m31(count) =>
-      "${count} children are past their 1 hour — call the parents";
+      "${count} children are past their time — call the parents";
 
   static String m32(count) => "+${count} min over";
 
@@ -435,17 +435,17 @@ class MessageLookup extends MessageLookupByLibrary {
       "There are no children inside the park",
     ),
     "insideFilterAll": MessageLookupByLibrary.simpleMessage("All"),
-    "insideFilterHour": MessageLookupByLibrary.simpleMessage("1 hour"),
+    "insideFilterHour": MessageLookupByLibrary.simpleMessage("Timed"),
     "insideFilterOvertime": MessageLookupByLibrary.simpleMessage("Time is up"),
     "insideHourEmpty": MessageLookupByLibrary.simpleMessage(
-      "No children on the 1 hour tariff right now",
+      "No children on a timed tariff right now",
     ),
     "insideHourEndingSoon": MessageLookupByLibrary.simpleMessage(
       "Ending in 10 min",
     ),
-    "insideHourInside": MessageLookupByLibrary.simpleMessage("1 hour inside"),
+    "insideHourInside": MessageLookupByLibrary.simpleMessage("Timed inside"),
     "insideNoTurnstileNote": MessageLookupByLibrary.simpleMessage(
-      "No turnstile: 1 hour children are checked in when the ticket prints — check them out here when they leave.",
+      "No turnstile: a child with a timed ticket (1 hour and others) is checked in when the ticket prints and their time starts then — check them out here when they leave.",
     ),
     "insideOvertimeEmpty": MessageLookupByLibrary.simpleMessage(
       "Nobody is over time",
@@ -456,7 +456,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "insideSearchHint": MessageLookupByLibrary.simpleMessage(
       "Search by child, parent or phone",
     ),
-    "insideSoldHour": MessageLookupByLibrary.simpleMessage("1 hour sold today"),
+    "insideSoldHour": MessageLookupByLibrary.simpleMessage("Timed sold today"),
     "insideSoldVip": MessageLookupByLibrary.simpleMessage("VIP sold today"),
     "insideSuffix": MessageLookupByLibrary.simpleMessage(" (currently inside)"),
     "keypadHint": MessageLookupByLibrary.simpleMessage(

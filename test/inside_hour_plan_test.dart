@@ -118,11 +118,11 @@ void main() {
     await _pump(tester, _rows);
 
     expect(
-      find.text('2 ta bolaning 1 soati tugagan — ota-onasini chaqiring'),
+      find.text('2 ta bolaning vaqti tugagan — ota-onasini chaqiring'),
       findsOneWidget,
     );
     expect(find.text('Vaqti tugagan · 2'), findsOneWidget);
-    expect(find.text('1 soat · 4'), findsOneWidget);
+    expect(find.text('Vaqtli · 4'), findsOneWidget);
 
     await tester.tap(find.text('Ko‘rsatish'));
     await tester.pump();
@@ -138,7 +138,7 @@ void main() {
     addTearDown(tester.view.reset);
     await _pump(tester, [_rows.first]);
     expect(find.textContaining('Vaqti tugagan'), findsNothing);
-    expect(find.textContaining('1 soati tugagan'), findsNothing);
+    expect(find.textContaining('vaqti tugagan'), findsNothing);
   });
 
   testWidgets('no turnstile: sales header and only 1 soat children', (
@@ -161,13 +161,13 @@ void main() {
     expect(find.text('115'), findsOneWidget);
     expect(find.text('Bugun VIP sotildi'), findsOneWidget);
     expect(find.text('50'), findsOneWidget);
-    expect(find.text('1 soat ichkarida'), findsOneWidget);
+    expect(find.text('Vaqtli ichkarida'), findsOneWidget);
     // Sardor has 6 min left — the only one about to run out.
     expect(find.text('10 daqiqada tugaydi'), findsOneWidget);
     expect(find.text('Vali Standart'), findsNothing);
     expect(find.text('Malika VIP'), findsNothing);
     expect(find.text('Aziza Karimova'), findsOneWidget);
-    expect(find.text('1 soat · 4'), findsOneWidget);
+    expect(find.text('Vaqtli · 4'), findsOneWidget);
     expect(find.text('Hammasi · 4'), findsOneWidget);
   });
 }

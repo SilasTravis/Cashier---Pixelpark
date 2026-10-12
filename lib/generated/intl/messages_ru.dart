@@ -94,7 +94,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "«${name}» уже на активном тарифе «1 час» — повторная оплата не взимается.";
 
   static String m31(count) =>
-      "У ${count} детей закончился 1 час — позовите родителей";
+      "У ${count} детей закончилось время — позовите родителей";
 
   static String m32(count) => "+${count} мин";
 
@@ -446,17 +446,19 @@ class MessageLookup extends MessageLookupByLibrary {
       "Сейчас в парке нет детей",
     ),
     "insideFilterAll": MessageLookupByLibrary.simpleMessage("Все"),
-    "insideFilterHour": MessageLookupByLibrary.simpleMessage("1 час"),
+    "insideFilterHour": MessageLookupByLibrary.simpleMessage("По времени"),
     "insideFilterOvertime": MessageLookupByLibrary.simpleMessage("Время вышло"),
     "insideHourEmpty": MessageLookupByLibrary.simpleMessage(
-      "Сейчас нет детей на тарифе «1 час»",
+      "Сейчас нет детей на тарифах по времени",
     ),
     "insideHourEndingSoon": MessageLookupByLibrary.simpleMessage(
       "Заканчивается за 10 мин",
     ),
-    "insideHourInside": MessageLookupByLibrary.simpleMessage("1 час внутри"),
+    "insideHourInside": MessageLookupByLibrary.simpleMessage(
+      "По времени внутри",
+    ),
     "insideNoTurnstileNote": MessageLookupByLibrary.simpleMessage(
-      "Нет турникета: дети на 1 час отмечаются внутри при печати билета — отмечайте выход здесь, когда они уходят.",
+      "Нет турникета: ребёнок с билетом по времени (1 час и др.) отмечается внутри при печати билета, время идёт с этого момента — отмечайте выход здесь, когда он уходит.",
     ),
     "insideOvertimeEmpty": MessageLookupByLibrary.simpleMessage(
       "Нет детей с истёкшим временем",
@@ -468,7 +470,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Поиск по ребёнку, родителю или телефону",
     ),
     "insideSoldHour": MessageLookupByLibrary.simpleMessage(
-      "1 час продано сегодня",
+      "По времени продано сегодня",
     ),
     "insideSoldVip": MessageLookupByLibrary.simpleMessage(
       "VIP продано сегодня",

@@ -692,9 +692,9 @@
   "upgradeCredit": "Уже оплачено {paid} — доплата: {due}.",
   "@upgradeCredit": { "placeholders": { "paid": { "type": "String" }, "due": { "type": "String" } } },
   "insideFilterAll": "Все",
-  "insideFilterHour": "1 час",
+  "insideFilterHour": "По времени",
   "insideFilterOvertime": "Время вышло",
-  "hourOvertimeBanner": "У {count} детей закончился 1 час — позовите родителей",
+  "hourOvertimeBanner": "У {count} детей закончилось время — позовите родителей",
   "@hourOvertimeBanner": { "placeholders": { "count": { "type": "int" } } },
   "hourOvertimeShow": "Показать",
   "hourOvertimeBy": "+{count} мин",
@@ -703,11 +703,11 @@
   "@hourRemaining": { "placeholders": { "count": { "type": "int" } } },
   "hourEndsAtLabel": "Заканчивается",
   "hourEndedAtLabel": "Закончился",
-  "insideHourEmpty": "Сейчас нет детей на тарифе «1 час»",
+  "insideHourEmpty": "Сейчас нет детей на тарифах по времени",
   "insideOvertimeEmpty": "Нет детей с истёкшим временем",
   "insideSoldVip": "VIP продано сегодня",
-  "insideSoldHour": "1 час продано сегодня",
-  "insideHourInside": "1 час внутри",
+  "insideSoldHour": "По времени продано сегодня",
+  "insideHourInside": "По времени внутри",
   "insideHourEndingSoon": "Заканчивается за 10 мин",
-  "insideNoTurnstileNote": "Нет турникета: дети на 1 час отмечаются внутри при печати билета — отмечайте выход здесь, когда они уходят."
+  "insideNoTurnstileNote": "Нет турникета: ребёнок с билетом по времени (1 час и др.) отмечается внутри при печати билета, время идёт с этого момента — отмечайте выход здесь, когда он уходит."
 }
