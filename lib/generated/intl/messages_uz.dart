@@ -440,6 +440,15 @@ class MessageLookup extends MessageLookupByLibrary {
     "insideHourEmpty": MessageLookupByLibrary.simpleMessage(
       "Hozir 1 soatlik tarifdagi bolalar yo‘q",
     ),
+    "insideHourEndingSoon": MessageLookupByLibrary.simpleMessage(
+      "10 daqiqada tugaydi",
+    ),
+    "insideHourInside": MessageLookupByLibrary.simpleMessage(
+      "1 soat ichkarida",
+    ),
+    "insideNoTurnstileNote": MessageLookupByLibrary.simpleMessage(
+      "Turniket yo‘q: 1 soat bolalar chipta chiqqanda kiradi, soati tugaganda chiqadi.",
+    ),
     "insideOvertimeEmpty": MessageLookupByLibrary.simpleMessage(
       "Vaqti tugagan bola yo‘q",
     ),
@@ -449,6 +458,10 @@ class MessageLookup extends MessageLookupByLibrary {
     "insideSearchHint": MessageLookupByLibrary.simpleMessage(
       "Bola, ota-ona yoki telefon bo‘yicha qidirish",
     ),
+    "insideSoldHour": MessageLookupByLibrary.simpleMessage(
+      "Bugun 1 soat sotildi",
+    ),
+    "insideSoldVip": MessageLookupByLibrary.simpleMessage("Bugun VIP sotildi"),
     "insideSuffix": MessageLookupByLibrary.simpleMessage(" (hozir ichkarida)"),
     "keypadHint": MessageLookupByLibrary.simpleMessage(
       "Raqamni kiritganda o‘ngda natija chiqadi. Mijozni bosib, tafsilotlarni ochasiz.",

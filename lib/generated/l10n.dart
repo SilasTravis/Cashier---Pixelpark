@@ -3508,6 +3508,56 @@ class AppLocalization {
       args: [],
     );
   }
+
+  /// `VIP sold today`
+  String get insideSoldVip {
+    return Intl.message(
+      'VIP sold today',
+      name: 'insideSoldVip',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `1 hour sold today`
+  String get insideSoldHour {
+    return Intl.message(
+      '1 hour sold today',
+      name: 'insideSoldHour',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `1 hour inside`
+  String get insideHourInside {
+    return Intl.message(
+      '1 hour inside',
+      name: 'insideHourInside',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Ending in 10 min`
+  String get insideHourEndingSoon {
+    return Intl.message(
+      'Ending in 10 min',
+      name: 'insideHourEndingSoon',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No turnstile: 1 hour children are checked in when the ticket prints and out when their hour ends.`
+  String get insideNoTurnstileNote {
+    return Intl.message(
+      'No turnstile: 1 hour children are checked in when the ticket prints and out when their hour ends.',
+      name: 'insideNoTurnstileNote',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalization> {

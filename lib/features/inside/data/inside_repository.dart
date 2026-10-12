@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../../../core/error/exceptions.dart';
 import '../../../core/network/connectivity_interceptor.dart';
 import '../domain/inside_child.dart';
+import '../domain/inside_summary.dart';
 
 class InsideRepository {
   InsideRepository(this.dio);
@@ -37,6 +38,23 @@ class InsideRepository {
           durationMinutes: json['durationMinutes'] as int?,
         );
       }).toList();
+    } on DioException catch (error) {
+      throw ServerException.fromJson(error.response?.data);
+    }
+  }
+
+  /// The branch's turnstile switch + today's sales per plan.
+  Future<InsideSummary> summary({bool background = false}) async {
+    try {
+      final response = await dio.get(
+        '/v1/pos/inside/summary',
+        options: background
+            ? Options(extra: {ConnectivityInterceptor.backgroundKey: true})
+            : null,
+      );
+      return InsideSummary.fromJson(
+        Map<String, dynamic>.from(response.data as Map),
+      );
     } on DioException catch (error) {
       throw ServerException.fromJson(error.response?.data);
     }

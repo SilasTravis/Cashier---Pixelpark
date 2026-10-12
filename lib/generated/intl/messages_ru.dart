@@ -451,6 +451,13 @@ class MessageLookup extends MessageLookupByLibrary {
     "insideHourEmpty": MessageLookupByLibrary.simpleMessage(
       "Сейчас нет детей на тарифе «1 час»",
     ),
+    "insideHourEndingSoon": MessageLookupByLibrary.simpleMessage(
+      "Заканчивается за 10 мин",
+    ),
+    "insideHourInside": MessageLookupByLibrary.simpleMessage("1 час внутри"),
+    "insideNoTurnstileNote": MessageLookupByLibrary.simpleMessage(
+      "Нет турникета: дети на 1 час входят при печати билета и выходят, когда час закончился.",
+    ),
     "insideOvertimeEmpty": MessageLookupByLibrary.simpleMessage(
       "Нет детей с истёкшим временем",
     ),
@@ -459,6 +466,12 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "insideSearchHint": MessageLookupByLibrary.simpleMessage(
       "Поиск по ребёнку, родителю или телефону",
+    ),
+    "insideSoldHour": MessageLookupByLibrary.simpleMessage(
+      "1 час продано сегодня",
+    ),
+    "insideSoldVip": MessageLookupByLibrary.simpleMessage(
+      "VIP продано сегодня",
     ),
     "insideSuffix": MessageLookupByLibrary.simpleMessage(" (сейчас внутри)"),
     "keypadHint": MessageLookupByLibrary.simpleMessage(

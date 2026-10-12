@@ -440,6 +440,13 @@ class MessageLookup extends MessageLookupByLibrary {
     "insideHourEmpty": MessageLookupByLibrary.simpleMessage(
       "No children on the 1 hour tariff right now",
     ),
+    "insideHourEndingSoon": MessageLookupByLibrary.simpleMessage(
+      "Ending in 10 min",
+    ),
+    "insideHourInside": MessageLookupByLibrary.simpleMessage("1 hour inside"),
+    "insideNoTurnstileNote": MessageLookupByLibrary.simpleMessage(
+      "No turnstile: 1 hour children are checked in when the ticket prints and out when their hour ends.",
+    ),
     "insideOvertimeEmpty": MessageLookupByLibrary.simpleMessage(
       "Nobody is over time",
     ),
@@ -449,6 +456,8 @@ class MessageLookup extends MessageLookupByLibrary {
     "insideSearchHint": MessageLookupByLibrary.simpleMessage(
       "Search by child, parent or phone",
     ),
+    "insideSoldHour": MessageLookupByLibrary.simpleMessage("1 hour sold today"),
+    "insideSoldVip": MessageLookupByLibrary.simpleMessage("VIP sold today"),
     "insideSuffix": MessageLookupByLibrary.simpleMessage(" (currently inside)"),
     "keypadHint": MessageLookupByLibrary.simpleMessage(
       "Enter a number to see results on the right. Select a customer to open details.",

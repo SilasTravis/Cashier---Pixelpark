@@ -780,5 +780,10 @@
   "hourEndsAtLabel": "Tugaydi",
   "hourEndedAtLabel": "Tugadi",
   "insideHourEmpty": "Hozir 1 soatlik tarifdagi bolalar yo‘q",
-  "insideOvertimeEmpty": "Vaqti tugagan bola yo‘q"
+  "insideOvertimeEmpty": "Vaqti tugagan bola yo‘q",
+  "insideSoldVip": "Bugun VIP sotildi",
+  "insideSoldHour": "Bugun 1 soat sotildi",
+  "insideHourInside": "1 soat ichkarida",
+  "insideHourEndingSoon": "10 daqiqada tugaydi",
+  "insideNoTurnstileNote": "Turniket yo‘q: 1 soat bolalar chipta chiqqanda kiradi, soati tugaganda chiqadi."
 }

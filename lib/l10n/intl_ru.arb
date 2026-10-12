@@ -704,5 +704,10 @@
   "hourEndsAtLabel": "Заканчивается",
   "hourEndedAtLabel": "Закончился",
   "insideHourEmpty": "Сейчас нет детей на тарифе «1 час»",
-  "insideOvertimeEmpty": "Нет детей с истёкшим временем"
+  "insideOvertimeEmpty": "Нет детей с истёкшим временем",
+  "insideSoldVip": "VIP продано сегодня",
+  "insideSoldHour": "1 час продано сегодня",
+  "insideHourInside": "1 час внутри",
+  "insideHourEndingSoon": "Заканчивается за 10 мин",
+  "insideNoTurnstileNote": "Нет турникета: дети на 1 час входят при печати билета и выходят, когда час закончился."
 }

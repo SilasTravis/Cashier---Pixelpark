@@ -6,16 +6,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:cashier_app/core/theme/app_theme.dart';
 import 'package:cashier_app/features/inside/data/inside_repository.dart';
 import 'package:cashier_app/features/inside/domain/inside_child.dart';
+import 'package:cashier_app/features/inside/domain/inside_summary.dart';
 import 'package:cashier_app/features/inside/presentation/bloc/inside_cubit.dart';
 import 'package:cashier_app/features/inside/presentation/pages/inside_page.dart';
 import 'package:cashier_app/generated/l10n.dart';
 import 'package:cashier_app/injector_container.dart';
 
 class _FakeRepo extends InsideRepository {
-  _FakeRepo(this.rows) : super(Dio());
+  _FakeRepo(this.rows, [this.header]) : super(Dio());
   final List<InsideChild> rows;
+  final InsideSummary? header;
   @override
   Future<List<InsideChild>> list({bool background = false}) async => rows;
+  @override
+  Future<InsideSummary> summary({bool background = false}) async =>
+      header ?? (throw StateError('no summary endpoint'));
 }
 
 InsideChild _child(
@@ -43,9 +48,13 @@ InsideChild _child(
   );
 }
 
-Future<void> _pump(WidgetTester tester, List<InsideChild> rows) async {
+Future<void> _pump(
+  WidgetTester tester,
+  List<InsideChild> rows, [
+  InsideSummary? header,
+]) async {
   if (sl.isRegistered<InsideCubit>()) sl.unregister<InsideCubit>();
-  sl.registerFactory<InsideCubit>(() => InsideCubit(_FakeRepo(rows)));
+  sl.registerFactory<InsideCubit>(() => InsideCubit(_FakeRepo(rows, header)));
   await tester.pumpWidget(
     MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -130,5 +139,34 @@ void main() {
     await _pump(tester, [_rows.first]);
     expect(find.textContaining('Vaqti tugagan'), findsNothing);
     expect(find.textContaining('1 soati tugagan'), findsNothing);
+  });
+
+  testWidgets('no turnstile: sales header and only 1 soat children', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await _pump(
+      tester,
+      _rows,
+      const InsideSummary(
+        hasTurnstile: false,
+        vipSoldToday: 115,
+        hourSoldToday: 50,
+        standardSoldToday: 0,
+      ),
+    );
+
+    expect(find.text('115'), findsOneWidget);
+    expect(find.text('Bugun VIP sotildi'), findsOneWidget);
+    expect(find.text('50'), findsOneWidget);
+    expect(find.text('1 soat ichkarida'), findsOneWidget);
+    // Sardor has 6 min left — the only one about to run out.
+    expect(find.text('10 daqiqada tugaydi'), findsOneWidget);
+    expect(find.text('Vali Standart'), findsNothing);
+    expect(find.text('Malika VIP'), findsNothing);
+    expect(find.text('Aziza Karimova'), findsOneWidget);
+    expect(find.text('1 soat · 4'), findsNothing);
   });
 }

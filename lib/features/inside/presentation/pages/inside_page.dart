@@ -85,12 +85,16 @@ class _InsideViewState extends State<_InsideView> {
       builder: (context, state) {
         final query = _search.text.trim().toLowerCase();
         final now = DateTime.now();
-        final hourCount = state.children.where((c) => c.isHourPlan).length;
-        final overtimeCount = state.children
-            .where((c) => c.isOvertime(now))
-            .length;
+        // No turnstile: only 1 soat children are tracked inside (checked in
+        // when the ticket prints), so the tab is just their hour board.
+        final gateless = state.summary?.hasTurnstile == false;
+        final tracked = gateless
+            ? state.children.where((c) => c.isHourPlan).toList()
+            : state.children;
+        final hourCount = tracked.where((c) => c.isHourPlan).length;
+        final overtimeCount = tracked.where((c) => c.isOvertime(now)).length;
         final children = sortInsideChildren(
-          state.children.where((child) {
+          tracked.where((child) {
             final inFilter = switch (_filter) {
               _InsideFilter.all => true,
               _InsideFilter.hour => child.isHourPlan,
@@ -149,7 +153,7 @@ class _InsideViewState extends State<_InsideView> {
                       borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
                     child: Text(
-                      l10n.insideCount(state.children.length),
+                      l10n.insideCount(tracked.length),
                       style: AppTextStyles.body.copyWith(
                         color: NocturneColors.accent,
                         fontWeight: FontWeight.w600,
@@ -166,7 +170,14 @@ class _InsideViewState extends State<_InsideView> {
                 ],
               ),
             ),
-            if (hourCount > 0)
+            if (gateless)
+              _GatelessStats(
+                vipSold: state.summary!.vipSoldToday,
+                hourSold: state.summary!.hourSoldToday,
+                hourInside: hourCount,
+                endingSoon: tracked.where((c) => isEndingSoon(c, now)).length,
+              ),
+            if (hourCount > 0 && !gateless)
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
                 child: Align(
@@ -177,7 +188,7 @@ class _InsideViewState extends State<_InsideView> {
                     children: [
                       _FilterChip(
                         label: l10n.insideFilterAll,
-                        count: state.children.length,
+                        count: tracked.length,
                         selected: _filter == _InsideFilter.all,
                         onTap: () =>
                             setState(() => _filter = _InsideFilter.all),
@@ -466,6 +477,139 @@ class _ChildCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// A 1 soat child in the last 10 minutes of their hour (not yet over).
+bool isEndingSoon(InsideChild child, DateTime now) {
+  if (child.isOvertime(now)) return false;
+  final remaining = child.remainingMinutes(now);
+  return remaining != null && remaining <= 10;
+}
+
+/// No-turnstile branch header: today's VIP / 1 soat sales next to how many
+/// 1 soat children are inside and how many are about to run out.
+class _GatelessStats extends StatelessWidget {
+  const _GatelessStats({
+    required this.vipSold,
+    required this.hourSold,
+    required this.hourInside,
+    required this.endingSoon,
+  });
+  final int vipSold;
+  final int hourSold;
+  final int hourInside;
+  final int endingSoon;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
+    final tiles = [
+      _StatTile(
+        icon: PhosphorIconsRegular.crown,
+        label: l10n.insideSoldVip,
+        value: vipSold,
+      ),
+      _StatTile(
+        icon: PhosphorIconsRegular.ticket,
+        label: l10n.insideSoldHour,
+        value: hourSold,
+      ),
+      _StatTile(
+        icon: PhosphorIconsRegular.personSimpleRun,
+        label: l10n.insideHourInside,
+        value: hourInside,
+        tone: NocturneColors.accent,
+      ),
+      _StatTile(
+        icon: PhosphorIconsRegular.timer,
+        label: l10n.insideHourEndingSoon,
+        value: endingSoon,
+        tone: endingSoon > 0 ? NocturneColors.warning : null,
+      ),
+    ];
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final perRow = constraints.maxWidth >= 640 ? 4 : 2;
+              final width = (constraints.maxWidth - 10 * (perRow - 1)) / perRow;
+              return Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  for (final tile in tiles) SizedBox(width: width, child: tile),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 8),
+          Text(
+            l10n.insideNoTurnstileNote,
+            style: AppTextStyles.muted(
+              AppTextStyles.body.copyWith(fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatTile extends StatelessWidget {
+  const _StatTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.tone,
+  });
+  final IconData icon;
+  final String label;
+  final int value;
+  final Color? tone;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = tone ?? NocturneColors.text;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        color: tone == null
+            ? NocturneColors.surface
+            : tone!.withValues(alpha: .08),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(
+          color: tone == null
+              ? NocturneColors.divider
+              : tone!.withValues(alpha: .35),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: tone ?? NocturneColors.neutral600),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('$value', style: AppTextStyles.h5.copyWith(color: color)),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.muted(
+                    AppTextStyles.body.copyWith(fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
