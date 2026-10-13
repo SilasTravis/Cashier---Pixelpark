@@ -709,5 +709,12 @@
   "insideSoldHour": "Timed sold today",
   "insideHourInside": "Timed inside",
   "insideHourEndingSoon": "Ending in 10 min",
-  "insideNoTurnstileNote": "No turnstile: a child with a timed ticket (1 hour and others) is checked in when the ticket prints and their time starts then — check them out here when they leave."
+  "insideNoTurnstileNote": "No turnstile: a child with a timed ticket (1 hour and others) is checked in when the ticket prints and their time starts then — check them out here when they leave.",
+  "shiftTicketsSold": "Tickets sold",
+  "shiftVipTickets": "of which VIP",
+  "shiftUniqueChildren": "Unique children",
+  "shiftEnteredChildren": "Went inside",
+  "shiftPrintReport": "Print the shift check",
+  "shiftCountUnit": "{count}",
+  "@shiftCountUnit": { "placeholders": { "count": { "type": "int" } } }
 }

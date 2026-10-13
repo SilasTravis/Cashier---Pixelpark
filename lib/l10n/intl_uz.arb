@@ -785,5 +785,12 @@
   "insideSoldHour": "Bugun vaqtli sotildi",
   "insideHourInside": "Vaqtli ichkarida",
   "insideHourEndingSoon": "10 daqiqada tugaydi",
-  "insideNoTurnstileNote": "Turniket yo‘q: vaqtli chipta (1 soat va boshqalar) chiqqanda bola ichkariga yoziladi va vaqti shu paytdan boshlanadi — ketganda shu yerdan chiqaring."
+  "insideNoTurnstileNote": "Turniket yo‘q: vaqtli chipta (1 soat va boshqalar) chiqqanda bola ichkariga yoziladi va vaqti shu paytdan boshlanadi — ketganda shu yerdan chiqaring.",
+  "shiftTicketsSold": "Sotilgan biletlar",
+  "shiftVipTickets": "Shundan VIP",
+  "shiftUniqueChildren": "Takrorlanmas bolalar",
+  "shiftEnteredChildren": "Ichkariga kirgan",
+  "shiftPrintReport": "Smena chekini chiqarish",
+  "shiftCountUnit": "{count} ta",
+  "@shiftCountUnit": { "placeholders": { "count": { "type": "int" } } }
 }

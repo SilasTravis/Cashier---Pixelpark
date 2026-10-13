@@ -163,20 +163,22 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m59(count) => "selected: ${count}";
 
-  static String m60(time) => "Shift opened at ${time}";
+  static String m60(count) => "${count}";
 
-  static String m61(synced, failed) =>
+  static String m61(time) => "Shift opened at ${time}";
+
+  static String m62(synced, failed) =>
       "${synced} sales synced, ${failed} failed.";
 
-  static String m62(reason) => "Could not sync: ${reason}. Staying offline.";
+  static String m63(reason) => "Could not sync: ${reason}. Staying offline.";
 
-  static String m63(code) => "Code: ${code}";
+  static String m64(code) => "Code: ${code}";
 
-  static String m64(version) => "New version available: ${version}";
+  static String m65(version) => "New version available: ${version}";
 
-  static String m65(paid, due) => "${paid} already paid — surcharge: ${due}.";
+  static String m66(paid, due) => "${paid} already paid — surcharge: ${due}.";
 
-  static String m66(name) =>
+  static String m67(name) =>
       "«${name}» already has an active VIP tariff — no second charge.";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
@@ -682,27 +684,37 @@ class MessageLookup extends MessageLookupByLibrary {
     "selectedCount": m59,
     "shiftClose": MessageLookupByLibrary.simpleMessage("Close shift"),
     "shiftClosed": MessageLookupByLibrary.simpleMessage("Shift closed"),
+    "shiftCountUnit": m60,
+    "shiftEnteredChildren": MessageLookupByLibrary.simpleMessage("Went inside"),
     "shiftOpen": MessageLookupByLibrary.simpleMessage("Open shift"),
-    "shiftOpenedAt": m60,
+    "shiftOpenedAt": m61,
     "shiftOpeningCash": MessageLookupByLibrary.simpleMessage(
       "Opening cash (UZS)",
+    ),
+    "shiftPrintReport": MessageLookupByLibrary.simpleMessage(
+      "Print the shift check",
     ),
     "shiftRevenue": MessageLookupByLibrary.simpleMessage("Shift revenue"),
     "shiftStart": MessageLookupByLibrary.simpleMessage("Start shift"),
     "shiftStartHint": MessageLookupByLibrary.simpleMessage(
       "Enter the opening cash amount in the register",
     ),
+    "shiftTicketsSold": MessageLookupByLibrary.simpleMessage("Tickets sold"),
     "shiftTotalIncome": MessageLookupByLibrary.simpleMessage(
       "Total shift income",
     ),
+    "shiftUniqueChildren": MessageLookupByLibrary.simpleMessage(
+      "Unique children",
+    ),
+    "shiftVipTickets": MessageLookupByLibrary.simpleMessage("of which VIP"),
     "stickerPrintFailed": MessageLookupByLibrary.simpleMessage(
       "Sticker was not printed — check the printer",
     ),
     "stillOffline": MessageLookupByLibrary.simpleMessage("Still no internet"),
     "switchAndPrint": MessageLookupByLibrary.simpleMessage("Switch and print"),
-    "syncResultBody": m61,
+    "syncResultBody": m62,
     "syncResultTitle": MessageLookupByLibrary.simpleMessage("Sync result"),
-    "syncTransportFailed": m62,
+    "syncTransportFailed": m63,
     "syncViewFailures": MessageLookupByLibrary.simpleMessage("View"),
     "tabAccount": MessageLookupByLibrary.simpleMessage("Account & QR"),
     "tabHistory": MessageLookupByLibrary.simpleMessage("Sales history"),
@@ -781,8 +793,8 @@ class MessageLookup extends MessageLookupByLibrary {
     "unsyncedRetryNeedsOnline": MessageLookupByLibrary.simpleMessage(
       "Switch to online mode to resend",
     ),
-    "unsyncedSupportCode": m63,
-    "updateAvailable": m64,
+    "unsyncedSupportCode": m64,
+    "updateAvailable": m65,
     "updateCancel": MessageLookupByLibrary.simpleMessage("Cancel"),
     "updateCheck": MessageLookupByLibrary.simpleMessage("Check for updates"),
     "updateConfirm": MessageLookupByLibrary.simpleMessage("Continue"),
@@ -824,9 +836,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "updateWindowsOnly": MessageLookupByLibrary.simpleMessage(
       "Automatic updates work on Windows only",
     ),
-    "upgradeCredit": m65,
+    "upgradeCredit": m66,
     "version": MessageLookupByLibrary.simpleMessage("Version"),
-    "vipAlreadyActive": m66,
+    "vipAlreadyActive": m67,
     "vipChargedImmediately": MessageLookupByLibrary.simpleMessage(
       "The VIP tariff is debited from the balance immediately when printed.",
     ),

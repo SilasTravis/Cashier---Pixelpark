@@ -163,22 +163,24 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m59(count) => "tanlangan: ${count}";
 
-  static String m60(time) => "Smena ${time} da ochildi";
+  static String m60(count) => "${count} ta";
 
-  static String m61(synced, failed) =>
+  static String m61(time) => "Smena ${time} da ochildi";
+
+  static String m62(synced, failed) =>
       "${synced} ta savdo sinxronlandi, ${failed} ta xato.";
 
-  static String m62(reason) =>
+  static String m63(reason) =>
       "Sinxronlab bo‘lmadi: ${reason}. Offline rejim davom etadi.";
 
-  static String m63(code) => "Kod: ${code}";
+  static String m64(code) => "Kod: ${code}";
 
-  static String m64(version) => "Yangi versiya mavjud: ${version}";
+  static String m65(version) => "Yangi versiya mavjud: ${version}";
 
-  static String m65(paid, due) =>
+  static String m66(paid, due) =>
       "${paid} allaqachon to‘langan — qo‘shimcha to‘lov: ${due}.";
 
-  static String m66(name) =>
+  static String m67(name) =>
       "«${name}» allaqachon faol VIP tarifda — qayta to‘lov olinmaydi.";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
@@ -696,19 +698,33 @@ class MessageLookup extends MessageLookupByLibrary {
     "selectedCount": m59,
     "shiftClose": MessageLookupByLibrary.simpleMessage("Smenani yopish"),
     "shiftClosed": MessageLookupByLibrary.simpleMessage("Smena yopildi"),
+    "shiftCountUnit": m60,
+    "shiftEnteredChildren": MessageLookupByLibrary.simpleMessage(
+      "Ichkariga kirgan",
+    ),
     "shiftOpen": MessageLookupByLibrary.simpleMessage("Smenani ochish"),
-    "shiftOpenedAt": m60,
+    "shiftOpenedAt": m61,
     "shiftOpeningCash": MessageLookupByLibrary.simpleMessage(
       "Boshlang‘ich naqd (so‘m)",
+    ),
+    "shiftPrintReport": MessageLookupByLibrary.simpleMessage(
+      "Smena chekini chiqarish",
     ),
     "shiftRevenue": MessageLookupByLibrary.simpleMessage("Smena tushumi"),
     "shiftStart": MessageLookupByLibrary.simpleMessage("Smenani boshlash"),
     "shiftStartHint": MessageLookupByLibrary.simpleMessage(
       "Ishni boshlash uchun kassadagi boshlang‘ich naqd summani kiriting",
     ),
+    "shiftTicketsSold": MessageLookupByLibrary.simpleMessage(
+      "Sotilgan biletlar",
+    ),
     "shiftTotalIncome": MessageLookupByLibrary.simpleMessage(
       "Jami smena tushumi",
     ),
+    "shiftUniqueChildren": MessageLookupByLibrary.simpleMessage(
+      "Takrorlanmas bolalar",
+    ),
+    "shiftVipTickets": MessageLookupByLibrary.simpleMessage("Shundan VIP"),
     "stickerPrintFailed": MessageLookupByLibrary.simpleMessage(
       "Stiker chop etilmadi — printerni tekshiring",
     ),
@@ -718,11 +734,11 @@ class MessageLookup extends MessageLookupByLibrary {
     "switchAndPrint": MessageLookupByLibrary.simpleMessage(
       "Almashtirish va chop etish",
     ),
-    "syncResultBody": m61,
+    "syncResultBody": m62,
     "syncResultTitle": MessageLookupByLibrary.simpleMessage(
       "Sinxronlash natijasi",
     ),
-    "syncTransportFailed": m62,
+    "syncTransportFailed": m63,
     "syncViewFailures": MessageLookupByLibrary.simpleMessage("Ko‘rish"),
     "tabAccount": MessageLookupByLibrary.simpleMessage("Hisob va QR"),
     "tabHistory": MessageLookupByLibrary.simpleMessage("Sotuv tarixi"),
@@ -811,8 +827,8 @@ class MessageLookup extends MessageLookupByLibrary {
     "unsyncedRetryNeedsOnline": MessageLookupByLibrary.simpleMessage(
       "Qayta yuborish uchun avval onlayn rejimga o‘ting",
     ),
-    "unsyncedSupportCode": m63,
-    "updateAvailable": m64,
+    "unsyncedSupportCode": m64,
+    "updateAvailable": m65,
     "updateCancel": MessageLookupByLibrary.simpleMessage("Bekor qilish"),
     "updateCheck": MessageLookupByLibrary.simpleMessage(
       "Yangilanishni tekshirish",
@@ -858,9 +874,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "updateWindowsOnly": MessageLookupByLibrary.simpleMessage(
       "Avtomatik yangilash faqat Windows’da ishlaydi",
     ),
-    "upgradeCredit": m65,
+    "upgradeCredit": m66,
     "version": MessageLookupByLibrary.simpleMessage("Versiya"),
-    "vipAlreadyActive": m66,
+    "vipAlreadyActive": m67,
     "vipChargedImmediately": MessageLookupByLibrary.simpleMessage(
       "VIP tarif puli chop etilganda balansdan darhol yechiladi.",
     ),

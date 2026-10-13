@@ -63,6 +63,11 @@ class ShiftRemoteDataSourceImpl implements ShiftRemoteDataSource {
         balanceSalesUzs: (totals['balanceSalesUzs'] as int?) ?? 0,
         refundedUzs: (totals['refundedUzs'] as int?) ?? 0,
         discountUzs: (totals['discountUzs'] as int?) ?? 0,
+        entries: totals['entries'] is Map
+            ? ShiftEntrySummary.fromJson(
+                Map<String, dynamic>.from(totals['entries'] as Map),
+              )
+            : null,
       ),
     );
   }

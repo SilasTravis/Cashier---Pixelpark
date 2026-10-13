@@ -3558,6 +3558,66 @@ class AppLocalization {
       args: [],
     );
   }
+
+  /// `Tickets sold`
+  String get shiftTicketsSold {
+    return Intl.message(
+      'Tickets sold',
+      name: 'shiftTicketsSold',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `of which VIP`
+  String get shiftVipTickets {
+    return Intl.message(
+      'of which VIP',
+      name: 'shiftVipTickets',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Unique children`
+  String get shiftUniqueChildren {
+    return Intl.message(
+      'Unique children',
+      name: 'shiftUniqueChildren',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Went inside`
+  String get shiftEnteredChildren {
+    return Intl.message(
+      'Went inside',
+      name: 'shiftEnteredChildren',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Print the shift check`
+  String get shiftPrintReport {
+    return Intl.message(
+      'Print the shift check',
+      name: 'shiftPrintReport',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{count}`
+  String shiftCountUnit(int count) {
+    return Intl.message(
+      '$count',
+      name: 'shiftCountUnit',
+      desc: '',
+      args: [count],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalization> {

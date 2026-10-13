@@ -163,21 +163,23 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m59(count) => "выбрано: ${count}";
 
-  static String m60(time) => "Смена открыта в ${time}";
+  static String m60(count) => "${count} шт.";
 
-  static String m61(synced, failed) =>
+  static String m61(time) => "Смена открыта в ${time}";
+
+  static String m62(synced, failed) =>
       "Синхронизировано: ${synced}, с ошибкой: ${failed}.";
 
-  static String m62(reason) =>
+  static String m63(reason) =>
       "Не удалось синхронизировать: ${reason}. Офлайн-режим продолжается.";
 
-  static String m63(code) => "Код: ${code}";
+  static String m64(code) => "Код: ${code}";
 
-  static String m64(version) => "Доступна новая версия: ${version}";
+  static String m65(version) => "Доступна новая версия: ${version}";
 
-  static String m65(paid, due) => "Уже оплачено ${paid} — доплата: ${due}.";
+  static String m66(paid, due) => "Уже оплачено ${paid} — доплата: ${due}.";
 
-  static String m66(name) =>
+  static String m67(name) =>
       "«${name}» уже на активном VIP-тарифе — повторная оплата не взимается.";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
@@ -703,19 +705,31 @@ class MessageLookup extends MessageLookupByLibrary {
     "selectedCount": m59,
     "shiftClose": MessageLookupByLibrary.simpleMessage("Закрыть смену"),
     "shiftClosed": MessageLookupByLibrary.simpleMessage("Смена закрыта"),
+    "shiftCountUnit": m60,
+    "shiftEnteredChildren": MessageLookupByLibrary.simpleMessage(
+      "Зашли внутрь",
+    ),
     "shiftOpen": MessageLookupByLibrary.simpleMessage("Открыть смену"),
-    "shiftOpenedAt": m60,
+    "shiftOpenedAt": m61,
     "shiftOpeningCash": MessageLookupByLibrary.simpleMessage(
       "Начальные наличные (сум)",
+    ),
+    "shiftPrintReport": MessageLookupByLibrary.simpleMessage(
+      "Распечатать чек смены",
     ),
     "shiftRevenue": MessageLookupByLibrary.simpleMessage("Выручка смены"),
     "shiftStart": MessageLookupByLibrary.simpleMessage("Начать смену"),
     "shiftStartHint": MessageLookupByLibrary.simpleMessage(
       "Введите начальную сумму наличных в кассе",
     ),
+    "shiftTicketsSold": MessageLookupByLibrary.simpleMessage("Продано билетов"),
     "shiftTotalIncome": MessageLookupByLibrary.simpleMessage(
       "Итого выручка смены",
     ),
+    "shiftUniqueChildren": MessageLookupByLibrary.simpleMessage(
+      "Уникальных детей",
+    ),
+    "shiftVipTickets": MessageLookupByLibrary.simpleMessage("Из них VIP"),
     "stickerPrintFailed": MessageLookupByLibrary.simpleMessage(
       "Стикер не напечатан — проверьте принтер",
     ),
@@ -725,11 +739,11 @@ class MessageLookup extends MessageLookupByLibrary {
     "switchAndPrint": MessageLookupByLibrary.simpleMessage(
       "Сменить и напечатать",
     ),
-    "syncResultBody": m61,
+    "syncResultBody": m62,
     "syncResultTitle": MessageLookupByLibrary.simpleMessage(
       "Результат синхронизации",
     ),
-    "syncTransportFailed": m62,
+    "syncTransportFailed": m63,
     "syncViewFailures": MessageLookupByLibrary.simpleMessage("Открыть"),
     "tabAccount": MessageLookupByLibrary.simpleMessage("Счёт и QR"),
     "tabHistory": MessageLookupByLibrary.simpleMessage("История продаж"),
@@ -818,8 +832,8 @@ class MessageLookup extends MessageLookupByLibrary {
     "unsyncedRetryNeedsOnline": MessageLookupByLibrary.simpleMessage(
       "Чтобы отправить заново, перейдите в онлайн-режим",
     ),
-    "unsyncedSupportCode": m63,
-    "updateAvailable": m64,
+    "unsyncedSupportCode": m64,
+    "updateAvailable": m65,
     "updateCancel": MessageLookupByLibrary.simpleMessage("Отмена"),
     "updateCheck": MessageLookupByLibrary.simpleMessage("Проверить обновления"),
     "updateConfirm": MessageLookupByLibrary.simpleMessage("Продолжить"),
@@ -861,9 +875,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "updateWindowsOnly": MessageLookupByLibrary.simpleMessage(
       "Автообновление работает только в Windows",
     ),
-    "upgradeCredit": m65,
+    "upgradeCredit": m66,
     "version": MessageLookupByLibrary.simpleMessage("Версия"),
-    "vipAlreadyActive": m66,
+    "vipAlreadyActive": m67,
     "vipChargedImmediately": MessageLookupByLibrary.simpleMessage(
       "Стоимость VIP-тарифа списывается с баланса сразу при печати.",
     ),

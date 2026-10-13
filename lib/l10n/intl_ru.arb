@@ -709,5 +709,12 @@
   "insideSoldHour": "По времени продано сегодня",
   "insideHourInside": "По времени внутри",
   "insideHourEndingSoon": "Заканчивается за 10 мин",
-  "insideNoTurnstileNote": "Нет турникета: ребёнок с билетом по времени (1 час и др.) отмечается внутри при печати билета, время идёт с этого момента — отмечайте выход здесь, когда он уходит."
+  "insideNoTurnstileNote": "Нет турникета: ребёнок с билетом по времени (1 час и др.) отмечается внутри при печати билета, время идёт с этого момента — отмечайте выход здесь, когда он уходит.",
+  "shiftTicketsSold": "Продано билетов",
+  "shiftVipTickets": "Из них VIP",
+  "shiftUniqueChildren": "Уникальных детей",
+  "shiftEnteredChildren": "Зашли внутрь",
+  "shiftPrintReport": "Распечатать чек смены",
+  "shiftCountUnit": "{count} шт.",
+  "@shiftCountUnit": { "placeholders": { "count": { "type": "int" } } }
 }

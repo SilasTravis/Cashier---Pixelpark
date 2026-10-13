@@ -25,6 +25,21 @@ class SaleReceiptPrinter {
   static String? offlineNotice(SaleReceipt receipt) =>
       receipt.isOffline ? 'OFFLINE - internet qaytganda sinxronlanadi' : null;
 
+  /// The till's receipt printer: the one picked in Settings, else the first
+  /// SLK thermal printer. Shared with the shift close-out check.
+  static Future<Printer?> findReceiptPrinter(
+    String? preferredPrinterName,
+  ) async {
+    final printers = await Printing.listPrinters();
+    return preferredPrinterName == null
+        ? printers
+              .where((printer) => printer.name.toLowerCase().contains('slk-'))
+              .firstOrNull
+        : printers
+              .where((printer) => printer.name == preferredPrinterName)
+              .firstOrNull;
+  }
+
   static Future<bool> printDirect(
     SaleReceipt receipt, {
     required String branchName,
@@ -32,14 +47,7 @@ class SaleReceiptPrinter {
     String? preferredPrinterName,
   }) async {
     if (!hasPrintableProducts(receipt)) return true;
-    final printers = await Printing.listPrinters();
-    final target = preferredPrinterName == null
-        ? printers
-              .where((printer) => printer.name.toLowerCase().contains('slk-'))
-              .firstOrNull
-        : printers
-              .where((printer) => printer.name == preferredPrinterName)
-              .firstOrNull;
+    final target = await findReceiptPrinter(preferredPrinterName);
     if (target == null) {
       debugPrint('SaleReceiptPrinter: SLK receipt printer not found');
       return false;
