@@ -721,5 +721,15 @@
   "@planSwitchUpgradeCollectQuestion": { "placeholders": { "plan": { "type": "String" }, "price": { "type": "String" } } },
   "planSwitchCollectNow": "К оплате сейчас",
   "planSwitchContinue": "Продолжить",
-  "planSwitchPayInDialog": "У выбранного ребёнка сегодня другой тариф — сумма к оплате (только доплата) будет в следующем окне."
+  "planSwitchPayInDialog": "У выбранного ребёнка сегодня другой тариф — сумма к оплате (только доплата) будет в следующем окне.",
+  "refundFundedTitle": "Пропуска, купленные с этого пополнения",
+  "refundFundedHint": "Отметьте пропуска, которые клиент возвращает: их стоимость сначала вернётся на баланс, затем будет выдана наличными или картой. Отмеченные пропуска сразу аннулируются.",
+  "refundFundedConfirm": "Также будет аннулировано пропусков: {count} — они перестанут работать на входе.",
+  "@refundFundedConfirm": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

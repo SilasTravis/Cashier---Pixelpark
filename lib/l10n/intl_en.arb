@@ -721,5 +721,15 @@
   "@planSwitchUpgradeCollectQuestion": { "placeholders": { "plan": { "type": "String" }, "price": { "type": "String" } } },
   "planSwitchCollectNow": "Collect now",
   "planSwitchContinue": "Continue",
-  "planSwitchPayInDialog": "A selected child already has another tariff today — the amount due (only the surcharge) is shown in the next window."
+  "planSwitchPayInDialog": "A selected child already has another tariff today — the amount due (only the surcharge) is shown in the next window.",
+  "refundFundedTitle": "Passes bought with this top-up",
+  "refundFundedHint": "Tick the passes the customer is handing back: their price returns to the balance first, then goes out as cash or card. Ticked passes are voided at once.",
+  "refundFundedConfirm": "{count} pass(es) will also be voided and stop working at the gate.",
+  "@refundFundedConfirm": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

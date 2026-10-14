@@ -54,6 +54,7 @@ class _FakeSalesRemote extends SalesHistoryRemoteDataSource {
 
   SaleRefundMethod? lastMethod;
   List<String> lastGatePassIds = const [];
+  List<String> lastFundedPurchaseIds = const [];
   SalePaymentMoveMethod? lastFrom;
   SalePaymentMoveMethod? lastTo;
   final calls = <String>[];
@@ -106,7 +107,9 @@ class _FakeSalesRemote extends SalesHistoryRemoteDataSource {
     required String reason,
     required String requestId,
     List<String> gatePassIds = const [],
+    List<String> fundedPurchaseIds = const [],
   }) async {
+    lastFundedPurchaseIds = fundedPurchaseIds;
     lastMethod = method;
     lastGatePassIds = gatePassIds;
     calls.add('refund:$amountUzs');
@@ -231,6 +234,97 @@ void main() {
       expect(remote.lastGatePassIds, ['pass-1', 'pass-2']);
     },
   );
+
+  test(
+    'the passes handed back with a top-up reach the server with the refund',
+    () async {
+      final remote = _FakeSalesRemote();
+      final bloc = SalesHistoryBloc(
+        SalesHistoryRepository(remote),
+        _productsRepository(),
+      );
+      addTearDown(bloc.close);
+
+      bloc.add(const SalesHistoryStarted());
+      await bloc.stream.firstWhere(
+        (state) => !state.isLoading && state.items.isNotEmpty,
+      );
+
+      bloc.add(
+        const SalesHistoryRefundRequested(
+          saleId: 'sale-1',
+          amountUzs: 200000,
+          method: SaleRefundMethod.cash,
+          reason: 'Mijoz kirmay qaytdi',
+          requestId: 'request-9',
+          fundedPurchaseIds: ['funded-1'],
+        ),
+      );
+      await bloc.stream.firstWhere(
+        (state) => state.actionStatus == SaleActionStatus.success,
+      );
+
+      expect(remote.lastFundedPurchaseIds, ['funded-1']);
+      expect(remote.lastGatePassIds, isEmpty);
+    },
+  );
+
+  test('a top-up refund ceiling grows by the passes handed back with it', () {
+    final topup = SaleHistoryEntry(
+      id: 'topup-1',
+      type: 'ACCOUNT_TOPUP',
+      totalUzs: 200000,
+      cashUzs: 200000,
+      cardUzs: 0,
+      balanceUzs: 0,
+      refundedUzs: 0,
+      refundedCashUzs: 0,
+      refundedCardUzs: 0,
+      refundedBalanceUzs: 0,
+      netUzs: 200000,
+      refundableUzs: 200000,
+      refundableCashUzs: 200000,
+      refundableCardUzs: 0,
+      refundableBalanceUzs: 0,
+      canRefund: true,
+      canCorrectPayment: true,
+      createdAt: DateTime(2026, 10, 14, 10),
+      items: const [],
+      refunds: const [],
+      passes: const [],
+      paymentCorrections: const [],
+      customer: const Customer(
+        id: 42,
+        phoneNumber: '998901234567',
+        firstName: 'Ali',
+        lastName: null,
+        balance: 50000,
+        children: [],
+      ),
+      fundedPurchases: const [
+        SaleFundedPurchase(
+          id: 'funded-1',
+          kind: 'vip_day',
+          label: 'VIP',
+          amountUzs: 150000,
+          refundable: true,
+        ),
+      ],
+    );
+
+    // 50 000 left on the balance: that is all that can come back...
+    expect(topup.refundCeilingFor(SaleRefundMethod.cash), 50000);
+    // ...until the unused VIP pass is handed back with it.
+    expect(
+      topup.refundCeilingFor(SaleRefundMethod.cash, handedBackUzs: 150000),
+      200000,
+    );
+    // Never more than the receipt itself.
+    expect(
+      topup.refundCeilingFor(SaleRefundMethod.cash, handedBackUzs: 300000),
+      200000,
+    );
+  });
 
   test(
     'money returned to a balance never shrinks the drawer takings',

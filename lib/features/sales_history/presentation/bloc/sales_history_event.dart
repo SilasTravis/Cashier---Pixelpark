@@ -47,6 +47,7 @@ class SalesHistoryRefundRequested extends SalesHistoryEvent {
     required this.reason,
     required this.requestId,
     this.gatePassIds = const [],
+    this.fundedPurchaseIds = const [],
   });
 
   final String saleId;
@@ -58,6 +59,10 @@ class SalesHistoryRefundRequested extends SalesHistoryEvent {
   /// Entrance stickers being handed back — gate-pass receipts only.
   final List<String> gatePassIds;
 
+  /// Passes bought from this top-up that are handed back with it — top-up
+  /// receipts only.
+  final List<String> fundedPurchaseIds;
+
   @override
   List<Object?> get props => [
     saleId,
@@ -66,6 +71,7 @@ class SalesHistoryRefundRequested extends SalesHistoryEvent {
     reason,
     requestId,
     gatePassIds,
+    fundedPurchaseIds,
   ];
 }
 

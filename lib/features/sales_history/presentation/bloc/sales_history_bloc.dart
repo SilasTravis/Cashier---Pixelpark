@@ -143,6 +143,7 @@ class SalesHistoryBloc extends Bloc<SalesHistoryEvent, SalesHistoryState> {
         reason: event.reason,
         requestId: event.requestId,
         gatePassIds: event.gatePassIds,
+        fundedPurchaseIds: event.fundedPurchaseIds,
       );
       // Money returned to a stored balance never leaves the drawer, so it
       // must not shrink the shift's cash/card takings.

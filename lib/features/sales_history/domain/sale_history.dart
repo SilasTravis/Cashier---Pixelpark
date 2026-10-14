@@ -102,6 +102,46 @@ class SaleGatePass extends Equatable {
   ];
 }
 
+/// A pass the plan-entry checkout bought from a top-up's money in the same
+/// stop (VIP day, 1 soat or HAMROH). Refunding the top-up can hand the
+/// unused ones back first — their price then counts as returnable.
+class SaleFundedPurchase extends Equatable {
+  const SaleFundedPurchase({
+    required this.id,
+    required this.kind,
+    required this.label,
+    required this.amountUzs,
+    required this.refundable,
+    this.childName,
+    this.refunded = false,
+  });
+
+  final String id;
+
+  /// `vip_day` | `hour_pass` | `companion`.
+  final String kind;
+
+  /// Plan label, or `HAMROH` for a companion sticker.
+  final String label;
+  final String? childName;
+  final int amountUzs;
+  final bool refundable;
+
+  /// Already handed back by an earlier refund.
+  final bool refunded;
+
+  @override
+  List<Object?> get props => [
+    id,
+    kind,
+    label,
+    childName,
+    amountUzs,
+    refundable,
+    refunded,
+  ];
+}
+
 class SaleHistoryItem extends Equatable {
   const SaleHistoryItem({
     required this.name,
@@ -147,6 +187,7 @@ class SaleHistoryEntry extends Equatable {
     this.grossUzs = 0,
     this.discountUzs = 0,
     this.discountName,
+    this.fundedPurchases = const [],
   });
 
   final String id;
@@ -185,6 +226,9 @@ class SaleHistoryEntry extends Equatable {
   final List<SaleHistoryRefund> refunds;
   final List<SaleGatePass> passes;
   final List<SalePaymentCorrection> paymentCorrections;
+
+  /// Top-up receipts only: passes bought from this money in the same stop.
+  final List<SaleFundedPurchase> fundedPurchases;
   final Customer? customer;
 
   bool get hasRefunds => refundedUzs > 0;
@@ -217,13 +261,15 @@ class SaleHistoryEntry extends Equatable {
   };
 
   /// Reversing a top-up takes the money back off the balance, so it can never
-  /// return more than the balance still holds.
-  int refundCeilingFor(SaleRefundMethod method) {
+  /// return more than the balance still holds — plus whatever the passes
+  /// being handed back with it ([handedBackUzs]) credit to it first.
+  int refundCeilingFor(SaleRefundMethod method, {int handedBackUzs = 0}) {
     final byMethod = refundableFor(method);
     if (!isTopup) return byMethod;
     final balance = customer?.balance;
     if (balance == null) return byMethod;
-    return balance < byMethod ? (balance < 0 ? 0 : balance) : byMethod;
+    final available = (balance < 0 ? 0 : balance) + handedBackUzs;
+    return available < byMethod ? available : byMethod;
   }
 
   String get typeLabel => switch (type) {
@@ -257,6 +303,7 @@ class SaleHistoryEntry extends Equatable {
     refunds,
     passes,
     paymentCorrections,
+    fundedPurchases,
     customer,
     grossUzs,
     discountUzs,
