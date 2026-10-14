@@ -319,8 +319,8 @@ void main() {
   ) async {
     // k2 already plays on Standard today: VIP doesn't cover it, so the
     // server answers k2 with a conflict and issues no pass in this request
-    // (the confirmed retry goes without the check discount, full price).
-    // The shares are still split over BOTH children.
+    // — the switch modal collects its surcharge, so the panel doesn't
+    // charge it. The shares are still split over BOTH children.
     await pumpPanel(
       tester,
       activePasses: [
@@ -339,8 +339,12 @@ void main() {
 
     expect(find.text(formatUzs(-15000)), findsOneWidget);
     expect(find.text(formatUzs(-30000)), findsNothing);
-    // k1: 100 000 − 15 000, k2: 100 000 at full price.
-    expect(totalValue(formatUzs(185000)), findsOneWidget);
+    // k1: 100 000 − 15 000; k2 is priced in the switch modal.
+    expect(totalValue(formatUzs(85000)), findsOneWidget);
+    expect(totalValue(formatUzs(185000)), findsNothing);
+    // Nothing is collected on this press.
+    expect(find.text('Continue'), findsOneWidget);
+    expect(find.text(_payAndPrint), findsNothing);
   });
 
   testWidgets('a fixed remainder lands on the first child', (tester) async {

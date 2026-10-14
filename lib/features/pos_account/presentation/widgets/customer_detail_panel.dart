@@ -68,6 +68,22 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
   /// the fallback entry ticket must print the discounted price.
   Map<String, Discount> _checkoutEntryDiscounts = const {};
 
+  /// The plan the in-flight checkout was sent with — the panel's own pick
+  /// is cleared the moment a result lands, but a confirmed plan switch
+  /// still prints this name ("UPGRADE - VIP") and price.
+  KidsPlan? _checkoutPlan;
+
+  /// The in-flight checkout and its pricing — kept while it comes back
+  /// with plan-switch conflicts so the modal re-sends the same checkout
+  /// with `replacePlan` and the right amount to collect.
+  PlanSwitchCheckout? _lastCheckout;
+
+  void _clearCheckoutSnapshot() {
+    _checkoutEntryDiscounts = const {};
+    _checkoutPlan = null;
+    _lastCheckout = null;
+  }
+
   /// Paid HAMROH companion stickers to buy with this checkout.
   int _companions = 0;
 
@@ -221,8 +237,10 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
         BlocListener<PosAccountBloc, PosAccountState>(
           listenWhen: (previous, current) =>
               previous.selectedCustomer?.id != current.selectedCustomer?.id,
-          listener: (context, state) =>
-              setState(() => _resetFor(state.selectedCustomer)),
+          listener: (context, state) => setState(() {
+            _resetFor(state.selectedCustomer);
+            _clearCheckoutSnapshot();
+          }),
         ),
         // A failed re-print (or any failed request mid-queue) must not leave
         // its plan name armed for the next real checkout.
@@ -272,20 +290,22 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               }
               return;
             }
+            // The checkout's own plan, snapshotted on submit: a confirmed
+            // switch lands after the panel's pick was cleared.
+            final plan = _checkoutPlan ?? _selectedPlan;
             printPlanEntryLabels(
               context,
               result,
               childNames,
-              planName: _selectedPlan?.name,
-              planPriceUzs: (_selectedPlan?.isPrepaid ?? false)
-                  ? _selectedPlan?.flatUzs
-                  : null,
+              planName: plan?.name,
+              planPriceUzs: (plan?.isPrepaid ?? false) ? plan?.flatUzs : null,
               entryDiscountsByChild: _checkoutEntryDiscounts,
               companionPriceUzs: state.companionPriceUzs,
             );
-            // One checkout's discounts only — a plan-conflict retry is a
-            // fresh request that carries none.
-            _checkoutEntryDiscounts = const {};
+            final lastCheckout = _lastCheckout;
+            // One checkout's snapshot only — kept while it waits on the
+            // plan-switch modal, whose confirm re-sends the same checkout.
+            if (result.conflicts.isEmpty) _clearCheckoutSnapshot();
             context.read<PosAccountBloc>().add(
               const PosAccountEntryAcknowledged(),
             );
@@ -308,17 +328,12 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                   for (final p in state.plans)
                     if (p.kind == KidsPlanKind.flatHour) p.key,
                 },
-                // The code was released (its child only got a conflict) —
-                // still on screen, so the confirmed switch can carry it.
-                promoCode:
-                    state.promo != null &&
-                        result.promoCode != null &&
-                        !result.promoCode!.applied
-                    ? (
-                        code: state.promo!.code,
-                        childId: result.promoCode!.childId,
-                      )
-                    : null,
+                checkout: lastCheckout == null
+                    ? null
+                    : _switchCheckout(lastCheckout, result),
+                // A re-print of the CURRENT pass charges nothing and must
+                // not print the requested plan's name/price.
+                onReprint: _clearCheckoutSnapshot,
               );
             }
           },
@@ -406,31 +421,34 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
           ];
           // VIP and 1 soat are debited from the balance at issuance
           // (register prepay); Standard has no upfront tariff — it bills per
-          // exit by actual minutes. Children already holding a live pass on
-          // the SAME prepaid plan are not charged again — the backend just
-          // re-returns their pass. A live VIP pass also covers a 1 soat
-          // sale: the backend re-prints the VIP sticker and charges nothing
-          // (spec decision 7, VIP → hour).
+          // exit by actual minutes. A child's live pass is handed back as-is
+          // (re-printed, nothing charged) exactly where the backend does it
+          // (`IssuePlanGatePassUseCase.issue`): the pass carries a discount
+          // (or legacy free reason) — its terms are frozen; its plan is a
+          // flat-day one (VIP / VIP-style day plan) — any sale re-prints it
+          // (spec decision 7, VIP → hour); or it is on the selected plan.
           final activePlanByChild = {
             for (final p in state.activePasses) p.childId: p.planKey,
           };
-          // Plans whose live pass covers a 1 soat sale: every unlimited day
-          // pass (built-in VIP and VIP-style custom day plans) and any
-          // VIP-flagged flat plan. Resolved by kind/flag, never by one key.
-          final coveringPlanKeys = {
-            for (final p in state.plans)
-              if (p.kind == KidsPlanKind.flatDay || (p.isVip && p.isPrepaid))
-                p.key,
+          final activePassByChild = {
+            for (final p in state.activePasses) p.childId: p,
           };
           final plansByKey = {for (final p in state.plans) p.key: p};
-          final hourSelected = _selectedPlan?.kind == KidsPlanKind.flatHour;
-          final alreadyOnSelectedPlan = <String>{
-            if (_selectedPlan?.isPrepaid ?? false)
+          bool returnedAsIs(ActivePass pass) =>
+              pass.discountId != null ||
+              pass.freeReason != null ||
+              plansByKey[pass.planKey]?.kind == KidsPlanKind.flatDay ||
+              pass.planKey == _selectedPlan?.key;
+          final passReturnedIds = <String>{
+            if (_selectedPlan != null)
               for (final id in _selectedChildIds)
-                if (activePlanByChild[id] == _selectedPlan!.key ||
-                    (hourSelected &&
-                        coveringPlanKeys.contains(activePlanByChild[id])))
-                  id,
+                if (activePassByChild[id] case final pass?)
+                  if (returnedAsIs(pass)) id,
+          };
+          // Only a prepaid sale has something to not charge again (and a
+          // "no second charge" note to show).
+          final alreadyOnSelectedPlan = <String>{
+            if (_selectedPlan?.isPrepaid ?? false) ...passReturnedIds,
           };
           // The partner promo code discounts ONE selected child. A child
           // with a pass today can't take it — the backend would fail that
@@ -450,8 +468,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               if (!(upgradeTarget &&
                   p.freeReason == null &&
                   p.discountId == null &&
-                  p.planKey != _selectedPlan!.key &&
-                  !coveringPlanKeys.contains(p.planKey)))
+                  !returnedAsIs(p)))
                 p.childId,
           };
           final selectedChildren = [
@@ -471,17 +488,27 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               const <Discount>[];
           // A child with a live pass on another plan the selected one doesn't
           // cover comes back as a plan-switch conflict: no pass in this
-          // request, and the confirmed retry goes without the check discount
-          // (full price). It still counts in the split above — the server
-          // splits over every sent childId — it just never takes its share.
+          // request; the switch modal prices it (its share applies there, to
+          // the surcharge). It still counts in the split above — the server
+          // splits over every sent childId — it just shows no share here.
+          //
+          // These are exactly the children the server answers with a
+          // conflict: a live pass it does not hand back as-is. While any is
+          // selected the press collects nothing — the server moves no money
+          // on a conflicted checkout, and the switch modal collects the rest
+          // with only the surcharge for these children. (Plan zones are not
+          // known here: a pass in another zone is a fresh sale server-side.)
           final switchConflictIds = <String>{
-            for (final id in _selectedChildIds)
-              if (activePlanByChild.containsKey(id) &&
-                  !alreadyOnSelectedPlan.contains(id))
-                id,
+            if (_selectedPlan != null)
+              for (final id in _selectedChildIds)
+                if (activePassByChild.containsKey(id) &&
+                    !passReturnedIds.contains(id))
+                  id,
           };
+          final switchPendingIds = switchConflictIds;
+          // A live pass (switched or handed back as-is) shows no share.
           Discount? checkShareFor(String childId) =>
-              switchConflictIds.contains(childId)
+              activePassByChild.containsKey(childId)
               ? null
               : checkShares[orderedChildIds.indexOf(childId)];
           final promoChildId = promo == null || checkDiscount != null
@@ -514,23 +541,35 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
             return state.entryDiscounts.where((d) => d.id == id).firstOrNull;
           }
 
-          final vipTotal = (_selectedPlan?.isPrepaid ?? false)
-              ? _selectedChildIds
-                    .where((id) => !alreadyOnSelectedPlan.contains(id))
-                    .fold<int>(0, (sum, id) {
-                      final flat = _selectedPlan!.flatUzs ?? 0;
-                      final discount = entryDiscountFor(id);
-                      final discountUzs =
-                          discount?.appliedDiscountUzs(flat) ?? 0;
-                      return sum + (flat - discountUzs);
-                    })
-              : 0;
+          // Each newly-covered child's prepaid price net of the discount
+          // the server stamps on its pass. A pending-switch child takes its
+          // check share too — the confirmed switch re-sends the same check.
+          final childDueUzs = <String, int>{
+            if (_selectedPlan?.isPrepaid ?? false)
+              for (final id in _selectedChildIds)
+                if (!alreadyOnSelectedPlan.contains(id))
+                  id:
+                      (_selectedPlan!.flatUzs ?? 0) -
+                      ((checkDiscount != null
+                                  ? checkShares[orderedChildIds.indexOf(id)]
+                                  : entryDiscountFor(id))
+                              ?.appliedDiscountUzs(
+                                _selectedPlan!.flatUzs ?? 0,
+                              ) ??
+                          0),
+          };
+          // A pending-switch child is not charged here: the switch modal
+          // collects only its surcharge.
+          final vipTotal = childDueUzs.entries
+              .where((e) => !switchPendingIds.contains(e.key))
+              .fold<int>(0, (sum, e) => sum + e.value);
           // What the promo code takes off the prepaid tariff — shown as its
           // own row so a 100% code reads "Bepul", not a bare 0.
           final promoDiscountUzs =
               promoChildId != null &&
                   (_selectedPlan?.isPrepaid ?? false) &&
-                  !alreadyOnSelectedPlan.contains(promoChildId)
+                  !alreadyOnSelectedPlan.contains(promoChildId) &&
+                  !switchPendingIds.contains(promoChildId)
               ? promo!.discount.appliedDiscountUzs(_selectedPlan!.flatUzs ?? 0)
               : 0;
           // What the check discount takes off the prepaid tariff — its own
@@ -585,20 +624,16 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               selectedDiscount?.appliedDiscountUzs(cartTotal) ?? 0;
           final netCartTotal = cartTotal - cartDiscountUzs;
           final neededTotal = netCartTotal + vipTotal + companionsTotal;
-          final shortfall = neededTotal - customer.balance;
-          final balanceCovers = shortfall <= 0;
           // Money must be collected when the balance can't cover the total,
           // or when the cashier explicitly keeps the balance untouched.
           // "Balansdan yechish" OFF collects the whole check in cash/card
           // even when the balance can't cover it — the money is credited to
           // the balance and debited right back, so the balance stays as is.
-          final requiredPayment = neededTotal == 0
-              ? 0
-              : balanceCovers
-              ? (_payFromBalance ? 0 : neededTotal)
-              : (_payFromBalance || customer.balance <= 0
-                    ? shortfall
-                    : neededTotal);
+          final requiredPayment = checkoutCollectUzs(
+            neededUzs: neededTotal,
+            balanceUzs: customer.balance,
+            payFromBalance: _payFromBalance,
+          );
 
           // Default the payment field to exactly what's owed, so the
           // cashier confirms a number instead of typing it. Follows cart /
@@ -617,13 +652,16 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
             cashInput: _payCashController.text,
             cardInput: _payCardController.text,
           );
-          final paymentOk =
-              requiredPayment == 0 ||
-              (payAmount >= requiredPayment && paySplit.isValid);
-
           // A sale with no child is HAMROH / "Qo'shimcha" products alone.
           final hasEntry =
               _selectedPlan != null && _selectedChildIds.isNotEmpty;
+          // "Davom etish": nothing is collected on this press — see
+          // [switchPendingIds].
+          final switchPending = hasEntry && switchPendingIds.isNotEmpty;
+          final paymentOk =
+              switchPending ||
+              requiredPayment == 0 ||
+              (payAmount >= requiredPayment && paySplit.isValid);
           final extrasOnly =
               _selectedChildIds.isEmpty &&
               (_cart.isNotEmpty || _companions > 0);
@@ -866,6 +904,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
             onShowPayAmount: () => setState(() => _showPayAmount = true),
             canSubmit: canEnter,
             isBusy: state.isBusy,
+            switchPending: switchPending,
             onSubmit: () {
               // With a check discount, entryDiscountFor() is the child's
               // share — the printed ticket shows it.
@@ -874,33 +913,46 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                   if (!alreadyOnSelectedPlan.contains(id))
                     id: ?entryDiscountFor(id),
               };
-              context.read<PosAccountBloc>().add(
-                PosAccountCheckoutRequested(
-                  planKey: hasEntry ? _selectedPlan!.key : null,
-                  childIds: hasEntry ? orderedChildIds : const [],
-                  withParentQr: hasEntry && _printParentQr,
-                  entryDiscounts: checkDiscount != null
-                      ? const {}
-                      : {
-                          for (final entry in _childEntryDiscountIds.entries)
-                            if (_selectedChildIds.contains(entry.key) &&
-                                entry.key != promoChildId)
-                              entry.key: entry.value,
-                        },
-                  checkDiscountId: checkDiscount?.id,
-                  promoCode: promoChildId == null
-                      ? null
-                      : (code: promo!.code, childId: promoChildId),
-                  companions: _companions,
-                  products: [
-                    for (final line in _cart.entries)
-                      (productId: line.key, qty: line.value),
-                  ],
-                  cashUzs: requiredPayment == 0 ? 0 : paySplit.cashUzs,
-                  cardUzs: requiredPayment == 0 ? 0 : paySplit.cardUzs,
-                  discountId: _selectedDiscountId,
-                ),
+              _checkoutPlan = hasEntry ? _selectedPlan : null;
+              // A pending plan switch collects nothing on this press: the
+              // server answers with the conflict and moves no money (an
+              // older one that still tops up first then has 0 to park).
+              final collect = !switchPending && requiredPayment > 0;
+              final request = PosAccountCheckoutRequested(
+                planKey: hasEntry ? _selectedPlan!.key : null,
+                childIds: hasEntry ? orderedChildIds : const [],
+                withParentQr: hasEntry && _printParentQr,
+                entryDiscounts: checkDiscount != null
+                    ? const {}
+                    : {
+                        for (final entry in _childEntryDiscountIds.entries)
+                          if (_selectedChildIds.contains(entry.key) &&
+                              entry.key != promoChildId)
+                            entry.key: entry.value,
+                      },
+                checkDiscountId: checkDiscount?.id,
+                promoCode: promoChildId == null
+                    ? null
+                    : (code: promo!.code, childId: promoChildId),
+                companions: _companions,
+                products: [
+                  for (final line in _cart.entries)
+                    (productId: line.key, qty: line.value),
+                ],
+                cashUzs: collect ? paySplit.cashUzs : 0,
+                cardUzs: collect ? paySplit.cardUzs : 0,
+                discountId: _selectedDiscountId,
               );
+              _lastCheckout = PlanSwitchCheckout(
+                request: request,
+                childDueUzs: childDueUzs,
+                extrasDueUzs: netCartTotal + companionsTotal,
+                payFromBalance: _payFromBalance,
+                payMethod: _payMethod == PaymentMethod.split
+                    ? PaymentMethod.cash
+                    : _payMethod,
+              );
+              context.read<PosAccountBloc>().add(request);
             },
           );
 
@@ -1066,6 +1118,54 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
           );
         },
       ),
+    );
+  }
+
+  /// What the plan-switch modal re-sends for a conflicted [last] checkout.
+  /// The current backend settles nothing on a conflicted press, so it is
+  /// the same checkout again. An older backend that already issued the
+  /// other children / sold the goods ([result] carries them) gets only the
+  /// switchable children — never the goods or HAMROH a second time.
+  PlanSwitchCheckout _switchCheckout(
+    PlanSwitchCheckout last,
+    PosEntryResult result,
+  ) {
+    final settled =
+        result.entries.isNotEmpty ||
+        result.companionPasses.isNotEmpty ||
+        result.productSale != null ||
+        result.productsTotalUzs > 0;
+    if (!settled) return last;
+    final request = last.request;
+    final childIds = [
+      for (final c in result.conflicts)
+        if (c.switchable) c.childId,
+    ];
+    return PlanSwitchCheckout(
+      request: PosAccountCheckoutRequested(
+        planKey: request.planKey,
+        childIds: childIds,
+        products: const [],
+        cashUzs: 0,
+        cardUzs: 0,
+        entryDiscounts: {
+          for (final e in request.entryDiscounts.entries)
+            if (childIds.contains(e.key)) e.key: e.value,
+        },
+        promoCode:
+            request.promoCode != null &&
+                childIds.contains(request.promoCode!.childId)
+            ? request.promoCode
+            : null,
+      ),
+      // The switched children's discounted price still caps their
+      // surcharge — unless it came from the check share, which this
+      // narrower request no longer carries.
+      childDueUzs: request.checkDiscountId != null
+          ? const {}
+          : {for (final id in childIds) id: ?last.childDueUzs[id]},
+      payFromBalance: last.payFromBalance,
+      payMethod: last.payMethod,
     );
   }
 
@@ -2584,6 +2684,7 @@ class _CheckoutSection extends StatelessWidget {
     required this.canSubmit,
     required this.isBusy,
     required this.onSubmit,
+    this.switchPending = false,
   });
 
   final List<Product> products;
@@ -2672,6 +2773,11 @@ class _CheckoutSection extends StatelessWidget {
   final bool canSubmit;
   final bool isBusy;
   final VoidCallback onSubmit;
+
+  /// A selected child holds a live pass on another plan: this press only
+  /// asks the server ("Davom etish"), collects nothing, and the switch
+  /// modal collects the amount — so no "To'lanadi" / payment method here.
+  final bool switchPending;
 
   @override
   Widget build(BuildContext context) {
@@ -2778,7 +2884,12 @@ class _CheckoutSection extends StatelessWidget {
                     selectedChildCount,
                   ),
                   amount: planGross,
-                  amountText: planPrepaid ? null : l10n.accountAtExit,
+                  // Only switching children: priced in the switch modal.
+                  amountText: !planPrepaid
+                      ? l10n.accountAtExit
+                      : switchPending && planGross == 0
+                      ? l10n.planSwitch
+                      : null,
                 ),
               if (cartLines.isNotEmpty)
                 for (final line in cartLines)
@@ -2827,7 +2938,7 @@ class _CheckoutSection extends StatelessWidget {
                   ],
                 ),
               ],
-              if (hasTotals) ...[
+              if (hasTotals && !switchPending) ...[
                 if (fromBalanceUzs > 0) ...[
                   const SizedBox(height: 6),
                   _TotalRow(
@@ -2901,8 +3012,16 @@ class _CheckoutSection extends StatelessWidget {
             padding: const EdgeInsets.only(top: 8),
             child: _Note(text: note, icon: PhosphorIconsRegular.checkCircle),
           ),
+        if (switchPending)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: _Note(
+              text: l10n.planSwitchPayInDialog,
+              icon: PhosphorIconsRegular.arrowsClockwise,
+            ),
+          ),
         // How the customer pays what is left.
-        if (requiredPayment > 0) ...[
+        if (requiredPayment > 0 && !switchPending) ...[
           const SizedBox(height: 14),
           PaymentMethodPills(
             selected: payMethod,
@@ -3015,7 +3134,9 @@ class _CheckoutSection extends StatelessWidget {
                 ),
               )
             : Icon(
-                neededTotal > 0
+                switchPending
+                    ? PhosphorIconsRegular.arrowRight
+                    : neededTotal > 0
                     ? PhosphorIconsRegular.printer
                     : PhosphorIconsRegular.doorOpen,
                 size: 20,
@@ -3028,13 +3149,18 @@ class _CheckoutSection extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                neededTotal > 0
+                switchPending
+                    ? l10n.planSwitchContinue
+                    : neededTotal > 0
                     ? l10n.paymentAndPrint
                     : selectedChildCount > 0
                     ? l10n.enterCount(selectedChildCount)
                     : l10n.enter,
               ),
-              if (amountOnAction && neededTotal > 0 && requiredPayment > 0)
+              if (amountOnAction &&
+                  !switchPending &&
+                  neededTotal > 0 &&
+                  requiredPayment > 0)
                 Text(' · ${formatUzs(requiredPayment)}'),
             ],
           ),

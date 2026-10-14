@@ -716,5 +716,10 @@
   "shiftEnteredChildren": "Зашли внутрь",
   "shiftPrintReport": "Распечатать чек смены",
   "shiftCountUnit": "{count} шт.",
-  "@shiftCountUnit": { "placeholders": { "count": { "type": "int" } } }
+  "@shiftCountUnit": { "placeholders": { "count": { "type": "int" } } },
+  "planSwitchUpgradeCollectQuestion": "Перевести на тариф «{plan}»? Сейчас берётся только доплата ({price}) — наличными или картой, на баланс ничего лишнего не попадёт. Старый стикер будет остановлен, новый QR напечатается как «апгрейд».",
+  "@planSwitchUpgradeCollectQuestion": { "placeholders": { "plan": { "type": "String" }, "price": { "type": "String" } } },
+  "planSwitchCollectNow": "К оплате сейчас",
+  "planSwitchContinue": "Продолжить",
+  "planSwitchPayInDialog": "У выбранного ребёнка сегодня другой тариф — сумма к оплате (только доплата) будет в следующем окне."
 }

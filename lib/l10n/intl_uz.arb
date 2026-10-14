@@ -792,5 +792,10 @@
   "shiftEnteredChildren": "Ichkariga kirgan",
   "shiftPrintReport": "Smena chekini chiqarish",
   "shiftCountUnit": "{count} ta",
-  "@shiftCountUnit": { "placeholders": { "count": { "type": "int" } } }
+  "@shiftCountUnit": { "placeholders": { "count": { "type": "int" } } },
+  "planSwitchUpgradeCollectQuestion": "«{plan}» rejasiga o‘tkazilsinmi? Faqat qo‘shimcha to‘lov ({price}) hozir naqd yoki karta bilan olinadi — balansga ortiqcha pul tushmaydi. Eski stiker to‘xtatiladi va yangi QR «upgrade» bo‘lib chop etiladi.",
+  "@planSwitchUpgradeCollectQuestion": { "placeholders": { "plan": { "type": "String" }, "price": { "type": "String" } } },
+  "planSwitchCollectNow": "Hozir olinadi",
+  "planSwitchContinue": "Davom etish",
+  "planSwitchPayInDialog": "Tanlangan bolada bugun boshqa tarif bor — to‘lov keyingi oynada, faqat qo‘shimcha to‘lov bilan hisoblanadi."
 }
