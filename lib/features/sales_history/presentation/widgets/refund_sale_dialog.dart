@@ -495,14 +495,12 @@ class _FundedPicker extends StatelessWidget {
           style: AppTextStyles.muted(AppTextStyles.body).copyWith(fontSize: 11),
         ),
         const SizedBox(height: 8),
-        // Material, not a decorated Container: the tiles' ink must land on it.
-        Material(
-          color: NocturneColors.neutral900,
-          shape: RoundedRectangleBorder(
+        Container(
+          decoration: BoxDecoration(
+            color: NocturneColors.neutral900,
             borderRadius: BorderRadius.circular(8),
-            side: BorderSide(color: NocturneColors.divider),
+            border: Border.all(color: NocturneColors.divider),
           ),
-          clipBehavior: Clip.antiAlias,
           child: Column(
             children: [
               for (final purchase in purchases)
