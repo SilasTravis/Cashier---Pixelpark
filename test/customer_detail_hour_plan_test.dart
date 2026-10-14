@@ -249,9 +249,11 @@ void _multiDayTests() {
     );
   });
 
-  testWidgets('a live VIP-flagged hour plan covers a 1 soat sale', (
+  testWidgets('a live VIP-flagged hour plan sold 1 soat is a plan switch', (
     tester,
   ) async {
+    // The backend hands back as-is only a flat-DAY pass; a VIP-flagged hour
+    // pass on another plan is a (refused) switch — nothing collected here.
     await _pumpPanel(
       tester,
       extraPlans: [_birthday],
@@ -261,6 +263,7 @@ void _multiDayTests() {
     await _pickChildAndPlan(tester, '1 soat');
 
     expect(_due(50000), findsNothing);
+    expect(find.text('Continue'), findsOneWidget);
   });
 
   testWidgets('a live non-VIP custom hour pass does not cover a 1 soat sale', (
@@ -274,11 +277,14 @@ void _multiDayTests() {
 
     await _pickChildAndPlan(tester, '1 soat');
 
-    expect(_due(50000), findsOneWidget);
+    // Not covered → a plan switch: the modal prices it, not this press.
+    expect(_due(50000), findsNothing);
+    expect(find.text('Continue'), findsOneWidget);
   });
 
-  testWidgets('a live built-in VIP is still charged when selling the custom '
-      'day plan', (tester) async {
+  testWidgets('a live built-in VIP is re-printed, not charged, when selling '
+      'the custom day plan', (tester) async {
+    // The backend hands a live flat-day pass back as-is for any sale.
     await _pumpPanel(
       tester,
       extraPlans: [_weekend],
@@ -287,7 +293,12 @@ void _multiDayTests() {
 
     await _pickChildAndPlan(tester, 'Weekend pass');
 
-    expect(_due(150000), findsOneWidget);
+    expect(_due(150000), findsNothing);
+    expect(find.text('Continue'), findsNothing);
+    expect(
+      find.text('«Aziza» already has an active VIP tariff — no second charge.'),
+      findsOneWidget,
+    );
   });
 }
 
@@ -432,9 +443,8 @@ void main() {
     );
   });
 
-  testWidgets('a child on a live 1 soat pass sold VIP is still charged', (
-    tester,
-  ) async {
+  testWidgets('a child on a live 1 soat pass sold VIP is not asked the '
+      'full VIP price', (tester) async {
     await _pumpPanel(
       tester,
       activePasses: [_livePass('hour', '1 soat', 50000)],
@@ -442,7 +452,11 @@ void main() {
 
     await _pickChildAndPlan(tester, 'VIP');
 
-    expect(_due(75000), findsOneWidget);
+    // The press only asks the server; the switch modal collects the
+    // surcharge.
+    expect(_due(75000), findsNothing);
+    expect(find.text('Pay and print'), findsNothing);
+    expect(find.text('Continue'), findsOneWidget);
   });
 
   testWidgets('the hour → VIP conflict from the panel says no refund', (
@@ -469,7 +483,7 @@ void main() {
     );
 
     await _pickChildAndPlan(tester, 'VIP');
-    await tester.tap(find.text('Pay and print'));
+    await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
 
     expect(
@@ -502,7 +516,7 @@ void main() {
     );
 
     await _pickChildAndPlan(tester, 'VIP');
-    await tester.tap(find.text('Pay and print'));
+    await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
 
     // The dialog is up (VIP prepay question) but without the hour note.

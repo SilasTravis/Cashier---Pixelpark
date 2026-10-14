@@ -3618,6 +3618,46 @@ class AppLocalization {
       args: [count],
     );
   }
+
+  /// `Switch to «{plan}»? Only the surcharge ({price}) is collected now, in cash or by card — nothing extra lands on the balance. The old sticker is stopped and the new QR prints as an upgrade.`
+  String planSwitchUpgradeCollectQuestion(String plan, String price) {
+    return Intl.message(
+      'Switch to «$plan»? Only the surcharge ($price) is collected now, in cash or by card — nothing extra lands on the balance. The old sticker is stopped and the new QR prints as an upgrade.',
+      name: 'planSwitchUpgradeCollectQuestion',
+      desc: '',
+      args: [plan, price],
+    );
+  }
+
+  /// `Collect now`
+  String get planSwitchCollectNow {
+    return Intl.message(
+      'Collect now',
+      name: 'planSwitchCollectNow',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Continue`
+  String get planSwitchContinue {
+    return Intl.message(
+      'Continue',
+      name: 'planSwitchContinue',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `A selected child already has another tariff today — the amount due (only the surcharge) is shown in the next window.`
+  String get planSwitchPayInDialog {
+    return Intl.message(
+      'A selected child already has another tariff today — the amount due (only the surcharge) is shown in the next window.',
+      name: 'planSwitchPayInDialog',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalization> {

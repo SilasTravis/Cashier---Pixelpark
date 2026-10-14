@@ -890,9 +890,9 @@ void main() {
 
       await scan(tester);
 
-      // 75 000 − 30% = 52 500 due for the upgrade.
-      expect(_due(52500), findsOneWidget);
-      await tester.tap(find.text('To‘lov va chop etish'));
+      // The upgrade is priced in the switch modal, not on this press.
+      expect(_due(52500), findsNothing);
+      await tester.tap(find.text('Davom etish'));
       await tester.pumpAndSettle();
       expect(remote.lastPromoCode, (code: _code, childId: 'child-1'));
       expect(remote.lastReplacePlan, isFalse);
@@ -937,9 +937,8 @@ void main() {
       await tester.tap(find.text('VIP'));
       await tester.pumpAndSettle();
       await scan(tester);
-      expect(find.text('Bepul'), findsOneWidget);
 
-      await tester.tap(find.text('Kirish (1)'));
+      await tester.tap(find.text('Davom etish'));
       await tester.pumpAndSettle();
       expect(remote.checkoutCalls, 1);
 

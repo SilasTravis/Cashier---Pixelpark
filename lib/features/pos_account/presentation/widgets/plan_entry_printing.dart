@@ -29,6 +29,15 @@ String stickerNameFor(
   return childName.isEmpty ? tag : '$tag · $childName';
 }
 
+/// The plan line of an upgraded pass's paper ticket: "UPGRADE - VIP". The
+/// ticket printer's built-in font is ASCII-only (anything else prints as
+/// "?"), so the separator is a plain hyphen — the sticker's "·" is fine
+/// there (WinAnsi), not here. No plan name leaves just "UPGRADE".
+String upgradeTicketPlanName(String? planName) {
+  final name = planName?.trim() ?? '';
+  return name.isEmpty ? 'UPGRADE' : 'UPGRADE - $name';
+}
+
 /// Fires gate-pass label printing the instant entry is confirmed — no
 /// preview step, no dialog. Any child who couldn't enter (e.g. already
 /// inside) still isn't dropped silently: it surfaces as a SnackBar instead
@@ -78,7 +87,7 @@ void printPlanEntryLabels(
             (
               qrData: entry.token,
               childName: childNamesById[entry.childId] ?? '',
-              planName: 'UPGRADE · ${planName ?? ''}',
+              planName: upgradeTicketPlanName(planName),
               priceUzs: entry.priceUzs ?? 0,
               discountUzs: 0,
               discountName: null,
