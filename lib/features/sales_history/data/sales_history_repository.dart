@@ -37,7 +37,6 @@ class SalesHistoryRepository {
     required String reason,
     required String requestId,
     List<String> gatePassIds = const [],
-    List<String> fundedPurchaseIds = const [],
   }) => remote.refund(
     saleId: saleId,
     amountUzs: amountUzs,
@@ -45,7 +44,6 @@ class SalesHistoryRepository {
     reason: reason,
     requestId: requestId,
     gatePassIds: gatePassIds,
-    fundedPurchaseIds: fundedPurchaseIds,
   );
 
   Future<SaleHistoryEntry> correctPayment({

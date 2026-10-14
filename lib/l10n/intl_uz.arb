@@ -797,15 +797,5 @@
   "@planSwitchUpgradeCollectQuestion": { "placeholders": { "plan": { "type": "String" }, "price": { "type": "String" } } },
   "planSwitchCollectNow": "Hozir olinadi",
   "planSwitchContinue": "Davom etish",
-  "planSwitchPayInDialog": "Tanlangan bolada bugun boshqa tarif bor — to‘lov keyingi oynada, faqat qo‘shimcha to‘lov bilan hisoblanadi.",
-  "refundFundedTitle": "Shu to‘lovdan olingan chiptalar",
-  "refundFundedHint": "Mijoz qaytarayotgan chiptalarni belgilang: ularning puli avval balansga qaytadi, keyin naqd yoki kartaga beriladi. Belgilangan chiptalar darhol bekor qilinadi.",
-  "refundFundedConfirm": "Shuningdek {count} ta chipta bekor qilinadi va endi kirishda ishlamaydi.",
-  "@refundFundedConfirm": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  }
+  "planSwitchPayInDialog": "Tanlangan bolada bugun boshqa tarif bor — to‘lov keyingi oynada, faqat qo‘shimcha to‘lov bilan hisoblanadi."
 }

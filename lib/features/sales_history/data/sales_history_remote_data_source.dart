@@ -105,7 +105,6 @@ class SalesHistoryRemoteDataSource {
     required String reason,
     required String requestId,
     List<String> gatePassIds = const [],
-    List<String> fundedPurchaseIds = const [],
   }) async {
     try {
       final response = await dio.post(
@@ -116,8 +115,6 @@ class SalesHistoryRemoteDataSource {
           'reason': reason,
           'requestId': requestId,
           if (gatePassIds.isNotEmpty) 'gatePassIds': gatePassIds,
-          if (fundedPurchaseIds.isNotEmpty)
-            'fundedPurchaseIds': fundedPurchaseIds,
         },
       );
       return _sale(Map<String, dynamic>.from(response.data as Map));
@@ -187,21 +184,6 @@ class SalesHistoryRemoteDataSource {
           enteredAt: enteredAt == null
               ? null
               : DateTime.parse(enteredAt).toLocal(),
-        );
-      }).toList(),
-      // Absent on older backends — parsed defensively as "none".
-      fundedPurchases: ((json['fundedPurchases'] as List?) ?? const []).map((
-        raw,
-      ) {
-        final row = Map<String, dynamic>.from(raw as Map);
-        return SaleFundedPurchase(
-          id: row['id'] as String,
-          kind: row['kind'] as String,
-          label: row['label'] as String,
-          childName: row['childName'] as String?,
-          amountUzs: _int(row['amountUzs']),
-          refundable: row['refundable'] == true,
-          refunded: row['refundedAt'] != null,
         );
       }).toList(),
       paymentCorrections: ((json['paymentCorrections'] as List?) ?? const [])

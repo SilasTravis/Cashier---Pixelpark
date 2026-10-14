@@ -3658,36 +3658,6 @@ class AppLocalization {
       args: [],
     );
   }
-
-  /// `Passes bought with this top-up`
-  String get refundFundedTitle {
-    return Intl.message(
-      'Passes bought with this top-up',
-      name: 'refundFundedTitle',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Tick the passes the customer is handing back: their price returns to the balance first, then goes out as cash or card. Ticked passes are voided at once.`
-  String get refundFundedHint {
-    return Intl.message(
-      'Tick the passes the customer is handing back: their price returns to the balance first, then goes out as cash or card. Ticked passes are voided at once.',
-      name: 'refundFundedHint',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `{count} pass(es) will also be voided and stop working at the gate.`
-  String refundFundedConfirm(int count) {
-    return Intl.message(
-      '$count pass(es) will also be voided and stop working at the gate.',
-      name: 'refundFundedConfirm',
-      desc: '',
-      args: [count],
-    );
-  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalization> {
