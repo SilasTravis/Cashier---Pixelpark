@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:phosphor_icons/phosphor_icons.dart';
 import 'package:uuid/uuid.dart';
@@ -37,6 +36,7 @@ class _RefundSaleDialogState extends State<_RefundSaleDialog> {
   final _amountController = TextEditingController();
   final _reasonController = TextEditingController();
   final _selectedPassIds = <String>{};
+  final _selectedFundedIds = <String>{};
   late SaleRefundMethod _method;
   int? _submittedAmount;
 
@@ -66,6 +66,16 @@ class _RefundSaleDialogState extends State<_RefundSaleDialog> {
       .where((pass) => _selectedPassIds.contains(pass.id))
       .fold(0, (sum, pass) => sum + pass.priceUzs);
 
+  /// A top-up whose money already bought passes in the same stop: the ones
+  /// handed back are credited to the balance first, so they raise how much
+  /// of the top-up can come back.
+  bool get _picksFunded =>
+      widget.sale.isTopup && widget.sale.fundedPurchases.isNotEmpty;
+
+  int get _handedBackUzs => widget.sale.fundedPurchases
+      .where((purchase) => _selectedFundedIds.contains(purchase.id))
+      .fold(0, (sum, purchase) => sum + purchase.amountUzs);
+
   @override
   void dispose() {
     _amountController.dispose();
@@ -73,9 +83,12 @@ class _RefundSaleDialogState extends State<_RefundSaleDialog> {
     super.dispose();
   }
 
-  int get _limit => widget.sale.refundCeilingFor(_method);
+  int get _limit => widget.sale.refundCeilingFor(
+    _method,
+    handedBackUzs: _handedBackUzs,
+  );
   int? get _amount =>
-      _picksPasses ? _selectedPassTotal : int.tryParse(_amountController.text);
+      _picksPasses ? _selectedPassTotal : parseUzs(_amountController.text);
 
   @override
   Widget build(BuildContext context) {
@@ -107,7 +120,7 @@ class _RefundSaleDialogState extends State<_RefundSaleDialog> {
                   color: NocturneColors.danger.withValues(alpha: .18),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(
+                child: Icon(
                   PhosphorIconsRegular.arrowUDownLeft,
                   color: NocturneColors.neutral200,
                 ),
@@ -188,6 +201,21 @@ class _RefundSaleDialogState extends State<_RefundSaleDialog> {
                             '\n${l10n.refundBalanceLimitNote}',
                       ),
                     ],
+                    if (_picksFunded) ...[
+                      const SizedBox(height: 16),
+                      _FundedPicker(
+                        purchases: widget.sale.fundedPurchases,
+                        selected: _selectedFundedIds,
+                        enabled: !submitting,
+                        onToggle: (id) => setState(() {
+                          if (!_selectedFundedIds.remove(id)) {
+                            _selectedFundedIds.add(id);
+                          }
+                          // The ceiling just moved — offer all of it.
+                          _amountController.text = '$_limit';
+                        }),
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     if (_picksPasses) ...[
                       _PassPicker(
@@ -214,9 +242,7 @@ class _RefundSaleDialogState extends State<_RefundSaleDialog> {
                         enabled: !submitting,
                         autofocus: true,
                         keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
+                        inputFormatters: const [ThousandsInputFormatter()],
                         decoration: InputDecoration(
                           labelText: l10n.refundAmount,
                           suffixText: "so'm",
@@ -231,7 +257,7 @@ class _RefundSaleDialogState extends State<_RefundSaleDialog> {
                           ),
                         ),
                         validator: (value) {
-                          final amount = int.tryParse(value ?? '');
+                          final amount = parseUzs(value ?? '');
                           if (amount == null || amount < 1 || amount > _limit) {
                             return '1 — ${formatUzs(_limit)}';
                           }
@@ -266,7 +292,7 @@ class _RefundSaleDialogState extends State<_RefundSaleDialog> {
                       const SizedBox(height: 12),
                       Text(
                         state.actionError!,
-                        style: const TextStyle(color: NocturneColors.danger),
+                        style: TextStyle(color: NocturneColors.danger),
                       ),
                     ],
                   ],
@@ -315,7 +341,11 @@ class _RefundSaleDialogState extends State<_RefundSaleDialog> {
       builder: (confirmationContext) => AlertDialog(
         title: Text(l10n.refundConfirmTitle),
         content: Text(
-          l10n.refundConfirmMessage(formatUzs(amount), methodLabel),
+          [
+            l10n.refundConfirmMessage(formatUzs(amount), methodLabel),
+            if (_picksFunded && _selectedFundedIds.isNotEmpty)
+              l10n.refundFundedConfirm(_selectedFundedIds.length),
+          ].join('\n\n'),
         ),
         actions: [
           TextButton(
@@ -342,6 +372,9 @@ class _RefundSaleDialogState extends State<_RefundSaleDialog> {
         reason: _reasonController.text.trim(),
         requestId: const Uuid().v4(),
         gatePassIds: _picksPasses ? _selectedPassIds.toList() : const [],
+        fundedPurchaseIds: _picksFunded
+            ? _selectedFundedIds.toList()
+            : const [],
       ),
     );
   }
@@ -426,6 +459,81 @@ class _PassPicker extends StatelessWidget {
               ],
             ),
           ),
+      ],
+    );
+  }
+}
+
+/// Checklist of the passes this top-up's money bought in the same stop. A
+/// used, expired or already handed-back one is shown but cannot be picked.
+class _FundedPicker extends StatelessWidget {
+  const _FundedPicker({
+    required this.purchases,
+    required this.selected,
+    required this.enabled,
+    required this.onToggle,
+  });
+
+  final List<SaleFundedPurchase> purchases;
+  final Set<String> selected;
+  final bool enabled;
+  final void Function(String purchaseId) onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          l10n.refundFundedTitle,
+          style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          l10n.refundFundedHint,
+          style: AppTextStyles.muted(AppTextStyles.body).copyWith(fontSize: 11),
+        ),
+        const SizedBox(height: 8),
+        // Material, not a decorated Container: the tiles' ink must land on it.
+        Material(
+          color: NocturneColors.neutral900,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+            side: BorderSide(color: NocturneColors.divider),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              for (final purchase in purchases)
+                CheckboxListTile(
+                  dense: true,
+                  value: selected.contains(purchase.id),
+                  onChanged: enabled && purchase.refundable
+                      ? (_) => onToggle(purchase.id)
+                      : null,
+                  title: Text(
+                    [
+                      purchase.label,
+                      if (purchase.childName != null) purchase.childName!,
+                      formatUzs(purchase.amountUzs),
+                    ].join(' · '),
+                    style: AppTextStyles.body,
+                  ),
+                  subtitle: purchase.refundable
+                      ? null
+                      : Text(
+                          purchase.refunded
+                              ? l10n.refundPassVoided
+                              : l10n.refundPassUsed,
+                          style: AppTextStyles.muted(
+                            AppTextStyles.body,
+                          ).copyWith(fontSize: 11),
+                        ),
+                ),
+            ],
+          ),
+        ),
       ],
     );
   }

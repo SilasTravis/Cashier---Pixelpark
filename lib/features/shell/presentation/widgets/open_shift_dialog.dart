@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:phosphor_icons/phosphor_icons.dart';
+import '../../../../core/utils/currency.dart';
 
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
@@ -63,7 +63,7 @@ class _OpenShiftPromptState extends State<OpenShiftPrompt> {
                         color: NocturneColors.accent.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         PhosphorIconsRegular.cashRegister,
                         color: NocturneColors.accent,
                         size: 28,
@@ -85,7 +85,7 @@ class _OpenShiftPromptState extends State<OpenShiftPrompt> {
                       controller: _cashController,
                       style: AppTextStyles.body,
                       keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      inputFormatters: const [ThousandsInputFormatter()],
                       textInputAction: TextInputAction.done,
                       decoration: InputDecoration(
                         labelText: l10n.shiftOpeningCash,
@@ -99,7 +99,7 @@ class _OpenShiftPromptState extends State<OpenShiftPrompt> {
                       const SizedBox(height: 12),
                       Text(
                         state.errorMessage!,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: NocturneColors.danger,
                           fontSize: 13,
                         ),
@@ -119,12 +119,12 @@ class _OpenShiftPromptState extends State<OpenShiftPrompt> {
                                   ShiftOpenRequested(
                                     openingCashUzs: raw.isEmpty
                                         ? null
-                                        : int.parse(raw),
+                                        : parseUzs(raw),
                                   ),
                                 );
                               },
                         child: state.isLoading
-                            ? const SizedBox(
+                            ? SizedBox(
                                 width: 18,
                                 height: 18,
                                 child: CircularProgressIndicator(

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:phosphor_icons/phosphor_icons.dart';
 
 import '../theme/app_text_styles.dart';
-import '../theme/nocturne_colors.dart';
+import '../theme/pos_palette.dart';
 import '../utils/currency.dart';
 import '../../generated/l10n.dart';
 
@@ -121,33 +120,37 @@ class _Pill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = PosPalette.of(context);
+    // The light workspace gets roomier, bolder pills; Nocturne keeps its
+    // compact 36px row.
+    final light = Theme.of(context).brightness == Brightness.light;
+    final radius = BorderRadius.circular(light ? 11 : 8);
+    final fg = selected ? p.accent : (light ? p.textMuted : p.text);
     return Material(
-      color: selected
-          ? NocturneColors.accent.withValues(alpha: 0.12)
-          : Colors.transparent,
-      borderRadius: BorderRadius.circular(8),
+      color: selected ? p.accentSoft : Colors.transparent,
+      borderRadius: radius,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: radius,
         child: Container(
-          height: 36,
+          height: light ? 58 : 36,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: radius,
             border: Border.all(
-              color: selected ? NocturneColors.accent : NocturneColors.divider,
+              color: selected ? p.accent : p.border,
+              width: light ? 1.5 : 1,
             ),
           ),
-          child: Row(
+          // Light: icon stacked over the label, like a big tap target;
+          // Nocturne: the compact inline pill.
+          child: Flex(
+            direction: light ? Axis.vertical : Axis.horizontal,
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                icon,
-                size: 14,
-                color: selected ? NocturneColors.accent : NocturneColors.text,
-              ),
-              const SizedBox(width: 6),
+              Icon(icon, size: light ? 20 : 14, color: fg),
+              SizedBox(width: light ? 0 : 6, height: light ? 3 : 0),
               Flexible(
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
@@ -155,10 +158,9 @@ class _Pill extends StatelessWidget {
                     label,
                     maxLines: 1,
                     style: AppTextStyles.body.copyWith(
-                      fontSize: 12,
-                      color: selected
-                          ? NocturneColors.accent
-                          : NocturneColors.text,
+                      fontSize: light ? 13 : 12,
+                      fontWeight: light ? FontWeight.w600 : null,
+                      color: fg,
                     ),
                   ),
                 ),
@@ -183,6 +185,7 @@ class SplitAmountFields extends StatelessWidget {
     required this.split,
     required this.totalUzs,
     this.onChanged,
+    this.autoComplete = false,
   });
 
   final TextEditingController cashController;
@@ -191,9 +194,22 @@ class SplitAmountFields extends StatelessWidget {
   final int totalUzs;
   final VoidCallback? onChanged;
 
+  /// Typing one half fills the other with what is left of [totalUzs], and
+  /// the running-total line only shows while they don't add up.
+  final bool autoComplete;
+
+  void _fillOther(String typed, TextEditingController other) {
+    if (!autoComplete) return;
+    final value = int.tryParse(typed.replaceAll(' ', ''));
+    if (value == null) return;
+    final rest = totalUzs - value;
+    other.text = groupDigits(rest < 0 ? 0 : rest);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalization.of(context);
+    final p = PosPalette.of(context);
     final entered = split.cashUzs + split.cardUzs;
     final remaining = totalUzs - entered;
     return Column(
@@ -205,9 +221,12 @@ class SplitAmountFields extends StatelessWidget {
               child: TextField(
                 controller: cashController,
                 keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                style: AppTextStyles.body,
-                onChanged: (_) => onChanged?.call(),
+                inputFormatters: const [ThousandsInputFormatter()],
+                style: p.body,
+                onChanged: (value) {
+                  _fillOther(value, cardController);
+                  onChanged?.call();
+                },
                 decoration: InputDecoration(labelText: l10n.paymentCash),
               ),
             ),
@@ -216,43 +235,46 @@ class SplitAmountFields extends StatelessWidget {
               child: TextField(
                 controller: cardController,
                 keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                style: AppTextStyles.body,
-                onChanged: (_) => onChanged?.call(),
+                inputFormatters: const [ThousandsInputFormatter()],
+                style: p.body,
+                onChanged: (value) {
+                  _fillOther(value, cashController);
+                  onChanged?.call();
+                },
                 decoration: InputDecoration(labelText: l10n.paymentCard),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Text(
-              remaining == 0
-                  ? l10n.paymentMatched
-                  : remaining > 0
-                  ? l10n.paymentMissing
-                  : l10n.paymentExcess,
-              style: AppTextStyles.body.copyWith(
-                fontSize: 12,
-                color: remaining == 0
-                    ? NocturneColors.accent300
-                    : NocturneColors.text.withValues(alpha: 0.55),
+        if (!autoComplete || remaining != 0) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Text(
+                remaining == 0
+                    ? l10n.paymentMatched
+                    : remaining > 0
+                    ? l10n.paymentMissing
+                    : l10n.paymentExcess,
+                style: AppTextStyles.body.copyWith(
+                  fontSize: 12,
+                  color: remaining == 0 ? p.positive : p.textMuted,
+                ),
               ),
-            ),
-            const Spacer(),
-            Text(
-              remaining == 0 ? formatUzs(entered) : formatUzs(remaining.abs()),
-              style: AppTextStyles.body.copyWith(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: remaining == 0
-                    ? NocturneColors.accent300
-                    : NocturneColors.danger,
+              const Spacer(),
+              Text(
+                remaining == 0
+                    ? formatUzs(entered)
+                    : formatUzs(remaining.abs()),
+                style: AppTextStyles.body.copyWith(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: remaining == 0 ? p.positive : p.danger,
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
+        ],
       ],
     );
   }

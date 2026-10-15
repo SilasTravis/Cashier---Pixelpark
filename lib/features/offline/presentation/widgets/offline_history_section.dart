@@ -47,7 +47,7 @@ class OfflineHistorySection extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
           child: Row(
             children: [
-              const Icon(
+              Icon(
                 PhosphorIconsRegular.cloudArrowUp,
                 size: 16,
                 color: NocturneColors.warning,

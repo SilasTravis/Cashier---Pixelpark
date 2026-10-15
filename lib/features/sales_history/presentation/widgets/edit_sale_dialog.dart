@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:phosphor_icons/phosphor_icons.dart';
 
@@ -75,7 +74,7 @@ class _EditSaleDialogState extends State<_EditSaleDialog> {
   }
 
   int _amount(TextEditingController controller) =>
-      int.tryParse(controller.text) ?? 0;
+      parseUzs(controller.text) ?? 0;
 
   int get _target => _amount(_totalController);
 
@@ -133,7 +132,7 @@ class _EditSaleDialogState extends State<_EditSaleDialog> {
                   color: NocturneColors.accent900,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(
+                child: Icon(
                   PhosphorIconsRegular.pencilSimple,
                   color: NocturneColors.neutral200,
                 ),
@@ -249,7 +248,7 @@ class _EditSaleDialogState extends State<_EditSaleDialog> {
                       const SizedBox(height: 12),
                       Text(
                         state.actionError!,
-                        style: const TextStyle(color: NocturneColors.danger),
+                        style: TextStyle(color: NocturneColors.danger),
                       ),
                       const SizedBox(height: 6),
                       Text(
@@ -299,7 +298,7 @@ class _EditSaleDialogState extends State<_EditSaleDialog> {
     enabled: enabled,
     autofocus: autofocus,
     keyboardType: TextInputType.number,
-    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+    inputFormatters: const [ThousandsInputFormatter()],
     onChanged: (_) => setState(() {}),
     decoration: InputDecoration(
       labelText: label,
@@ -307,7 +306,7 @@ class _EditSaleDialogState extends State<_EditSaleDialog> {
       helperText: '$min — ${formatUzs(_physicalUzs)}',
     ),
     validator: (value) {
-      final amount = int.tryParse(value ?? '');
+      final amount = parseUzs(value ?? '');
       if (amount == null || amount < min || amount > _physicalUzs) {
         return '$min — ${formatUzs(_physicalUzs)}';
       }

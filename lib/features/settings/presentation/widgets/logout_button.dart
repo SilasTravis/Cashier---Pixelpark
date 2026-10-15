@@ -31,7 +31,7 @@ class LogoutButton extends StatelessWidget {
         context: context,
         builder: (dialogContext) => AlertDialog(
           backgroundColor: NocturneColors.surface,
-          icon: const Icon(
+          icon: Icon(
             PhosphorIconsRegular.warning,
             color: NocturneColors.warning,
             size: 32,

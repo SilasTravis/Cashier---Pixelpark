@@ -32,6 +32,10 @@
   "cartEmpty": "Cart is empty",
   "discount": "Discount",
   "noDiscount": "No discount",
+  "discountGroupFree": "Free (100%)",
+  "discountGroupPercent": "Percentage",
+  "discountGroupFixed": "Fixed amount",
+  "discountSearchHint": "Search by name",
   "checkDiscount": "Check discount",
   "checkDiscountNone": "None",
   "checkDiscountLocked": "Check discount selected — child discounts and promo code are off",
@@ -566,19 +570,46 @@
   "offlinePromptDecline": "No",
   "onlinePromptTitle": "Internet is back",
   "onlinePromptBody": "Switch to online mode and sync {count} sales?",
-  "@onlinePromptBody": { "placeholders": { "count": { "type": "int" } } },
+  "@onlinePromptBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "onlinePromptAccept": "Yes, sync",
   "onlinePromptLater": "Later",
   "offlineBanner": "OFFLINE · {count} sales waiting",
-  "@offlineBanner": { "placeholders": { "count": { "type": "int" } } },
+  "@offlineBanner": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "offlineBannerSyncing": "Syncing…",
   "checkOnline": "Check connection",
   "stillOffline": "Still no internet",
   "syncResultTitle": "Sync result",
   "syncResultBody": "{synced} sales synced, {failed} failed.",
-  "@syncResultBody": { "placeholders": { "synced": { "type": "int" }, "failed": { "type": "int" } } },
+  "@syncResultBody": {
+    "placeholders": {
+      "synced": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
   "syncTransportFailed": "Could not sync: {reason}. Staying offline.",
-  "@syncTransportFailed": { "placeholders": { "reason": { "type": "String" } } },
+  "@syncTransportFailed": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "syncViewFailures": "View",
   "needsInternet": "Needs internet",
   "tabUnsynced": "Unsynced",
@@ -587,7 +618,13 @@
   "unsyncedPending": "Waiting",
   "unsyncedFailed": "Failed",
   "unsyncedSupportCode": "Code: {code}",
-  "@unsyncedSupportCode": { "placeholders": { "code": { "type": "String" } } },
+  "@unsyncedSupportCode": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
   "unsyncedCodeCopied": "Code copied",
   "unsyncedRetry": "Retry",
   "unsyncedRetryAll": "Resend all",
@@ -595,15 +632,33 @@
   "notSyncedBadge": "Not synced",
   "historyOfflineNotice": "Offline mode: only sales not yet synced are shown",
   "logoutBlockedUnsynced": "{count} sales are not synced. Sync them in online mode before signing out.",
-  "@logoutBlockedUnsynced": { "placeholders": { "count": { "type": "int" } } },
+  "@logoutBlockedUnsynced": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "closeShiftUnsyncedWarning": "{count} sales failed to sync. Contact support before closing the shift.",
-  "@closeShiftUnsyncedWarning": { "placeholders": { "count": { "type": "int" } } },
+  "@closeShiftUnsyncedWarning": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "closeShiftOffline": "A shift can't be closed in offline mode",
   "logoutFailedSalesConfirm": "{count} sales failed to sync. They stay saved on this till. Sign out anyway?",
-  "@logoutFailedSalesConfirm": { "placeholders": { "count": { "type": "int" } } },
+  "@logoutFailedSalesConfirm": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "logoutAnyway": "Sign out anyway",
   "promoCode": "Promo code",
-  "promoCodeHint": "Scan or type the code",
+  "promoCodeHint": "Scan or type",
   "promoCodeCheck": "Check",
   "promoCodeInvalid": "Invalid promo code — check the code",
   "promoCodeOwnerNotFound": "The promo code owner was not found",
@@ -613,13 +668,263 @@
   "promoCodeChildHasPass": "This child already has a pass today — the promo code only applies to a new entry or a VIP upgrade",
   "promoCodeRemove": "Remove promo code",
   "promoCodeReleased": "Promo code not applied, code returned: {reason}",
-  "@promoCodeReleased": { "placeholders": { "reason": { "type": "String" } } },
+  "@promoCodeReleased": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "promoCodeBlogger": "Blogger",
   "promoCodeBloggerPending": "Blogger promo code {code} accepted — select a customer",
-  "@promoCodeBloggerPending": { "placeholders": { "code": { "type": "String" } } },
+  "@promoCodeBloggerPending": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
   "promoCodeNotStarted": "This promo code is not active yet",
   "promoCodeLimitReached": "This promo code has reached its usage limit",
   "promoCodeAlreadyUsedByCustomer": "This customer has already used this promo code",
+  "accountStepWho": "Who's entering?",
+  "accountStepExtras": "Extras",
+  "accountOptional": "optional",
+  "accountDueShortfall": "Amount still due",
+  "accountDueFull": "Customer pays",
+  "accountFromBalance": "Taken from balance",
+  "accountCoveredByBalance": "Fully covered by balance · {value} left",
+  "@accountCoveredByBalance": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "accountInsideCount": "{count} inside",
+  "@accountInsideCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "accountAgeYears": "{count} y.o.",
+  "@accountAgeYears": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "accountInsideMinutes": "Inside · {minutes} min",
+  "@accountInsideMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "accountPayNow": "Paid now",
+  "accountPayAtExit": "Billed at exit",
+  "accountAtExit": "at exit",
+  "accountPlanTimesKids": "{plan} × {count}",
+  "@accountPlanTimesKids": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "accountColChild": "Child",
+  "accountColTime": "Time",
+  "accountColSoFar": "So far",
+  "accountExcessToBalance": "{value} goes to the balance",
+  "@accountExcessToBalance": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "accountToPay": "To pay",
+  "accountFromBalanceLine": "From balance",
+  "accountLeftOnBalance": "Left on balance",
+  "accountOtherAmount": "Take a different amount",
+  "accountNoCheckDiscounts": "No active check discounts",
+  "accountPickChildFirst": "Select a child first",
+  "accountTodayQrs": "Today's QR codes",
+  "accountTodayQrsHint": "Reprint a lost or damaged sticker: nothing is charged and the old sticker keeps working.",
+  "accountValidUntil": "until {time}",
+  "@accountValidUntil": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "reprintAll": "Reprint all",
+  "themeNight": "Night mode",
+  "themeDay": "Day mode",
+  "themeNightHint": "A soft dark-blue background that is easy on the eyes. Remembered on this till.",
+  "accountTxTitle": "Transaction history",
+  "accountTxCount": "{count}",
+  "@accountTxCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "accountTxEmpty": "No transactions for this customer yet",
+  "accountTxFailed": "Couldn't load the transactions",
+  "accountTxRange": "{from}–{to} / {total}",
+  "@accountTxRange": {
+    "placeholders": {
+      "from": {
+        "type": "int"
+      },
+      "to": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "accountTxPrev": "Previous",
+  "accountTxNext": "Next",
+  "accountTxMore": "Other",
+  "txBonus": "Bonus",
+  "txPayment": "App top-up",
+  "txManualAdjustment": "Manual adjustment",
+  "txKidsCharge": "Tariff (entry)",
+  "txCashierTopup": "Cash-desk top-up",
+  "txPosPurchase": "Cash-desk purchase",
+  "txCashierTopupRefund": "Top-up refunded",
+  "txPosPurchaseRefund": "Purchase refunded",
+  "txLegacy": "Legacy record",
+  "txGameReward": "Game reward",
+  "txMarketPurchase": "Market purchase",
+  "txMarketRefund": "Market refund",
+  "txStatusPending": "Pending",
+  "txStatusFailed": "Failed",
+  "txStatusCancelled": "Cancelled",
+  "planSwitchUpgradeQuestion": "Switch to «{plan}»? Only the surcharge ({price}) is debited from the balance. The old sticker is stopped and the new QR prints as an upgrade.",
+  "@planSwitchUpgradeQuestion": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "upgradeCredit": "{paid} already paid — surcharge: {due}.",
+  "@upgradeCredit": {
+    "placeholders": {
+      "paid": {
+        "type": "String"
+      },
+      "due": {
+        "type": "String"
+      }
+    }
+  },
+  "insideFilterAll": "All",
+  "insideFilterHour": "Timed",
+  "insideFilterOvertime": "Time is up",
+  "hourOvertimeBanner": "{count} children are past their time — call the parents",
+  "@hourOvertimeBanner": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "hourOvertimeShow": "Show",
+  "hourOvertimeBy": "+{count} min over",
+  "@hourOvertimeBy": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "hourRemaining": "{count} min left",
+  "@hourRemaining": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "hourEndsAtLabel": "Ends",
+  "hourEndedAtLabel": "Ended",
+  "insideHourEmpty": "No children on a timed tariff right now",
+  "insideOvertimeEmpty": "Nobody is over time",
+  "insideSoldVip": "VIP sold today",
+  "insideSoldHour": "Timed sold today",
+  "insideHourInside": "Timed inside",
+  "insideHourEndingSoon": "Ending in 10 min",
+  "insideNoTurnstileNote": "No turnstile: a child with a timed ticket (1 hour and others) is checked in when the ticket prints and their time starts then — check them out here when they leave.",
+  "shiftTicketsSold": "Tickets sold",
+  "shiftVipTickets": "of which VIP",
+  "shiftUniqueChildren": "Unique children",
+  "shiftEnteredChildren": "Went inside",
+  "shiftPrintReport": "Print the shift check",
+  "shiftCountUnit": "{count}",
+  "@shiftCountUnit": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "planSwitchUpgradeCollectQuestion": "Switch to «{plan}»? Only the surcharge ({price}) is collected now, in cash or by card — nothing extra lands on the balance. The old sticker is stopped and the new QR prints as an upgrade.",
+  "@planSwitchUpgradeCollectQuestion": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "planSwitchCollectNow": "Collect now",
+  "planSwitchContinue": "Continue",
+  "planSwitchPayInDialog": "A selected child already has another tariff today — the amount due (only the surcharge) is shown in the next window.",
+  "refundFundedTitle": "Passes bought with this top-up",
+  "refundFundedHint": "Tick the passes the customer is handing back: their price returns to the balance first, then goes out as cash or card. Ticked passes are voided at once.",
+  "refundFundedConfirm": "{count} pass(es) will also be voided and stop working at the gate.",
+  "@refundFundedConfirm": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "currentTariff": "Current tariff",
+  "paidLabel": "paid",
+  "planSwitchBlocked": "«{name}»: can't switch {from} → {to}",
+  "@planSwitchBlocked": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
   "tabMarket": "Pixel Market",
   "marketGive": "Hand over",
   "marketIncoming": "Incoming",
@@ -630,7 +935,13 @@
   "marketRequestFailed": "The request failed — try again",
   "marketScanPrompt": "Scan the QR code in the parent’s app",
   "marketOrderNumber": "Order #{number}",
-  "@marketOrderNumber": { "placeholders": { "number": { "type": "String" } } },
+  "@marketOrderNumber": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
   "marketCustomer": "Customer",
   "marketStatusPlaced": "New",
   "marketStatusConfirmed": "Shop is preparing",
@@ -645,10 +956,22 @@
   "marketUnreceivedHint": "Receive the shop’s sent orders with “Receive” first — only orders at the park are handed over",
   "marketHandedTitle": "Handed over!",
   "marketHandedBody": "{count} order(s) handed to the customer",
-  "@marketHandedBody": { "placeholders": { "count": { "type": "int" } } },
+  "@marketHandedBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "marketNext": "Next customer",
   "marketItemsCount": "{count} item(s)",
-  "@marketItemsCount": { "placeholders": { "count": { "type": "int" } } },
+  "@marketItemsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "marketTotal": "Total",
   "marketIncomingEmpty": "No incoming orders yet"
 }

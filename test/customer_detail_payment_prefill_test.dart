@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:cashier_app/core/utils/currency.dart';
+
 import 'package:cashier_app/generated/l10n.dart';
 import 'package:cashier_app/features/pos_account/data/pos_account_remote_data_source.dart';
 import 'package:cashier_app/features/pos_account/data/pos_account_repository_impl.dart';
@@ -91,13 +93,21 @@ void main() {
 
       // Select the child and the VIP tariff: 75 000 is now required, and
       // the zero balance cannot cover it.
-      await tester.tap(find.text('QR'));
+      await tester.tap(find.byKey(const ValueKey('child-select')));
       await tester.pump();
       await tester.tap(find.text('VIP'));
       await tester.pumpAndSettle();
 
       // The payment field must arrive prefilled with the required sum.
-      expect(find.widgetWithText(TextField, '75000'), findsOneWidget);
+      expect(_due(75000), findsOneWidget);
     },
   );
 }
+
+/// The "To'lanadi" amount on the account checkout's receipt.
+Finder _due(int uzs) => find.byWidgetPredicate(
+  (w) =>
+      w is Text &&
+      w.key == const ValueKey('pay-due') &&
+      w.data == formatUzs(uzs),
+);

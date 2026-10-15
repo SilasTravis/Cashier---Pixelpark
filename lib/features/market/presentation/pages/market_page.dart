@@ -196,7 +196,7 @@ class _GiveViewState extends State<_GiveView> {
           padding: const EdgeInsets.only(bottom: 12),
           child: Row(
             children: [
-              const Icon(
+              Icon(
                 PhosphorIconsRegular.info,
                 size: 18,
                 color: NocturneColors.warning,
@@ -257,7 +257,7 @@ class _CustomerCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const CircleAvatar(
+          CircleAvatar(
             backgroundColor: NocturneColors.accent900,
             child: Icon(
               PhosphorIconsRegular.user,
@@ -328,7 +328,7 @@ class _HandedPanel extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(
+          Icon(
             PhosphorIconsFill.checkCircle,
             size: 44,
             color: NocturneColors.success,

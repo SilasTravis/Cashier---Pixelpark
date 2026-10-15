@@ -105,7 +105,7 @@ class _PickupCodeFieldState extends State<PickupCodeField> {
             : IconButton(
                 tooltip: l10n.marketCodeFind,
                 onPressed: _submit,
-                icon: const Icon(
+                icon: Icon(
                   PhosphorIconsRegular.arrowRight,
                   color: NocturneColors.accent,
                 ),

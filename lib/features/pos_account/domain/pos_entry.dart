@@ -11,6 +11,9 @@ class PosEntry extends Equatable {
     required this.token,
     required this.expiresAt,
     this.durationMinutes,
+    this.priceUzs,
+    this.upgrade = false,
+    this.upgradeCreditUzs = 0,
   });
 
   final String childId;
@@ -20,8 +23,27 @@ class PosEntry extends Equatable {
   /// 1 soat stickers only: the plan's duration, printed on the name line.
   final int? durationMinutes;
 
+  /// What the register charged for this pass (null on older backends). For
+  /// an [upgrade] it is only the surcharge.
+  final int? priceUzs;
+
+  /// The pass replaced a live 1 soat / Standard pass (1 soat 60 000 → VIP
+  /// 75 000 charges 15 000): the ticket prints "UPGRADE" and [priceUzs].
+  final bool upgrade;
+
+  /// What the replaced pass had already paid (credited).
+  final int upgradeCreditUzs;
+
   @override
-  List<Object?> get props => [childId, token, expiresAt, durationMinutes];
+  List<Object?> get props => [
+    childId,
+    token,
+    expiresAt,
+    durationMinutes,
+    priceUzs,
+    upgrade,
+    upgradeCreditUzs,
+  ];
 }
 
 /// One child that failed to enter — surfaced alongside any successes in the
@@ -54,6 +76,8 @@ class PosEntryConflict extends Equatable {
     required this.isInside,
     required this.accruedDueUzs,
     required this.switchable,
+    this.upgradeCreditUzs = 0,
+    this.upgradeDueUzs,
   });
 
   final String childId;
@@ -70,6 +94,14 @@ class PosEntryConflict extends Equatable {
   /// False for downgrades (VIP → Standart) — no switch is offered.
   final bool switchable;
 
+  /// What the current pass already paid today (1 soat price, or Standard
+  /// time billed) — credited against the new plan's price.
+  final int upgradeCreditUzs;
+
+  /// The surcharge the switch costs (new price − credit). Null on older
+  /// backends, which still charge the full new price.
+  final int? upgradeDueUzs;
+
   @override
   List<Object?> get props => [
     childId,
@@ -79,6 +111,8 @@ class PosEntryConflict extends Equatable {
     isInside,
     accruedDueUzs,
     switchable,
+    upgradeCreditUzs,
+    upgradeDueUzs,
   ];
 }
 

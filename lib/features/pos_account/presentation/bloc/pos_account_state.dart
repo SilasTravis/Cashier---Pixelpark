@@ -18,6 +18,11 @@ class PosAccountState extends Equatable {
     this.isLoadingPlans = false,
     this.products = const [],
     this.playing = const [],
+    this.transactions = const [],
+    this.transactionsTotal = 0,
+    this.transactionsPage = 0,
+    this.isLoadingTransactions = false,
+    this.transactionsFailed = false,
     this.activePasses = const [],
     this.lastEntryResult,
     this.lastParentPass,
@@ -65,6 +70,15 @@ class PosAccountState extends Equatable {
   /// The selected customer's currently-inside children with live due-so-far
   /// — refreshed on selection and after each checkout.
   final List<PlayingChild> playing;
+
+  /// The open page of the customer's balance ledger — empty until the
+  /// "Amallar" accordion is first opened ([transactionsPage] 0 = never
+  /// loaded), then refreshed whenever the balance moves.
+  final List<CustomerTransaction> transactions;
+  final int transactionsTotal;
+  final int transactionsPage;
+  final bool isLoadingTransactions;
+  final bool transactionsFailed;
 
   /// Each child's still-valid day pass — the "already on this plan today"
   /// badge; same refresh lifecycle as [playing].
@@ -135,6 +149,11 @@ class PosAccountState extends Equatable {
     bool? isLoadingPlans,
     List<Product>? products,
     List<PlayingChild>? playing,
+    List<CustomerTransaction>? transactions,
+    int? transactionsTotal,
+    int? transactionsPage,
+    bool? isLoadingTransactions,
+    bool? transactionsFailed,
     List<ActivePass>? activePasses,
     PosEntryResult? lastEntryResult,
     bool clearLastEntryResult = false,
@@ -172,6 +191,12 @@ class PosAccountState extends Equatable {
       isLoadingPlans: isLoadingPlans ?? this.isLoadingPlans,
       products: products ?? this.products,
       playing: playing ?? this.playing,
+      transactions: transactions ?? this.transactions,
+      transactionsTotal: transactionsTotal ?? this.transactionsTotal,
+      transactionsPage: transactionsPage ?? this.transactionsPage,
+      isLoadingTransactions:
+          isLoadingTransactions ?? this.isLoadingTransactions,
+      transactionsFailed: transactionsFailed ?? this.transactionsFailed,
       activePasses: activePasses ?? this.activePasses,
       lastEntryResult: clearLastEntryResult
           ? null
@@ -214,6 +239,11 @@ class PosAccountState extends Equatable {
     isLoadingPlans,
     products,
     playing,
+    transactions,
+    transactionsTotal,
+    transactionsPage,
+    isLoadingTransactions,
+    transactionsFailed,
     activePasses,
     lastEntryResult,
     lastParentPass,

@@ -225,7 +225,7 @@ class _CartPanelState extends State<CartPanel> {
                       const SizedBox(height: 10),
                       Text(
                         state.errorMessage!,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: NocturneColors.danger,
                           fontSize: 13,
                         ),

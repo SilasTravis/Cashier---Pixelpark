@@ -12,6 +12,7 @@ import 'package:cashier_app/features/pos_account/domain/kids_plan.dart';
 import 'package:cashier_app/features/pos_account/domain/playing_child.dart';
 import 'package:cashier_app/features/pos_account/domain/pos_entry.dart';
 import 'package:cashier_app/features/pos_account/presentation/bloc/pos_account_bloc.dart';
+import 'package:cashier_app/features/pos_account/presentation/widgets/check_discount_sheet.dart';
 import 'package:cashier_app/features/pos_account/presentation/widgets/customer_detail_panel.dart';
 import 'package:cashier_app/features/pos_sale/domain/discount.dart';
 
@@ -32,7 +33,7 @@ class _FakeRemote implements PosAccountRemoteDataSource {
   @override
   Future<PosEntryResult> planEntryCheckout({
     required int customerId,
-    required String planKey,
+    required String? planKey,
     required List<String> childIds,
     required List<CheckoutLine> products,
     required int cashUzs,
@@ -189,7 +190,9 @@ Future<void> pumpPanel(
 }
 
 Future<void> tapChildRow(WidgetTester tester, String childId) async {
-  await tester.tap(find.text('QR').at(_childIds.indexOf(childId)));
+  await tester.tap(
+    find.byKey(const ValueKey('child-select')).at(_childIds.indexOf(childId)),
+  );
   await tester.pump();
 }
 
@@ -291,31 +294,33 @@ void main() {
   ) async {
     await pumpPanel(tester);
     await selectChildrenAndPlan(tester, ['k1'], 'VIP');
-    expect(find.byType(PopupMenuButton<Object>), findsWidgets);
+    expect(find.byKey(const ValueKey('child-discount-button')), findsWidgets);
 
     await pickCheckDiscount(tester, 'Oila');
 
-    expect(find.byType(PopupMenuButton<Object>), findsNothing);
+    expect(find.byKey(const ValueKey('child-discount-button')), findsNothing);
     expect(find.text(_locked), findsOneWidget);
   });
 
-  testWidgets('the button stays hidden until a child is selected', (
+  testWidgets('the picker stays greyed until a child is selected', (
     tester,
   ) async {
     await pumpPanel(tester);
-    expect(find.text(_checkDiscount), findsNothing);
+    expect(find.byType(CheckDiscountButton), findsNothing);
+    expect(find.text('Select a child first'), findsOneWidget);
 
     await tapChildRow(tester, 'k1');
     await tester.pumpAndSettle();
-    expect(find.text(_checkDiscount), findsOneWidget);
+    expect(find.byType(CheckDiscountButton), findsOneWidget);
+    expect(find.text('Select a child first'), findsNothing);
   });
   testWidgets('a child heading for a plan-switch conflict gets no share', (
     tester,
   ) async {
     // k2 already plays on Standard today: VIP doesn't cover it, so the
     // server answers k2 with a conflict and issues no pass in this request
-    // (the confirmed retry goes without the check discount, full price).
-    // The shares are still split over BOTH children.
+    // — the switch modal collects its surcharge, so the panel doesn't
+    // charge it. The shares are still split over BOTH children.
     await pumpPanel(
       tester,
       activePasses: [
@@ -334,8 +339,12 @@ void main() {
 
     expect(find.text(formatUzs(-15000)), findsOneWidget);
     expect(find.text(formatUzs(-30000)), findsNothing);
-    // k1: 100 000 − 15 000, k2: 100 000 at full price.
-    expect(totalValue(formatUzs(185000)), findsOneWidget);
+    // k1: 100 000 − 15 000; k2 is priced in the switch modal.
+    expect(totalValue(formatUzs(85000)), findsOneWidget);
+    expect(totalValue(formatUzs(185000)), findsNothing);
+    // Nothing is collected on this press.
+    expect(find.text('Continue'), findsOneWidget);
+    expect(find.text(_payAndPrint), findsNothing);
   });
 
   testWidgets('a fixed remainder lands on the first child', (tester) async {

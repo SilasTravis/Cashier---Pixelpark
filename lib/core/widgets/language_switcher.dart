@@ -40,7 +40,7 @@ class LanguageSwitcher extends StatelessWidget {
       color: NocturneColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.md),
-        side: const BorderSide(color: NocturneColors.divider),
+        side: BorderSide(color: NocturneColors.divider),
       ),
       itemBuilder: (_) => [
         _item('uz', 'UZ', l10n.languageUzbek, languageCode),
@@ -57,7 +57,7 @@ class LanguageSwitcher extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               PhosphorIconsRegular.translate,
               size: 16,
               color: NocturneColors.accent,
@@ -96,7 +96,7 @@ class LanguageSwitcher extends StatelessWidget {
         ),
         Expanded(child: Text(label)),
         if (selected == value)
-          const Icon(
+          Icon(
             PhosphorIconsRegular.check,
             size: 16,
             color: NocturneColors.accent,

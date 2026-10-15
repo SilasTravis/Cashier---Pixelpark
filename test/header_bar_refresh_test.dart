@@ -8,8 +8,7 @@ import 'package:hive_ce/hive.dart';
 import 'package:cashier_app/core/local_source/local_source.dart';
 import 'package:cashier_app/features/offline/data/offline_store.dart';
 import 'package:cashier_app/generated/l10n.dart';
-import 'package:cashier_app/features/shell/presentation/model/shell_tab.dart';
-import 'package:cashier_app/features/shell/presentation/widgets/header_bar.dart';
+import 'package:cashier_app/features/shell/presentation/widgets/shift_revenue_chip.dart';
 import 'package:cashier_app/features/shift/data/shift_remote_data_source.dart';
 import 'package:cashier_app/features/shift/data/shift_repository_impl.dart';
 import 'package:cashier_app/features/shift/domain/shift.dart';
@@ -88,8 +87,7 @@ void main() {
           value: bloc,
           child: Scaffold(
             body: BlocBuilder<ShiftBloc, ShiftState>(
-              builder: (context, state) =>
-                  HeaderBar(tab: ShellTab.posAccount, shift: state.shift),
+              builder: (context, state) => ShiftRevenueChip(shift: state.shift),
             ),
           ),
         ),

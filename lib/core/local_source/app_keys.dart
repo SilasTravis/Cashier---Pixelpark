@@ -16,6 +16,15 @@ abstract final class AppKeys {
   static const String qrPrinterName = 'qrPrinterName';
   static const String receiptPrinterName = 'receiptPrinterName';
 
+  /// The cashier's last "Ota-ona QR ham chop etish" choice — the next
+  /// checkout starts from it. Device config, not session: never cleared on
+  /// logout.
+  static const String printParentQr = 'printParentQr';
+
+  /// Night mode on this till (the soft blue-slate theme). Device config,
+  /// not session: never cleared on logout.
+  static const String darkMode = 'darkMode';
+
   /// This installation's identity for the backend's terminal monitoring.
   /// Device config, not session: never cleared on logout.
   static const String terminalId = 'terminalId';

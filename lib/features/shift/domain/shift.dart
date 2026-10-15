@@ -1,5 +1,93 @@
 import 'package:equatable/equatable.dart';
 
+/// One tariff on the close-out check: passes the cashier sold at it.
+class ShiftTariffLine extends Equatable {
+  const ShiftTariffLine({
+    required this.label,
+    required this.isVip,
+    required this.count,
+  });
+
+  final String label;
+  final bool isVip;
+  final int count;
+
+  Map<String, dynamic> toJson() => {
+    'label': label,
+    'isVip': isVip,
+    'count': count,
+  };
+
+  factory ShiftTariffLine.fromJson(Map<String, dynamic> json) =>
+      ShiftTariffLine(
+        label: json['label'] as String? ?? '',
+        isVip: json['isVip'] as bool? ?? false,
+        count: (json['count'] as num?)?.toInt() ?? 0,
+      );
+
+  @override
+  List<Object?> get props => [label, isVip, count];
+}
+
+/// Entry tickets the cashier sold this shift (server-computed: an upgraded
+/// pass counts once, refunds and re-prints add nothing) and the distinct
+/// children behind them.
+class ShiftEntrySummary extends Equatable {
+  const ShiftEntrySummary({
+    required this.tariffs,
+    required this.ticketsCount,
+    required this.vipCount,
+    required this.uniqueChildren,
+    required this.enteredChildren,
+  });
+
+  final List<ShiftTariffLine> tariffs;
+  final int ticketsCount;
+  final int vipCount;
+
+  /// Distinct children a pass was sold for.
+  final int uniqueChildren;
+
+  /// Of those, the ones who actually went inside.
+  final int enteredChildren;
+
+  Map<String, dynamic> toJson() => {
+    'tariffs': [for (final line in tariffs) line.toJson()],
+    'ticketsCount': ticketsCount,
+    'vipCount': vipCount,
+    'uniqueChildren': uniqueChildren,
+    'enteredChildren': enteredChildren,
+  };
+
+  /// Same shape as the API's `totals.entries` and the offline cache.
+  factory ShiftEntrySummary.fromJson(Map<String, dynamic> json) {
+    int read(String key) => (json[key] as num?)?.toInt() ?? 0;
+    final tariffs = json['tariffs'];
+    return ShiftEntrySummary(
+      tariffs: tariffs is List
+          ? [
+              for (final line in tariffs)
+                if (line is Map)
+                  ShiftTariffLine.fromJson(Map<String, dynamic>.from(line)),
+            ]
+          : const [],
+      ticketsCount: read('ticketsCount'),
+      vipCount: read('vipCount'),
+      uniqueChildren: read('uniqueChildren'),
+      enteredChildren: read('enteredChildren'),
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+    tariffs,
+    ticketsCount,
+    vipCount,
+    uniqueChildren,
+    enteredChildren,
+  ];
+}
+
 class ShiftTotals extends Equatable {
   const ShiftTotals({
     required this.salesCount,
@@ -10,6 +98,7 @@ class ShiftTotals extends Equatable {
     required this.balanceSalesUzs,
     this.refundedUzs = 0,
     this.discountUzs = 0,
+    this.entries,
   });
 
   final int salesCount;
@@ -32,6 +121,9 @@ class ShiftTotals extends Equatable {
   /// just explains the gap for whoever counts the drawer.
   final int discountUzs;
 
+  /// Tickets per tariff and children; null from a server without it.
+  final ShiftEntrySummary? entries;
+
   /// Money physically collected by this cashier in the current shift.
   /// Account-funded sales are reported separately and never added here.
   int get grandTotalUzs => cashUzs + cardUzs;
@@ -45,6 +137,7 @@ class ShiftTotals extends Equatable {
     'balanceSalesUzs': balanceSalesUzs,
     'refundedUzs': refundedUzs,
     'discountUzs': discountUzs,
+    if (entries != null) 'entries': entries!.toJson(),
   };
 
   /// Every field defaults to 0, so an older or partial cache entry parses.
@@ -59,6 +152,11 @@ class ShiftTotals extends Equatable {
       balanceSalesUzs: read('balanceSalesUzs'),
       refundedUzs: read('refundedUzs'),
       discountUzs: read('discountUzs'),
+      entries: json['entries'] is Map
+          ? ShiftEntrySummary.fromJson(
+              Map<String, dynamic>.from(json['entries'] as Map),
+            )
+          : null,
     );
   }
 
@@ -81,6 +179,7 @@ class ShiftTotals extends Equatable {
     balanceSalesUzs,
     refundedUzs,
     discountUzs,
+    entries,
   ];
 }
 

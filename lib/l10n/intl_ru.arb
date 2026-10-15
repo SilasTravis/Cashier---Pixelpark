@@ -32,6 +32,10 @@
   "cartEmpty": "Корзина пуста",
   "discount": "Скидка",
   "noDiscount": "Без скидки",
+  "discountGroupFree": "Бесплатно (100%)",
+  "discountGroupPercent": "В процентах",
+  "discountGroupFixed": "Фиксированная сумма",
+  "discountSearchHint": "Поиск по названию",
   "checkDiscount": "Скидка на чек",
   "checkDiscountNone": "Не выбрана",
   "checkDiscountLocked": "Выбрана скидка на чек — скидки детей и промокод отключены",
@@ -566,19 +570,46 @@
   "offlinePromptDecline": "Нет",
   "onlinePromptTitle": "Интернет вернулся",
   "onlinePromptBody": "Перейти в онлайн-режим и синхронизировать продажи ({count})?",
-  "@onlinePromptBody": { "placeholders": { "count": { "type": "int" } } },
+  "@onlinePromptBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "onlinePromptAccept": "Да, синхронизировать",
   "onlinePromptLater": "Позже",
   "offlineBanner": "OFFLINE · ожидают продаж: {count}",
-  "@offlineBanner": { "placeholders": { "count": { "type": "int" } } },
+  "@offlineBanner": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "offlineBannerSyncing": "Синхронизация…",
   "checkOnline": "Проверить связь",
   "stillOffline": "Интернета всё ещё нет",
   "syncResultTitle": "Результат синхронизации",
   "syncResultBody": "Синхронизировано: {synced}, с ошибкой: {failed}.",
-  "@syncResultBody": { "placeholders": { "synced": { "type": "int" }, "failed": { "type": "int" } } },
+  "@syncResultBody": {
+    "placeholders": {
+      "synced": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
   "syncTransportFailed": "Не удалось синхронизировать: {reason}. Офлайн-режим продолжается.",
-  "@syncTransportFailed": { "placeholders": { "reason": { "type": "String" } } },
+  "@syncTransportFailed": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "syncViewFailures": "Открыть",
   "needsInternet": "Нужен интернет",
   "tabUnsynced": "Не синхронизировано",
@@ -587,7 +618,13 @@
   "unsyncedPending": "Ожидает",
   "unsyncedFailed": "Ошибка",
   "unsyncedSupportCode": "Код: {code}",
-  "@unsyncedSupportCode": { "placeholders": { "code": { "type": "String" } } },
+  "@unsyncedSupportCode": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
   "unsyncedCodeCopied": "Код скопирован",
   "unsyncedRetry": "Повторить",
   "unsyncedRetryAll": "Отправить все заново",
@@ -595,15 +632,33 @@
   "notSyncedBadge": "Не синхронизировано",
   "historyOfflineNotice": "Офлайн-режим: показаны только несинхронизированные продажи",
   "logoutBlockedUnsynced": "Несинхронизированных продаж: {count}. Перед выходом синхронизируйте их в онлайн-режиме.",
-  "@logoutBlockedUnsynced": { "placeholders": { "count": { "type": "int" } } },
+  "@logoutBlockedUnsynced": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "closeShiftUnsyncedWarning": "Продаж с ошибкой синхронизации: {count}. Перед закрытием смены обратитесь в поддержку.",
-  "@closeShiftUnsyncedWarning": { "placeholders": { "count": { "type": "int" } } },
+  "@closeShiftUnsyncedWarning": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "closeShiftOffline": "В офлайн-режиме смену закрыть нельзя",
   "logoutFailedSalesConfirm": "{count} продаж не синхронизированы (ошибка). Они сохранятся на кассе. Всё равно выйти?",
-  "@logoutFailedSalesConfirm": { "placeholders": { "count": { "type": "int" } } },
+  "@logoutFailedSalesConfirm": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "logoutAnyway": "Всё равно выйти",
   "promoCode": "Промокод",
-  "promoCodeHint": "Отсканируйте или введите код",
+  "promoCodeHint": "Сканируйте или введите",
   "promoCodeCheck": "Проверить",
   "promoCodeInvalid": "Неверный промокод — проверьте код",
   "promoCodeOwnerNotFound": "Владелец промокода не найден",
@@ -613,13 +668,250 @@
   "promoCodeChildHasPass": "У ребёнка уже есть пропуск на сегодня — промокод действует только на новый вход или переход на VIP",
   "promoCodeRemove": "Убрать промокод",
   "promoCodeReleased": "Промокод не применён, код возвращён: {reason}",
-  "@promoCodeReleased": { "placeholders": { "reason": { "type": "String" } } },
+  "@promoCodeReleased": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "promoCodeBlogger": "Блогер",
   "promoCodeBloggerPending": "Промокод блогера {code} принят — выберите клиента",
-  "@promoCodeBloggerPending": { "placeholders": { "code": { "type": "String" } } },
+  "@promoCodeBloggerPending": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
   "promoCodeNotStarted": "Промокод ещё не действует",
   "promoCodeLimitReached": "Лимит использований промокода исчерпан",
   "promoCodeAlreadyUsedByCustomer": "Этот клиент уже использовал этот промокод",
+  "accountStepWho": "Кто входит?",
+  "accountStepExtras": "Дополнительно",
+  "accountOptional": "необязательно",
+  "accountDueShortfall": "Не хватает",
+  "accountDueFull": "Клиент платит",
+  "accountFromBalance": "Списывается с баланса",
+  "accountCoveredByBalance": "Полностью с баланса · останется {value}",
+  "@accountCoveredByBalance": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "accountInsideCount": "{count} внутри",
+  "@accountInsideCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "accountAgeYears": "{count} лет",
+  "@accountAgeYears": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "accountInsideMinutes": "Внутри · {minutes} мин",
+  "@accountInsideMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "accountPayNow": "Оплата сейчас",
+  "accountPayAtExit": "Считается на выходе",
+  "accountAtExit": "на выходе",
+  "accountPlanTimesKids": "{plan} × {count} дет.",
+  "@accountPlanTimesKids": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "accountColChild": "Ребёнок",
+  "accountColTime": "Время",
+  "accountColSoFar": "Сейчас",
+  "accountExcessToBalance": "{value} зачислится на баланс",
+  "@accountExcessToBalance": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "accountToPay": "К оплате",
+  "accountFromBalanceLine": "С баланса",
+  "accountLeftOnBalance": "Останется на балансе",
+  "accountOtherAmount": "Принять другую сумму",
+  "accountNoCheckDiscounts": "Нет активных скидок на чек",
+  "accountPickChildFirst": "Сначала выберите ребёнка",
+  "accountTodayQrs": "QR-коды на сегодня",
+  "accountTodayQrsHint": "Перепечатайте потерянный или испорченный стикер: оплата не списывается, старый стикер тоже работает.",
+  "accountValidUntil": "до {time}",
+  "@accountValidUntil": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "reprintAll": "Перепечатать все",
+  "themeNight": "Ночной режим",
+  "themeDay": "Дневной режим",
+  "themeNightHint": "Мягкий тёмно-синий фон, не утомляющий глаза. Запоминается на этой кассе.",
+  "accountTxTitle": "История операций",
+  "accountTxCount": "{count}",
+  "@accountTxCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "accountTxEmpty": "У клиента пока нет операций",
+  "accountTxFailed": "Не удалось загрузить операции",
+  "accountTxRange": "{from}–{to} / {total}",
+  "@accountTxRange": {
+    "placeholders": {
+      "from": {
+        "type": "int"
+      },
+      "to": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "accountTxPrev": "Назад",
+  "accountTxNext": "Далее",
+  "accountTxMore": "Другое",
+  "txBonus": "Бонус",
+  "txPayment": "Пополнение через приложение",
+  "txManualAdjustment": "Ручная корректировка",
+  "txKidsCharge": "Тариф (вход)",
+  "txCashierTopup": "Пополнение на кассе",
+  "txPosPurchase": "Покупка на кассе",
+  "txCashierTopupRefund": "Возврат пополнения",
+  "txPosPurchaseRefund": "Возврат покупки",
+  "txLegacy": "Старая запись",
+  "txGameReward": "Награда за игру",
+  "txMarketPurchase": "Покупка в маркете",
+  "txMarketRefund": "Возврат в маркете",
+  "txStatusPending": "В ожидании",
+  "txStatusFailed": "Не выполнено",
+  "txStatusCancelled": "Отменено",
+  "planSwitchUpgradeQuestion": "Перевести на тариф «{plan}»? С баланса спишется только доплата ({price}). Старый стикер будет остановлен, новый QR напечатается как «апгрейд».",
+  "@planSwitchUpgradeQuestion": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "upgradeCredit": "Уже оплачено {paid} — доплата: {due}.",
+  "@upgradeCredit": {
+    "placeholders": {
+      "paid": {
+        "type": "String"
+      },
+      "due": {
+        "type": "String"
+      }
+    }
+  },
+  "insideFilterAll": "Все",
+  "insideFilterHour": "По времени",
+  "insideFilterOvertime": "Время вышло",
+  "hourOvertimeBanner": "У {count} детей закончилось время — позовите родителей",
+  "@hourOvertimeBanner": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "hourOvertimeShow": "Показать",
+  "hourOvertimeBy": "+{count} мин",
+  "@hourOvertimeBy": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "hourRemaining": "осталось {count} мин",
+  "@hourRemaining": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "hourEndsAtLabel": "Заканчивается",
+  "hourEndedAtLabel": "Закончился",
+  "insideHourEmpty": "Сейчас нет детей на тарифах по времени",
+  "insideOvertimeEmpty": "Нет детей с истёкшим временем",
+  "insideSoldVip": "VIP продано сегодня",
+  "insideSoldHour": "По времени продано сегодня",
+  "insideHourInside": "По времени внутри",
+  "insideHourEndingSoon": "Заканчивается за 10 мин",
+  "insideNoTurnstileNote": "Нет турникета: ребёнок с билетом по времени (1 час и др.) отмечается внутри при печати билета, время идёт с этого момента — отмечайте выход здесь, когда он уходит.",
+  "shiftTicketsSold": "Продано билетов",
+  "shiftVipTickets": "Из них VIP",
+  "shiftUniqueChildren": "Уникальных детей",
+  "shiftEnteredChildren": "Зашли внутрь",
+  "shiftPrintReport": "Распечатать чек смены",
+  "shiftCountUnit": "{count} шт.",
+  "@shiftCountUnit": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "planSwitchUpgradeCollectQuestion": "Перевести на тариф «{plan}»? Сейчас берётся только доплата ({price}) — наличными или картой, на баланс ничего лишнего не попадёт. Старый стикер будет остановлен, новый QR напечатается как «апгрейд».",
+  "@planSwitchUpgradeCollectQuestion": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "planSwitchCollectNow": "К оплате сейчас",
+  "planSwitchContinue": "Продолжить",
+  "planSwitchPayInDialog": "У выбранного ребёнка сегодня другой тариф — сумма к оплате (только доплата) будет в следующем окне.",
+  "refundFundedTitle": "Пропуска, купленные с этого пополнения",
+  "refundFundedHint": "Отметьте пропуска, которые клиент возвращает: их стоимость сначала вернётся на баланс, затем будет выдана наличными или картой. Отмеченные пропуска сразу аннулируются.",
+  "refundFundedConfirm": "Также будет аннулировано пропусков: {count} — они перестанут работать на входе.",
+  "@refundFundedConfirm": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "currentTariff": "Текущий тариф",
+  "paidLabel": "оплачено",
+  "planSwitchBlocked": "«{name}»: нельзя перейти {from} → {to}",
   "tabMarket": "Pixel Market",
   "marketGive": "Выдача",
   "marketIncoming": "В пути",
@@ -630,7 +922,13 @@
   "marketRequestFailed": "Запрос не выполнен — попробуйте ещё раз",
   "marketScanPrompt": "Отсканируйте QR-код в приложении родителя",
   "marketOrderNumber": "Заказ №{number}",
-  "@marketOrderNumber": { "placeholders": { "number": { "type": "String" } } },
+  "@marketOrderNumber": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
   "marketCustomer": "Клиент",
   "marketStatusPlaced": "Новый",
   "marketStatusConfirmed": "Магазин готовит",
@@ -645,10 +943,22 @@
   "marketUnreceivedHint": "Сначала примите отправленные магазином заказы кнопкой «Принять» — выдаются только заказы в парке",
   "marketHandedTitle": "Выдано!",
   "marketHandedBody": "Клиенту выдано заказов: {count}",
-  "@marketHandedBody": { "placeholders": { "count": { "type": "int" } } },
+  "@marketHandedBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "marketNext": "Следующий клиент",
   "marketItemsCount": "Товаров: {count}",
-  "@marketItemsCount": { "placeholders": { "count": { "type": "int" } } },
+  "@marketItemsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "marketTotal": "Итого",
   "marketIncomingEmpty": "Пока нет заказов в пути"
 }

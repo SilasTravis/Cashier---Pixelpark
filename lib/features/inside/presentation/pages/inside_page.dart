@@ -11,29 +11,41 @@ import '../../../../core/utils/currency.dart';
 import '../../../../core/utils/phone_number.dart';
 import '../../../../generated/l10n.dart';
 import '../../../../injector_container.dart';
+import '../../../pos_account/domain/customer.dart';
+import '../../../pos_account/presentation/open_customer.dart';
 import '../../domain/inside_child.dart';
 import '../bloc/inside_cubit.dart';
 
 class InsidePage extends StatelessWidget {
-  const InsidePage({super.key});
+  const InsidePage({super.key, required this.onOpenCustomer});
+
+  /// Tapping a child's card opens its parent's account page.
+  final ValueChanged<Customer> onOpenCustomer;
 
   @override
   Widget build(BuildContext context) => BlocProvider(
     create: (_) => sl<InsideCubit>()..load(),
-    child: const _InsideView(),
+    child: _InsideView(onOpenCustomer: onOpenCustomer),
   );
 }
 
 class _InsideView extends StatefulWidget {
-  const _InsideView();
+  const _InsideView({required this.onOpenCustomer});
+
+  final ValueChanged<Customer> onOpenCustomer;
 
   @override
   State<_InsideView> createState() => _InsideViewState();
 }
 
+/// Which children the list shows. 1 soat children are the ones a cashier
+/// must watch: their hour ends while they are still inside.
+enum _InsideFilter { all, hour, overtime }
+
 class _InsideViewState extends State<_InsideView> {
   final _search = TextEditingController();
   Timer? _clock;
+  _InsideFilter _filter = _InsideFilter.all;
 
   @override
   void initState() {
@@ -72,12 +84,37 @@ class _InsideViewState extends State<_InsideView> {
       },
       builder: (context, state) {
         final query = _search.text.trim().toLowerCase();
-        final children = state.children.where((child) {
-          if (query.isEmpty) return true;
-          return child.childName.toLowerCase().contains(query) ||
-              child.parentName.toLowerCase().contains(query) ||
-              child.parentPhone.toLowerCase().contains(query);
-        }).toList();
+        final now = DateTime.now();
+        // No turnstile: only 1 soat children are tracked inside (checked in
+        // when the ticket prints), so the tab is just their hour board.
+        final gateless = state.summary?.hasTurnstile == false;
+        final tracked = gateless
+            ? state.children.where((c) => c.isHourPlan).toList()
+            : state.children;
+        final hourCount = tracked.where((c) => c.isHourPlan).length;
+        final overtimeCount = tracked.where((c) => c.isOvertime(now)).length;
+        final children = sortInsideChildren(
+          tracked.where((child) {
+            final inFilter = switch (_filter) {
+              _InsideFilter.all => true,
+              _InsideFilter.hour => child.isHourPlan,
+              _InsideFilter.overtime => child.isOvertime(now),
+            };
+            if (!inFilter) return false;
+            if (query.isEmpty) return true;
+            return child.childName.toLowerCase().contains(query) ||
+                child.parentName.toLowerCase().contains(query) ||
+                child.parentPhone.toLowerCase().contains(query);
+          }).toList(),
+          now,
+        );
+        final emptyMessage = query.isNotEmpty
+            ? l10n.insideSearchEmpty
+            : switch (_filter) {
+                _InsideFilter.all => l10n.insideEmpty,
+                _InsideFilter.hour => l10n.insideHourEmpty,
+                _InsideFilter.overtime => l10n.insideOvertimeEmpty,
+              };
         return Column(
           children: [
             Padding(
@@ -116,7 +153,7 @@ class _InsideViewState extends State<_InsideView> {
                       borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
                     child: Text(
-                      l10n.insideCount(state.children.length),
+                      l10n.insideCount(tracked.length),
                       style: AppTextStyles.body.copyWith(
                         color: NocturneColors.accent,
                         fontWeight: FontWeight.w600,
@@ -133,14 +170,59 @@ class _InsideViewState extends State<_InsideView> {
                 ],
               ),
             ),
+            if (gateless)
+              _GatelessStats(
+                vipSold: state.summary!.vipSoldToday,
+                hourSold: state.summary!.hourSoldToday,
+                hourInside: hourCount,
+                endingSoon: tracked.where((c) => isEndingSoon(c, now)).length,
+              ),
+            if (hourCount > 0)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _FilterChip(
+                        label: l10n.insideFilterAll,
+                        count: tracked.length,
+                        selected: _filter == _InsideFilter.all,
+                        onTap: () =>
+                            setState(() => _filter = _InsideFilter.all),
+                      ),
+                      _FilterChip(
+                        label: l10n.insideFilterHour,
+                        count: hourCount,
+                        icon: PhosphorIconsRegular.timer,
+                        selected: _filter == _InsideFilter.hour,
+                        onTap: () =>
+                            setState(() => _filter = _InsideFilter.hour),
+                      ),
+                      _FilterChip(
+                        label: l10n.insideFilterOvertime,
+                        count: overtimeCount,
+                        icon: PhosphorIconsRegular.alarm,
+                        danger: overtimeCount > 0,
+                        selected: _filter == _InsideFilter.overtime,
+                        onTap: () =>
+                            setState(() => _filter = _InsideFilter.overtime),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            if (overtimeCount > 0 && _filter != _InsideFilter.overtime)
+              _OvertimeBanner(
+                count: overtimeCount,
+                onShow: () => setState(() => _filter = _InsideFilter.overtime),
+              ),
             if (state.loading) const LinearProgressIndicator(minHeight: 2),
             Expanded(
               child: children.isEmpty && !state.loading
-                  ? _Empty(
-                      message: query.isEmpty
-                          ? l10n.insideEmpty
-                          : l10n.insideSearchEmpty,
-                    )
+                  ? _Empty(message: emptyMessage)
                   : LayoutBuilder(
                       builder: (context, constraints) {
                         final columns = constraints.maxWidth >= 760 ? 2 : 1;
@@ -151,15 +233,18 @@ class _InsideViewState extends State<_InsideView> {
                                 crossAxisCount: columns,
                                 crossAxisSpacing: 12,
                                 mainAxisSpacing: 12,
-                                mainAxisExtent: 194,
+                                mainAxisExtent: 202,
                               ),
                           itemCount: children.length,
                           itemBuilder: (_, index) => _ChildCard(
                             child: children[index],
+                            now: now,
                             exiting:
                                 state.exitingVisitId == children[index].visitId,
                             onExit: () =>
                                 _confirmExit(context, children[index]),
+                            onOpen: () =>
+                                _openAccount(context, children[index]),
                           ),
                         );
                       },
@@ -169,6 +254,11 @@ class _InsideViewState extends State<_InsideView> {
         );
       },
     );
+  }
+
+  Future<void> _openAccount(BuildContext context, InsideChild child) async {
+    final customer = await findCustomerByPhone(context, child.parentPhone);
+    if (customer != null) widget.onOpenCustomer(customer);
   }
 
   Future<void> _confirmExit(BuildContext context, InsideChild child) async {
@@ -202,124 +292,267 @@ class _InsideViewState extends State<_InsideView> {
 class _ChildCard extends StatelessWidget {
   const _ChildCard({
     required this.child,
+    required this.now,
     required this.exiting,
     required this.onExit,
+    required this.onOpen,
   });
   final InsideChild child;
+  final DateTime now;
   final bool exiting;
   final VoidCallback onExit;
+  final VoidCallback onOpen;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalization.of(context);
-    final elapsed = DateTime.now()
-        .difference(child.enteredAt)
-        .inMinutes
-        .clamp(0, 999999);
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: NocturneColors.surface,
+    final elapsed = now.difference(child.enteredAt).inMinutes.clamp(0, 999999);
+    final overtime = child.isOvertime(now);
+    final progress = child.hourProgress(now);
+    final remaining = child.remainingMinutes(now);
+    final tone = overtime
+        ? NocturneColors.danger
+        : (remaining != null && remaining <= 10)
+        ? NocturneColors.warning
+        : NocturneColors.accent;
+    return Material(
+      color: overtime
+          ? Color.alphaBlend(
+              NocturneColors.danger.withValues(alpha: .07),
+              NocturneColors.surface,
+            )
+          : NocturneColors.surface,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: NocturneColors.divider),
+        side: overtime
+            ? BorderSide(color: NocturneColors.danger, width: 2)
+            : BorderSide(color: NocturneColors.divider),
       ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onOpen,
+        hoverColor: NocturneColors.neutral900,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // 1 soat: how much of the hour is used, along the top edge.
+            if (progress != null)
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 0,
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 4,
+                  color: tone,
+                  backgroundColor: tone.withValues(alpha: .15),
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: NocturneColors.accent900,
+                        foregroundColor: NocturneColors.accent,
+                        child: Text(
+                          child.childName.characters.first.toUpperCase(),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              child.childName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTextStyles.h5,
+                            ),
+                            Text(
+                              child.parentName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTextStyles.muted(
+                                AppTextStyles.body.copyWith(fontSize: 13.5),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (child.isHourPlan && child.hourEndsAt != null)
+                        _HourPill(
+                          text: overtime
+                              ? l10n.hourOvertimeBy(child.overtimeMinutes(now))
+                              : l10n.hourRemaining(remaining ?? 0),
+                          tone: tone,
+                          strong: overtime,
+                        )
+                      else if (child.planName != null)
+                        Chip(
+                          label: Text(child.planName!),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        PhosphorIconsRegular.phone,
+                        size: 17,
+                        color: NocturneColors.accent,
+                      ),
+                      const SizedBox(width: 7),
+                      Expanded(
+                        child: SelectionArea(
+                          child: Text(
+                            formatPhoneNumber(child.parentPhone),
+                            maxLines: 1,
+                            style: AppTextStyles.body.copyWith(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: .15,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _Fact(
+                          label: l10n.enteredAt,
+                          value: DateFormat('HH:mm').format(child.enteredAt),
+                        ),
+                      ),
+                      Expanded(
+                        child: _Fact(
+                          label: l10n.elapsedTime,
+                          value: l10n.minutesCount(elapsed),
+                        ),
+                      ),
+                      Expanded(
+                        // A 1 soat child is prepaid — what matters is when the
+                        // hour ends, not a running amount.
+                        child: child.isHourPlan && child.hourEndsAt != null
+                            ? _Fact(
+                                label: overtime
+                                    ? l10n.hourEndedAtLabel
+                                    : l10n.hourEndsAtLabel,
+                                value: DateFormat(
+                                  'HH:mm',
+                                ).format(child.hourEndsAt!),
+                                color: overtime ? NocturneColors.danger : null,
+                              )
+                            : _Fact(
+                                label: l10n.accruedAmount,
+                                value: formatUzs(child.accruedUzs),
+                              ),
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: OutlinedButton.icon(
+                      onPressed: exiting ? null : onExit,
+                      icon: exiting
+                          ? const SizedBox.square(
+                              dimension: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(PhosphorIconsRegular.signOut, size: 17),
+                      label: Text(l10n.markExited),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A 1 soat child in the last 10 minutes of their hour (not yet over).
+bool isEndingSoon(InsideChild child, DateTime now) {
+  if (child.isOvertime(now)) return false;
+  final remaining = child.remainingMinutes(now);
+  return remaining != null && remaining <= 10;
+}
+
+/// No-turnstile branch header: today's VIP / 1 soat sales next to how many
+/// 1 soat children are inside and how many are about to run out.
+class _GatelessStats extends StatelessWidget {
+  const _GatelessStats({
+    required this.vipSold,
+    required this.hourSold,
+    required this.hourInside,
+    required this.endingSoon,
+  });
+  final int vipSold;
+  final int hourSold;
+  final int hourInside;
+  final int endingSoon;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
+    final tiles = [
+      _StatTile(
+        icon: PhosphorIconsRegular.crown,
+        label: l10n.insideSoldVip,
+        value: vipSold,
+      ),
+      _StatTile(
+        icon: PhosphorIconsRegular.ticket,
+        label: l10n.insideSoldHour,
+        value: hourSold,
+      ),
+      _StatTile(
+        icon: PhosphorIconsRegular.personSimpleRun,
+        label: l10n.insideHourInside,
+        value: hourInside,
+        tone: NocturneColors.accent,
+      ),
+      _StatTile(
+        icon: PhosphorIconsRegular.timer,
+        label: l10n.insideHourEndingSoon,
+        value: endingSoon,
+        tone: endingSoon > 0 ? NocturneColors.warning : null,
+      ),
+    ];
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: NocturneColors.accent900,
-                child: Text(child.childName.characters.first.toUpperCase()),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      child.childName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.h5,
-                    ),
-                    Text(
-                      child.parentName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.muted(
-                        AppTextStyles.body.copyWith(fontSize: 13.5),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (child.planName != null)
-                Chip(
-                  label: Text(child.planName!),
-                  visualDensity: VisualDensity.compact,
-                ),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final perRow = constraints.maxWidth >= 640 ? 4 : 2;
+              final width = (constraints.maxWidth - 10 * (perRow - 1)) / perRow;
+              return Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  for (final tile in tiles) SizedBox(width: width, child: tile),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 8),
-          Row(
-            children: [
-              const Icon(
-                PhosphorIconsRegular.phone,
-                size: 17,
-                color: NocturneColors.accent,
-              ),
-              const SizedBox(width: 7),
-              Expanded(
-                child: SelectionArea(
-                  child: Text(
-                    formatPhoneNumber(child.parentPhone),
-                    maxLines: 1,
-                    style: AppTextStyles.body.copyWith(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: .15,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: _Fact(
-                  label: l10n.enteredAt,
-                  value: DateFormat('HH:mm').format(child.enteredAt),
-                ),
-              ),
-              Expanded(
-                child: _Fact(
-                  label: l10n.elapsedTime,
-                  value: l10n.minutesCount(elapsed),
-                ),
-              ),
-              Expanded(
-                child: _Fact(
-                  label: l10n.accruedAmount,
-                  value: formatUzs(child.accruedUzs),
-                ),
-              ),
-            ],
-          ),
-          const Spacer(),
-          Align(
-            alignment: Alignment.centerRight,
-            child: OutlinedButton.icon(
-              onPressed: exiting ? null : onExit,
-              icon: exiting
-                  ? const SizedBox.square(
-                      dimension: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(PhosphorIconsRegular.signOut, size: 17),
-              label: Text(l10n.markExited),
+          Text(
+            l10n.insideNoTurnstileNote,
+            style: AppTextStyles.muted(
+              AppTextStyles.body.copyWith(fontSize: 12),
             ),
           ),
         ],
@@ -328,10 +561,204 @@ class _ChildCard extends StatelessWidget {
   }
 }
 
+class _StatTile extends StatelessWidget {
+  const _StatTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.tone,
+  });
+  final IconData icon;
+  final String label;
+  final int value;
+  final Color? tone;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = tone ?? NocturneColors.text;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        color: tone == null
+            ? NocturneColors.surface
+            : tone!.withValues(alpha: .08),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(
+          color: tone == null
+              ? NocturneColors.divider
+              : tone!.withValues(alpha: .35),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: tone ?? NocturneColors.neutral600),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('$value', style: AppTextStyles.h5.copyWith(color: color)),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.muted(
+                    AppTextStyles.body.copyWith(fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The 1 soat time status in the card corner: minutes left (accent, amber
+/// in the last 10) or minutes over (solid red) — readable at a glance.
+class _HourPill extends StatelessWidget {
+  const _HourPill({
+    required this.text,
+    required this.tone,
+    required this.strong,
+  });
+  final String text;
+  final Color tone;
+  final bool strong;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+    decoration: BoxDecoration(
+      color: strong ? tone : tone.withValues(alpha: .14),
+      borderRadius: BorderRadius.circular(999),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          strong ? PhosphorIconsFill.alarm : PhosphorIconsRegular.timer,
+          size: 15,
+          color: strong ? Colors.white : tone,
+        ),
+        const SizedBox(width: 5),
+        Text(
+          text,
+          style: AppTextStyles.body.copyWith(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: strong ? Colors.white : tone,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Red strip above the list while any 1 soat child is over time.
+class _OvertimeBanner extends StatelessWidget {
+  const _OvertimeBanner({required this.count, required this.onShow});
+  final int count;
+  final VoidCallback onShow;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
+    final danger = NocturneColors.danger;
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
+      decoration: BoxDecoration(
+        color: danger.withValues(alpha: .1),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: danger.withValues(alpha: .45)),
+      ),
+      child: Row(
+        children: [
+          Icon(PhosphorIconsFill.alarm, color: danger, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              l10n.hourOvertimeBanner(count),
+              style: AppTextStyles.body.copyWith(
+                color: danger,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: onShow,
+            style: TextButton.styleFrom(foregroundColor: danger),
+            child: Text(l10n.hourOvertimeShow),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One filter pill with its count; the over-time pill turns red while
+/// anyone is over time so it reads as an alert, not just a tab.
+class _FilterChip extends StatelessWidget {
+  const _FilterChip({
+    required this.label,
+    required this.count,
+    required this.selected,
+    required this.onTap,
+    this.icon,
+    this.danger = false,
+  });
+  final String label;
+  final int count;
+  final bool selected;
+  final VoidCallback onTap;
+  final IconData? icon;
+  final bool danger;
+
+  @override
+  Widget build(BuildContext context) {
+    final tone = danger ? NocturneColors.danger : NocturneColors.accent;
+    final fg = selected ? Colors.white : (danger ? tone : NocturneColors.text);
+    return Material(
+      color: selected ? tone : tone.withValues(alpha: danger ? .1 : .06),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(999),
+        side: BorderSide(color: selected ? tone : tone.withValues(alpha: .35)),
+      ),
+      child: InkWell(
+        customBorder: const StadiumBorder(),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: 16, color: fg),
+                const SizedBox(width: 6),
+              ],
+              Text(
+                '$label · $count',
+                style: AppTextStyles.body.copyWith(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  color: fg,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _Fact extends StatelessWidget {
-  const _Fact({required this.label, required this.value});
+  const _Fact({required this.label, required this.value, this.color});
   final String label;
   final String value;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -349,6 +776,7 @@ class _Fact extends StatelessWidget {
         style: AppTextStyles.body.copyWith(
           fontWeight: FontWeight.w600,
           fontSize: 13,
+          color: color,
         ),
       ),
     ],
@@ -363,7 +791,7 @@ class _Empty extends StatelessWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(
+        Icon(
           PhosphorIconsRegular.personSimpleRun,
           size: 42,
           color: NocturneColors.neutral600,

@@ -6,7 +6,9 @@ import 'package:phosphor_icons/phosphor_icons.dart';
 /// package icon for names not in this list rather than failing — the
 /// Dashboard product form is the source of truth for which names are valid.
 IconData productIconFor(String icon) {
-  final key = icon.replaceFirst('ph-', '');
+  // The Dashboard stores the full class list ("ph ph-baby"): the last class
+  // is the icon.
+  final key = icon.trim().split(RegExp(r'\s+')).last.replaceFirst('ph-', '');
   return _icons[key] ?? PhosphorIconsRegular.package;
 }
 

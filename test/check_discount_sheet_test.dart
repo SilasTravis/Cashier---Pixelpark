@@ -54,7 +54,7 @@ void main() {
       100,
       scrollable: find
           .descendant(
-            of: find.byType(BottomSheet),
+            of: find.byType(Dialog),
             matching: find.byType(Scrollable),
           )
           .first,
@@ -63,7 +63,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(selected?.id, 'c12');
-    expect(find.byType(BottomSheet), findsNothing);
+    expect(find.byType(Dialog), findsNothing);
     expect(find.text(checkDiscountLabel(discounts.last)), findsOneWidget);
   });
 }

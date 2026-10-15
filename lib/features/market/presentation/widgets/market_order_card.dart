@@ -85,7 +85,7 @@ class MarketPickupOrderCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(
+              Icon(
                 PhosphorIconsRegular.storefront,
                 size: 20,
                 color: NocturneColors.accent,

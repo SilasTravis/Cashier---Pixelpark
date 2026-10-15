@@ -42,14 +42,12 @@ class _OfflineBannerState extends State<OfflineBanner> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           decoration: BoxDecoration(
             color: NocturneColors.warning.withValues(alpha: .14),
-            border: const Border(
-              bottom: BorderSide(color: NocturneColors.warning),
-            ),
+            border: Border(bottom: BorderSide(color: NocturneColors.warning)),
           ),
           child: Row(
             children: [
               syncing
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 14,
                       height: 14,
                       child: CircularProgressIndicator(
@@ -57,7 +55,7 @@ class _OfflineBannerState extends State<OfflineBanner> {
                         color: NocturneColors.warning,
                       ),
                     )
-                  : const Icon(
+                  : Icon(
                       PhosphorIconsRegular.wifiSlash,
                       size: 16,
                       color: NocturneColors.warning,

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:cashier_app/core/utils/currency.dart';
+
 import 'package:cashier_app/generated/l10n.dart';
 import 'package:cashier_app/features/pos_account/data/pos_account_remote_data_source.dart';
 import 'package:cashier_app/features/pos_account/data/pos_account_repository_impl.dart';
@@ -18,7 +20,10 @@ class _FakeRemote implements PosAccountRemoteDataSource {
     this.activePasses = const [],
     this.checkoutResult,
     this.extraPlans = const [],
+    this.playing = const [],
   });
+
+  final List<PlayingChild> playing;
 
   final List<KidsPlan> extraPlans;
 
@@ -28,7 +33,7 @@ class _FakeRemote implements PosAccountRemoteDataSource {
   @override
   Future<PosEntryResult> planEntryCheckout({
     required int customerId,
-    required String planKey,
+    required String? planKey,
     required List<String> childIds,
     required List<CheckoutLine> products,
     required int cashUzs,
@@ -79,7 +84,7 @@ class _FakeRemote implements PosAccountRemoteDataSource {
       activePasses;
 
   @override
-  Future<List<PlayingChild>> listPlaying(int customerId) async => const [];
+  Future<List<PlayingChild>> listPlaying(int customerId) async => playing;
 
   @override
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -91,6 +96,7 @@ Future<PosAccountBloc> _pumpPanel(
   List<ActivePass> activePasses = const [],
   PosEntryResult? checkoutResult,
   List<KidsPlan> extraPlans = const [],
+  List<PlayingChild> playing = const [],
 }) async {
   tester.view.physicalSize = const Size(1600, 1200);
   tester.view.devicePixelRatio = 1.0;
@@ -103,6 +109,7 @@ Future<PosAccountBloc> _pumpPanel(
               activePasses: activePasses,
               checkoutResult: checkoutResult,
               extraPlans: extraPlans,
+              playing: playing,
             ),
           ),
         )
@@ -143,7 +150,7 @@ Future<PosAccountBloc> _pumpPanel(
 }
 
 Future<void> _pickChildAndPlan(WidgetTester tester, String planName) async {
-  await tester.tap(find.text('QR'));
+  await tester.tap(find.byKey(const ValueKey('child-select')));
   await tester.pump();
   await tester.tap(find.text(planName));
   await tester.pumpAndSettle();
@@ -204,19 +211,9 @@ void _multiDayTests() {
 
     await _pickChildAndPlan(tester, 'Weekend pass');
 
-    expect(find.widgetWithText(TextField, '150000'), findsOneWidget);
-    expect(
-      find.text(
-        'The «Weekend pass» tariff is debited from the balance immediately when printed.',
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.text(
-        'The VIP tariff is debited from the balance immediately when printed.',
-      ),
-      findsNothing,
-    );
+    expect(_due(150000), findsOneWidget);
+    expect(find.text('Weekend pass × 1'), findsOneWidget);
+    expect(find.text('VIP × 1'), findsNothing);
   });
 
   testWidgets('a live custom day pass is not charged again for itself', (
@@ -230,7 +227,7 @@ void _multiDayTests() {
 
     await _pickChildAndPlan(tester, 'Weekend pass');
 
-    expect(find.widgetWithText(TextField, '150000'), findsNothing);
+    expect(_due(150000), findsNothing);
     expect(
       find.text(
         '«Aziza» already has an active «Weekend pass» tariff — no second charge.',
@@ -248,7 +245,7 @@ void _multiDayTests() {
 
     await _pickChildAndPlan(tester, '1 soat');
 
-    expect(find.widgetWithText(TextField, '50000'), findsNothing);
+    expect(_due(50000), findsNothing);
     expect(
       find.text(
         '«Aziza» already has an active «Weekend pass» tariff — no second charge.',
@@ -257,9 +254,11 @@ void _multiDayTests() {
     );
   });
 
-  testWidgets('a live VIP-flagged hour plan covers a 1 soat sale', (
+  testWidgets('a live VIP-flagged hour plan sold 1 soat is a plan switch', (
     tester,
   ) async {
+    // The backend hands back as-is only a flat-DAY pass; a VIP-flagged hour
+    // pass on another plan is a (refused) switch — nothing collected here.
     await _pumpPanel(
       tester,
       extraPlans: [_birthday],
@@ -268,7 +267,8 @@ void _multiDayTests() {
 
     await _pickChildAndPlan(tester, '1 soat');
 
-    expect(find.widgetWithText(TextField, '50000'), findsNothing);
+    expect(_due(50000), findsNothing);
+    expect(find.text('Continue'), findsOneWidget);
   });
 
   testWidgets('a live non-VIP custom hour pass does not cover a 1 soat sale', (
@@ -282,11 +282,13 @@ void _multiDayTests() {
 
     await _pickChildAndPlan(tester, '1 soat');
 
-    expect(find.widgetWithText(TextField, '50000'), findsOneWidget);
+    // Not covered → a plan switch: the modal prices it, not this press.
+    expect(_due(50000), findsNothing);
+    expect(find.text('Continue'), findsOneWidget);
   });
 
-  testWidgets('a live built-in VIP is still charged when selling the custom '
-      'day plan', (tester) async {
+  testWidgets('a live VIP sold a PRICIER day plan goes through the switch '
+      '(only the difference)', (tester) async {
     await _pumpPanel(
       tester,
       extraPlans: [_weekend],
@@ -295,7 +297,31 @@ void _multiDayTests() {
 
     await _pickChildAndPlan(tester, 'Weekend pass');
 
-    expect(find.widgetWithText(TextField, '150000'), findsOneWidget);
+    expect(_due(150000), findsNothing);
+    expect(find.text('Continue'), findsOneWidget);
+    expect(
+      find.text('«Aziza» already has an active VIP tariff — no second charge.'),
+      findsNothing,
+    );
+  });
+
+  testWidgets('a live pricier day pass sold the cheaper VIP is re-printed', (
+    tester,
+  ) async {
+    await _pumpPanel(
+      tester,
+      extraPlans: [_weekend],
+      activePasses: [_livePass('c-ef56', 'Weekend pass', 150000)],
+    );
+
+    await tester.tap(find.byKey(const ValueKey('child-select')));
+    await tester.pump();
+    // The built-in VIP card's title (the custom plan also wears a VIP badge).
+    await tester.tap(find.text('VIP').first);
+    await tester.pumpAndSettle();
+
+    expect(_due(75000), findsNothing);
+    expect(find.text('Continue'), findsNothing);
   });
 }
 
@@ -323,13 +349,8 @@ void main() {
 
     await _pickChildAndPlan(tester, 'Quick 30');
 
-    expect(find.widgetWithText(TextField, '30000'), findsOneWidget);
-    expect(
-      find.text(
-        'The «Quick 30» tariff is debited from the balance immediately when printed.',
-      ),
-      findsOneWidget,
-    );
+    expect(_due(30000), findsOneWidget);
+    expect(find.text('Quick 30 × 1'), findsOneWidget);
     expect(find.text('1 hour tariff'), findsNothing);
   });
 
@@ -359,7 +380,7 @@ void main() {
 
     await _pickChildAndPlan(tester, '1 soat');
 
-    expect(find.widgetWithText(TextField, '50000'), findsOneWidget);
+    expect(_due(50000), findsOneWidget);
     // Prepaid: no "nothing is paid now" Standard note.
     expect(find.text(AppLocalization.current.noPaymentNow), findsNothing);
   });
@@ -371,18 +392,8 @@ void main() {
 
     await _pickChildAndPlan(tester, '1 soat');
 
-    expect(
-      find.text(
-        'The 1 hour tariff is debited from the balance immediately when printed.',
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.text(
-        'The VIP tariff is debited from the balance immediately when printed.',
-      ),
-      findsNothing,
-    );
+    expect(find.text('1 soat × 1'), findsOneWidget);
+    expect(find.text('VIP × 1'), findsNothing);
   });
 
   testWidgets('VIP keeps its own wording', (tester) async {
@@ -390,12 +401,7 @@ void main() {
 
     await _pickChildAndPlan(tester, 'VIP');
 
-    expect(
-      find.text(
-        'The VIP tariff is debited from the balance immediately when printed.',
-      ),
-      findsOneWidget,
-    );
+    expect(find.text('VIP × 1'), findsOneWidget);
   });
 
   testWidgets('a child with a live hour pass is not charged again', (
@@ -416,7 +422,7 @@ void main() {
 
     await _pickChildAndPlan(tester, '1 soat');
 
-    expect(find.widgetWithText(TextField, '50000'), findsNothing);
+    expect(_due(50000), findsNothing);
     expect(
       find.text(
         '«Aziza» already has an active 1 hour tariff — no second charge.',
@@ -433,7 +439,7 @@ void main() {
 
     await _pickChildAndPlan(tester, '1 soat');
 
-    expect(find.widgetWithText(TextField, '50000'), findsNothing);
+    expect(_due(50000), findsNothing);
     expect(
       find.text('«Aziza» already has an active VIP tariff — no second charge.'),
       findsOneWidget,
@@ -453,16 +459,15 @@ void main() {
 
     await _pickChildAndPlan(tester, 'VIP');
 
-    expect(find.widgetWithText(TextField, '75000'), findsNothing);
+    expect(_due(75000), findsNothing);
     expect(
       find.text('«Aziza» already has an active VIP tariff — no second charge.'),
       findsOneWidget,
     );
   });
 
-  testWidgets('a child on a live 1 soat pass sold VIP is still charged', (
-    tester,
-  ) async {
+  testWidgets('a child on a live 1 soat pass sold VIP is not asked the '
+      'full VIP price', (tester) async {
     await _pumpPanel(
       tester,
       activePasses: [_livePass('hour', '1 soat', 50000)],
@@ -470,7 +475,195 @@ void main() {
 
     await _pickChildAndPlan(tester, 'VIP');
 
-    expect(find.widgetWithText(TextField, '75000'), findsOneWidget);
+    // The press only asks the server; the switch modal collects the
+    // surcharge.
+    expect(_due(75000), findsNothing);
+    expect(find.text('Pay and print'), findsNothing);
+    expect(find.text('Continue'), findsOneWidget);
+  });
+
+  // The backend also lists a 1 soat pass whose hour ran out today.
+  ActivePass expiredHour() => ActivePass(
+    childId: 'child-1',
+    planKey: 'hour',
+    planLabel: '1 soat',
+    expiresAt: DateTime.now().subtract(const Duration(minutes: 45)),
+    dueTodayUzs: 50000,
+    hourEnded: true,
+  );
+
+  testWidgets('an hour that ran out today sold VIP goes through the switch, '
+      'not the full VIP price', (tester) async {
+    await _pumpPanel(tester, activePasses: [expiredHour()]);
+
+    await _pickChildAndPlan(tester, 'VIP');
+
+    expect(_due(75000), findsNothing);
+    expect(find.text('Pay and print'), findsNothing);
+    expect(find.text('Continue'), findsOneWidget);
+  });
+
+  testWidgets('an hour that ran out today sold 1 soat again is a fresh, '
+      'paid hour', (tester) async {
+    await _pumpPanel(tester, activePasses: [expiredHour()]);
+
+    await _pickChildAndPlan(tester, '1 soat');
+
+    expect(_due(50000), findsOneWidget);
+    expect(find.text('Continue'), findsNothing);
+    expect(
+      find.text(
+        '«Aziza» already has an active 1 hour tariff — no second charge.',
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets('a child inside still shows today\'s tariff and its cost', (
+    tester,
+  ) async {
+    await _pumpPanel(
+      tester,
+      activePasses: [expiredHour()],
+      playing: [
+        PlayingChild(
+          childId: 'child-1',
+          childName: 'Aziza',
+          planName: '1 soat',
+          planKind: 'flat_hour',
+          enteredAt: DateTime.now().subtract(const Duration(minutes: 80)),
+          minutes: 80,
+          dueUzs: 0,
+        ),
+      ],
+    );
+
+    expect(find.text("1 soat · 50 000 so'm"), findsOneWidget);
+  });
+
+  testWidgets('the child\'s current plan is marked on its tariff card', (
+    tester,
+  ) async {
+    await _pumpPanel(tester, activePasses: [expiredHour()]);
+
+    await tester.tap(find.byKey(const ValueKey('child-select')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Current tariff'), findsOneWidget);
+  });
+
+  testWidgets('a prepaid hour inside shows what was paid, not 0', (
+    tester,
+  ) async {
+    await _pumpPanel(
+      tester,
+      activePasses: [expiredHour()],
+      playing: [
+        PlayingChild(
+          childId: 'child-1',
+          childName: 'Aziza',
+          planName: '1 soat',
+          planKind: 'flat_hour',
+          enteredAt: DateTime.now().subtract(const Duration(minutes: 80)),
+          minutes: 80,
+          dueUzs: 0,
+        ),
+      ],
+    );
+
+    expect(find.text('paid'), findsOneWidget);
+    // The row and the card's total both read the paid hour.
+    expect(find.text("50 000 so'm"), findsNWidgets(2));
+  });
+
+  // The checkout press ("Pay and print", or "Continue" for a switch).
+  bool payEnabled(WidgetTester tester) {
+    final button = find.ancestor(
+      of: find.byWidgetPredicate(
+        (w) =>
+            w is Text &&
+            ((w.data ?? '').startsWith('Pay and print') ||
+                w.data == 'Continue'),
+      ),
+      matching: find.byWidgetPredicate((w) => w is ButtonStyleButton),
+    );
+    return tester.widget<ButtonStyleButton>(button.first).onPressed != null;
+  }
+
+  testWidgets('an hour that ran out today never turns into Standard', (
+    tester,
+  ) async {
+    await _pumpPanel(tester, activePasses: [expiredHour()]);
+
+    await _pickChildAndPlan(tester, 'Standart');
+
+    expect(
+      find.text("«Aziza»: can't switch 1 soat → Standart"),
+      findsOneWidget,
+    );
+    expect(payEnabled(tester), isFalse);
+  });
+
+  testWidgets('a live hour never turns into Standard', (tester) async {
+    await _pumpPanel(
+      tester,
+      activePasses: [_livePass('hour', '1 soat', 50000)],
+    );
+
+    await _pickChildAndPlan(tester, 'Standart');
+
+    expect(
+      find.text("«Aziza»: can't switch 1 soat → Standart"),
+      findsOneWidget,
+    );
+    expect(payEnabled(tester), isFalse);
+  });
+
+  testWidgets('a live Standard never turns into 1 soat', (tester) async {
+    await _pumpPanel(
+      tester,
+      activePasses: [_livePass('standard', 'Standart', 12000)],
+    );
+
+    await _pickChildAndPlan(tester, '1 soat');
+
+    expect(
+      find.text("«Aziza»: can't switch Standart → 1 soat"),
+      findsOneWidget,
+    );
+    expect(payEnabled(tester), isFalse);
+  });
+
+  testWidgets('an ended hour goes to a LONGER hourly plan through the switch', (
+    tester,
+  ) async {
+    await _pumpPanel(
+      tester,
+      activePasses: [expiredHour()],
+      extraPlans: [_birthday],
+    );
+
+    await _pickChildAndPlan(tester, 'Birthday 90 min');
+
+    expect(find.textContaining("can't switch"), findsNothing);
+    expect(_due(120000), findsNothing);
+    expect(find.text('Continue'), findsOneWidget);
+  });
+
+  testWidgets('a live hour cannot go to a SHORTER hourly plan', (tester) async {
+    await _pumpPanel(
+      tester,
+      activePasses: [_livePass('hour', '1 soat', 50000)],
+      extraPlans: [_short],
+    );
+
+    await _pickChildAndPlan(tester, 'Quick 30');
+
+    expect(
+      find.text("«Aziza»: can't switch 1 soat → Quick 30"),
+      findsOneWidget,
+    );
+    expect(payEnabled(tester), isFalse);
   });
 
   testWidgets('the hour → VIP conflict from the panel says no refund', (
@@ -497,7 +690,7 @@ void main() {
     );
 
     await _pickChildAndPlan(tester, 'VIP');
-    await tester.tap(find.text('Pay and print'));
+    await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
 
     expect(
@@ -530,7 +723,7 @@ void main() {
     );
 
     await _pickChildAndPlan(tester, 'VIP');
-    await tester.tap(find.text('Pay and print'));
+    await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
 
     // The dialog is up (VIP prepay question) but without the hour note.
@@ -550,3 +743,11 @@ ActivePass _livePass(String planKey, String label, int dueTodayUzs) =>
       expiresAt: DateTime.now().add(const Duration(minutes: 30)),
       dueTodayUzs: dueTodayUzs,
     );
+
+/// The "To'lanadi" amount on the account checkout's receipt.
+Finder _due(int uzs) => find.byWidgetPredicate(
+  (w) =>
+      w is Text &&
+      w.key == const ValueKey('pay-due') &&
+      w.data == formatUzs(uzs),
+);

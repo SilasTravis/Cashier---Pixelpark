@@ -14,12 +14,28 @@ import '../../../../generated/l10n.dart';
 /// sticker leads with its duration so door staff can tell it from an
 /// all-day Standard/VIP sticker at a glance; every other sticker is exactly
 /// the child's name, as before. The label printer itself is untouched.
-String stickerNameFor(String childName, int? durationMinutes) {
+String stickerNameFor(
+  String childName,
+  int? durationMinutes, {
+  bool upgrade = false,
+}) {
+  // An upgraded sticker says so, so the parent and door staff can tell the
+  // new all-day QR from the stopped one.
+  if (upgrade) return childName.isEmpty ? 'UPGRADE' : 'UPGRADE · $childName';
   if (durationMinutes == null) return childName;
   final tag = durationMinutes % 60 == 0
       ? '${durationMinutes ~/ 60} SOAT'
       : '$durationMinutes DAQ';
   return childName.isEmpty ? tag : '$tag · $childName';
+}
+
+/// The plan line of an upgraded pass's paper ticket: "UPGRADE - VIP". The
+/// ticket printer's built-in font is ASCII-only (anything else prints as
+/// "?"), so the separator is a plain hyphen — the sticker's "·" is fine
+/// there (WinAnsi), not here. No plan name leaves just "UPGRADE".
+String upgradeTicketPlanName(String? planName) {
+  final name = planName?.trim() ?? '';
+  return name.isEmpty ? 'UPGRADE' : 'UPGRADE - $name';
 }
 
 /// Fires gate-pass label printing the instant entry is confirmed — no
@@ -56,6 +72,7 @@ void printPlanEntryLabels(
             name: stickerNameFor(
               childNamesById[entry.childId] ?? '',
               entry.durationMinutes,
+              upgrade: entry.upgrade,
             ),
             invertName: false,
           ),
@@ -64,20 +81,33 @@ void printPlanEntryLabels(
       ],
       tickets: [
         for (final entry in result.entries)
-          (
-            qrData: entry.token,
-            childName: childNamesById[entry.childId] ?? '',
-            planName: planName ?? '',
-            priceUzs: planPriceUzs,
-            discountUzs: planPriceUzs == null
-                ? 0
-                : entryDiscountsByChild[entry.childId]?.appliedDiscountUzs(
-                        planPriceUzs,
-                      ) ??
-                      0,
-            discountName: entryDiscountsByChild[entry.childId]?.name,
-            ticketId: _ticketId(entry.childId),
-          ),
+          if (entry.upgrade)
+            // An upgrade prints what was actually charged — the surcharge —
+            // not the plan's list price.
+            (
+              qrData: entry.token,
+              childName: childNamesById[entry.childId] ?? '',
+              planName: upgradeTicketPlanName(planName),
+              priceUzs: entry.priceUzs ?? 0,
+              discountUzs: 0,
+              discountName: null,
+              ticketId: _ticketId(entry.childId),
+            )
+          else
+            (
+              qrData: entry.token,
+              childName: childNamesById[entry.childId] ?? '',
+              planName: planName ?? '',
+              priceUzs: planPriceUzs,
+              discountUzs: planPriceUzs == null
+                  ? 0
+                  : entryDiscountsByChild[entry.childId]?.appliedDiscountUzs(
+                          planPriceUzs,
+                        ) ??
+                        0,
+              discountName: entryDiscountsByChild[entry.childId]?.name,
+              ticketId: _ticketId(entry.childId),
+            ),
         for (final companion in result.companionPasses)
           (
             qrData: companion.code,
@@ -103,7 +133,7 @@ void printPlanEntryLabels(
         backgroundColor: NocturneColors.surface,
         content: Row(
           children: [
-            const Icon(
+            Icon(
               PhosphorIconsRegular.warning,
               size: 16,
               color: NocturneColors.accent300,
@@ -163,7 +193,7 @@ void printPassesWithTicketFallback(
           backgroundColor: NocturneColors.surface,
           content: Row(
             children: [
-              const Icon(
+              Icon(
                 PhosphorIconsRegular.printer,
                 size: 16,
                 color: NocturneColors.accent300,
@@ -181,7 +211,7 @@ void printPassesWithTicketFallback(
         backgroundColor: NocturneColors.surface,
         content: Text(
           l10n.stickerPrintFailed,
-          style: const TextStyle(color: NocturneColors.danger),
+          style: TextStyle(color: NocturneColors.danger),
         ),
       ),
     );

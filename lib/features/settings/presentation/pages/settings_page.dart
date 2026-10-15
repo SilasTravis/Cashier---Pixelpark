@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/theme_mode_toggle.dart';
+import '../../../../core/theme/pos_palette.dart';
+import '../../../../core/theme/app_theme_mode.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:phosphor_icons/phosphor_icons.dart';
@@ -56,7 +59,7 @@ class SettingsPage extends StatelessWidget {
                             (local.getCashierFullName() ?? '?').isEmpty
                                 ? '?'
                                 : local.getCashierFullName()![0].toUpperCase(),
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: NocturneColors.accent,
                               fontWeight: FontWeight.w600,
                             ),
@@ -74,8 +77,9 @@ class SettingsPage extends StatelessWidget {
                               ),
                               Text(
                                 '@${local.getCashierUsername() ?? ''}',
-                                style: AppTextStyles.muted(AppTextStyles.body)
-                                    .copyWith(fontSize: 12),
+                                style: AppTextStyles.muted(
+                                  AppTextStyles.body,
+                                ).copyWith(fontSize: 12),
                               ),
                             ],
                           ),
@@ -93,6 +97,8 @@ class SettingsPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
+              const _ThemeModeCard(),
+              const SizedBox(height: 16),
               const _PrinterSettingsCard(),
               const SizedBox(height: 16),
               BlocProvider<UpdateCubit>(
@@ -107,6 +113,54 @@ class SettingsPage extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Night mode switch — the same toggle as the top bar's moon button.
+class _ThemeModeCard extends StatelessWidget {
+  const _ThemeModeCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
+    final p = PosPalette.of(context);
+    final dark = AppThemeMode.dark;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 12, 12, 12),
+      decoration: BoxDecoration(
+        color: NocturneColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        boxShadow: AppShadow.sm,
+      ),
+      child: Row(
+        children: [
+          Icon(
+            dark ? PhosphorIconsRegular.moon : PhosphorIconsRegular.sun,
+            size: 20,
+            color: p.accent,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(l10n.themeNight, style: p.heading),
+                Text(
+                  l10n.themeNightHint,
+                  style: p.bodyMuted.copyWith(fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            key: const ValueKey('theme-mode-switch'),
+            value: dark,
+            onChanged: (value) => setThemeMode(dark: value),
+          ),
+        ],
       ),
     );
   }
@@ -158,7 +212,7 @@ class _PrinterSettingsCardState extends State<_PrinterSettingsCard> {
             children: [
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     PhosphorIconsRegular.printer,
                     color: NocturneColors.accent,
                     size: 20,
@@ -216,8 +270,9 @@ class _PrinterSettingsCardState extends State<_PrinterSettingsCard> {
                 const SizedBox(height: 10),
                 Text(
                   l10n.noPrintersFound,
-                  style: AppTextStyles.muted(AppTextStyles.body)
-                      .copyWith(fontSize: 12),
+                  style: AppTextStyles.muted(
+                    AppTextStyles.body,
+                  ).copyWith(fontSize: 12),
                 ),
               ],
             ],

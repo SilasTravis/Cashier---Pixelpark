@@ -32,6 +32,10 @@
   "cartEmpty": "Chek bo‘sh",
   "discount": "Chegirma",
   "noDiscount": "Chegirmasiz",
+  "discountGroupFree": "Bepul (100%)",
+  "discountGroupPercent": "Foizli",
+  "discountGroupFixed": "Summali",
+  "discountSearchHint": "Nomi bo‘yicha qidirish",
   "checkDiscount": "Chek chegirmasi",
   "checkDiscountNone": "Tanlanmagan",
   "checkDiscountLocked": "Chek chegirmasi tanlangan — bola chegirmasi va promokod o'chirilgan",
@@ -642,19 +646,46 @@
   "offlinePromptDecline": "Yo‘q",
   "onlinePromptTitle": "Internet qaytdi",
   "onlinePromptBody": "Onlayn rejimga o‘tib, {count} ta savdoni sinxronlaymizmi?",
-  "@onlinePromptBody": { "placeholders": { "count": { "type": "int" } } },
+  "@onlinePromptBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "onlinePromptAccept": "Ha, sinxronlash",
   "onlinePromptLater": "Keyinroq",
   "offlineBanner": "OFFLINE · {count} ta savdo kutmoqda",
-  "@offlineBanner": { "placeholders": { "count": { "type": "int" } } },
+  "@offlineBanner": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "offlineBannerSyncing": "Sinxronlanmoqda…",
   "checkOnline": "Onlaynni tekshirish",
   "stillOffline": "Hali ham internet yo‘q",
   "syncResultTitle": "Sinxronlash natijasi",
   "syncResultBody": "{synced} ta savdo sinxronlandi, {failed} ta xato.",
-  "@syncResultBody": { "placeholders": { "synced": { "type": "int" }, "failed": { "type": "int" } } },
+  "@syncResultBody": {
+    "placeholders": {
+      "synced": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
   "syncTransportFailed": "Sinxronlab bo‘lmadi: {reason}. Offline rejim davom etadi.",
-  "@syncTransportFailed": { "placeholders": { "reason": { "type": "String" } } },
+  "@syncTransportFailed": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "syncViewFailures": "Ko‘rish",
   "needsInternet": "Internet kerak",
   "tabUnsynced": "Sinxronlanmagan",
@@ -663,7 +694,13 @@
   "unsyncedPending": "Kutmoqda",
   "unsyncedFailed": "Xato",
   "unsyncedSupportCode": "Kod: {code}",
-  "@unsyncedSupportCode": { "placeholders": { "code": { "type": "String" } } },
+  "@unsyncedSupportCode": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
   "unsyncedCodeCopied": "Kod nusxalandi",
   "unsyncedRetry": "Qayta urinish",
   "unsyncedRetryAll": "Hammasini qayta yuborish",
@@ -671,15 +708,33 @@
   "notSyncedBadge": "Sinxronlanmagan",
   "historyOfflineNotice": "Offline rejim: faqat hali sinxronlanmagan savdolar ko‘rsatiladi",
   "logoutBlockedUnsynced": "{count} ta savdo sinxronlanmagan. Chiqishdan oldin onlayn rejimda sinxronlang.",
-  "@logoutBlockedUnsynced": { "placeholders": { "count": { "type": "int" } } },
+  "@logoutBlockedUnsynced": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "closeShiftUnsyncedWarning": "{count} ta savdo serverga o‘tmadi (xato). Smenani yopishdan oldin qo‘llab-quvvatlashga murojaat qiling.",
-  "@closeShiftUnsyncedWarning": { "placeholders": { "count": { "type": "int" } } },
+  "@closeShiftUnsyncedWarning": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "closeShiftOffline": "Offline rejimda smenani yopib bo‘lmaydi",
   "logoutFailedSalesConfirm": "{count} ta savdo serverga o‘tmadi (xato). Ular kassada saqlanadi. Baribir chiqasizmi?",
-  "@logoutFailedSalesConfirm": { "placeholders": { "count": { "type": "int" } } },
+  "@logoutFailedSalesConfirm": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "logoutAnyway": "Baribir chiqish",
   "promoCode": "Promokod",
-  "promoCodeHint": "Skanerlang yoki kodni kiriting",
+  "promoCodeHint": "Skanerlang yoki yozing",
   "promoCodeCheck": "Tekshirish",
   "promoCodeInvalid": "Promokod noto‘g‘ri — kodni tekshiring",
   "promoCodeOwnerNotFound": "Promokod egasi topilmadi",
@@ -689,13 +744,250 @@
   "promoCodeChildHasPass": "Bu bolada bugun faol propusk bor — promokod faqat yangi kirishga yoki VIP’ga o‘tishga qo‘llanadi",
   "promoCodeRemove": "Promokodni olib tashlash",
   "promoCodeReleased": "Promokod qo‘llanmadi, kod qaytarildi: {reason}",
-  "@promoCodeReleased": { "placeholders": { "reason": { "type": "String" } } },
+  "@promoCodeReleased": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "promoCodeBlogger": "Blogger",
   "promoCodeBloggerPending": "Blogger promokodi {code} qabul qilindi — mijozni tanlang",
-  "@promoCodeBloggerPending": { "placeholders": { "code": { "type": "String" } } },
+  "@promoCodeBloggerPending": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
   "promoCodeNotStarted": "Promokod hali amal qilmaydi",
   "promoCodeLimitReached": "Promokoddan foydalanish limiti tugagan",
   "promoCodeAlreadyUsedByCustomer": "Bu mijoz ushbu promokoddan allaqachon foydalangan",
+  "accountStepWho": "Kim kiradi?",
+  "accountStepExtras": "Qo‘shimcha",
+  "accountOptional": "ixtiyoriy",
+  "accountDueShortfall": "Yetishmayotgan summa",
+  "accountDueFull": "Mijoz to‘laydi",
+  "accountFromBalance": "Balansdan yechiladi",
+  "accountCoveredByBalance": "To‘liq balansdan yopiladi · qoladi {value}",
+  "@accountCoveredByBalance": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "accountInsideCount": "{count} bola ichkarida",
+  "@accountInsideCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "accountAgeYears": "{count} yosh",
+  "@accountAgeYears": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "accountInsideMinutes": "Ichkarida · {minutes} daq",
+  "@accountInsideMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "accountPayNow": "Hozir to‘lanadi",
+  "accountPayAtExit": "Chiqishda hisoblanadi",
+  "accountAtExit": "chiqishda",
+  "accountPlanTimesKids": "{plan} × {count} bola",
+  "@accountPlanTimesKids": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "accountColChild": "Bola",
+  "accountColTime": "Vaqt",
+  "accountColSoFar": "Hozirgacha",
+  "accountExcessToBalance": "{value} balansga tushadi",
+  "@accountExcessToBalance": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "accountToPay": "To‘lanadi",
+  "accountFromBalanceLine": "Balansdan",
+  "accountLeftOnBalance": "Balansda qoladi",
+  "accountOtherAmount": "Boshqa summa olish",
+  "accountNoCheckDiscounts": "Faol chek chegirmasi yo‘q",
+  "accountPickChildFirst": "Avval bolani tanlang",
+  "accountTodayQrs": "Bugungi QR’lar",
+  "accountTodayQrsHint": "Yo‘qolgan yoki buzilgan stikerni qayta chiqaring: pul olinmaydi, eski stiker ham ishlayveradi.",
+  "accountValidUntil": "{time} gacha",
+  "@accountValidUntil": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "reprintAll": "Hammasini qayta chop etish",
+  "themeNight": "Tungi rejim",
+  "themeDay": "Kunduzgi rejim",
+  "themeNightHint": "Ko‘zni charchatmaydigan yumshoq ko‘k-to‘q fon. Shu kassada eslab qolinadi.",
+  "accountTxTitle": "Amallar tarixi",
+  "accountTxCount": "{count} ta",
+  "@accountTxCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "accountTxEmpty": "Bu mijozda hali amallar yo‘q",
+  "accountTxFailed": "Amallarni yuklab bo‘lmadi",
+  "accountTxRange": "{from}–{to} / {total}",
+  "@accountTxRange": {
+    "placeholders": {
+      "from": {
+        "type": "int"
+      },
+      "to": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "accountTxPrev": "Oldingi",
+  "accountTxNext": "Keyingi",
+  "accountTxMore": "Boshqa",
+  "txBonus": "Bonus",
+  "txPayment": "Ilova orqali to‘ldirish",
+  "txManualAdjustment": "Qo‘lda tuzatish",
+  "txKidsCharge": "Tarif (kirish)",
+  "txCashierTopup": "Kassada to‘ldirish",
+  "txPosPurchase": "Kassada xarid",
+  "txCashierTopupRefund": "To‘ldirish qaytarildi",
+  "txPosPurchaseRefund": "Xarid qaytarildi",
+  "txLegacy": "Eski yozuv",
+  "txGameReward": "O‘yin mukofoti",
+  "txMarketPurchase": "Market xaridi",
+  "txMarketRefund": "Market qaytarilishi",
+  "txStatusPending": "Kutilmoqda",
+  "txStatusFailed": "Bajarilmadi",
+  "txStatusCancelled": "Bekor qilindi",
+  "planSwitchUpgradeQuestion": "«{plan}» rejasiga o‘tkazilsinmi? Faqat qo‘shimcha to‘lov ({price}) balansdan yechiladi. Eski stiker to‘xtatiladi va yangi QR «upgrade» bo‘lib chop etiladi.",
+  "@planSwitchUpgradeQuestion": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "upgradeCredit": "{paid} allaqachon to‘langan — qo‘shimcha to‘lov: {due}.",
+  "@upgradeCredit": {
+    "placeholders": {
+      "paid": {
+        "type": "String"
+      },
+      "due": {
+        "type": "String"
+      }
+    }
+  },
+  "insideFilterAll": "Hammasi",
+  "insideFilterHour": "Vaqtli",
+  "insideFilterOvertime": "Vaqti tugagan",
+  "hourOvertimeBanner": "{count} ta bolaning vaqti tugagan — ota-onasini chaqiring",
+  "@hourOvertimeBanner": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "hourOvertimeShow": "Ko‘rsatish",
+  "hourOvertimeBy": "{count} daq oshdi",
+  "@hourOvertimeBy": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "hourRemaining": "{count} daq qoldi",
+  "@hourRemaining": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "hourEndsAtLabel": "Tugaydi",
+  "hourEndedAtLabel": "Tugadi",
+  "insideHourEmpty": "Hozir vaqtli tarifdagi bolalar yo‘q",
+  "insideOvertimeEmpty": "Vaqti tugagan bola yo‘q",
+  "insideSoldVip": "Bugun VIP sotildi",
+  "insideSoldHour": "Bugun vaqtli sotildi",
+  "insideHourInside": "Vaqtli ichkarida",
+  "insideHourEndingSoon": "10 daqiqada tugaydi",
+  "insideNoTurnstileNote": "Turniket yo‘q: vaqtli chipta (1 soat va boshqalar) chiqqanda bola ichkariga yoziladi va vaqti shu paytdan boshlanadi — ketganda shu yerdan chiqaring.",
+  "shiftTicketsSold": "Sotilgan biletlar",
+  "shiftVipTickets": "Shundan VIP",
+  "shiftUniqueChildren": "Takrorlanmas bolalar",
+  "shiftEnteredChildren": "Ichkariga kirgan",
+  "shiftPrintReport": "Smena chekini chiqarish",
+  "shiftCountUnit": "{count} ta",
+  "@shiftCountUnit": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "planSwitchUpgradeCollectQuestion": "«{plan}» rejasiga o‘tkazilsinmi? Faqat qo‘shimcha to‘lov ({price}) hozir naqd yoki karta bilan olinadi — balansga ortiqcha pul tushmaydi. Eski stiker to‘xtatiladi va yangi QR «upgrade» bo‘lib chop etiladi.",
+  "@planSwitchUpgradeCollectQuestion": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "planSwitchCollectNow": "Hozir olinadi",
+  "planSwitchContinue": "Davom etish",
+  "planSwitchPayInDialog": "Tanlangan bolada bugun boshqa tarif bor — to‘lov keyingi oynada, faqat qo‘shimcha to‘lov bilan hisoblanadi.",
+  "refundFundedTitle": "Shu to‘lovdan olingan chiptalar",
+  "refundFundedHint": "Mijoz qaytarayotgan chiptalarni belgilang: ularning puli avval balansga qaytadi, keyin naqd yoki kartaga beriladi. Belgilangan chiptalar darhol bekor qilinadi.",
+  "refundFundedConfirm": "Shuningdek {count} ta chipta bekor qilinadi va endi kirishda ishlamaydi.",
+  "@refundFundedConfirm": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "currentTariff": "Hozirgi tarif",
+  "paidLabel": "to'langan",
+  "planSwitchBlocked": "«{name}»: {from} → {to} ga o'tib bo'lmaydi",
   "tabMarket": "Pixel Market",
   "marketGive": "Berish",
   "marketIncoming": "Kelayotgan",
@@ -706,7 +998,13 @@
   "marketRequestFailed": "So‘rov bajarilmadi — qayta urinib ko‘ring",
   "marketScanPrompt": "Ota-onaning ilovasidagi QR kodni skanerlang",
   "marketOrderNumber": "Buyurtma №{number}",
-  "@marketOrderNumber": { "placeholders": { "number": { "type": "String" } } },
+  "@marketOrderNumber": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
   "marketCustomer": "Mijoz",
   "marketStatusPlaced": "Yangi",
   "marketStatusConfirmed": "Do‘kon tayyorlamoqda",
@@ -721,10 +1019,22 @@
   "marketUnreceivedHint": "Do‘kon jo‘natgan buyurtmani avval «Qabul qilish» bilan qabul qiling — faqat parkdagi buyurtmalar topshiriladi",
   "marketHandedTitle": "Topshirildi!",
   "marketHandedBody": "{count} ta buyurtma mijozga topshirildi",
-  "@marketHandedBody": { "placeholders": { "count": { "type": "int" } } },
+  "@marketHandedBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "marketNext": "Keyingi mijoz",
   "marketItemsCount": "{count} ta mahsulot",
-  "@marketItemsCount": { "placeholders": { "count": { "type": "int" } } },
+  "@marketItemsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "marketTotal": "Jami",
   "marketIncomingEmpty": "Hozircha kelayotgan buyurtma yo‘q"
 }
