@@ -430,9 +430,25 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
           // The backend also lists a 1 soat pass whose hour ran out today:
           // it is only what a flat-day (VIP) upgrade credits. For any other
           // plan that child is a fresh sale, so the pass doesn't count.
+          final plansByKey = {for (final p in state.plans) p.key: p};
+          int durationOf(KidsPlan? plan) => plan?.durationMinutes ?? 60;
+          // The selected plan is an hourly one running LONGER than [key]'s.
+          bool longerHourThan(String? key) {
+            final current = plansByKey[key];
+            return _selectedPlan?.kind == KidsPlanKind.flatHour &&
+                current?.kind == KidsPlanKind.flatHour &&
+                durationOf(_selectedPlan) > durationOf(current);
+          }
+
+          // The backend also lists a 1 soat pass whose hour ran out today:
+          // the base of an upgrade (VIP, a longer hourly plan) and a block
+          // on Standard. The same or a shorter hourly plan is a fresh sale
+          // (another hour), so there the pass doesn't count.
           final activePasses = [
             for (final p in state.activePasses)
-              if (!p.hourEnded || _selectedPlan?.kind == KidsPlanKind.flatDay)
+              if (!p.hourEnded ||
+                  _selectedPlan?.kind != KidsPlanKind.flatHour ||
+                  longerHourThan(p.planKey))
                 p,
           ];
           final activePlanByChild = {
@@ -441,7 +457,6 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
           final activePassByChild = {
             for (final p in activePasses) p.childId: p,
           };
-          final plansByKey = {for (final p in state.plans) p.key: p};
           bool returnedAsIs(ActivePass pass) =>
               pass.discountId != null ||
               pass.freeReason != null ||
@@ -453,6 +468,32 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                 if (activePassByChild[id] case final pass?)
                   if (returnedAsIs(pass)) id,
           };
+          // Switches the backend refuses (owner's rules) are said right here,
+          // so the cashier never presses into a 0: a plan switch only goes
+          // to a flat-day (VIP) plan or an hourly plan to a LONGER hourly
+          // one — never hourly ↔ Standard. An unknown plan is left to the
+          // server.
+          bool switchAllowed(ActivePass pass) {
+            final from = plansByKey[pass.planKey];
+            final to = _selectedPlan;
+            if (from == null || to == null) return true;
+            if (to.kind == KidsPlanKind.flatDay) return true;
+            return longerHourThan(pass.planKey);
+          }
+
+          final blockedSwitchNotes = <String>[
+            if (_selectedPlan != null)
+              for (final child in customer.children)
+                if (_selectedChildIds.contains(child.id) &&
+                    !passReturnedIds.contains(child.id))
+                  if (activePassByChild[child.id] case final pass?)
+                    if (!switchAllowed(pass))
+                      AppLocalization.of(context).planSwitchBlocked(
+                        child.fullName,
+                        pass.planLabel,
+                        _selectedPlan!.name,
+                      ),
+          ];
           // Only a prepaid sale has something to not charge again (and a
           // "no second charge" note to show).
           final alreadyOnSelectedPlan = <String>{
@@ -673,7 +714,10 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               _selectedChildIds.isEmpty &&
               (_cart.isNotEmpty || _companions > 0);
           final canEnter =
-              !state.isBusy && (hasEntry || extrasOnly) && paymentOk;
+              !state.isBusy &&
+              (hasEntry || extrasOnly) &&
+              paymentOk &&
+              blockedSwitchNotes.isEmpty;
 
           final topupAmount =
               int.tryParse(_topupAmountController.text.replaceAll(' ', '')) ??
@@ -754,6 +798,13 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
             plans: state.plans,
             isLoadingPlans: state.isLoadingPlans,
             selectedPlan: _selectedPlan,
+            currentPlanKeys: {
+              for (final pass in state.activePasses)
+                if (pass.planKey != null &&
+                    (_selectedChildIds.isEmpty ||
+                        _selectedChildIds.contains(pass.childId)))
+                  pass.planKey!,
+            },
             onSelectPlan: (plan) => setState(() => _selectedPlan = plan),
           );
 
@@ -912,6 +963,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
             canSubmit: canEnter,
             isBusy: state.isBusy,
             switchPending: switchPending,
+            blockedNotes: blockedSwitchNotes,
             onSubmit: () {
               // With a check discount, entryDiscountFor() is the child's
               // share — the printed ticket shows it.
@@ -1027,6 +1079,10 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               const SizedBox(height: 14),
               _PlayingCard(
                 rows: state.playing,
+                paidByChild: {
+                  for (final pass in state.activePasses)
+                    pass.childId: pass.dueTodayUzs,
+                },
                 balance: customer.balance,
                 onRefresh: () => context.read<PosAccountBloc>().add(
                   const PosAccountPlayingRequested(),
@@ -1914,14 +1970,15 @@ class _ChildRow extends StatelessWidget {
                             icon: PhosphorIconsRegular.doorOpen,
                             tone: ChipTone.positive,
                           ),
-                        // Inside right now → the "Hozir ichkarida" table
-                        // already carries the pass and its running cost.
-                        if (activePass != null && insideMinutes == null)
+                        // Today's tariff and what it has cost so far —
+                        // shown inside too, so an upgrade is priced at a
+                        // glance.
+                        if (activePass != null)
                           StatusChip(
                             label:
                                 '${activePass!.planLabel} · ${_activePassBadge(l10n, activePass!)}',
                             icon: PhosphorIconsRegular.ticket,
-                            tone: ChipTone.neutral,
+                            tone: ChipTone.positive,
                           ),
                         if (hasPromo)
                           StatusChip(
@@ -2011,12 +2068,16 @@ class _TariffCard extends StatelessWidget {
     required this.isLoadingPlans,
     required this.selectedPlan,
     required this.onSelectPlan,
+    this.currentPlanKeys = const {},
   });
 
   /// Standard/VIP, plus 1 soat when the backend has it switched on.
   final List<KidsPlan> plans;
   final bool isLoadingPlans;
   final KidsPlan? selectedPlan;
+
+  /// The plans the (selected) children are already on today — marked green.
+  final Set<String> currentPlanKeys;
   final ValueChanged<KidsPlan> onSelectPlan;
 
   @override
@@ -2069,6 +2130,7 @@ class _TariffCard extends StatelessWidget {
                         child: _TariffPill(
                           plan: plan,
                           selected: selectedPlan?.key == plan.key,
+                          current: currentPlanKeys.contains(plan.key),
                           onTap: () => onSelectPlan(plan),
                         ),
                       ),
@@ -2087,10 +2149,14 @@ class _TariffPill extends StatelessWidget {
     required this.plan,
     required this.selected,
     required this.onTap,
+    this.current = false,
   });
 
   final KidsPlan plan;
   final bool selected;
+
+  /// The child is already on this plan today (green border + label).
+  final bool current;
   final VoidCallback onTap;
 
   IconData get _icon => switch (plan.kind) {
@@ -2135,7 +2201,14 @@ class _TariffPill extends StatelessWidget {
         color: selected ? p.accentSoft : p.surface,
         shape: RoundedRectangleBorder(
           borderRadius: radius,
-          side: BorderSide(color: selected ? p.accent : p.border, width: 1.5),
+          side: BorderSide(
+            color: selected
+                ? p.accent
+                : current
+                ? p.positive
+                : p.border,
+            width: 1.5,
+          ),
         ),
         child: InkWell(
           onTap: onTap,
@@ -2201,10 +2274,20 @@ class _TariffPill extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  plan.isPrepaid ? l10n.accountPayNow : l10n.accountPayAtExit,
+                  current
+                      ? l10n.currentTariff
+                      : plan.isPrepaid
+                      ? l10n.accountPayNow
+                      : l10n.accountPayAtExit,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: p.bodyMuted.copyWith(fontSize: 12),
+                  style: current
+                      ? p.bodyMuted.copyWith(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: p.positive,
+                        )
+                      : p.bodyMuted.copyWith(fontSize: 12),
                 ),
               ],
             ),
@@ -2692,6 +2775,7 @@ class _CheckoutSection extends StatelessWidget {
     required this.isBusy,
     required this.onSubmit,
     this.switchPending = false,
+    this.blockedNotes = const [],
   });
 
   final List<Product> products;
@@ -2785,6 +2869,10 @@ class _CheckoutSection extends StatelessWidget {
   /// asks the server ("Davom etish"), collects nothing, and the switch
   /// modal collects the amount — so no "To'lanadi" / payment method here.
   final bool switchPending;
+
+  /// Plan switches the backend refuses for the selected children — shown
+  /// as warnings; the press stays disabled while there are any.
+  final List<String> blockedNotes;
 
   @override
   Widget build(BuildContext context) {
@@ -3019,7 +3107,16 @@ class _CheckoutSection extends StatelessWidget {
             padding: const EdgeInsets.only(top: 8),
             child: _Note(text: note, icon: PhosphorIconsRegular.checkCircle),
           ),
-        if (switchPending)
+        for (final note in blockedNotes)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: _Note(
+              text: note,
+              tone: ChipTone.warning,
+              icon: PhosphorIconsRegular.warning,
+            ),
+          ),
+        if (switchPending && blockedNotes.isEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: _Note(
@@ -3641,9 +3738,15 @@ class _PlayingCard extends StatelessWidget {
     required this.rows,
     required this.balance,
     required this.onRefresh,
+    this.paidByChild = const {},
   });
 
   final List<PlayingChild> rows;
+
+  /// What each child's pass has cost today (active-passes `dueTodayUzs`):
+  /// a prepaid 1 soat / VIP row owes nothing at exit, so it shows this
+  /// already-paid amount instead of a bare 0.
+  final Map<String, int> paidByChild;
   final int balance;
   final VoidCallback onRefresh;
 
@@ -3655,6 +3758,11 @@ class _PlayingCard extends StatelessWidget {
     final p = PosPalette.of(context);
     final totalDue = rows.fold<int>(0, (sum, row) => sum + row.dueUzs);
     final short = totalDue - balance;
+    bool prepaid(PlayingChild row) =>
+        row.planKind != 'per_minute_tiers' && row.dueUzs == 0;
+    int shownUzs(PlayingChild row) =>
+        prepaid(row) ? paidByChild[row.childId] ?? 0 : row.dueUzs;
+    final totalShown = rows.fold<int>(0, (sum, row) => sum + shownUzs(row));
     final headStyle = AppTextStyles.kicker.copyWith(
       fontSize: 10.5,
       color: p.textFaint,
@@ -3681,7 +3789,7 @@ class _PlayingCard extends StatelessWidget {
                   style: p.bodyMuted.copyWith(fontSize: 12.5),
                 ),
                 Text(
-                  formatUzs(totalDue),
+                  formatUzs(totalShown),
                   style: AppTextStyles.body.copyWith(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -3744,12 +3852,20 @@ class _PlayingCard extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      formatUzs(row.dueUzs),
+                      formatUzs(shownUzs(row)),
                       style: p.heading.copyWith(
                         fontSize: 14,
                         fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
+                    if (prepaid(row) && (paidByChild[row.childId] ?? 0) > 0)
+                      Text(
+                        l10n.paidLabel,
+                        style: AppTextStyles.body.copyWith(
+                          fontSize: 11,
+                          color: p.positive,
+                        ),
+                      ),
                     if (row.discountName != null)
                       Text(
                         '${l10n.discount}: ${row.discountName}',

@@ -731,5 +731,9 @@
         "type": "int"
       }
     }
-  }
+  },
+  "currentTariff": "Current tariff",
+  "paidLabel": "paid",
+  "planSwitchBlocked": "«{name}»: can't switch {from} → {to}",
+  "@planSwitchBlocked": {"placeholders": {"name": {"type": "String"}, "from": {"type": "String"}, "to": {"type": "String"}}}
 }

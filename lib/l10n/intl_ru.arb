@@ -731,5 +731,8 @@
         "type": "int"
       }
     }
-  }
+  },
+  "currentTariff": "Текущий тариф",
+  "paidLabel": "оплачено",
+  "planSwitchBlocked": "«{name}»: нельзя перейти {from} → {to}"
 }

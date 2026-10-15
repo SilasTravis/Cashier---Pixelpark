@@ -807,5 +807,8 @@
         "type": "int"
       }
     }
-  }
+  },
+  "currentTariff": "Hozirgi tarif",
+  "paidLabel": "to'langan",
+  "planSwitchBlocked": "«{name}»: {from} → {to} ga o'tib bo'lmaydi"
 }

@@ -20,7 +20,10 @@ class _FakeRemote implements PosAccountRemoteDataSource {
     this.activePasses = const [],
     this.checkoutResult,
     this.extraPlans = const [],
+    this.playing = const [],
   });
+
+  final List<PlayingChild> playing;
 
   final List<KidsPlan> extraPlans;
 
@@ -81,7 +84,7 @@ class _FakeRemote implements PosAccountRemoteDataSource {
       activePasses;
 
   @override
-  Future<List<PlayingChild>> listPlaying(int customerId) async => const [];
+  Future<List<PlayingChild>> listPlaying(int customerId) async => playing;
 
   @override
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -93,6 +96,7 @@ Future<PosAccountBloc> _pumpPanel(
   List<ActivePass> activePasses = const [],
   PosEntryResult? checkoutResult,
   List<KidsPlan> extraPlans = const [],
+  List<PlayingChild> playing = const [],
 }) async {
   tester.view.physicalSize = const Size(1600, 1200);
   tester.view.devicePixelRatio = 1.0;
@@ -105,6 +109,7 @@ Future<PosAccountBloc> _pumpPanel(
               activePasses: activePasses,
               checkoutResult: checkoutResult,
               extraPlans: extraPlans,
+              playing: playing,
             ),
           ),
         )
@@ -494,6 +499,153 @@ void main() {
       ),
       findsNothing,
     );
+  });
+
+  testWidgets('a child inside still shows today\'s tariff and its cost', (
+    tester,
+  ) async {
+    await _pumpPanel(
+      tester,
+      activePasses: [expiredHour()],
+      playing: [
+        PlayingChild(
+          childId: 'child-1',
+          childName: 'Aziza',
+          planName: '1 soat',
+          planKind: 'flat_hour',
+          enteredAt: DateTime.now().subtract(const Duration(minutes: 80)),
+          minutes: 80,
+          dueUzs: 0,
+        ),
+      ],
+    );
+
+    expect(find.text("1 soat · 50 000 so'm"), findsOneWidget);
+  });
+
+  testWidgets('the child\'s current plan is marked on its tariff card', (
+    tester,
+  ) async {
+    await _pumpPanel(tester, activePasses: [expiredHour()]);
+
+    await tester.tap(find.byKey(const ValueKey('child-select')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Current tariff'), findsOneWidget);
+  });
+
+  testWidgets('a prepaid hour inside shows what was paid, not 0', (
+    tester,
+  ) async {
+    await _pumpPanel(
+      tester,
+      activePasses: [expiredHour()],
+      playing: [
+        PlayingChild(
+          childId: 'child-1',
+          childName: 'Aziza',
+          planName: '1 soat',
+          planKind: 'flat_hour',
+          enteredAt: DateTime.now().subtract(const Duration(minutes: 80)),
+          minutes: 80,
+          dueUzs: 0,
+        ),
+      ],
+    );
+
+    expect(find.text('paid'), findsOneWidget);
+    // The row and the card's total both read the paid hour.
+    expect(find.text("50 000 so'm"), findsNWidgets(2));
+  });
+
+  // The checkout press ("Pay and print", or "Continue" for a switch).
+  bool payEnabled(WidgetTester tester) {
+    final button = find.ancestor(
+      of: find.byWidgetPredicate(
+        (w) =>
+            w is Text &&
+            ((w.data ?? '').startsWith('Pay and print') ||
+                w.data == 'Continue'),
+      ),
+      matching: find.byWidgetPredicate((w) => w is ButtonStyleButton),
+    );
+    return tester.widget<ButtonStyleButton>(button.first).onPressed != null;
+  }
+
+  testWidgets('an hour that ran out today never turns into Standard', (
+    tester,
+  ) async {
+    await _pumpPanel(tester, activePasses: [expiredHour()]);
+
+    await _pickChildAndPlan(tester, 'Standart');
+
+    expect(
+      find.text("«Aziza»: can't switch 1 soat → Standart"),
+      findsOneWidget,
+    );
+    expect(payEnabled(tester), isFalse);
+  });
+
+  testWidgets('a live hour never turns into Standard', (tester) async {
+    await _pumpPanel(
+      tester,
+      activePasses: [_livePass('hour', '1 soat', 50000)],
+    );
+
+    await _pickChildAndPlan(tester, 'Standart');
+
+    expect(
+      find.text("«Aziza»: can't switch 1 soat → Standart"),
+      findsOneWidget,
+    );
+    expect(payEnabled(tester), isFalse);
+  });
+
+  testWidgets('a live Standard never turns into 1 soat', (tester) async {
+    await _pumpPanel(
+      tester,
+      activePasses: [_livePass('standard', 'Standart', 12000)],
+    );
+
+    await _pickChildAndPlan(tester, '1 soat');
+
+    expect(
+      find.text("«Aziza»: can't switch Standart → 1 soat"),
+      findsOneWidget,
+    );
+    expect(payEnabled(tester), isFalse);
+  });
+
+  testWidgets('an ended hour goes to a LONGER hourly plan through the switch', (
+    tester,
+  ) async {
+    await _pumpPanel(
+      tester,
+      activePasses: [expiredHour()],
+      extraPlans: [_birthday],
+    );
+
+    await _pickChildAndPlan(tester, 'Birthday 90 min');
+
+    expect(find.textContaining("can't switch"), findsNothing);
+    expect(_due(120000), findsNothing);
+    expect(find.text('Continue'), findsOneWidget);
+  });
+
+  testWidgets('a live hour cannot go to a SHORTER hourly plan', (tester) async {
+    await _pumpPanel(
+      tester,
+      activePasses: [_livePass('hour', '1 soat', 50000)],
+      extraPlans: [_short],
+    );
+
+    await _pickChildAndPlan(tester, 'Quick 30');
+
+    expect(
+      find.text("«Aziza»: can't switch 1 soat → Quick 30"),
+      findsOneWidget,
+    );
+    expect(payEnabled(tester), isFalse);
   });
 
   testWidgets('the hour → VIP conflict from the panel says no refund', (
