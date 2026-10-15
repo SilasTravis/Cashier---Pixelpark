@@ -287,9 +287,8 @@ void _multiDayTests() {
     expect(find.text('Continue'), findsOneWidget);
   });
 
-  testWidgets('a live built-in VIP is re-printed, not charged, when selling '
-      'the custom day plan', (tester) async {
-    // The backend hands a live flat-day pass back as-is for any sale.
+  testWidgets('a live VIP sold a PRICIER day plan goes through the switch '
+      '(only the difference)', (tester) async {
     await _pumpPanel(
       tester,
       extraPlans: [_weekend],
@@ -299,11 +298,30 @@ void _multiDayTests() {
     await _pickChildAndPlan(tester, 'Weekend pass');
 
     expect(_due(150000), findsNothing);
-    expect(find.text('Continue'), findsNothing);
+    expect(find.text('Continue'), findsOneWidget);
     expect(
       find.text('«Aziza» already has an active VIP tariff — no second charge.'),
-      findsOneWidget,
+      findsNothing,
     );
+  });
+
+  testWidgets('a live pricier day pass sold the cheaper VIP is re-printed', (
+    tester,
+  ) async {
+    await _pumpPanel(
+      tester,
+      extraPlans: [_weekend],
+      activePasses: [_livePass('c-ef56', 'Weekend pass', 150000)],
+    );
+
+    await tester.tap(find.byKey(const ValueKey('child-select')));
+    await tester.pump();
+    // The built-in VIP card's title (the custom plan also wears a VIP badge).
+    await tester.tap(find.text('VIP').first);
+    await tester.pumpAndSettle();
+
+    expect(_due(75000), findsNothing);
+    expect(find.text('Continue'), findsNothing);
   });
 }
 

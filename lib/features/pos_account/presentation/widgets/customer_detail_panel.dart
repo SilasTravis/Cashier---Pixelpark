@@ -457,10 +457,17 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
           final activePassByChild = {
             for (final p in activePasses) p.childId: p,
           };
+          // A PRICIER flat-day plan than the live VIP day paid is an upgrade
+          // (75 000 VIP → 100 000 VIP pays 25 000), not a re-print.
+          bool pricierDay(ActivePass pass) =>
+              _selectedPlan?.kind == KidsPlanKind.flatDay &&
+              _selectedPlan!.key != pass.planKey &&
+              (_selectedPlan!.flatUzs ?? 0) > pass.dueTodayUzs;
           bool returnedAsIs(ActivePass pass) =>
               pass.discountId != null ||
               pass.freeReason != null ||
-              plansByKey[pass.planKey]?.kind == KidsPlanKind.flatDay ||
+              (plansByKey[pass.planKey]?.kind == KidsPlanKind.flatDay &&
+                  !pricierDay(pass)) ||
               pass.planKey == _selectedPlan?.key;
           final passReturnedIds = <String>{
             if (_selectedPlan != null)
