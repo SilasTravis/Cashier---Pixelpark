@@ -16,8 +16,19 @@ class SaleReceiptPrinter {
   static const double _verticalPaddingMm = 10;
   static const double _contentWidthMm = 63;
 
+  /// The cashback QR's printed side, in mm — big enough for a phone camera
+  /// to lock on from thermal paper, with a white quiet zone around it
+  /// (the receipt paper is the quiet zone; nothing else may intrude).
+  static const double _cashbackQrMm = 32;
+  static const double _cashbackQuietZoneMm = 4;
+
+  /// Divider + title + QR with its quiet zones + a (possibly wrapped)
+  /// two-line hint. Added on top of the regular receipt height.
+  static const double _cashbackBlockMm =
+      4 + 6 + 6 + _cashbackQrMm + 2 * _cashbackQuietZoneMm + 10;
+
   static bool hasPrintableProducts(SaleReceipt receipt) =>
-      receipt.items.isNotEmpty;
+      receipt.items.isNotEmpty || receipt.cashback != null;
 
   /// Printed under the header of a receipt rung up offline, so whoever reads
   /// the paper later knows why it isn't in the server history yet. ASCII
@@ -54,7 +65,7 @@ class SaleReceiptPrinter {
     }
     final format = PdfPageFormat(
       _paperWidthMm * PdfPageFormat.mm,
-      _receiptHeightMm(receipt) * PdfPageFormat.mm,
+      receiptHeightMm(receipt) * PdfPageFormat.mm,
       marginAll: 0,
     );
     return Printing.directPrintPdf(
@@ -77,7 +88,7 @@ class SaleReceiptPrinter {
       name: 'sale-${formatReceiptId(receipt.id)}',
       format: PdfPageFormat(
         _paperWidthMm * PdfPageFormat.mm,
-        _receiptHeightMm(receipt) * PdfPageFormat.mm,
+        receiptHeightMm(receipt) * PdfPageFormat.mm,
         marginAll: 0,
       ),
       onLayout: (_) =>
@@ -103,7 +114,7 @@ class SaleReceiptPrinter {
     final document = pw.Document();
     final pageFormat = PdfPageFormat(
       _paperWidthMm * PdfPageFormat.mm,
-      _receiptHeightMm(receipt) * PdfPageFormat.mm,
+      receiptHeightMm(receipt) * PdfPageFormat.mm,
       marginLeft: _leftPaddingMm * PdfPageFormat.mm,
       marginRight: _rightPaddingMm * PdfPageFormat.mm,
       marginTop: _verticalPaddingMm * PdfPageFormat.mm,
@@ -186,6 +197,8 @@ class SaleReceiptPrinter {
                   textAlign: pw.TextAlign.center,
                   style: pw.TextStyle(font: regular, fontSize: 9),
                 ),
+                if (receipt.cashback case final cashback?)
+                  ..._cashbackBlock(cashback, regular: regular, bold: bold),
               ],
             ),
           ),
@@ -194,6 +207,44 @@ class SaleReceiptPrinter {
     );
     return document.save();
   }
+
+  /// Uzbek, ASCII-only like the rest of the paper (built-in Helvetica).
+  static String cashbackHint(SaleCashback cashback) =>
+      'Pixel Park ilovasida skanerlang\n'
+      '${DateFormat('dd.MM.yyyy').format(cashback.expiresAt.toLocal())} gacha';
+
+  static List<pw.Widget> _cashbackBlock(
+    SaleCashback cashback, {
+    required pw.Font regular,
+    required pw.Font bold,
+  }) => [
+    pw.SizedBox(height: 4),
+    pw.Divider(borderStyle: pw.BorderStyle.dashed),
+    pw.Text(
+      'KESHBEK: ${_money(cashback.amountUzs)}',
+      textAlign: pw.TextAlign.center,
+      style: pw.TextStyle(font: bold, fontSize: 12),
+    ),
+    pw.Center(
+      child: pw.Padding(
+        padding: const pw.EdgeInsets.all(
+          _cashbackQuietZoneMm * PdfPageFormat.mm,
+        ),
+        child: pw.BarcodeWidget(
+          barcode: pw.Barcode.qrCode(),
+          data: cashback.qrPayload,
+          width: _cashbackQrMm * PdfPageFormat.mm,
+          height: _cashbackQrMm * PdfPageFormat.mm,
+          drawText: false,
+        ),
+      ),
+    ),
+    pw.Text(
+      cashbackHint(cashback),
+      textAlign: pw.TextAlign.center,
+      style: pw.TextStyle(font: regular, fontSize: 8),
+    ),
+  ];
 
   static pw.Widget _textRow(
     String label,
@@ -252,7 +303,8 @@ class SaleReceiptPrinter {
     return '${digits.replaceAllMapped(RegExp(r'(?=(\d{3})+(?!\d))'), (_) => ' ')} so\'m';
   }
 
-  static double _receiptHeightMm(SaleReceipt receipt) {
+  @visibleForTesting
+  static double receiptHeightMm(SaleReceipt receipt) {
     var height = 98.0;
     for (final item in receipt.items) {
       final nameLines = (item.nameSnapshot.length / 28).ceil().clamp(1, 3);
@@ -263,7 +315,10 @@ class SaleReceiptPrinter {
     if (receipt.balanceUzs > 0) height += 5;
     if (receipt.discountUzs > 0) height += 5;
     if (receipt.isOffline) height += 6;
-    return height.clamp(105, 280).toDouble();
+    // The cap is for the item list; the cashback block sits on top of it so
+    // a long receipt never squeezes the QR off the page.
+    final cashbackMm = receipt.cashback == null ? 0.0 : _cashbackBlockMm;
+    return height.clamp(105, 280).toDouble() + cashbackMm;
   }
 
   static ({int cashUzs, int cardUzs, int balanceUzs})

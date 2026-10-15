@@ -374,6 +374,11 @@ class AppLocalization {
     return Intl.message('Total', name: 'total', desc: '', args: []);
   }
 
+  /// `Cashback`
+  String get cashback {
+    return Intl.message('Cashback', name: 'cashback', desc: '', args: []);
+  }
+
   /// `Pay`
   String get pay {
     return Intl.message('Pay', name: 'pay', desc: '', args: []);
