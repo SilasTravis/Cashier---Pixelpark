@@ -427,11 +427,19 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
           // (or legacy free reason) — its terms are frozen; its plan is a
           // flat-day one (VIP / VIP-style day plan) — any sale re-prints it
           // (spec decision 7, VIP → hour); or it is on the selected plan.
+          // The backend also lists a 1 soat pass whose hour ran out today:
+          // it is only what a flat-day (VIP) upgrade credits. For any other
+          // plan that child is a fresh sale, so the pass doesn't count.
+          final activePasses = [
+            for (final p in state.activePasses)
+              if (!p.hourEnded || _selectedPlan?.kind == KidsPlanKind.flatDay)
+                p,
+          ];
           final activePlanByChild = {
-            for (final p in state.activePasses) p.childId: p.planKey,
+            for (final p in activePasses) p.childId: p.planKey,
           };
           final activePassByChild = {
-            for (final p in state.activePasses) p.childId: p,
+            for (final p in activePasses) p.childId: p,
           };
           final plansByKey = {for (final p in state.plans) p.key: p};
           bool returnedAsIs(ActivePass pass) =>
@@ -464,7 +472,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               _selectedPlan != null &&
               _selectedPlan!.kind == KidsPlanKind.flatDay;
           final passChildIds = {
-            for (final p in state.activePasses)
+            for (final p in activePasses)
               if (!(upgradeTarget &&
                   p.freeReason == null &&
                   p.discountId == null &&
@@ -519,9 +527,8 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               // away; an upgrade only after the switch is confirmed.
               : (selectedChildren
                             .where(
-                              (c) => !state.activePasses.any(
-                                (p) => p.childId == c.id,
-                              ),
+                              (c) =>
+                                  !activePasses.any((p) => p.childId == c.id),
                             )
                             .firstOrNull ??
                         selectedChildren

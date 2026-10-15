@@ -459,6 +459,43 @@ void main() {
     expect(find.text('Continue'), findsOneWidget);
   });
 
+  // The backend also lists a 1 soat pass whose hour ran out today.
+  ActivePass expiredHour() => ActivePass(
+    childId: 'child-1',
+    planKey: 'hour',
+    planLabel: '1 soat',
+    expiresAt: DateTime.now().subtract(const Duration(minutes: 45)),
+    dueTodayUzs: 50000,
+    hourEnded: true,
+  );
+
+  testWidgets('an hour that ran out today sold VIP goes through the switch, '
+      'not the full VIP price', (tester) async {
+    await _pumpPanel(tester, activePasses: [expiredHour()]);
+
+    await _pickChildAndPlan(tester, 'VIP');
+
+    expect(_due(75000), findsNothing);
+    expect(find.text('Pay and print'), findsNothing);
+    expect(find.text('Continue'), findsOneWidget);
+  });
+
+  testWidgets('an hour that ran out today sold 1 soat again is a fresh, '
+      'paid hour', (tester) async {
+    await _pumpPanel(tester, activePasses: [expiredHour()]);
+
+    await _pickChildAndPlan(tester, '1 soat');
+
+    expect(_due(50000), findsOneWidget);
+    expect(find.text('Continue'), findsNothing);
+    expect(
+      find.text(
+        '«Aziza» already has an active 1 hour tariff — no second charge.',
+      ),
+      findsNothing,
+    );
+  });
+
   testWidgets('the hour → VIP conflict from the panel says no refund', (
     tester,
   ) async {

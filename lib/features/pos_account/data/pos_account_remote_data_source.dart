@@ -380,6 +380,8 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
       freeReason: json['freeReason'] as String?,
       discountId: json['discountId'] as String?,
       discountName: json['discountName'] as String?,
+      // Absent on older backends: every listed pass is live there.
+      hourEnded: json['hourEnded'] as bool? ?? false,
     );
   }
 
