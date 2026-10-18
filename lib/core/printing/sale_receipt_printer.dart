@@ -6,6 +6,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
+import '../../features/pos_account/domain/subscription.dart';
 import '../../features/pos_sale/domain/sale_receipt.dart';
 import '../utils/receipt_id.dart';
 
@@ -206,6 +207,227 @@ class SaleReceiptPrinter {
       ),
     );
     return document.save();
+  }
+
+  // ---- Subscription ("Obuna") receipt ------------------------------------
+
+  /// Prints the 80 mm receipt of a subscription sale on the till's receipt
+  /// printer — always printed (unlike goods receipts there is no "nothing
+  /// to print" case).
+  static Future<bool> printSubscriptionDirect(
+    SubscriptionReceipt receipt, {
+    required String branchName,
+    required String cashierName,
+    String? preferredPrinterName,
+  }) async {
+    final target = await findReceiptPrinter(preferredPrinterName);
+    if (target == null) {
+      debugPrint('SaleReceiptPrinter: SLK receipt printer not found');
+      return false;
+    }
+    return Printing.directPrintPdf(
+      printer: target,
+      name: 'obuna-${formatReceiptId(receipt.id)}',
+      format: PdfPageFormat(
+        _paperWidthMm * PdfPageFormat.mm,
+        subscriptionReceiptHeightMm(receipt) * PdfPageFormat.mm,
+        marginAll: 0,
+      ),
+      usePrinterSettings: true,
+      dynamicLayout: false,
+      onLayout: (_) => buildSubscriptionPdf(
+        receipt,
+        branchName: branchName,
+        cashierName: cashierName,
+      ),
+    );
+  }
+
+  /// "Kirishlar": the bought entries, plus today's when it was taken with
+  /// the sale.
+  static String subscriptionEntriesText(SubscriptionReceipt receipt) =>
+      receipt.usedToday
+      ? '${receipt.entriesTotal} ta (bugun 1)'
+      : '${receipt.entriesTotal} ta';
+
+  /// "Amal qiladi": the real dates once activated (the end is exclusive on
+  /// the server, so the last valid day is printed), else "from the first
+  /// entry".
+  static String subscriptionValidityText(SubscriptionReceipt receipt) {
+    final start = receipt.activatedAt;
+    final end = receipt.expiresAt;
+    if (start != null && end != null) {
+      final last = end.toLocal().subtract(const Duration(minutes: 1));
+      return '${DateFormat('dd.MM').format(start.toLocal())} - '
+          '${DateFormat('dd.MM.yyyy').format(last)}';
+    }
+    final days = receipt.validityDays;
+    return days == null || days <= 0
+        ? '1-kirishdan boshlanadi'
+        : '1-kirishdan $days kun';
+  }
+
+  static String subscriptionLimitText(SubscriptionReceipt receipt) =>
+      switch (receipt.limitKind) {
+        SubscriptionLimitKind.perDay => 'kuniga 1',
+        SubscriptionLimitKind.perWeek => 'haftasiga ${receipt.limitCount ?? 1}',
+        SubscriptionLimitKind.none => "yo'q",
+      };
+
+  static String subscriptionRulesText(SubscriptionReceipt receipt) {
+    final who = receipt.childName.trim().isEmpty
+        ? 'Faqat shu bola uchun'
+        : 'Faqat ${receipt.childName.trim()} uchun';
+    return "$who, boshqa bolaga o'tkazilmaydi. "
+        'Muddat tugasa qolgan kirishlar kuyadi. Pul qaytarilmaydi.';
+  }
+
+  static Future<Uint8List> buildSubscriptionPdf(
+    SubscriptionReceipt receipt, {
+    required String branchName,
+    required String cashierName,
+  }) async {
+    final document = pw.Document();
+    final pageFormat = PdfPageFormat(
+      _paperWidthMm * PdfPageFormat.mm,
+      subscriptionReceiptHeightMm(receipt) * PdfPageFormat.mm,
+      marginLeft: _leftPaddingMm * PdfPageFormat.mm,
+      marginRight: _rightPaddingMm * PdfPageFormat.mm,
+      marginTop: _verticalPaddingMm * PdfPageFormat.mm,
+      marginBottom: _verticalPaddingMm * PdfPageFormat.mm,
+    );
+    final regular = pw.Font.helvetica();
+    final bold = pw.Font.helveticaBold();
+    pw.Widget boxRow(String label, String value, {bool strong = false}) =>
+        pw.Padding(
+          padding: const pw.EdgeInsets.symmetric(vertical: 1.5),
+          child: pw.Row(
+            children: [
+              pw.Text(label, style: pw.TextStyle(font: regular, fontSize: 8.5)),
+              pw.SizedBox(width: 6),
+              pw.Expanded(
+                child: pw.Text(
+                  value,
+                  textAlign: pw.TextAlign.right,
+                  maxLines: 1,
+                  style: pw.TextStyle(
+                    font: strong ? bold : regular,
+                    fontSize: 8.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+
+    document.addPage(
+      pw.Page(
+        pageFormat: pageFormat,
+        build: (_) => pw.Center(
+          child: pw.SizedBox(
+            width: _contentWidthMm * PdfPageFormat.mm,
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+              children: [
+                pw.Text(
+                  'PIXEL PARK',
+                  textAlign: pw.TextAlign.center,
+                  style: pw.TextStyle(font: bold, fontSize: 14),
+                ),
+                pw.SizedBox(height: 3),
+                if (branchName.isNotEmpty)
+                  pw.Text(
+                    branchName,
+                    textAlign: pw.TextAlign.center,
+                    style: pw.TextStyle(font: regular, fontSize: 9),
+                  ),
+                pw.SizedBox(height: 8),
+                _metadataBlock('Chek', formatReceiptId(receipt.id), regular),
+                _metadataBlock(
+                  'Sana',
+                  DateFormat(
+                    'dd.MM.yyyy HH:mm',
+                  ).format(receipt.createdAt.toLocal()),
+                  regular,
+                ),
+                if (cashierName.isNotEmpty)
+                  _metadataBlock('Kassir', cashierName, regular),
+                pw.Divider(borderStyle: pw.BorderStyle.dashed),
+                pw.Text(
+                  'OBUNA: ${receipt.planName}',
+                  maxLines: 2,
+                  style: pw.TextStyle(font: bold, fontSize: 9),
+                ),
+                _textRow(
+                  '1 x ${_money(receipt.priceUzs)}',
+                  _money(receipt.priceUzs),
+                  regular,
+                ),
+                pw.SizedBox(height: 4),
+                pw.Container(
+                  padding: const pw.EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 4,
+                  ),
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(width: 0.8),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+                    children: [
+                      boxRow('Bola', receipt.childName, strong: true),
+                      boxRow('Kirishlar', subscriptionEntriesText(receipt)),
+                      boxRow(
+                        'Qoldi',
+                        '${receipt.entriesLeft} / ${receipt.entriesTotal}',
+                        strong: true,
+                      ),
+                      boxRow('Amal qiladi', subscriptionValidityText(receipt)),
+                      boxRow('Cheklov', subscriptionLimitText(receipt)),
+                    ],
+                  ),
+                ),
+                pw.SizedBox(height: 4),
+                pw.Divider(borderStyle: pw.BorderStyle.dashed),
+                _textRow('JAMI', _money(receipt.priceUzs), bold, fontSize: 12),
+                if (receipt.balanceUzs > 0)
+                  _textRow('Balans', _money(receipt.balanceUzs), regular),
+                if (receipt.cashUzs > 0)
+                  _textRow('Naqd', _money(receipt.cashUzs), regular),
+                if (receipt.cardUzs > 0)
+                  _textRow('Karta', _money(receipt.cardUzs), regular),
+                pw.SizedBox(height: 6),
+                pw.Text(
+                  subscriptionRulesText(receipt),
+                  style: pw.TextStyle(font: regular, fontSize: 7.5),
+                ),
+                pw.SizedBox(height: 10),
+                pw.Text(
+                  'Xaridingiz uchun rahmat!',
+                  textAlign: pw.TextAlign.center,
+                  style: pw.TextStyle(font: regular, fontSize: 9),
+                ),
+                if (receipt.cashback case final cashback?)
+                  ..._cashbackBlock(cashback, regular: regular, bold: bold),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    return document.save();
+  }
+
+  @visibleForTesting
+  static double subscriptionReceiptHeightMm(SubscriptionReceipt receipt) {
+    // Header + plan line + the boxed block + JAMI + rules + thanks.
+    var height = 142.0;
+    if (receipt.planName.length > 30) height += 4;
+    if (receipt.balanceUzs > 0) height += 5;
+    if (receipt.cashUzs > 0) height += 5;
+    if (receipt.cardUzs > 0) height += 5;
+    final cashbackMm = receipt.cashback == null ? 0.0 : _cashbackBlockMm;
+    return height + cashbackMm;
   }
 
   /// Uzbek, ASCII-only like the rest of the paper (built-in Helvetica).
