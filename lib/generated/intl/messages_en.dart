@@ -173,18 +173,49 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m63(time) => "Shift opened at ${time}";
 
-  static String m64(synced, failed) =>
+  static String m64(count) => "Activates today → ${count} days";
+
+  static String m65(name, left, total) => "${name} · ${left}/${total} left";
+
+  static String m66(count) => "${count} days";
+
+  static String m67(name, from, to) => "${name} ${from} → ${to} left";
+
+  static String m68(count) => "${count} entries";
+
+  static String m69(left, total) => "has · ${left}/${total}";
+
+  static String m70(plan) => "here: ${plan}";
+
+  static String m71(count) => "${count} a week";
+
+  static String m72(reason) =>
+      "Subscription sold, but today\'s entry failed: ${reason}";
+
+  static String m73(price) => "1 entry ${price}";
+
+  static String m74(amount) => "Sell · collect ${amount}";
+
+  static String m75(names) =>
+      "${names} — on subscription (0 so\'m). No tariff needed.";
+
+  static String m76(names, others) =>
+      "${names} — on subscription (0 so\'m). Tariff only for: ${others}.";
+
+  static String m77(date) => "until ${date} · free today";
+
+  static String m78(synced, failed) =>
       "${synced} sales synced, ${failed} failed.";
 
-  static String m65(reason) => "Could not sync: ${reason}. Staying offline.";
+  static String m79(reason) => "Could not sync: ${reason}. Staying offline.";
 
-  static String m66(code) => "Code: ${code}";
+  static String m80(code) => "Code: ${code}";
 
-  static String m67(version) => "New version available: ${version}";
+  static String m81(version) => "New version available: ${version}";
 
-  static String m68(paid, due) => "${paid} already paid — surcharge: ${due}.";
+  static String m82(paid, due) => "${paid} already paid — surcharge: ${due}.";
 
-  static String m69(name) =>
+  static String m83(name) =>
       "«${name}» already has an active VIP tariff — no second charge.";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
@@ -731,10 +762,93 @@ class MessageLookup extends MessageLookupByLibrary {
       "Sticker was not printed — check the printer",
     ),
     "stillOffline": MessageLookupByLibrary.simpleMessage("Still no internet"),
+    "subscriptionActivatesToday": MessageLookupByLibrary.simpleMessage(
+      "Activates today",
+    ),
+    "subscriptionActivatesTodayDays": m64,
+    "subscriptionAlreadyActive": MessageLookupByLibrary.simpleMessage(
+      "This child already has a live subscription",
+    ),
+    "subscriptionBlockedNotHere": MessageLookupByLibrary.simpleMessage(
+      "not valid at this branch",
+    ),
+    "subscriptionBlockedOther": MessageLookupByLibrary.simpleMessage(
+      "can\'t be used now",
+    ),
+    "subscriptionBlockedUsedToday": MessageLookupByLibrary.simpleMessage(
+      "used today",
+    ),
+    "subscriptionBlockedWeekly": MessageLookupByLibrary.simpleMessage(
+      "weekly limit reached",
+    ),
+    "subscriptionChip": m65,
+    "subscriptionDays": m66,
+    "subscriptionDeductLine": m67,
+    "subscriptionDeducts": MessageLookupByLibrary.simpleMessage(
+      "Taken from the subscription:",
+    ),
+    "subscriptionEntries": m68,
+    "subscriptionHas": m69,
+    "subscriptionHere": m70,
+    "subscriptionInsufficient": MessageLookupByLibrary.simpleMessage(
+      "Balance plus payment does not cover the price",
+    ),
+    "subscriptionLimitNone": MessageLookupByLibrary.simpleMessage("no limit"),
+    "subscriptionLimitPerDay": MessageLookupByLibrary.simpleMessage(
+      "once a day",
+    ),
+    "subscriptionLimitPerWeek": m71,
+    "subscriptionNoPlans": MessageLookupByLibrary.simpleMessage(
+      "No subscriptions are sold at this branch",
+    ),
+    "subscriptionOffline": MessageLookupByLibrary.simpleMessage(
+      "Subscriptions need an internet connection",
+    ),
+    "subscriptionPassFailed": m72,
+    "subscriptionPerEntry": m73,
+    "subscriptionSell": MessageLookupByLibrary.simpleMessage(
+      "Sell subscription",
+    ),
+    "subscriptionSellSubmit": m74,
+    "subscriptionSellSubtitle": MessageLookupByLibrary.simpleMessage(
+      "One child · not transferable · unused entries burn · no refunds",
+    ),
+    "subscriptionSellWithout": MessageLookupByLibrary.simpleMessage(
+      "Sell without subscription",
+    ),
+    "subscriptionShortfall": MessageLookupByLibrary.simpleMessage(
+      "Left to collect",
+    ),
+    "subscriptionSkipped": MessageLookupByLibrary.simpleMessage(
+      "Subscription off — regular sale",
+    ),
+    "subscriptionSold": MessageLookupByLibrary.simpleMessage(
+      "Subscription sold",
+    ),
+    "subscriptionStartsToday": MessageLookupByLibrary.simpleMessage(
+      "validity starts today",
+    ),
+    "subscriptionTag": MessageLookupByLibrary.simpleMessage("subscription"),
+    "subscriptionTariffHintAll": m75,
+    "subscriptionTariffHintSome": m76,
+    "subscriptionType": MessageLookupByLibrary.simpleMessage(
+      "Subscription type",
+    ),
+    "subscriptionUntilFree": m77,
+    "subscriptionUseAgain": MessageLookupByLibrary.simpleMessage(
+      "Use subscription",
+    ),
+    "subscriptionUseToday": MessageLookupByLibrary.simpleMessage("Enter today"),
+    "subscriptionUseTodayHint": MessageLookupByLibrary.simpleMessage(
+      "The 1st entry is used now, validity starts today",
+    ),
+    "subscriptionWhichChild": MessageLookupByLibrary.simpleMessage(
+      "Which child?",
+    ),
     "switchAndPrint": MessageLookupByLibrary.simpleMessage("Switch and print"),
-    "syncResultBody": m64,
+    "syncResultBody": m78,
     "syncResultTitle": MessageLookupByLibrary.simpleMessage("Sync result"),
-    "syncTransportFailed": m65,
+    "syncTransportFailed": m79,
     "syncViewFailures": MessageLookupByLibrary.simpleMessage("View"),
     "tabAccount": MessageLookupByLibrary.simpleMessage("Account & QR"),
     "tabHistory": MessageLookupByLibrary.simpleMessage("Sales history"),
@@ -813,8 +927,8 @@ class MessageLookup extends MessageLookupByLibrary {
     "unsyncedRetryNeedsOnline": MessageLookupByLibrary.simpleMessage(
       "Switch to online mode to resend",
     ),
-    "unsyncedSupportCode": m66,
-    "updateAvailable": m67,
+    "unsyncedSupportCode": m80,
+    "updateAvailable": m81,
     "updateCancel": MessageLookupByLibrary.simpleMessage("Cancel"),
     "updateCheck": MessageLookupByLibrary.simpleMessage("Check for updates"),
     "updateConfirm": MessageLookupByLibrary.simpleMessage("Continue"),
@@ -856,9 +970,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "updateWindowsOnly": MessageLookupByLibrary.simpleMessage(
       "Automatic updates work on Windows only",
     ),
-    "upgradeCredit": m68,
+    "upgradeCredit": m82,
     "version": MessageLookupByLibrary.simpleMessage("Version"),
-    "vipAlreadyActive": m69,
+    "vipAlreadyActive": m83,
     "vipChargedImmediately": MessageLookupByLibrary.simpleMessage(
       "The VIP tariff is debited from the balance immediately when printed.",
     ),

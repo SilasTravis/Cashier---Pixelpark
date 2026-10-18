@@ -27,6 +27,9 @@ class PosPalette extends ThemeExtension<PosPalette> {
     required this.warningSoft,
     required this.danger,
     required this.dangerSoft,
+    required this.subscription,
+    required this.subscriptionSoft,
+    required this.subscriptionBorder,
   });
 
   /// Page canvas behind the cards.
@@ -60,6 +63,12 @@ class PosPalette extends ThemeExtension<PosPalette> {
   final Color danger;
   final Color dangerSoft;
 
+  /// "Obuna" (child subscription) violet — its chips, hints and the sell
+  /// button, distinct from the blue accent of a regular sale.
+  final Color subscription;
+  final Color subscriptionSoft;
+  final Color subscriptionBorder;
+
   static const light = PosPalette(
     bg: Color(0xFFF4F6FA),
     surface: Color(0xFFFFFFFF),
@@ -80,6 +89,9 @@ class PosPalette extends ThemeExtension<PosPalette> {
     warningSoft: Color(0xFFFFF7E6),
     danger: Color(0xFFDC2626),
     dangerSoft: Color(0xFFFEF2F2),
+    subscription: Color(0xFF6D28D9),
+    subscriptionSoft: Color(0xFFF3EEFF),
+    subscriptionBorder: Color(0xFFDDD0FB),
   );
 
   /// Night mode: a soft blue-slate, not black — easy on the eyes in a dim
@@ -104,6 +116,9 @@ class PosPalette extends ThemeExtension<PosPalette> {
     warningSoft: Color(0xFF40361F),
     danger: Color(0xFFF87171),
     dangerSoft: Color(0xFF472A31),
+    subscription: Color(0xFFC4A5FA),
+    subscriptionSoft: Color(0xFF362D57),
+    subscriptionBorder: Color(0xFF5B4A8C),
   );
 
   /// The palette for the current [AppThemeMode].

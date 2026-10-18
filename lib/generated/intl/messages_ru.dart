@@ -173,19 +173,50 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m63(time) => "Смена открыта в ${time}";
 
-  static String m64(synced, failed) =>
+  static String m64(count) => "Активируется сегодня → ${count} дн.";
+
+  static String m65(name, left, total) => "${name} · осталось ${left}/${total}";
+
+  static String m66(count) => "${count} дн.";
+
+  static String m67(name, from, to) => "${name} ${from} → ${to}";
+
+  static String m68(count) => "${count} входов";
+
+  static String m69(left, total) => "есть · ${left}/${total}";
+
+  static String m70(plan) => "здесь: ${plan}";
+
+  static String m71(count) => "${count} раз в неделю";
+
+  static String m72(reason) =>
+      "Абонемент продан, но вход на сегодня не выдан: ${reason}";
+
+  static String m73(price) => "1 вход ${price}";
+
+  static String m74(amount) => "Продать · принять ${amount}";
+
+  static String m75(names) =>
+      "${names} — по абонементу (0 сум). Тариф не нужен.";
+
+  static String m76(names, others) =>
+      "${names} — по абонементу (0 сум). Тариф только для: ${others}.";
+
+  static String m77(date) => "до ${date} · сегодня бесплатно";
+
+  static String m78(synced, failed) =>
       "Синхронизировано: ${synced}, с ошибкой: ${failed}.";
 
-  static String m65(reason) =>
+  static String m79(reason) =>
       "Не удалось синхронизировать: ${reason}. Офлайн-режим продолжается.";
 
-  static String m66(code) => "Код: ${code}";
+  static String m80(code) => "Код: ${code}";
 
-  static String m67(version) => "Доступна новая версия: ${version}";
+  static String m81(version) => "Доступна новая версия: ${version}";
 
-  static String m68(paid, due) => "Уже оплачено ${paid} — доплата: ${due}.";
+  static String m82(paid, due) => "Уже оплачено ${paid} — доплата: ${due}.";
 
-  static String m69(name) =>
+  static String m83(name) =>
       "«${name}» уже на активном VIP-тарифе — повторная оплата не взимается.";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
@@ -758,14 +789,97 @@ class MessageLookup extends MessageLookupByLibrary {
     "stillOffline": MessageLookupByLibrary.simpleMessage(
       "Интернета всё ещё нет",
     ),
+    "subscriptionActivatesToday": MessageLookupByLibrary.simpleMessage(
+      "Активируется сегодня",
+    ),
+    "subscriptionActivatesTodayDays": m64,
+    "subscriptionAlreadyActive": MessageLookupByLibrary.simpleMessage(
+      "У ребёнка уже есть активный абонемент",
+    ),
+    "subscriptionBlockedNotHere": MessageLookupByLibrary.simpleMessage(
+      "не действует в этом филиале",
+    ),
+    "subscriptionBlockedOther": MessageLookupByLibrary.simpleMessage(
+      "сейчас нельзя использовать",
+    ),
+    "subscriptionBlockedUsedToday": MessageLookupByLibrary.simpleMessage(
+      "сегодня уже использован",
+    ),
+    "subscriptionBlockedWeekly": MessageLookupByLibrary.simpleMessage(
+      "недельный лимит исчерпан",
+    ),
+    "subscriptionChip": m65,
+    "subscriptionDays": m66,
+    "subscriptionDeductLine": m67,
+    "subscriptionDeducts": MessageLookupByLibrary.simpleMessage(
+      "Списывается с абонемента:",
+    ),
+    "subscriptionEntries": m68,
+    "subscriptionHas": m69,
+    "subscriptionHere": m70,
+    "subscriptionInsufficient": MessageLookupByLibrary.simpleMessage(
+      "Баланса и оплаты не хватает на абонемент",
+    ),
+    "subscriptionLimitNone": MessageLookupByLibrary.simpleMessage(
+      "без ограничений",
+    ),
+    "subscriptionLimitPerDay": MessageLookupByLibrary.simpleMessage(
+      "1 раз в день",
+    ),
+    "subscriptionLimitPerWeek": m71,
+    "subscriptionNoPlans": MessageLookupByLibrary.simpleMessage(
+      "В этом филиале нет абонементов для продажи",
+    ),
+    "subscriptionOffline": MessageLookupByLibrary.simpleMessage(
+      "Абонемент продаётся только онлайн",
+    ),
+    "subscriptionPassFailed": m72,
+    "subscriptionPerEntry": m73,
+    "subscriptionSell": MessageLookupByLibrary.simpleMessage(
+      "Продать абонемент",
+    ),
+    "subscriptionSellSubmit": m74,
+    "subscriptionSellSubtitle": MessageLookupByLibrary.simpleMessage(
+      "Одному ребёнку · не передаётся · неиспользованные входы сгорают · деньги не возвращаются",
+    ),
+    "subscriptionSellWithout": MessageLookupByLibrary.simpleMessage(
+      "Продать без абонемента",
+    ),
+    "subscriptionShortfall": MessageLookupByLibrary.simpleMessage("Не хватает"),
+    "subscriptionSkipped": MessageLookupByLibrary.simpleMessage(
+      "Абонемент не используется — обычная продажа",
+    ),
+    "subscriptionSold": MessageLookupByLibrary.simpleMessage(
+      "Абонемент продан",
+    ),
+    "subscriptionStartsToday": MessageLookupByLibrary.simpleMessage(
+      "срок начинается сегодня",
+    ),
+    "subscriptionTag": MessageLookupByLibrary.simpleMessage("абонемент"),
+    "subscriptionTariffHintAll": m75,
+    "subscriptionTariffHintSome": m76,
+    "subscriptionType": MessageLookupByLibrary.simpleMessage("Тип абонемента"),
+    "subscriptionUntilFree": m77,
+    "subscriptionUseAgain": MessageLookupByLibrary.simpleMessage(
+      "С абонементом",
+    ),
+    "subscriptionUseToday": MessageLookupByLibrary.simpleMessage(
+      "Войти сегодня",
+    ),
+    "subscriptionUseTodayHint": MessageLookupByLibrary.simpleMessage(
+      "1-й вход используется сейчас, срок начинается сегодня",
+    ),
+    "subscriptionWhichChild": MessageLookupByLibrary.simpleMessage(
+      "Какому ребёнку?",
+    ),
     "switchAndPrint": MessageLookupByLibrary.simpleMessage(
       "Сменить и напечатать",
     ),
-    "syncResultBody": m64,
+    "syncResultBody": m78,
     "syncResultTitle": MessageLookupByLibrary.simpleMessage(
       "Результат синхронизации",
     ),
-    "syncTransportFailed": m65,
+    "syncTransportFailed": m79,
     "syncViewFailures": MessageLookupByLibrary.simpleMessage("Открыть"),
     "tabAccount": MessageLookupByLibrary.simpleMessage("Счёт и QR"),
     "tabHistory": MessageLookupByLibrary.simpleMessage("История продаж"),
@@ -854,8 +968,8 @@ class MessageLookup extends MessageLookupByLibrary {
     "unsyncedRetryNeedsOnline": MessageLookupByLibrary.simpleMessage(
       "Чтобы отправить заново, перейдите в онлайн-режим",
     ),
-    "unsyncedSupportCode": m66,
-    "updateAvailable": m67,
+    "unsyncedSupportCode": m80,
+    "updateAvailable": m81,
     "updateCancel": MessageLookupByLibrary.simpleMessage("Отмена"),
     "updateCheck": MessageLookupByLibrary.simpleMessage("Проверить обновления"),
     "updateConfirm": MessageLookupByLibrary.simpleMessage("Продолжить"),
@@ -897,9 +1011,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "updateWindowsOnly": MessageLookupByLibrary.simpleMessage(
       "Автообновление работает только в Windows",
     ),
-    "upgradeCredit": m68,
+    "upgradeCredit": m82,
     "version": MessageLookupByLibrary.simpleMessage("Версия"),
-    "vipAlreadyActive": m69,
+    "vipAlreadyActive": m83,
     "vipChargedImmediately": MessageLookupByLibrary.simpleMessage(
       "Стоимость VIP-тарифа списывается с баланса сразу при печати.",
     ),

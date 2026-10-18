@@ -3693,6 +3693,396 @@ class AppLocalization {
       args: [count],
     );
   }
+
+  /// `Sell subscription`
+  String get subscriptionSell {
+    return Intl.message(
+      'Sell subscription',
+      name: 'subscriptionSell',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `One child · not transferable · unused entries burn · no refunds`
+  String get subscriptionSellSubtitle {
+    return Intl.message(
+      'One child · not transferable · unused entries burn · no refunds',
+      name: 'subscriptionSellSubtitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Which child?`
+  String get subscriptionWhichChild {
+    return Intl.message(
+      'Which child?',
+      name: 'subscriptionWhichChild',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Subscription type`
+  String get subscriptionType {
+    return Intl.message(
+      'Subscription type',
+      name: 'subscriptionType',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `has · {left}/{total}`
+  String subscriptionHas(int left, int total) {
+    return Intl.message(
+      'has · $left/$total',
+      name: 'subscriptionHas',
+      desc: '',
+      args: [left, total],
+    );
+  }
+
+  /// `{count} entries`
+  String subscriptionEntries(int count) {
+    return Intl.message(
+      '$count entries',
+      name: 'subscriptionEntries',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `{count} days`
+  String subscriptionDays(int count) {
+    return Intl.message(
+      '$count days',
+      name: 'subscriptionDays',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `once a day`
+  String get subscriptionLimitPerDay {
+    return Intl.message(
+      'once a day',
+      name: 'subscriptionLimitPerDay',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{count} a week`
+  String subscriptionLimitPerWeek(int count) {
+    return Intl.message(
+      '$count a week',
+      name: 'subscriptionLimitPerWeek',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `no limit`
+  String get subscriptionLimitNone {
+    return Intl.message(
+      'no limit',
+      name: 'subscriptionLimitNone',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `here: {plan}`
+  String subscriptionHere(String plan) {
+    return Intl.message(
+      'here: $plan',
+      name: 'subscriptionHere',
+      desc: '',
+      args: [plan],
+    );
+  }
+
+  /// `1 entry {price}`
+  String subscriptionPerEntry(String price) {
+    return Intl.message(
+      '1 entry $price',
+      name: 'subscriptionPerEntry',
+      desc: '',
+      args: [price],
+    );
+  }
+
+  /// `Enter today`
+  String get subscriptionUseToday {
+    return Intl.message(
+      'Enter today',
+      name: 'subscriptionUseToday',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The 1st entry is used now, validity starts today`
+  String get subscriptionUseTodayHint {
+    return Intl.message(
+      'The 1st entry is used now, validity starts today',
+      name: 'subscriptionUseTodayHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Left to collect`
+  String get subscriptionShortfall {
+    return Intl.message(
+      'Left to collect',
+      name: 'subscriptionShortfall',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Sell · collect {amount}`
+  String subscriptionSellSubmit(String amount) {
+    return Intl.message(
+      'Sell · collect $amount',
+      name: 'subscriptionSellSubmit',
+      desc: '',
+      args: [amount],
+    );
+  }
+
+  /// `No subscriptions are sold at this branch`
+  String get subscriptionNoPlans {
+    return Intl.message(
+      'No subscriptions are sold at this branch',
+      name: 'subscriptionNoPlans',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `This child already has a live subscription`
+  String get subscriptionAlreadyActive {
+    return Intl.message(
+      'This child already has a live subscription',
+      name: 'subscriptionAlreadyActive',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Balance plus payment does not cover the price`
+  String get subscriptionInsufficient {
+    return Intl.message(
+      'Balance plus payment does not cover the price',
+      name: 'subscriptionInsufficient',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Subscriptions need an internet connection`
+  String get subscriptionOffline {
+    return Intl.message(
+      'Subscriptions need an internet connection',
+      name: 'subscriptionOffline',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{name} · {left}/{total} left`
+  String subscriptionChip(String name, int left, int total) {
+    return Intl.message(
+      '$name · $left/$total left',
+      name: 'subscriptionChip',
+      desc: '',
+      args: [name, left, total],
+    );
+  }
+
+  /// `until {date} · free today`
+  String subscriptionUntilFree(String date) {
+    return Intl.message(
+      'until $date · free today',
+      name: 'subscriptionUntilFree',
+      desc: '',
+      args: [date],
+    );
+  }
+
+  /// `Activates today`
+  String get subscriptionActivatesToday {
+    return Intl.message(
+      'Activates today',
+      name: 'subscriptionActivatesToday',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Activates today → {count} days`
+  String subscriptionActivatesTodayDays(int count) {
+    return Intl.message(
+      'Activates today → $count days',
+      name: 'subscriptionActivatesTodayDays',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `not valid at this branch`
+  String get subscriptionBlockedNotHere {
+    return Intl.message(
+      'not valid at this branch',
+      name: 'subscriptionBlockedNotHere',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `used today`
+  String get subscriptionBlockedUsedToday {
+    return Intl.message(
+      'used today',
+      name: 'subscriptionBlockedUsedToday',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `weekly limit reached`
+  String get subscriptionBlockedWeekly {
+    return Intl.message(
+      'weekly limit reached',
+      name: 'subscriptionBlockedWeekly',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `can't be used now`
+  String get subscriptionBlockedOther {
+    return Intl.message(
+      'can\'t be used now',
+      name: 'subscriptionBlockedOther',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `subscription`
+  String get subscriptionTag {
+    return Intl.message(
+      'subscription',
+      name: 'subscriptionTag',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Taken from the subscription:`
+  String get subscriptionDeducts {
+    return Intl.message(
+      'Taken from the subscription:',
+      name: 'subscriptionDeducts',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{name} {from} → {to} left`
+  String subscriptionDeductLine(String name, int from, int to) {
+    return Intl.message(
+      '$name $from → $to left',
+      name: 'subscriptionDeductLine',
+      desc: '',
+      args: [name, from, to],
+    );
+  }
+
+  /// `validity starts today`
+  String get subscriptionStartsToday {
+    return Intl.message(
+      'validity starts today',
+      name: 'subscriptionStartsToday',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{names} — on subscription (0 so'm). No tariff needed.`
+  String subscriptionTariffHintAll(String names) {
+    return Intl.message(
+      '$names — on subscription (0 so\'m). No tariff needed.',
+      name: 'subscriptionTariffHintAll',
+      desc: '',
+      args: [names],
+    );
+  }
+
+  /// `{names} — on subscription (0 so'm). Tariff only for: {others}.`
+  String subscriptionTariffHintSome(String names, String others) {
+    return Intl.message(
+      '$names — on subscription (0 so\'m). Tariff only for: $others.',
+      name: 'subscriptionTariffHintSome',
+      desc: '',
+      args: [names, others],
+    );
+  }
+
+  /// `Sell without subscription`
+  String get subscriptionSellWithout {
+    return Intl.message(
+      'Sell without subscription',
+      name: 'subscriptionSellWithout',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Use subscription`
+  String get subscriptionUseAgain {
+    return Intl.message(
+      'Use subscription',
+      name: 'subscriptionUseAgain',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Subscription off — regular sale`
+  String get subscriptionSkipped {
+    return Intl.message(
+      'Subscription off — regular sale',
+      name: 'subscriptionSkipped',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Subscription sold`
+  String get subscriptionSold {
+    return Intl.message(
+      'Subscription sold',
+      name: 'subscriptionSold',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Subscription sold, but today's entry failed: {reason}`
+  String subscriptionPassFailed(String reason) {
+    return Intl.message(
+      'Subscription sold, but today\'s entry failed: $reason',
+      name: 'subscriptionPassFailed',
+      desc: '',
+      args: [reason],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalization> {
