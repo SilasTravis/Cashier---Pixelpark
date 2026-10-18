@@ -12,6 +12,7 @@ import '../domain/customer_transaction.dart';
 import '../domain/playing_child.dart';
 import '../domain/pos_entry.dart';
 import '../domain/promo_code_check.dart';
+import '../domain/subscription.dart';
 
 /// One product line of a combined checkout: `qty` pieces of `productId`.
 typedef CheckoutLine = ({String productId, int qty});
@@ -113,6 +114,28 @@ abstract class PosAccountRemoteDataSource {
     ({String code, String childId})? promoCode,
     String? checkDiscountId,
     bool replacePlan = false,
+    List<String> subscriptionChildIds = const [],
+  });
+
+  /// `GET /v1/pos/subscriptions` — subscription types sellable at this
+  /// branch, with this branch's effective price.
+  Future<List<SellableSubscriptionPlan>> listSellableSubscriptions();
+
+  /// `GET /v1/pos/customers/:id/subscriptions` — the customer's children's
+  /// LIVE subscriptions and whether each can be used here today.
+  Future<List<CustomerSubscription>> listCustomerSubscriptions(int customerId);
+
+  /// `POST /v1/pos/customers/:id/subscriptions` — sells [subscriptionPlanId]
+  /// to [childId]. Collected [topupCashUzs]/[topupCardUzs] are credited as a
+  /// normal top-up first, then the price is debited from the balance; with
+  /// [useToday] today's pass is issued from the new subscription.
+  Future<SubscriptionSaleResult> sellSubscription({
+    required int customerId,
+    required String childId,
+    required String subscriptionPlanId,
+    required int topupCashUzs,
+    required int topupCardUzs,
+    required bool useToday,
   });
 
   /// `POST /v1/pos/promo-codes/verify` — what a promo code is worth and,
@@ -411,6 +434,7 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
     ({String code, String childId})? promoCode,
     String? checkDiscountId,
     bool replacePlan = false,
+    List<String> subscriptionChildIds = const [],
   }) async {
     final response = await _request(
       () => dio.post(
@@ -441,6 +465,10 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
             'promoCode': {'code': promoCode.code, 'childId': promoCode.childId},
           'checkDiscountId': ?checkDiscountId,
           if (replacePlan) 'replacePlan': true,
+          // Children entering on their subscription (0 so'm) — omitted when
+          // none so older backends never see the field.
+          if (subscriptionChildIds.isNotEmpty)
+            'subscriptionChildIds': subscriptionChildIds,
         },
       ),
     );
@@ -465,6 +493,50 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
       promoCode: map['promoCode'] == null
           ? null
           : PromoCodeOutcome.fromJson(map['promoCode'] as Map<String, dynamic>),
+    );
+  }
+
+  @override
+  Future<List<SellableSubscriptionPlan>> listSellableSubscriptions() async {
+    final response = await _request(() => dio.get('/v1/pos/subscriptions'));
+    return SellableSubscriptionPlan.listFromJson(response);
+  }
+
+  @override
+  Future<List<CustomerSubscription>> listCustomerSubscriptions(
+    int customerId,
+  ) async {
+    final response = await _request(
+      () => dio.get('/v1/pos/customers/$customerId/subscriptions'),
+    );
+    return CustomerSubscription.listFromJson(response);
+  }
+
+  @override
+  Future<SubscriptionSaleResult> sellSubscription({
+    required int customerId,
+    required String childId,
+    required String subscriptionPlanId,
+    required int topupCashUzs,
+    required int topupCardUzs,
+    required bool useToday,
+  }) async {
+    final response = await _request(
+      () => dio.post(
+        '/v1/pos/customers/$customerId/subscriptions',
+        // Today's pass may be a 1 soat one — same opt-in as the checkout.
+        queryParameters: {'kinds': 'flat_hour'},
+        data: {
+          'childId': childId,
+          'subscriptionPlanId': subscriptionPlanId,
+          'topupCashUzs': topupCashUzs,
+          'topupCardUzs': topupCardUzs,
+          'useToday': useToday,
+        },
+      ),
+    );
+    return SubscriptionSaleResult.fromJson(
+      Map<String, dynamic>.from(response as Map),
     );
   }
 
@@ -579,19 +651,8 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
     );
   }
 
-  PosEntry _posEntryFromJson(Map<String, dynamic> json) {
-    return PosEntry(
-      childId: json['childId'] as String,
-      token: json['token'] as String,
-      expiresAt: json['expiresAt'] == null
-          ? null
-          : DateTime.parse(json['expiresAt'] as String),
-      durationMinutes: json['durationMinutes'] as int?,
-      priceUzs: json['priceUzs'] as int?,
-      upgrade: json['upgrade'] == true,
-      upgradeCreditUzs: (json['upgradeCreditUzs'] as int?) ?? 0,
-    );
-  }
+  PosEntry _posEntryFromJson(Map<String, dynamic> json) =>
+      PosEntry.fromJson(json);
 
   PosEntryFailure _posEntryFailureFromJson(Map<String, dynamic> json) {
     final code = json['code'] as String;
@@ -609,6 +670,8 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
           "Bu bolada allaqachon boshqa chegirma bilan faol propusk mavjud",
         'PROMO_CODE_CHILD_HAS_PASS' =>
           "Promokod faqat yangi propuskka qo'llanadi — bolada bugun propusk bor",
+        'SUBSCRIPTION_NOT_USABLE' =>
+          "Obunadan bugun foydalanib bo'lmaydi — oddiy tarif bilan soting",
         _ => json['message'] as String,
       },
     );

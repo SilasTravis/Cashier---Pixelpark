@@ -35,6 +35,10 @@ class PosAccountState extends Equatable {
     this.isCheckingPromo = false,
     this.promoErrorCode,
     this.promoErrorMessage,
+    this.subscriptions = const [],
+    this.sellableSubscriptions = const [],
+    this.isLoadingSellableSubscriptions = false,
+    this.lastSubscriptionSale,
   });
 
   /// Fallback HAMROH price used until (or if) `GET /v1/pos/config` answers —
@@ -131,6 +135,19 @@ class PosAccountState extends Equatable {
   final String? promoErrorCode;
   final String? promoErrorMessage;
 
+  /// The selected customer's children's LIVE subscriptions — best-effort:
+  /// empty (fetch failed, older backend) simply means a normal sale.
+  final List<CustomerSubscription> subscriptions;
+
+  /// Subscription types sellable at this branch — loaded when the sell
+  /// modal opens.
+  final List<SellableSubscriptionPlan> sellableSubscriptions;
+  final bool isLoadingSellableSubscriptions;
+
+  /// Set right after a successful subscription sale so the UI prints the
+  /// receipt (+ today's sticker); cleared once acknowledged.
+  final SubscriptionSaleResult? lastSubscriptionSale;
+
   PosAccountState copyWith({
     String? phoneDigits,
     String? searchQuery,
@@ -170,6 +187,11 @@ class PosAccountState extends Equatable {
     String? promoErrorCode,
     String? promoErrorMessage,
     bool clearPromoError = false,
+    List<CustomerSubscription>? subscriptions,
+    List<SellableSubscriptionPlan>? sellableSubscriptions,
+    bool? isLoadingSellableSubscriptions,
+    SubscriptionSaleResult? lastSubscriptionSale,
+    bool clearLastSubscriptionSale = false,
   }) {
     return PosAccountState(
       phoneDigits: phoneDigits ?? this.phoneDigits,
@@ -218,6 +240,14 @@ class PosAccountState extends Equatable {
       promoErrorMessage:
           promoErrorMessage ??
           (clearPromoError ? null : this.promoErrorMessage),
+      subscriptions: subscriptions ?? this.subscriptions,
+      sellableSubscriptions:
+          sellableSubscriptions ?? this.sellableSubscriptions,
+      isLoadingSellableSubscriptions:
+          isLoadingSellableSubscriptions ?? this.isLoadingSellableSubscriptions,
+      lastSubscriptionSale: clearLastSubscriptionSale
+          ? null
+          : (lastSubscriptionSale ?? this.lastSubscriptionSale),
     );
   }
 
@@ -256,5 +286,9 @@ class PosAccountState extends Equatable {
     isCheckingPromo,
     promoErrorCode,
     promoErrorMessage,
+    subscriptions,
+    sellableSubscriptions,
+    isLoadingSellableSubscriptions,
+    lastSubscriptionSale,
   ];
 }

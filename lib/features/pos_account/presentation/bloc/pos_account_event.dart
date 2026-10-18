@@ -200,9 +200,11 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
     this.promoCode,
     this.checkDiscountId,
     this.replacePlan = false,
+    this.subscriptionChildIds = const [],
   });
 
-  /// Null with no children — a HAMROH / "Qo'shimcha"-products-only sale.
+  /// Null with no children — a HAMROH / "Qo'shimcha"-products-only sale —
+  /// and when every selected child enters on a subscription.
   final String? planKey;
   final List<String> childIds;
   final List<CheckoutLine> products;
@@ -237,8 +239,13 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
   /// old pass and issues the new plan (with [promoCode] on the upgrade).
   final bool replacePlan;
 
+  /// The subset of [childIds] entering on their usable subscription (0
+  /// so'm, one entry consumed) — no plan, discount, promo or check share.
+  final List<String> subscriptionChildIds;
+
   @override
   List<Object?> get props => [
+    subscriptionChildIds,
     planKey,
     childIds,
     products,
@@ -310,4 +317,50 @@ class PosAccountPromoCodeCleared extends PosAccountEvent {
 /// customer — verify it again with that customer's id.
 class _PosAccountPromoCodeRechecked extends PosAccountEvent {
   const _PosAccountPromoCodeRechecked();
+}
+
+/// Reloads the selected customer's children's live subscriptions (on
+/// selection, refresh, and after anything that may consume or create one).
+class PosAccountSubscriptionsRequested extends PosAccountEvent {
+  const PosAccountSubscriptionsRequested();
+}
+
+/// The "Obuna sotish" modal opened — (re)load the subscription types
+/// sellable at this branch.
+class PosAccountSellableSubscriptionsRequested extends PosAccountEvent {
+  const PosAccountSellableSubscriptionsRequested();
+}
+
+/// Sell [subscriptionPlanId] to [childId]: [topupCashUzs]/[topupCardUzs]
+/// are what the cashier collects (computed like the checkout's top-up from
+/// the balance toggle + Naqd/Karta/Aralash), credited before the price is
+/// debited from the balance.
+class PosAccountSubscriptionSellRequested extends PosAccountEvent {
+  const PosAccountSubscriptionSellRequested({
+    required this.childId,
+    required this.subscriptionPlanId,
+    required this.topupCashUzs,
+    required this.topupCardUzs,
+    required this.useToday,
+  });
+
+  final String childId;
+  final String subscriptionPlanId;
+  final int topupCashUzs;
+  final int topupCardUzs;
+  final bool useToday;
+
+  @override
+  List<Object?> get props => [
+    childId,
+    subscriptionPlanId,
+    topupCashUzs,
+    topupCardUzs,
+    useToday,
+  ];
+}
+
+/// The UI printed the subscription receipt/sticker — clear it from state.
+class PosAccountSubscriptionSaleAcknowledged extends PosAccountEvent {
+  const PosAccountSubscriptionSaleAcknowledged();
 }
