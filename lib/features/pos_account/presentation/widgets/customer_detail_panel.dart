@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -23,7 +25,10 @@ import '../../domain/kids_plan.dart';
 import '../../domain/playing_child.dart';
 import '../../domain/pos_entry.dart';
 import '../../domain/promo_code_check.dart';
+import '../../../../core/offline/app_mode_cubit.dart';
+import '../../domain/subscription.dart';
 import 'account_ui.dart';
+import 'balance_switch.dart';
 import 'check_discount_sheet.dart';
 import 'entry_discount_dialog.dart';
 import 'confirm_topup_dialog.dart';
@@ -33,6 +38,9 @@ import 'plan_entry_printing.dart';
 import 'today_passes_card.dart';
 import 'transactions_accordion.dart';
 import 'promo_code_error.dart';
+import 'subscription_printing.dart';
+import 'subscription_sell_dialog.dart';
+import 'subscription_widgets.dart';
 import '../../../../generated/l10n.dart';
 import '../../../../injector_container.dart';
 
@@ -83,6 +91,10 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
     _checkoutPlan = null;
     _lastCheckout = null;
   }
+
+  /// "Obunasiz sotish": this stop sells normally even to children with a
+  /// usable subscription.
+  bool _skipSubscriptions = false;
 
   /// Paid HAMROH companion stickers to buy with this checkout.
   int _companions = 0;
@@ -210,6 +222,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
     _childEntryDiscountIds.clear();
     _promoChildId = null;
     _companions = 0;
+    _skipSubscriptions = false;
     _addingChild = false;
     _childNameController.clear();
     _printParentQr = _savedPrintParentQr();
@@ -398,6 +411,26 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
           final customer = state.selectedCustomer;
           if (customer == null) return const SizedBox.shrink();
 
+          // "Obuna": selected children with a subscription usable here today
+          // enter at 0 (sent in `subscriptionChildIds`); everything priced
+          // below — tariff, discounts, promo, check share — is about the
+          // other ("paid") children only. A customer without subscriptions
+          // gets exactly the old page.
+          final subscriptionByChild = {
+            for (final s in state.subscriptions) s.childId: s,
+          };
+          // Subscriptions are online-only: offline, everyone sells normally.
+          final offline = _isOffline;
+          final subscriptionIds = <String>{
+            if (!_skipSubscriptions && !offline)
+              for (final id in _selectedChildIds)
+                if (subscriptionByChild[id]?.usable ?? false) id,
+          };
+          final paidIds = _selectedChildIds.difference(subscriptionIds);
+          final hasUsableSelected = _selectedChildIds.any(
+            (id) => subscriptionByChild[id]?.usable ?? false,
+          );
+
           final productsById = {for (final p in state.products) p.id: p};
           final cartTotal = _cart.entries.fold<int>(
             0,
@@ -441,7 +474,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               pass.planKey == _selectedPlan?.key;
           final passReturnedIds = <String>{
             if (_selectedPlan != null)
-              for (final id in _selectedChildIds)
+              for (final id in paidIds)
                 if (activePassByChild[id] case final pass?)
                   if (returnedAsIs(pass)) id,
           };
@@ -473,7 +506,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
           };
           final selectedChildren = [
             for (final child in customer.children)
-              if (_selectedChildIds.contains(child.id)) child,
+              if (paidIds.contains(child.id)) child,
           ];
           final checkDiscount = _checkDiscountId == null
               ? null
@@ -482,7 +515,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                     .firstOrNull;
           // The order `childIds` is sent in, so the fixed amount's remainder
           // lands on the same child here as on the server.
-          final orderedChildIds = _selectedChildIds.toList();
+          final orderedChildIds = paidIds.toList();
           final checkShares =
               checkDiscount?.checkShares(orderedChildIds.length) ??
               const <Discount>[];
@@ -500,7 +533,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
           // known here: a pass in another zone is a fresh sale server-side.)
           final switchConflictIds = <String>{
             if (_selectedPlan != null)
-              for (final id in _selectedChildIds)
+              for (final id in paidIds)
                 if (activePassByChild.containsKey(id) &&
                     !passReturnedIds.contains(id))
                   id,
@@ -513,7 +546,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               : checkShares[orderedChildIds.indexOf(childId)];
           final promoChildId = promo == null || checkDiscount != null
               ? null
-              : _selectedChildIds.contains(_promoChildId)
+              : paidIds.contains(_promoChildId)
               ? _promoChildId
               // A child with no pass at all first — the code applies right
               // away; an upgrade only after the switch is confirmed.
@@ -546,7 +579,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
           // check share too — the confirmed switch re-sends the same check.
           final childDueUzs = <String, int>{
             if (_selectedPlan?.isPrepaid ?? false)
-              for (final id in _selectedChildIds)
+              for (final id in paidIds)
                 if (!alreadyOnSelectedPlan.contains(id))
                   id:
                       (_selectedPlan!.flatUzs ?? 0) -
@@ -653,8 +686,12 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
             cardInput: _payCardController.text,
           );
           // A sale with no child is HAMROH / "Qo'shimcha" products alone.
+          final hasPaidEntry = _selectedPlan != null && paidIds.isNotEmpty;
+          // Subscription children need no tariff; paid ones still do.
           final hasEntry =
-              _selectedPlan != null && _selectedChildIds.isNotEmpty;
+              hasPaidEntry ||
+              (subscriptionIds.isNotEmpty &&
+                  (paidIds.isEmpty || _selectedPlan != null));
           // "Davom etish": nothing is collected on this press — see
           // [switchPendingIds].
           final switchPending = hasEntry && switchPendingIds.isNotEmpty;
@@ -690,6 +727,8 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
 
           final childrenCard = _ChildrenCard(
             customer: customer,
+            subscriptionByChild: subscriptionByChild,
+            skipSubscriptions: _skipSubscriptions || offline,
             activePasses: state.activePasses,
             insideMinutes: {
               for (final row in state.playing) row.childId: row.minutes,
@@ -744,6 +783,24 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
           );
 
           final tariffCard = _TariffCard(
+            hint: hasUsableSelected && !offline
+                ? SubscriptionTariffHint(
+                    subscriptionNames: [
+                      for (final child in customer.children)
+                        if (_selectedChildIds.contains(child.id) &&
+                            (subscriptionByChild[child.id]?.usable ?? false))
+                          child.firstName,
+                    ],
+                    paidNames: [
+                      for (final child in customer.children)
+                        if (paidIds.contains(child.id)) child.firstName,
+                    ],
+                    skipped: _skipSubscriptions,
+                    onToggleSkipped: () => setState(
+                      () => _skipSubscriptions = !_skipSubscriptions,
+                    ),
+                  )
+                : null,
             plans: state.plans,
             isLoadingPlans: state.isLoadingPlans,
             selectedPlan: _selectedPlan,
@@ -793,11 +850,10 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
             // Always on screen; greyed with the reason until it can be used.
             checkDiscountHint: state.checkDiscounts.isEmpty
                 ? l10n.accountNoCheckDiscounts
-                : _selectedChildIds.isEmpty
+                : paidIds.isEmpty
                 ? l10n.accountPickChildFirst
                 : null,
-            checkDiscountButton:
-                state.checkDiscounts.isEmpty || _selectedChildIds.isEmpty
+            checkDiscountButton: state.checkDiscounts.isEmpty || paidIds.isEmpty
                 ? null
                 : CheckDiscountButton(
                     discounts: state.checkDiscounts,
@@ -840,7 +896,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
             vipTotal: vipTotal,
             promoDiscountUzs: promoDiscountUzs,
             promoName: promo == null ? null : promoCodeLabel(promo),
-            planName: _selectedPlan?.name,
+            planName: paidIds.isEmpty ? null : _selectedPlan?.name,
             planPrepaid: _selectedPlan?.isPrepaid ?? false,
             companions: _companions,
             companionsTotal: companionsTotal,
@@ -883,7 +939,25 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                 _cart[id] = qty;
               }
             }),
-            selectedChildCount: _selectedChildIds.length,
+            selectedChildCount: paidIds.length,
+            enterChildCount: _selectedChildIds.length,
+            subscriptionBlock: subscriptionIds.isEmpty
+                ? null
+                : SubscriptionCheckoutBlock(
+                    lines: [
+                      for (final child in customer.children)
+                        if (subscriptionIds.contains(child.id))
+                          (
+                            childName: child.fullName,
+                            planLabel:
+                                subscriptionByChild[child.id]!
+                                    .kidsPlanHere
+                                    ?.name ??
+                                subscriptionByChild[child.id]!.name,
+                            subscription: subscriptionByChild[child.id]!,
+                          ),
+                    ],
+                  ),
             alreadyNotes: [
               for (final child in customer.children)
                 if (alreadyOnSelectedPlan.contains(child.id))
@@ -909,24 +983,30 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               // With a check discount, entryDiscountFor() is the child's
               // share — the printed ticket shows it.
               _checkoutEntryDiscounts = {
-                for (final id in _selectedChildIds)
+                for (final id in paidIds)
                   if (!alreadyOnSelectedPlan.contains(id))
                     id: ?entryDiscountFor(id),
               };
-              _checkoutPlan = hasEntry ? _selectedPlan : null;
+              _checkoutPlan = hasPaidEntry ? _selectedPlan : null;
               // A pending plan switch collects nothing on this press: the
               // server answers with the conflict and moves no money (an
               // older one that still tops up first then has 0 to park).
               final collect = !switchPending && requiredPayment > 0;
               final request = PosAccountCheckoutRequested(
-                planKey: hasEntry ? _selectedPlan!.key : null,
-                childIds: hasEntry ? orderedChildIds : const [],
+                // All children on subscriptions → no tariff at all.
+                planKey: hasPaidEntry ? _selectedPlan!.key : null,
+                childIds: hasEntry
+                    ? [if (hasPaidEntry) ...orderedChildIds, ...subscriptionIds]
+                    : const [],
+                subscriptionChildIds: hasEntry
+                    ? subscriptionIds.toList()
+                    : const [],
                 withParentQr: hasEntry && _printParentQr,
                 entryDiscounts: checkDiscount != null
                     ? const {}
                     : {
                         for (final entry in _childEntryDiscountIds.entries)
-                          if (_selectedChildIds.contains(entry.key) &&
+                          if (paidIds.contains(entry.key) &&
                               entry.key != promoChildId)
                             entry.key: entry.value,
                       },
@@ -987,6 +1067,12 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
 
           final header = _SummaryStrip(
             customer: customer,
+            onSellSubscription: offline || state.isBusy
+                ? null
+                : () => _sellSubscription(context),
+            sellSubscriptionDisabledReason: offline
+                ? l10n.subscriptionOffline
+                : null,
             isBusy: state.isBusy,
             insideCount: state.playing.length,
             onRename: (name) => context.read<PosAccountBloc>().add(
@@ -1119,6 +1205,24 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
         },
       ),
     );
+  }
+
+  /// Subscription selling/entry are online-only. The whole customer tab is
+  /// disabled offline already; this is the belt to that braces (and is
+  /// false in widget tests that don't register the mode cubit).
+  static bool get _isOffline =>
+      sl.isRegistered<AppModeCubit>() && sl<AppModeCubit>().state.isOffline;
+
+  /// "Obuna sotish" → modal → on success print the receipt (+ today's
+  /// sticker) and refresh the customer.
+  Future<void> _sellSubscription(BuildContext context) async {
+    final bloc = context.read<PosAccountBloc>();
+    final outcome = await showSubscriptionSellDialog(context);
+    if (outcome == null || !context.mounted) return;
+    await printSubscriptionSale(context, outcome);
+    bloc
+      ..add(const PosAccountSubscriptionSaleAcknowledged())
+      ..add(const PosAccountCustomerRefreshRequested());
   }
 
   /// What the plan-switch modal re-sends for a conflicted [last] checkout.
@@ -1380,6 +1484,8 @@ String _alreadyActiveNote(
 class _SummaryStrip extends StatelessWidget {
   const _SummaryStrip({
     required this.customer,
+    this.onSellSubscription,
+    this.sellSubscriptionDisabledReason,
     required this.isBusy,
     required this.insideCount,
     required this.onParentQr,
@@ -1397,6 +1503,10 @@ class _SummaryStrip extends StatelessWidget {
   /// Prints the customer's free parent QR — the ruleless both-direction
   /// day sticker for the accompanying adult.
   final VoidCallback onParentQr;
+
+  /// Opens "Obuna sotish" — null disables the button (offline / busy).
+  final VoidCallback? onSellSubscription;
+  final String? sellSubscriptionDisabledReason;
   final ValueChanged<String> onRename;
   final VoidCallback onRefresh;
   final VoidCallback onBack;
@@ -1489,6 +1599,12 @@ class _SummaryStrip extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
+              SellSubscriptionButton(
+                onPressed: onSellSubscription,
+                compact: narrow,
+                disabledReason: sellSubscriptionDisabledReason,
+              ),
+              const SizedBox(width: 8),
               if (narrow)
                 IconButton.outlined(
                   tooltip: l10n.parentQr,
@@ -1548,6 +1664,8 @@ class _SummaryStrip extends StatelessWidget {
 class _ChildrenCard extends StatelessWidget {
   const _ChildrenCard({
     required this.customer,
+    this.subscriptionByChild = const {},
+    this.skipSubscriptions = false,
     required this.activePasses,
     required this.selectedChildIds,
     required this.onToggleChild,
@@ -1567,6 +1685,12 @@ class _ChildrenCard extends StatelessWidget {
   });
 
   final Customer customer;
+
+  /// childId → that child's live subscription (usable or not).
+  final Map<String, CustomerSubscription> subscriptionByChild;
+
+  /// "Obunasiz sotish" (or offline) — badges shown greyed.
+  final bool skipSubscriptions;
 
   /// childId → minutes played so far, for children inside right now.
   final Map<String, int> insideMinutes;
@@ -1652,6 +1776,8 @@ class _ChildrenCard extends StatelessWidget {
                     promoLabel: child.id == promoChildId ? promoLabel : null,
                     checkShareLabel: checkShareLabels[child.id],
                     insideMinutes: insideMinutes[child.id],
+                    subscription: subscriptionByChild[child.id],
+                    subscriptionSkipped: skipSubscriptions,
                   ),
                 if (!addingChild)
                   _AddChildTile(label: l10n.quickAdd, onTap: onStartAddChild),
@@ -1798,9 +1924,16 @@ class _ChildRow extends StatelessWidget {
     this.promoLabel,
     this.checkShareLabel,
     this.insideMinutes,
+    this.subscription,
+    this.subscriptionSkipped = false,
   });
 
   final Child child;
+
+  /// The child's live subscription — a violet badge (greyed when it can't
+  /// be used here today, or when the cashier sells without it).
+  final CustomerSubscription? subscription;
+  final bool subscriptionSkipped;
 
   /// Minutes played so far when the child is inside right now, else null.
   final int? insideMinutes;
@@ -1933,6 +2066,13 @@ class _ChildRow extends StatelessWidget {
                           ),
                       ],
                     ),
+                    if (subscription case final sub?) ...[
+                      const SizedBox(height: 7),
+                      SubscriptionChildBadge(
+                        subscription: sub,
+                        skipped: subscriptionSkipped,
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -2000,11 +2140,16 @@ class _ChildRow extends StatelessWidget {
 /// / custom plans are debited from the balance immediately at printing.
 class _TariffCard extends StatelessWidget {
   const _TariffCard({
+    this.hint,
     required this.plans,
     required this.isLoadingPlans,
     required this.selectedPlan,
     required this.onSelectPlan,
   });
+
+  /// One violet line while subscription children are selected — who
+  /// enters at 0 and who still needs a tariff.
+  final Widget? hint;
 
   /// Standard/VIP, plus 1 soat when the backend has it switched on.
   final List<KidsPlan> plans;
@@ -2021,6 +2166,7 @@ class _TariffCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           StepHeader(step: 2, title: l10n.tariff),
+          if (hint != null) ...[const SizedBox(height: 8), hint!],
           const SizedBox(height: 14),
           if (isLoadingPlans)
             const Padding(
@@ -2685,6 +2831,8 @@ class _CheckoutSection extends StatelessWidget {
     required this.isBusy,
     required this.onSubmit,
     this.switchPending = false,
+    this.enterChildCount = 0,
+    this.subscriptionBlock,
   });
 
   final List<Product> products;
@@ -2779,6 +2927,14 @@ class _CheckoutSection extends StatelessWidget {
   /// modal collects the amount — so no "To'lanadi" / payment method here.
   final bool switchPending;
 
+  /// Every child this press enters (paid + subscription) — the button's
+  /// "Kirish (N)"; [selectedChildCount] counts only the tariff children.
+  final int enterChildCount;
+
+  /// The subscription children's 0 so'm lines + "Obunadan yechiladi" box —
+  /// null when no selected child enters on a subscription.
+  final Widget? subscriptionBlock;
+
   @override
   Widget build(BuildContext context) {
     final parts = this.parts(context);
@@ -2865,11 +3021,15 @@ class _CheckoutSection extends StatelessWidget {
         ],
         if (neededTotal > 0 && balance > 0) ...[
           const SizedBox(height: 10),
-          _BalanceSwitch(
+          BalanceSwitch(
             value: payFromBalance,
             onChanged: onPayFromBalanceChanged,
             balance: balance,
           ),
+        ],
+        if (subscriptionBlock != null) ...[
+          const SizedBox(height: 4),
+          subscriptionBlock!,
         ],
         // The check itself — read-only, top to bottom like a printed
         // receipt: lines, total, what the balance pays, what is left.
@@ -3153,8 +3313,10 @@ class _CheckoutSection extends StatelessWidget {
                     ? l10n.planSwitchContinue
                     : neededTotal > 0
                     ? l10n.paymentAndPrint
-                    : selectedChildCount > 0
-                    ? l10n.enterCount(selectedChildCount)
+                    : math.max(enterChildCount, selectedChildCount) > 0
+                    ? l10n.enterCount(
+                        math.max(enterChildCount, selectedChildCount),
+                      )
                     : l10n.enter,
               ),
               if (amountOnAction &&
@@ -3220,63 +3382,6 @@ class _ReceiptRule extends StatelessWidget {
                 );
               },
             ),
-    );
-  }
-}
-
-/// "Balansdan yechish" as a tappable row: switch and the current balance —
-/// how much it pays is a line on the receipt below.
-class _BalanceSwitch extends StatelessWidget {
-  const _BalanceSwitch({
-    required this.value,
-    required this.onChanged,
-    required this.balance,
-  });
-
-  final bool value;
-  final ValueChanged<bool> onChanged;
-  final int balance;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalization.of(context);
-    final p = PosPalette.of(context);
-    final radius = BorderRadius.circular(12);
-    return Material(
-      color: value ? p.accentSoft : p.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: radius,
-        side: BorderSide(color: value ? p.accent : p.border, width: 1.5),
-      ),
-      child: InkWell(
-        onTap: () => onChanged(!value),
-        borderRadius: radius,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(6, 6, 12, 6),
-          child: Row(
-            children: [
-              Switch(value: value, onChanged: onChanged),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      l10n.payFromBalance,
-                      style: p.heading.copyWith(fontSize: 13.5),
-                    ),
-                    Text(
-                      l10n.currentBalanceValue(formatUzs(balance)),
-                      style: p.bodyMuted.copyWith(fontSize: 11.5),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
