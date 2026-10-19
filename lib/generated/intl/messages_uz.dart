@@ -176,51 +176,20 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m64(time) => "Smena ${time} da ochildi";
 
-  static String m65(count) => "Bugun faollashadi → ${count} kun";
-
-  static String m66(name, left, total) => "${name} · ${left}/${total} qoldi";
-
-  static String m67(count) => "${count} kun";
-
-  static String m68(name, from, to) => "${name} ${from} → ${to} qoldi";
-
-  static String m69(count) => "${count} kirish";
-
-  static String m70(left, total) => "bor · ${left}/${total}";
-
-  static String m71(plan) => "bu yerda: ${plan}";
-
-  static String m72(count) => "haftasiga ${count}";
-
-  static String m73(reason) =>
-      "Obuna sotildi, lekin bugungi kirish chiqmadi: ${reason}";
-
-  static String m74(price) => "1 kirish ${price}";
-
-  static String m75(amount) => "Sotish · ${amount} qabul qilish";
-
-  static String m76(names) =>
-      "${names} — obuna bilan (0 so‘m). Tarif kerak emas.";
-
-  static String m77(names, others) =>
-      "${names} — obuna bilan (0 so‘m). Tarif faqat: ${others}.";
-
-  static String m78(date) => "${date} gacha · bugun bepul";
-
-  static String m79(synced, failed) =>
+  static String m65(synced, failed) =>
       "${synced} ta savdo sinxronlandi, ${failed} ta xato.";
 
-  static String m80(reason) =>
+  static String m66(reason) =>
       "Sinxronlab bo‘lmadi: ${reason}. Offline rejim davom etadi.";
 
-  static String m81(code) => "Kod: ${code}";
+  static String m67(code) => "Kod: ${code}";
 
-  static String m82(version) => "Yangi versiya mavjud: ${version}";
+  static String m68(version) => "Yangi versiya mavjud: ${version}";
 
-  static String m83(paid, due) =>
+  static String m69(paid, due) =>
       "${paid} allaqachon to‘langan — qo‘shimcha to‘lov: ${due}.";
 
-  static String m84(name) =>
+  static String m70(name) =>
       "«${name}» allaqachon faol VIP tarifda — qayta to‘lov olinmaydi.";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
@@ -790,89 +759,14 @@ class MessageLookup extends MessageLookupByLibrary {
     "stillOffline": MessageLookupByLibrary.simpleMessage(
       "Hali ham internet yo‘q",
     ),
-    "subscriptionActivatesToday": MessageLookupByLibrary.simpleMessage(
-      "Bugun faollashadi",
-    ),
-    "subscriptionActivatesTodayDays": m65,
-    "subscriptionAlreadyActive": MessageLookupByLibrary.simpleMessage(
-      "Bu bolada faol obuna bor — yangisini sotib bo‘lmaydi",
-    ),
-    "subscriptionBlockedNotHere": MessageLookupByLibrary.simpleMessage(
-      "bu filialda ishlamaydi",
-    ),
-    "subscriptionBlockedOther": MessageLookupByLibrary.simpleMessage(
-      "hozir ishlatib bo‘lmaydi",
-    ),
-    "subscriptionBlockedUsedToday": MessageLookupByLibrary.simpleMessage(
-      "bugun ishlatilgan",
-    ),
-    "subscriptionBlockedWeekly": MessageLookupByLibrary.simpleMessage(
-      "haftalik limit tugagan",
-    ),
-    "subscriptionChip": m66,
-    "subscriptionDays": m67,
-    "subscriptionDeductLine": m68,
-    "subscriptionDeducts": MessageLookupByLibrary.simpleMessage(
-      "Obunadan yechiladi:",
-    ),
-    "subscriptionEntries": m69,
-    "subscriptionHas": m70,
-    "subscriptionHere": m71,
-    "subscriptionInsufficient": MessageLookupByLibrary.simpleMessage(
-      "Balans va olingan to‘lov obuna narxiga yetmaydi",
-    ),
-    "subscriptionLimitNone": MessageLookupByLibrary.simpleMessage("cheklovsiz"),
-    "subscriptionLimitPerDay": MessageLookupByLibrary.simpleMessage("kuniga 1"),
-    "subscriptionLimitPerWeek": m72,
-    "subscriptionNoPlans": MessageLookupByLibrary.simpleMessage(
-      "Bu filialda sotiladigan obuna yo‘q",
-    ),
-    "subscriptionOffline": MessageLookupByLibrary.simpleMessage(
-      "Obuna faqat internet bilan sotiladi",
-    ),
-    "subscriptionPassFailed": m73,
-    "subscriptionPerEntry": m74,
-    "subscriptionSell": MessageLookupByLibrary.simpleMessage("Obuna sotish"),
-    "subscriptionSellSubmit": m75,
-    "subscriptionSellSubtitle": MessageLookupByLibrary.simpleMessage(
-      "Bitta bolaga · o‘tkazilmaydi · kirishlar kuyadi · pul qaytarilmaydi",
-    ),
-    "subscriptionSellWithout": MessageLookupByLibrary.simpleMessage(
-      "Obunasiz sotish",
-    ),
-    "subscriptionShortfall": MessageLookupByLibrary.simpleMessage(
-      "Yetishmayotgan summa",
-    ),
-    "subscriptionSkipped": MessageLookupByLibrary.simpleMessage(
-      "Obuna ishlatilmaydi — oddiy sotuv",
-    ),
-    "subscriptionSold": MessageLookupByLibrary.simpleMessage("Obuna sotildi"),
-    "subscriptionStartsToday": MessageLookupByLibrary.simpleMessage(
-      "muddat bugun boshlanadi",
-    ),
-    "subscriptionTag": MessageLookupByLibrary.simpleMessage("obuna"),
-    "subscriptionTariffHintAll": m76,
-    "subscriptionTariffHintSome": m77,
-    "subscriptionType": MessageLookupByLibrary.simpleMessage("Obuna turi"),
-    "subscriptionUntilFree": m78,
-    "subscriptionUseAgain": MessageLookupByLibrary.simpleMessage("Obuna bilan"),
-    "subscriptionUseToday": MessageLookupByLibrary.simpleMessage(
-      "Bugun kirsin",
-    ),
-    "subscriptionUseTodayHint": MessageLookupByLibrary.simpleMessage(
-      "1-kirish hozir ishlatiladi, muddat bugun boshlanadi",
-    ),
-    "subscriptionWhichChild": MessageLookupByLibrary.simpleMessage(
-      "Qaysi bolaga?",
-    ),
     "switchAndPrint": MessageLookupByLibrary.simpleMessage(
       "Almashtirish va chop etish",
     ),
-    "syncResultBody": m79,
+    "syncResultBody": m65,
     "syncResultTitle": MessageLookupByLibrary.simpleMessage(
       "Sinxronlash natijasi",
     ),
-    "syncTransportFailed": m80,
+    "syncTransportFailed": m66,
     "syncViewFailures": MessageLookupByLibrary.simpleMessage("Ko‘rish"),
     "tabAccount": MessageLookupByLibrary.simpleMessage("Hisob va QR"),
     "tabHistory": MessageLookupByLibrary.simpleMessage("Sotuv tarixi"),
@@ -961,8 +855,8 @@ class MessageLookup extends MessageLookupByLibrary {
     "unsyncedRetryNeedsOnline": MessageLookupByLibrary.simpleMessage(
       "Qayta yuborish uchun avval onlayn rejimga o‘ting",
     ),
-    "unsyncedSupportCode": m81,
-    "updateAvailable": m82,
+    "unsyncedSupportCode": m67,
+    "updateAvailable": m68,
     "updateCancel": MessageLookupByLibrary.simpleMessage("Bekor qilish"),
     "updateCheck": MessageLookupByLibrary.simpleMessage(
       "Yangilanishni tekshirish",
@@ -1008,9 +902,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "updateWindowsOnly": MessageLookupByLibrary.simpleMessage(
       "Avtomatik yangilash faqat Windows’da ishlaydi",
     ),
-    "upgradeCredit": m83,
+    "upgradeCredit": m69,
     "version": MessageLookupByLibrary.simpleMessage("Versiya"),
-    "vipAlreadyActive": m84,
+    "vipAlreadyActive": m70,
     "vipChargedImmediately": MessageLookupByLibrary.simpleMessage(
       "VIP tarif puli chop etilganda balansdan darhol yechiladi.",
     ),

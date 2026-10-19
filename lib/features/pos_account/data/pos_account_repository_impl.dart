@@ -12,7 +12,6 @@ import '../domain/customer_transaction.dart';
 import '../domain/playing_child.dart';
 import '../domain/pos_entry.dart';
 import '../domain/promo_code_check.dart';
-import '../domain/subscription.dart';
 import 'pos_account_remote_data_source.dart';
 
 class PosAccountRepository {
@@ -131,7 +130,6 @@ class PosAccountRepository {
     ({String code, String childId})? promoCode,
     String? checkDiscountId,
     bool replacePlan = false,
-    List<String> subscriptionChildIds = const [],
   }) => _call(
     () => remote.planEntryCheckout(
       customerId: customerId,
@@ -146,33 +144,6 @@ class PosAccountRepository {
       promoCode: promoCode,
       checkDiscountId: checkDiscountId,
       replacePlan: replacePlan,
-      subscriptionChildIds: subscriptionChildIds,
-    ),
-  );
-
-  Future<Either<Failure, List<SellableSubscriptionPlan>>>
-  listSellableSubscriptions() =>
-      _call(() => remote.listSellableSubscriptions());
-
-  Future<Either<Failure, List<CustomerSubscription>>> listCustomerSubscriptions(
-    int customerId,
-  ) => _call(() => remote.listCustomerSubscriptions(customerId));
-
-  Future<Either<Failure, SubscriptionSaleResult>> sellSubscription({
-    required int customerId,
-    required String childId,
-    required String subscriptionPlanId,
-    required int topupCashUzs,
-    required int topupCardUzs,
-    required bool useToday,
-  }) => _call(
-    () => remote.sellSubscription(
-      customerId: customerId,
-      childId: childId,
-      subscriptionPlanId: subscriptionPlanId,
-      topupCashUzs: topupCashUzs,
-      topupCardUzs: topupCardUzs,
-      useToday: useToday,
     ),
   );
 

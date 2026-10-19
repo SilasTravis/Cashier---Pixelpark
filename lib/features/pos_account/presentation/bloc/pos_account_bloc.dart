@@ -17,7 +17,6 @@ import '../../domain/customer_transaction.dart';
 import '../../domain/playing_child.dart';
 import '../../domain/pos_entry.dart';
 import '../../domain/promo_code_check.dart';
-import '../../domain/subscription.dart';
 import '../../../../core/utils/promo_code.dart';
 
 part 'pos_account_event.dart';
@@ -54,14 +53,6 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     on<PosAccountDiscountsRequested>(_onDiscountsRequested);
     on<PosAccountPromoCodeSubmitted>(_onPromoCodeSubmitted);
     on<_PosAccountPromoCodeRechecked>(_onPromoCodeRechecked);
-    on<PosAccountSubscriptionsRequested>(_onSubscriptionsRequested);
-    on<PosAccountSellableSubscriptionsRequested>(
-      _onSellableSubscriptionsRequested,
-    );
-    on<PosAccountSubscriptionSellRequested>(_onSubscriptionSellRequested);
-    on<PosAccountSubscriptionSaleAcknowledged>(
-      (event, emit) => emit(state.copyWith(clearLastSubscriptionSale: true)),
-    );
     on<PosAccountPromoCodeCleared>(
       (event, emit) =>
           emit(state.copyWith(clearPromo: true, clearPromoError: true)),
@@ -248,8 +239,6 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
         isLoadingTransactions: false,
         transactionsFailed: false,
         activePasses: [],
-        subscriptions: [],
-        clearLastSubscriptionSale: true,
         clearPromo: !keepPromo,
         clearPromoError: !keepPromo,
       ),
@@ -257,7 +246,6 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     unawaited(_persistCustomerHistory(history));
     add(const PosAccountPlayingRequested());
     add(const PosAccountActivePassesRequested());
-    add(const PosAccountSubscriptionsRequested());
     if (keepPromo && state.promo!.isBlogger) {
       add(const _PosAccountPromoCodeRechecked());
     }
@@ -405,7 +393,6 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
         companionPriceUzs: state.companionPriceUzs,
         discounts: state.discounts,
         entryDiscounts: state.entryDiscounts,
-        sellableSubscriptions: state.sellableSubscriptions,
       ),
     );
   }
@@ -438,7 +425,6 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
         await _replaceCustomer(refreshed, emit);
         add(const PosAccountPlayingRequested());
         add(const PosAccountActivePassesRequested());
-        add(const PosAccountSubscriptionsRequested());
         _refreshTransactionsIfOpened();
       },
     );
@@ -799,7 +785,6 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
       promoCode: event.promoCode,
       checkDiscountId: event.checkDiscountId,
       replacePlan: event.replacePlan,
-      subscriptionChildIds: event.subscriptionChildIds,
     );
     result.fold(
       (failure) {
@@ -894,11 +879,6 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
         // Fresh entries mean fresh inside-children rows and badges.
         add(const PosAccountPlayingRequested());
         add(const PosAccountActivePassesRequested());
-        // A subscription entry consumed one — the chips show what is left.
-        if (event.subscriptionChildIds.isNotEmpty ||
-            entryResult.entries.any((e) => e.subscription != null)) {
-          add(const PosAccountSubscriptionsRequested());
-        }
         _refreshTransactionsIfOpened();
         // The free parent sticker rides along with the checkout print —
         // never the other way around: a parent-pass hiccup must not undo
@@ -1084,111 +1064,6 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
         ),
       );
     }, (check) => emit(state.copyWith(isCheckingPromo: false, promo: check)));
-  }
-
-  Future<void> _onSubscriptionsRequested(
-    PosAccountSubscriptionsRequested event,
-    Emitter<PosAccountState> emit,
-  ) async {
-    final customer = state.selectedCustomer;
-    if (customer == null) return;
-    try {
-      final result = await _repository.listCustomerSubscriptions(customer.id);
-      // Best-effort like the badges: on failure (or a backend without
-      // subscriptions) the page simply sells normally.
-      result.fold((failure) {}, (subscriptions) {
-        if (state.selectedCustomer?.id == customer.id && !emit.isDone) {
-          emit(state.copyWith(subscriptions: subscriptions));
-        }
-      });
-    } catch (_) {
-      // An unexpected response shape must never break the customer page.
-    }
-  }
-
-  Future<void> _onSellableSubscriptionsRequested(
-    PosAccountSellableSubscriptionsRequested event,
-    Emitter<PosAccountState> emit,
-  ) async {
-    emit(state.copyWith(isLoadingSellableSubscriptions: true));
-    try {
-      final result = await _repository.listSellableSubscriptions();
-      result.fold(
-        (failure) => emit(
-          state.copyWith(
-            isLoadingSellableSubscriptions: false,
-            errorMessage: _messageOf(failure),
-            errorCode: failure is ServerFailure ? failure.code : null,
-          ),
-        ),
-        (plans) => emit(
-          state.copyWith(
-            isLoadingSellableSubscriptions: false,
-            sellableSubscriptions: plans,
-          ),
-        ),
-      );
-    } catch (_) {
-      emit(state.copyWith(isLoadingSellableSubscriptions: false));
-    }
-  }
-
-  Future<void> _onSubscriptionSellRequested(
-    PosAccountSubscriptionSellRequested event,
-    Emitter<PosAccountState> emit,
-  ) async {
-    // Same double-tap guard as the top-up: money moves here.
-    if (state.isBusy) return;
-    final customer = state.selectedCustomer;
-    if (customer == null) return;
-    emit(
-      state.copyWith(
-        isBusy: true,
-        errorMessage: null,
-        errorCode: null,
-        clearLastSubscriptionSale: true,
-      ),
-    );
-    final result = await _repository.sellSubscription(
-      customerId: customer.id,
-      childId: event.childId,
-      subscriptionPlanId: event.subscriptionPlanId,
-      topupCashUzs: event.topupCashUzs,
-      topupCardUzs: event.topupCardUzs,
-      useToday: event.useToday,
-    );
-    result.fold(
-      (failure) => emit(
-        state.copyWith(
-          isBusy: false,
-          errorMessage: _messageOf(failure),
-          errorCode: failure is ServerFailure ? failure.code : null,
-        ),
-      ),
-      (sale) {
-        final current = state.selectedCustomer;
-        emit(
-          state.copyWith(
-            isBusy: false,
-            lastSubscriptionSale: sale,
-            selectedCustomer: sale.balance == null || current == null
-                ? current
-                : current.copyWith(balance: sale.balance!),
-            subscriptions: [
-              for (final s in state.subscriptions)
-                if (s.id != sale.subscription.id) s,
-              sale.subscription,
-            ],
-          ),
-        );
-        add(const PosAccountSubscriptionsRequested());
-        if (sale.pass != null) {
-          add(const PosAccountPlayingRequested());
-          add(const PosAccountActivePassesRequested());
-        }
-        _refreshTransactionsIfOpened();
-      },
-    );
   }
 
   String _messageOf(Failure failure) {

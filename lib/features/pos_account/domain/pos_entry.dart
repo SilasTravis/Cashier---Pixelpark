@@ -2,7 +2,6 @@ import 'package:equatable/equatable.dart';
 
 import '../../pos_sale/domain/sale_receipt.dart';
 import 'promo_code_check.dart';
-import 'subscription.dart';
 
 /// One issued Standard-plan entrance QR — the same kind of token the mobile
 /// app itself generates, just triggered by the cashier for a walk-in.
@@ -15,23 +14,7 @@ class PosEntry extends Equatable {
     this.priceUzs,
     this.upgrade = false,
     this.upgradeCreditUzs = 0,
-    this.subscription,
   });
-
-  /// One `entries[]` / `pass` item of the plan-entry and subscription APIs.
-  factory PosEntry.fromJson(Map<String, dynamic> json) => PosEntry(
-    childId: json['childId'] as String,
-    token: json['token'] as String,
-    expiresAt: json['expiresAt'] == null
-        ? null
-        : DateTime.parse(json['expiresAt'] as String),
-    durationMinutes: json['durationMinutes'] as int?,
-    priceUzs: json['priceUzs'] as int?,
-    upgrade: json['upgrade'] == true,
-    upgradeCreditUzs: (json['upgradeCreditUzs'] as int?) ?? 0,
-    // Absent on backends without subscriptions — parsed as "none".
-    subscription: PassSubscription.tryFromJson(json['subscription']),
-  );
 
   final String childId;
   final String token;
@@ -51,10 +34,6 @@ class PosEntry extends Equatable {
   /// What the replaced pass had already paid (credited).
   final int upgradeCreditUzs;
 
-  /// Set when the pass was issued from the child's subscription (0 so'm,
-  /// one entry consumed) — null for a regular sale.
-  final PassSubscription? subscription;
-
   @override
   List<Object?> get props => [
     childId,
@@ -64,7 +43,6 @@ class PosEntry extends Equatable {
     priceUzs,
     upgrade,
     upgradeCreditUzs,
-    subscription,
   ];
 }
 

@@ -44,7 +44,6 @@ class _FakeRemote implements PosAccountRemoteDataSource {
     ({String code, String childId})? promoCode,
     String? checkDiscountId,
     bool replacePlan = false,
-    List<String> subscriptionChildIds = const [],
   }) async => checkoutResult!;
 
   @override
