@@ -289,6 +289,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "cartTitle": MessageLookupByLibrary.simpleMessage("Чек"),
     "cashDesk": MessageLookupByLibrary.simpleMessage("Касса"),
     "cashDeskCashier": m12,
+    "cashback": MessageLookupByLibrary.simpleMessage("Кешбэк"),
     "categoryAll": MessageLookupByLibrary.simpleMessage("Все"),
     "checkDiscount": MessageLookupByLibrary.simpleMessage("Скидка на чек"),
     "checkDiscountLocked": MessageLookupByLibrary.simpleMessage(

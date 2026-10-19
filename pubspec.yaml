@@ -2,7 +2,7 @@ name: cashier_app
 description: "Bolajon kassa terminali — Flutter Windows desktop POS."
 publish_to: 'none'
 
-version: 1.0.21+22
+version: 1.0.25+26
 
 environment:
   sdk: ^3.12.2
@@ -68,6 +68,11 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/gate_pass_label_bg.png
+    # Sale receipt artwork + fonts (Nunito/Fredoka, SIL OFL; Fredoka is a
+    # static wght=600 instance of the variable font — thermal paper needs
+    # the heavier strokes).
+    - assets/images/receipt_bear.png
+    - assets/fonts/
 
 flutter_intl:
   enabled: true

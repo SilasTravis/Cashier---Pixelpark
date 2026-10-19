@@ -103,8 +103,10 @@ class SaleGatePass extends Equatable {
 }
 
 /// A pass the plan-entry checkout bought from a top-up's money in the same
-/// stop (VIP day, 1 soat or HAMROH). Refunding the top-up can hand the
-/// unused ones back first — their price then counts as returnable.
+/// stop (VIP day, 1 soat or HAMROH). Refunding the top-up can hand them
+/// back first — their price then counts as returnable. A [used] pass is
+/// flagged for the cashier but still refundable: on a gateless till every
+/// 1 soat pass is "used" the moment it is sold.
 class SaleFundedPurchase extends Equatable {
   const SaleFundedPurchase({
     required this.id,
@@ -113,6 +115,7 @@ class SaleFundedPurchase extends Equatable {
     required this.amountUzs,
     required this.refundable,
     this.childName,
+    this.used = false,
     this.refunded = false,
   });
 
@@ -127,6 +130,9 @@ class SaleFundedPurchase extends Equatable {
   final int amountUzs;
   final bool refundable;
 
+  /// The child already walked in on it — a warning, not a block.
+  final bool used;
+
   /// Already handed back by an earlier refund.
   final bool refunded;
 
@@ -138,6 +144,7 @@ class SaleFundedPurchase extends Equatable {
     childName,
     amountUzs,
     refundable,
+    used,
     refunded,
   ];
 }

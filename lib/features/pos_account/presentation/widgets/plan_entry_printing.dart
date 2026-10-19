@@ -7,6 +7,7 @@ import '../../../../core/local_source/local_source.dart';
 import '../../../../core/theme/nocturne_colors.dart';
 import '../../domain/pos_entry.dart';
 import '../../../pos_sale/domain/discount.dart';
+import '../../../pos_sale/domain/sale_receipt.dart';
 import '../../../../injector_container.dart';
 import '../../../../generated/l10n.dart';
 
@@ -145,6 +146,80 @@ void printPlanEntryLabels(
       ),
     );
   }
+}
+
+/// The SLK entry receipt that carries a plan-entry checkout's cashback QR —
+/// cashback is earned on entries only, so it is printed only when the
+/// server issued one. One line per child pass (+ HAMROH) when every charged
+/// price is known and they add up to the money collected; otherwise a single
+/// "Kirish" line for the collected total, so the paper never shows a JAMI
+/// that differs from what the parent paid. Null = nothing to print.
+SaleReceipt? entryCashbackReceipt(
+  PosEntryResult result,
+  Map<String, String> childNamesById, {
+  String? planName,
+  int companionPriceUzs = 0,
+  DateTime? now,
+}) {
+  final cashback = result.cashback;
+  final sale = result.entrySale;
+  if (cashback == null || sale == null || sale.totalUzs <= 0) return null;
+
+  String passLine(PosEntry entry) {
+    final child = childNamesById[entry.childId]?.trim() ?? '';
+    final plan = entry.upgrade
+        ? upgradeTicketPlanName(planName)
+        : (planName?.trim().isNotEmpty ?? false)
+        ? planName!.trim()
+        : 'Kirish';
+    return child.isEmpty ? plan : '$plan - $child';
+  }
+
+  final lines = <SaleReceiptItem>[
+    for (final entry in result.entries)
+      SaleReceiptItem(
+        productId: entry.childId,
+        nameSnapshot: passLine(entry),
+        priceSnapshotUzs: entry.priceUzs ?? 0,
+        qty: 1,
+        lineTotalUzs: entry.priceUzs ?? 0,
+      ),
+    if (result.companionPasses.isNotEmpty)
+      SaleReceiptItem(
+        productId: 'hamroh',
+        nameSnapshot: 'HAMROH',
+        priceSnapshotUzs: companionPriceUzs,
+        qty: result.companionPasses.length,
+        lineTotalUzs: companionPriceUzs * result.companionPasses.length,
+      ),
+  ];
+  final itemized =
+      lines.isNotEmpty &&
+      lines.every((line) => line.lineTotalUzs > 0) &&
+      lines.fold<int>(0, (sum, line) => sum + line.lineTotalUzs) ==
+          sale.totalUzs;
+  final items = itemized
+      ? lines
+      : [
+          SaleReceiptItem(
+            productId: 'entry',
+            nameSnapshot: (planName?.trim().isNotEmpty ?? false)
+                ? 'Kirish - ${planName!.trim()}'
+                : 'Kirish',
+            priceSnapshotUzs: sale.totalUzs,
+            qty: 1,
+            lineTotalUzs: sale.totalUzs,
+          ),
+        ];
+  return SaleReceipt(
+    id: sale.id,
+    subtotalUzs: sale.totalUzs,
+    cashUzs: sale.cashUzs,
+    cardUzs: sale.cardUzs,
+    createdAt: now ?? DateTime.now(),
+    items: items,
+    cashback: cashback,
+  );
 }
 
 String _ticketId(String id) => id.length > 8 ? id.substring(0, 8) : id;

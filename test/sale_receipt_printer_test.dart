@@ -7,6 +7,9 @@ import 'package:cashier_app/core/utils/receipt_id.dart';
 import 'package:cashier_app/features/pos_sale/domain/sale_receipt.dart';
 
 void main() {
+  // The receipt fonts and mascot come from the asset bundle.
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   test('receipt id matches the 8-character cashier app id', () {
     expect(formatReceiptId('35b4fb47-a84f-483f-b73c-44ff6a04be23'), '35b4fb47');
     expect(formatReceiptId('abc123'), 'abc123');
