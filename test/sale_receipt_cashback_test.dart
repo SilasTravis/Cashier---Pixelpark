@@ -33,6 +33,9 @@ Map<String, dynamic> _cashbackJson({Object? amountUzs = 3000}) => {
 };
 
 void main() {
+  // The receipt fonts and mascot come from the asset bundle.
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('SaleReceipt.fromJson cashback', () {
     test('parses a full cashback block (amount as number)', () {
       final receipt = SaleReceipt.fromJson(
@@ -92,14 +95,26 @@ void main() {
       _saleJson(cashback: _cashbackJson()),
     );
 
-    test('the receipt grows to fit the QR block', () {
-      expect(
-        SaleReceiptPrinter.receiptHeightMm(withCashback),
-        greaterThan(SaleReceiptPrinter.receiptHeightMm(plain) + 40),
-      );
-    });
+    Future<double> heightMm(SaleReceipt receipt) async =>
+        (await SaleReceiptPrinter.render(
+          receipt,
+          branchName: 'Algoritm',
+          cashierName: 'Zaira',
+        )).heightMm;
 
-    test('a long receipt at the height cap still makes room for the QR', () {
+    test(
+      'the paper is cut to the measured layout, QR block included',
+      () async {
+        final plainMm = await heightMm(plain);
+        final withQrMm = await heightMm(withCashback);
+        // Both QRs with their quiet zones need well over 40 mm.
+        expect(withQrMm, greaterThan(plainMm + 40));
+        // Sanity bounds of a one-item 80 mm receipt.
+        expect(plainMm, inInclusiveRange(100, 200));
+      },
+    );
+
+    test('a long receipt is never capped and still fits the QR', () async {
       final manyItems = [
         for (var i = 0; i < 40; i++)
           SaleReceiptItem(
@@ -127,16 +142,17 @@ void main() {
         items: manyItems,
         cashback: withCashback.cashback,
       );
-      expect(
-        SaleReceiptPrinter.receiptHeightMm(longWithCashback),
-        greaterThan(SaleReceiptPrinter.receiptHeightMm(long) + 40),
-      );
+      final longMm = await heightMm(long);
+      // 40 lines no longer get squeezed into a fixed 280 mm page.
+      expect(longMm, greaterThan(280));
+      expect(await heightMm(longWithCashback), greaterThan(longMm + 40));
     });
 
-    test('hint carries the local expiry date', () {
-      final hint = SaleReceiptPrinter.cashbackHint(withCashback.cashback!);
-      expect(hint, startsWith('Pixel Park ilovasida skanerlang'));
-      expect(hint, contains('.10.2026 gacha'));
+    test('expiry line carries the local date', () {
+      final expiry = SaleReceiptPrinter.cashbackExpiryText(
+        withCashback.cashback!,
+      );
+      expect(expiry, matches(RegExp(r'^\d\d\.10\.2026 gacha$')));
     });
 
     test('buildPdf renders a receipt with the cashback QR', () async {
