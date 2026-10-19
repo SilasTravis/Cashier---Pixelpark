@@ -13,6 +13,7 @@ class ActivePass extends Equatable {
     this.freeReason,
     this.discountId,
     this.discountName,
+    this.hourEnded = false,
   });
 
   final String childId;
@@ -34,6 +35,11 @@ class ActivePass extends Equatable {
   final String? discountId;
   final String? discountName;
 
+  /// A 1 soat pass whose hour ran out today: it no longer admits and only
+  /// counts as what a VIP (flat-day) upgrade credits — for any other plan
+  /// the child is a fresh sale. Set by the server, never by the till clock.
+  final bool hourEnded;
+
   @override
   List<Object?> get props => [
     childId,
@@ -44,5 +50,6 @@ class ActivePass extends Equatable {
     freeReason,
     discountId,
     discountName,
+    hourEnded,
   ];
 }

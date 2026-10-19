@@ -4083,6 +4083,31 @@ class AppLocalization {
       args: [reason],
     );
   }
+
+  /// `Current tariff`
+  String get currentTariff {
+    return Intl.message(
+      'Current tariff',
+      name: 'currentTariff',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `paid`
+  String get paidLabel {
+    return Intl.message('paid', name: 'paidLabel', desc: '', args: []);
+  }
+
+  /// `«{name}»: can't switch {from} → {to}`
+  String planSwitchBlocked(String name, String from, String to) {
+    return Intl.message(
+      '«$name»: can\'t switch $from → $to',
+      name: 'planSwitchBlocked',
+      desc: '',
+      args: [name, from, to],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalization> {

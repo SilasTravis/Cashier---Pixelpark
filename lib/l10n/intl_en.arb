@@ -785,5 +785,9 @@
   "subscriptionSkipped": "Subscription off — regular sale",
   "subscriptionSold": "Subscription sold",
   "subscriptionPassFailed": "Subscription sold, but today's entry failed: {reason}",
-  "@subscriptionPassFailed": { "placeholders": { "reason": { "type": "String" } } }
+  "@subscriptionPassFailed": { "placeholders": { "reason": { "type": "String" } } },
+  "currentTariff": "Current tariff",
+  "paidLabel": "paid",
+  "planSwitchBlocked": "«{name}»: can't switch {from} → {to}",
+  "@planSwitchBlocked": {"placeholders": {"name": {"type": "String"}, "from": {"type": "String"}, "to": {"type": "String"}}}
 }

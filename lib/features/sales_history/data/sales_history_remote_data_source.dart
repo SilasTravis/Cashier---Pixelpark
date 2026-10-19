@@ -201,6 +201,7 @@ class SalesHistoryRemoteDataSource {
           childName: row['childName'] as String?,
           amountUzs: _int(row['amountUzs']),
           refundable: row['refundable'] == true,
+          used: row['used'] == true,
           refunded: row['refundedAt'] != null,
         );
       }).toList(),

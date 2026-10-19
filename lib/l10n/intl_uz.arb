@@ -861,5 +861,8 @@
   "subscriptionSkipped": "Obuna ishlatilmaydi — oddiy sotuv",
   "subscriptionSold": "Obuna sotildi",
   "subscriptionPassFailed": "Obuna sotildi, lekin bugungi kirish chiqmadi: {reason}",
-  "@subscriptionPassFailed": { "placeholders": { "reason": { "type": "String" } } }
+  "@subscriptionPassFailed": { "placeholders": { "reason": { "type": "String" } } },
+  "currentTariff": "Hozirgi tarif",
+  "paidLabel": "to'langan",
+  "planSwitchBlocked": "«{name}»: {from} → {to} ga o'tib bo'lmaydi"
 }

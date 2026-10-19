@@ -785,5 +785,8 @@
   "subscriptionSkipped": "Абонемент не используется — обычная продажа",
   "subscriptionSold": "Абонемент продан",
   "subscriptionPassFailed": "Абонемент продан, но вход на сегодня не выдан: {reason}",
-  "@subscriptionPassFailed": { "placeholders": { "reason": { "type": "String" } } }
+  "@subscriptionPassFailed": { "placeholders": { "reason": { "type": "String" } } },
+  "currentTariff": "Текущий тариф",
+  "paidLabel": "оплачено",
+  "planSwitchBlocked": "«{name}»: нельзя перейти {from} → {to}"
 }

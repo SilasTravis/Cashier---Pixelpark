@@ -464,8 +464,9 @@ class _PassPicker extends StatelessWidget {
   }
 }
 
-/// Checklist of the passes this top-up's money bought in the same stop. A
-/// used, expired or already handed-back one is shown but cannot be picked.
+/// Checklist of the passes this top-up's money bought in the same stop. One
+/// already handed back is shown but cannot be picked; a used one is flagged
+/// yet stays selectable — the cashier decides.
 class _FundedPicker extends StatelessWidget {
   const _FundedPicker({
     required this.purchases,
@@ -520,16 +521,16 @@ class _FundedPicker extends StatelessWidget {
                     ].join(' · '),
                     style: AppTextStyles.body,
                   ),
-                  subtitle: purchase.refundable
-                      ? null
-                      : Text(
+                  subtitle: !purchase.refundable || purchase.used
+                      ? Text(
                           purchase.refunded
                               ? l10n.refundPassVoided
                               : l10n.refundPassUsed,
                           style: AppTextStyles.muted(
                             AppTextStyles.body,
                           ).copyWith(fontSize: 11),
-                        ),
+                        )
+                      : null,
                 ),
             ],
           ),
