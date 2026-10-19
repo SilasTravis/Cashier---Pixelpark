@@ -138,6 +138,8 @@ class PosEntryResult extends Equatable {
     this.productSale,
     this.productsTotalUzs = 0,
     this.promoCode,
+    this.cashback,
+    this.entrySale,
   });
 
   final List<PosEntry> entries;
@@ -159,6 +161,13 @@ class PosEntryResult extends Equatable {
   /// Null when no partner promo code was sent.
   final PromoCodeOutcome? promoCode;
 
+  /// The cashback QR the money paid for these ENTRIES earned — printed on
+  /// an SLK entry receipt. Null when cashback is off or on older backends.
+  final SaleCashback? cashback;
+
+  /// The top-up receipt that collected this checkout's cash/card.
+  final EntrySalePayment? entrySale;
+
   @override
   List<Object?> get props => [
     entries,
@@ -169,5 +178,40 @@ class PosEntryResult extends Equatable {
     productSale,
     productsTotalUzs,
     promoCode,
+    cashback,
+    entrySale,
   ];
+}
+
+/// What a plan-entry checkout collected in cash/card, on its top-up
+/// receipt ([id]) — the totals of the SLK entry receipt.
+class EntrySalePayment extends Equatable {
+  const EntrySalePayment({
+    required this.id,
+    required this.cashUzs,
+    required this.cardUzs,
+  });
+
+  final String id;
+  final int cashUzs;
+  final int cardUzs;
+
+  int get totalUzs => cashUzs + cardUzs;
+
+  /// Null for an absent or malformed block — the entry itself stands.
+  static EntrySalePayment? tryFromJson(Object? json) {
+    if (json is! Map) return null;
+    final id = json['id'];
+    final cash = json['cashUzs'];
+    final card = json['cardUzs'];
+    if (id is! String || cash is! num || card is! num) return null;
+    return EntrySalePayment(
+      id: id,
+      cashUzs: cash.toInt(),
+      cardUzs: card.toInt(),
+    );
+  }
+
+  @override
+  List<Object?> get props => [id, cashUzs, cardUzs];
 }

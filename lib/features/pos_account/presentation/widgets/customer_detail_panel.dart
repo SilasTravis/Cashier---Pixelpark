@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -302,6 +304,17 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               entryDiscountsByChild: _checkoutEntryDiscounts,
               companionPriceUzs: state.companionPriceUzs,
             );
+            // Cashback is earned on entries: its QR rides on an SLK entry
+            // receipt, printed only when the server issued one.
+            final entryReceipt = entryCashbackReceipt(
+              result,
+              childNames,
+              planName: plan?.name,
+              companionPriceUzs: state.companionPriceUzs,
+            );
+            if (entryReceipt != null) {
+              unawaited(printSaleReceiptDirect(context, entryReceipt));
+            }
             final lastCheckout = _lastCheckout;
             // One checkout's snapshot only — kept while it waits on the
             // plan-switch modal, whose confirm re-sends the same checkout.
