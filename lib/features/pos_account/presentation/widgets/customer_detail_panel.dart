@@ -102,6 +102,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
   /// plan groups still to send — the bloc drops a request while busy, so
   /// "Hammasini" sends them one after another.
   String? _reprintPlanName;
+  String? _reprintPlanKey;
   List<ReprintGroup> _reprintQueue = const [];
 
   void _startReprint(List<ReprintGroup> groups) {
@@ -109,6 +110,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
     final next = groups.first;
     _reprintQueue = groups.sublist(1);
     _reprintPlanName = next.planLabel;
+    _reprintPlanKey = next.planKey;
     context.read<PosAccountBloc>().add(
       PosAccountPlanEntryRequested(
         planKey: next.planKey,
@@ -119,6 +121,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
 
   void _clearReprint() {
     _reprintPlanName = null;
+    _reprintPlanKey = null;
     _reprintQueue = const [];
   }
 
@@ -273,14 +276,19 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
             };
             final reprintPlanName = _reprintPlanName;
             if (reprintPlanName != null) {
-              // A re-print: the same QR again, nothing was charged — so no
-              // price or discount on the ticket, and the cashier's picks in
-              // steps 1–3 stay as they were.
+              // A re-print: the same QR again, nothing was charged — the
+              // ticket shows the pass's own price (VIP / 1 soat; Standard
+              // stays "DAQIQABAY"), no discount line, and the cashier's picks
+              // in steps 1–3 stay as they were.
+              final reprintPlanKey = _reprintPlanKey;
               printPlanEntryLabels(
                 context,
                 result,
                 childNames,
                 planName: reprintPlanName,
+                reprintPrepaidPlan: state.plans.any(
+                  (plan) => plan.key == reprintPlanKey && plan.isPrepaid,
+                ),
               );
               context.read<PosAccountBloc>().add(
                 const PosAccountEntryAcknowledged(),
