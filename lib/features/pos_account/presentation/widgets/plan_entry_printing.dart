@@ -39,6 +39,18 @@ String upgradeTicketPlanName(String? planName) {
   return name.isEmpty ? 'UPGRADE' : 'UPGRADE - $name';
 }
 
+/// The price a RE-PRINTED ticket shows: the pass's own register price
+/// ([PosEntry.priceUzs], already net of its discount — 0 prints "BEPUL"),
+/// never the panel's current pick. Null — "DAQIQABAY" — only for a
+/// per-minute (Standard) pass, which has no up-front price; a pass that cost
+/// something or carries an hour window is prepaid even when its plan is no
+/// longer in the till's list.
+int? reprintTicketPriceUzs(PosEntry entry, {required bool prepaidPlan}) {
+  final prepaid =
+      prepaidPlan || (entry.priceUzs ?? 0) > 0 || entry.durationMinutes != null;
+  return prepaid ? entry.priceUzs : null;
+}
+
 /// Fires gate-pass label printing the instant entry is confirmed — no
 /// preview step, no dialog. Any child who couldn't enter (e.g. already
 /// inside) still isn't dropped silently: it surfaces as a SnackBar instead
@@ -60,8 +72,14 @@ void printPlanEntryLabels(
   int? planPriceUzs,
   Map<String, Discount> entryDiscountsByChild = const {},
   int companionPriceUzs = 0,
+  bool? reprintPrepaidPlan,
 }) {
   final l10n = AppLocalization.of(context);
+  // A re-print ([reprintPrepaidPlan] set): each ticket shows what ITS pass
+  // cost — nothing is charged again, so no discount line either.
+  int? ticketPriceUzs(PosEntry entry) => reprintPrepaidPlan == null
+      ? planPriceUzs
+      : reprintTicketPriceUzs(entry, prepaidPlan: reprintPrepaidPlan);
   if (result.entries.isNotEmpty || result.companionPasses.isNotEmpty) {
     printPassesWithTicketFallback(
       ScaffoldMessenger.of(context),
@@ -99,8 +117,8 @@ void printPlanEntryLabels(
               qrData: entry.token,
               childName: childNamesById[entry.childId] ?? '',
               planName: planName ?? '',
-              priceUzs: planPriceUzs,
-              discountUzs: planPriceUzs == null
+              priceUzs: ticketPriceUzs(entry),
+              discountUzs: planPriceUzs == null || reprintPrepaidPlan != null
                   ? 0
                   : entryDiscountsByChild[entry.childId]?.appliedDiscountUzs(
                           planPriceUzs,
