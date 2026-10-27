@@ -72,6 +72,7 @@ flutter:
     # static wght=600 instance of the variable font — thermal paper needs
     # the heavier strokes).
     - assets/images/receipt_bear.png
+    - assets/images/receipt_logo.png
     - assets/fonts/
 
 flutter_intl:

@@ -59,6 +59,12 @@ class SaleCashback extends Equatable {
   final double percent;
   final DateTime expiresAt;
 
+  /// [percent] without trailing zeros: `3.0` → `3`, `1.5` → `1.5`,
+  /// `2.25` → `2.25`.
+  String get percentLabel => percent == percent.roundToDouble()
+      ? percent.toInt().toString()
+      : percent.toStringAsFixed(2).replaceFirst(RegExp(r'0$'), '');
+
   /// Null for an absent/null field, and also for a malformed one: the sale
   /// itself already succeeded server-side, so a bad cashback block must
   /// never turn the checkout into a parse error — it just prints no QR.

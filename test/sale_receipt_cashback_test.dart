@@ -53,6 +53,19 @@ void main() {
       );
     });
 
+    test('percentLabel drops trailing zeros', () {
+      SaleCashback withPercent(double percent) => SaleCashback(
+        code: 'C',
+        qrPayload: 'PXCB:C',
+        amountUzs: 1000,
+        percent: percent,
+        expiresAt: DateTime.utc(2026, 10, 22),
+      );
+      expect(withPercent(3).percentLabel, '3');
+      expect(withPercent(1.5).percentLabel, '1.5');
+      expect(withPercent(2.25).percentLabel, '2.25');
+    });
+
     test('accepts amountUzs as a numeric string', () {
       final receipt = SaleReceipt.fromJson(
         _saleJson(cashback: _cashbackJson(amountUzs: '3000')),

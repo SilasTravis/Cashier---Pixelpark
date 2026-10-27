@@ -6,7 +6,14 @@ import 'package:pdf/widgets.dart' as pw;
 /// receipt. Everything is pure black on white: the SLK printers are 203 dpi
 /// thermal, so greys dither into noise and thin strokes fade.
 class ReceiptArt {
-  ReceiptArt._(this.regular, this.semiBold, this.bold, this.display, this.bear);
+  ReceiptArt._(
+    this.regular,
+    this.semiBold,
+    this.bold,
+    this.display,
+    this.bear,
+    this.logo,
+  );
 
   final pw.Font regular;
   final pw.Font semiBold;
@@ -18,6 +25,10 @@ class ReceiptArt {
   /// The waving Pixel Park bear, 1-bit, saved as opaque RGB so the PDF
   /// carries no soft mask (GDI drivers drop AlphaBlend'ed images).
   final pw.ImageProvider bear;
+
+  /// The Pixel Park wordmark (Cyrillic line on top), 1-bit opaque RGB like
+  /// [bear].
+  final pw.ImageProvider logo;
 
   static Future<ReceiptArt>? _cached;
 
@@ -33,12 +44,14 @@ class ReceiptArt {
     Future<pw.Font> font(String name) async =>
         pw.Font.ttf(await rootBundle.load('assets/fonts/$name.ttf'));
     final bear = await rootBundle.load('assets/images/receipt_bear.png');
+    final logo = await rootBundle.load('assets/images/receipt_logo.png');
     return ReceiptArt._(
       await font('Nunito-Regular'),
       await font('Nunito-SemiBold'),
       await font('Nunito-Bold'),
       await font('Fredoka-SemiBold'),
       pw.MemoryImage(bear.buffer.asUint8List()),
+      pw.MemoryImage(logo.buffer.asUint8List()),
     );
   }
 
