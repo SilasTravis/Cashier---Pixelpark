@@ -10,7 +10,19 @@ void main() {
   late Directory root;
 
   setUp(() => root = Directory.systemTemp.createTempSync('updater_test'));
-  tearDown(() => root.deleteSync(recursive: true));
+  // On Windows the detached updater `cmd.exe` can still hold the temp dir
+  // for a moment after the test finishes (errno 32). Retry briefly, then
+  // leave the temp dir to the OS rather than fail an otherwise green test.
+  tearDown(() async {
+    for (var attempt = 0; attempt < 20; attempt++) {
+      try {
+        if (root.existsSync()) root.deleteSync(recursive: true);
+        return;
+      } on FileSystemException {
+        await Future<void>.delayed(const Duration(milliseconds: 250));
+      }
+    }
+  });
 
   test('writes the script outside the install folder', () async {
     final updates = Directory('${root.path}/updates')..createSync();
