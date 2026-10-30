@@ -426,6 +426,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "foreignPhoneHint": MessageLookupByLibrary.simpleMessage(
       "Введите номер с кодом страны, например 7 916 123 45 67. На иностранные номера SMS не отправляются.",
     ),
+    "foreignPhoneIsUzbek": MessageLookupByLibrary.simpleMessage(
+      "998… — это узбекский номер. Выключите «Иностранный номер» и введите его после +998.",
+    ),
     "free": MessageLookupByLibrary.simpleMessage("Бесплатно"),
     "fullName": MessageLookupByLibrary.simpleMessage("Имя и фамилия"),
     "history30Days": MessageLookupByLibrary.simpleMessage("30 дней"),

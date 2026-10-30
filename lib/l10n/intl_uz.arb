@@ -813,5 +813,6 @@
   "paidLabel": "to'langan",
   "planSwitchBlocked": "«{name}»: {from} → {to} ga o'tib bo'lmaydi",
   "foreignPhone": "Chet el raqami",
-  "foreignPhoneHint": "Raqamni davlat kodi bilan yozing, masalan 7 916 123 45 67. Chet el raqamiga SMS yuborilmaydi."
+  "foreignPhoneHint": "Raqamni davlat kodi bilan yozing, masalan 7 916 123 45 67. Chet el raqamiga SMS yuborilmaydi.",
+  "foreignPhoneIsUzbek": "998… — bu o‘zbek raqami. \"Chet el raqami\"ni o‘chirib, +998 dan keyin yozing."
 }

@@ -3738,6 +3738,16 @@ class AppLocalization {
       args: [],
     );
   }
+
+  /// `998… is an Uzbek number — turn off "Foreign number" and type it after +998.`
+  String get foreignPhoneIsUzbek {
+    return Intl.message(
+      '998… is an Uzbek number — turn off "Foreign number" and type it after +998.',
+      name: 'foreignPhoneIsUzbek',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalization> {
