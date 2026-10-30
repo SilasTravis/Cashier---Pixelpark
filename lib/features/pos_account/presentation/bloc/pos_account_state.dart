@@ -3,6 +3,7 @@ part of 'pos_account_bloc.dart';
 class PosAccountState extends Equatable {
   const PosAccountState({
     this.phoneDigits = '',
+    this.foreignPhone = false,
     this.searchQuery = '',
     this.isSearching = false,
     this.results = const [],
@@ -42,6 +43,20 @@ class PosAccountState extends Equatable {
   static const defaultCompanionPriceUzs = 10000;
 
   final String phoneDigits;
+
+  /// Cashier-only: the number is foreign, so `phoneDigits` already starts
+  /// with its country code and is sent as `+<digits>` (never `+998`).
+  final bool foreignPhone;
+
+  /// Full number to send / show for what is typed: `+998…` or `+<code>…`.
+  String get fullPhone => foreignPhone ? '+$phoneDigits' : '+998$phoneDigits';
+
+  /// Enough digits to register a new customer with this number. A foreign
+  /// number may not start with 998 — that is an Uzbek one.
+  bool get canCreateWithPhone => foreignPhone
+      ? RegExp(r'^[1-9]\d{7,14}$').hasMatch(phoneDigits) &&
+            !phoneDigits.startsWith('998')
+      : RegExp(r'^\d{9}$').hasMatch(phoneDigits);
   final String searchQuery;
   final bool isSearching;
   final List<Customer> results;
@@ -133,6 +148,7 @@ class PosAccountState extends Equatable {
 
   PosAccountState copyWith({
     String? phoneDigits,
+    bool? foreignPhone,
     String? searchQuery,
     bool? isSearching,
     List<Customer>? results,
@@ -173,6 +189,7 @@ class PosAccountState extends Equatable {
   }) {
     return PosAccountState(
       phoneDigits: phoneDigits ?? this.phoneDigits,
+      foreignPhone: foreignPhone ?? this.foreignPhone,
       searchQuery: searchQuery ?? this.searchQuery,
       isSearching: isSearching ?? this.isSearching,
       results: results ?? this.results,
@@ -224,6 +241,7 @@ class PosAccountState extends Equatable {
   @override
   List<Object?> get props => [
     phoneDigits,
+    foreignPhone,
     searchQuery,
     isSearching,
     results,

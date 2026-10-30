@@ -167,7 +167,7 @@
     }
   },
   "phoneNotFound": "Номер не найден",
-  "accountNotFoundForPhone": "Для +998 {phone} аккаунт не найден.",
+  "accountNotFoundForPhone": "Для {phone} аккаунт не найден.",
   "@accountNotFoundForPhone": {
     "placeholders": {
       "phone": {
@@ -735,5 +735,7 @@
   },
   "currentTariff": "Текущий тариф",
   "paidLabel": "оплачено",
-  "planSwitchBlocked": "«{name}»: нельзя перейти {from} → {to}"
+  "planSwitchBlocked": "«{name}»: нельзя перейти {from} → {to}",
+  "foreignPhone": "Иностранный номер",
+  "foreignPhoneHint": "Введите номер с кодом страны, например 7 916 123 45 67. На иностранные номера SMS не отправляются."
 }

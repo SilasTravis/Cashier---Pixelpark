@@ -30,7 +30,7 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m4(minutes) => "Inside · ${minutes} min";
 
-  static String m5(phone) => "No account exists for +998 ${phone}.";
+  static String m5(phone) => "No account exists for ${phone}.";
 
   static String m6(plan, count) => "${plan} × ${count}";
 
@@ -410,6 +410,10 @@ class MessageLookup extends MessageLookupByLibrary {
     "exitBalanceInsufficient": m28,
     "findCustomerHint": MessageLookupByLibrary.simpleMessage(
       "Enter a phone number to find a customer",
+    ),
+    "foreignPhone": MessageLookupByLibrary.simpleMessage("Foreign number"),
+    "foreignPhoneHint": MessageLookupByLibrary.simpleMessage(
+      "Type the number with its country code, e.g. 7 916 123 45 67. No SMS is sent to foreign numbers.",
     ),
     "free": MessageLookupByLibrary.simpleMessage("Free"),
     "fullName": MessageLookupByLibrary.simpleMessage("Full name"),

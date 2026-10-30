@@ -167,7 +167,7 @@
     }
   },
   "phoneNotFound": "Number not found",
-  "accountNotFoundForPhone": "No account exists for +998 {phone}.",
+  "accountNotFoundForPhone": "No account exists for {phone}.",
   "@accountNotFoundForPhone": {
     "placeholders": {
       "phone": {
@@ -736,5 +736,7 @@
   "currentTariff": "Current tariff",
   "paidLabel": "paid",
   "planSwitchBlocked": "«{name}»: can't switch {from} → {to}",
-  "@planSwitchBlocked": {"placeholders": {"name": {"type": "String"}, "from": {"type": "String"}, "to": {"type": "String"}}}
+  "@planSwitchBlocked": {"placeholders": {"name": {"type": "String"}, "from": {"type": "String"}, "to": {"type": "String"}}},
+  "foreignPhone": "Foreign number",
+  "foreignPhoneHint": "Type the number with its country code, e.g. 7 916 123 45 67. No SMS is sent to foreign numbers."
 }

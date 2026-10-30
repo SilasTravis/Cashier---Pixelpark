@@ -68,7 +68,7 @@ class _CustomerResultsListState extends State<CustomerResultsList> {
             ),
           );
         } else if (state.results.isEmpty) {
-          content = RegExp(r'^\d{9}$').hasMatch(query)
+          content = query == state.phoneDigits && state.canCreateWithPhone
               ? const _NotFoundCard()
               : _CenteredHint(
                   icon: PhosphorIconsRegular.userCircleDashed,
@@ -363,7 +363,9 @@ class _NotFoundCardState extends State<_NotFoundCard> {
                 Text(l10n.phoneNotFound, style: p.heading),
                 const SizedBox(height: 2),
                 Text(
-                  l10n.accountNotFoundForPhone(state.phoneDigits),
+                  l10n.accountNotFoundForPhone(
+                    formatPhoneNumber(state.fullPhone),
+                  ),
                   style: p.bodyMuted.copyWith(fontSize: 13),
                 ),
                 const SizedBox(height: 14),

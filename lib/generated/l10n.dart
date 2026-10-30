@@ -914,10 +914,10 @@ class AppLocalization {
     );
   }
 
-  /// `No account exists for +998 {phone}.`
+  /// `No account exists for {phone}.`
   String accountNotFoundForPhone(String phone) {
     return Intl.message(
-      'No account exists for +998 $phone.',
+      'No account exists for $phone.',
       name: 'accountNotFoundForPhone',
       desc: '',
       args: [phone],
@@ -3716,6 +3716,26 @@ class AppLocalization {
       name: 'planSwitchBlocked',
       desc: '',
       args: [name, from, to],
+    );
+  }
+
+  /// `Foreign number`
+  String get foreignPhone {
+    return Intl.message(
+      'Foreign number',
+      name: 'foreignPhone',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Type the number with its country code, e.g. 7 916 123 45 67. No SMS is sent to foreign numbers.`
+  String get foreignPhoneHint {
+    return Intl.message(
+      'Type the number with its country code, e.g. 7 916 123 45 67. No SMS is sent to foreign numbers.',
+      name: 'foreignPhoneHint',
+      desc: '',
+      args: [],
     );
   }
 }
