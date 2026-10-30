@@ -167,7 +167,7 @@
     }
   },
   "phoneNotFound": "Номер не найден",
-  "accountNotFoundForPhone": "Для +998 {phone} аккаунт не найден.",
+  "accountNotFoundForPhone": "Для {phone} аккаунт не найден.",
   "@accountNotFoundForPhone": {
     "placeholders": {
       "phone": {
@@ -961,5 +961,7 @@
     }
   },
   "marketTotal": "Итого",
-  "marketIncomingEmpty": "Пока нет заказов в пути"
+  "marketIncomingEmpty": "Пока нет заказов в пути",
+  "foreignPhone": "Иностранный номер",
+  "foreignPhoneHint": "Введите номер с кодом страны, например 7 916 123 45 67. На иностранные номера SMS не отправляются."
 }

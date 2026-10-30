@@ -27,6 +27,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     : super(const PosAccountState()) {
     on<PosAccountDigitPressed>(_onDigitPressed);
     on<PosAccountBackspacePressed>(_onBackspacePressed);
+    on<PosAccountForeignPhoneToggled>(_onForeignPhoneToggled);
     on<PosAccountSearchRequested>(_onSearchRequested);
     on<PosAccountQueryChanged>(_onQueryChanged);
     on<PosAccountRecentCustomersRequested>(_onRecentCustomersRequested);
@@ -67,6 +68,9 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
   final LocalSource? _localSource;
 
   static const _maxPhoneDigits = 9;
+
+  /// E.164 allows at most 15 digits including the country code.
+  static const _maxForeignPhoneDigits = 15;
   static const _minSearchDigits = 7;
   static const _searchDebounce = Duration(milliseconds: 350);
 
@@ -76,7 +80,8 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     PosAccountDigitPressed event,
     Emitter<PosAccountState> emit,
   ) {
-    if (state.phoneDigits.length >= _maxPhoneDigits) return;
+    final max = state.foreignPhone ? _maxForeignPhoneDigits : _maxPhoneDigits;
+    if (state.phoneDigits.length >= max) return;
     emit(
       state.copyWith(
         phoneDigits: state.phoneDigits + event.digit,
@@ -105,6 +110,23 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
       ),
     );
     _scheduleAutoSearch();
+  }
+
+  void _onForeignPhoneToggled(
+    PosAccountForeignPhoneToggled event,
+    Emitter<PosAccountState> emit,
+  ) {
+    _debounce?.cancel();
+    emit(
+      state.copyWith(
+        foreignPhone: !state.foreignPhone,
+        phoneDigits: '',
+        searchQuery: '',
+        results: const [],
+        isSearching: false,
+        errorMessage: null,
+      ),
+    );
   }
 
   /// Live search — fires shortly after the cashier stops typing, once there
@@ -439,8 +461,8 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     final result = await _repository.createCustomer(
       // Existing customers are stored as `+998XXXXXXXXX` — sending the bare
       // 9 digits here created a second, unprefixed record for the same
-      // number instead of matching it.
-      phoneNumber: '+998${state.phoneDigits}',
+      // number instead of matching it. A foreign number goes as `+<digits>`.
+      phoneNumber: state.fullPhone,
       fullName: event.fullName,
     );
     result.fold(

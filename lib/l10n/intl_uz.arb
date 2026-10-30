@@ -167,7 +167,7 @@
     }
   },
   "phoneNotFound": "Bu raqam topilmadi",
-  "accountNotFoundForPhone": "+998 {phone} bo‘yicha hisob yo‘q.",
+  "accountNotFoundForPhone": "{phone} bo‘yicha hisob yo‘q.",
   "@accountNotFoundForPhone": {
     "placeholders": {
       "phone": {
@@ -1037,5 +1037,7 @@
     }
   },
   "marketTotal": "Jami",
-  "marketIncomingEmpty": "Hozircha kelayotgan buyurtma yo‘q"
+  "marketIncomingEmpty": "Hozircha kelayotgan buyurtma yo‘q",
+  "foreignPhone": "Chet el raqami",
+  "foreignPhoneHint": "Raqamni davlat kodi bilan yozing, masalan 7 916 123 45 67. Chet el raqamiga SMS yuborilmaydi."
 }

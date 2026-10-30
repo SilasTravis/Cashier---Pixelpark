@@ -30,7 +30,7 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m4(minutes) => "Ichkarida · ${minutes} daq";
 
-  static String m5(phone) => "+998 ${phone} bo‘yicha hisob yo‘q.";
+  static String m5(phone) => "${phone} bo‘yicha hisob yo‘q.";
 
   static String m6(plan, count) => "${plan} × ${count} bola";
 
@@ -412,6 +412,10 @@ class MessageLookup extends MessageLookupByLibrary {
     "exitBalanceInsufficient": m28,
     "findCustomerHint": MessageLookupByLibrary.simpleMessage(
       "Mijozni topish uchun telefon raqamini kiriting",
+    ),
+    "foreignPhone": MessageLookupByLibrary.simpleMessage("Chet el raqami"),
+    "foreignPhoneHint": MessageLookupByLibrary.simpleMessage(
+      "Raqamni davlat kodi bilan yozing, masalan 7 916 123 45 67. Chet el raqamiga SMS yuborilmaydi.",
     ),
     "free": MessageLookupByLibrary.simpleMessage("Bepul"),
     "fullName": MessageLookupByLibrary.simpleMessage("Ism familiya"),

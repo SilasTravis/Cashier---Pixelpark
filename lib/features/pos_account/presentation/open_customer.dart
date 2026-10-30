@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/utils/phone_number.dart';
 import '../../../generated/l10n.dart';
 import '../../../injector_container.dart';
 import '../data/pos_account_repository_impl.dart';
@@ -35,7 +36,9 @@ Future<Customer?> findCustomerByPhone(
   });
   if (found == null) {
     messenger.showSnackBar(
-      SnackBar(content: Text(l10n.accountNotFoundForPhone(phone))),
+      SnackBar(
+        content: Text(l10n.accountNotFoundForPhone(formatPhoneNumber(phone))),
+      ),
     );
   }
   return found;

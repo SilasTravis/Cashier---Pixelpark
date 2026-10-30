@@ -20,6 +20,12 @@ class PosAccountBackspacePressed extends PosAccountEvent {
   const PosAccountBackspacePressed();
 }
 
+/// Switches the keypad between an Uzbek number (fixed `+998` + 9 digits)
+/// and a foreign one typed with its own country code. Clears the number.
+class PosAccountForeignPhoneToggled extends PosAccountEvent {
+  const PosAccountForeignPhoneToggled();
+}
+
 class PosAccountSearchRequested extends PosAccountEvent {
   const PosAccountSearchRequested();
 }

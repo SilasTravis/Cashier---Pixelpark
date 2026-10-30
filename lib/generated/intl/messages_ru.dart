@@ -30,7 +30,7 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m4(minutes) => "Внутри · ${minutes} мин";
 
-  static String m5(phone) => "Для +998 ${phone} аккаунт не найден.";
+  static String m5(phone) => "Для ${phone} аккаунт не найден.";
 
   static String m6(plan, count) => "${plan} × ${count} дет.";
 
@@ -427,6 +427,10 @@ class MessageLookup extends MessageLookupByLibrary {
     "exitBalanceInsufficient": m28,
     "findCustomerHint": MessageLookupByLibrary.simpleMessage(
       "Введите номер телефона для поиска клиента",
+    ),
+    "foreignPhone": MessageLookupByLibrary.simpleMessage("Иностранный номер"),
+    "foreignPhoneHint": MessageLookupByLibrary.simpleMessage(
+      "Введите номер с кодом страны, например 7 916 123 45 67. На иностранные номера SMS не отправляются.",
     ),
     "free": MessageLookupByLibrary.simpleMessage("Бесплатно"),
     "fullName": MessageLookupByLibrary.simpleMessage("Имя и фамилия"),
