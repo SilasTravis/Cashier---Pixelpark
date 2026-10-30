@@ -417,6 +417,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "foreignPhoneHint": MessageLookupByLibrary.simpleMessage(
       "Raqamni davlat kodi bilan yozing, masalan 7 916 123 45 67. Chet el raqamiga SMS yuborilmaydi.",
     ),
+    "foreignPhoneIsUzbek": MessageLookupByLibrary.simpleMessage(
+      "998… — bu o‘zbek raqami. \"Chet el raqami\"ni o‘chirib, +998 dan keyin yozing.",
+    ),
     "free": MessageLookupByLibrary.simpleMessage("Bepul"),
     "fullName": MessageLookupByLibrary.simpleMessage("Ism familiya"),
     "history30Days": MessageLookupByLibrary.simpleMessage("30 kun"),

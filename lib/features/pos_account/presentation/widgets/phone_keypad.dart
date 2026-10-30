@@ -129,6 +129,7 @@ class PhoneKeypad extends StatelessWidget {
                 dense: true,
                 contentPadding: EdgeInsets.zero,
                 value: foreign,
+                activeTrackColor: p.accent,
                 onChanged: (_) =>
                     bloc.add(const PosAccountForeignPhoneToggled()),
                 title: Text(l10n.foreignPhone, style: p.body),

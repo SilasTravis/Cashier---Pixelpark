@@ -70,6 +70,13 @@ class _CustomerResultsListState extends State<CustomerResultsList> {
         } else if (state.results.isEmpty) {
           content = query == state.phoneDigits && state.canCreateWithPhone
               ? const _NotFoundCard()
+              : state.foreignPhone && state.phoneDigits.startsWith('998')
+              // 998… is an Uzbek number — it must go through the normal
+              // +998 keypad, not be registered as "foreign".
+              ? _CenteredHint(
+                  icon: PhosphorIconsRegular.warningCircle,
+                  text: l10n.foreignPhoneIsUzbek,
+                )
               : _CenteredHint(
                   icon: PhosphorIconsRegular.userCircleDashed,
                   text: l10n.phoneNotFound,
