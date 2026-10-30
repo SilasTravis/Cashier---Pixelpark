@@ -189,6 +189,23 @@ class PosAccountActivePassesRequested extends PosAccountEvent {
   const PosAccountActivePassesRequested();
 }
 
+/// Prices the plan switch of [childIds] onto [planKey] (see
+/// [PlanSwitchQuote]); [key] identifies the panel selection it answers.
+class PosAccountSwitchQuoteRequested extends PosAccountEvent {
+  const PosAccountSwitchQuoteRequested({
+    required this.key,
+    required this.planKey,
+    required this.childIds,
+  });
+
+  final String key;
+  final String planKey;
+  final List<String> childIds;
+
+  @override
+  List<Object?> get props => [key, planKey, childIds];
+}
+
 /// The one-stop "to'lov + chop etish": optional collected cash/card (topped
 /// onto the balance first), optional products (debited FROM the balance),
 /// and the Standard/VIP day passes. The plan itself is billed at exit.

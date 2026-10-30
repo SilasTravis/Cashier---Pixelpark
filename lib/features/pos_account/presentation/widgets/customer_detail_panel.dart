@@ -80,6 +80,9 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
   /// with `replacePlan` and the right amount to collect.
   PlanSwitchCheckout? _lastCheckout;
 
+  /// The plan-switch quote last asked for — one request per selection.
+  String? _quoteRequestedKey;
+
   void _clearCheckoutSnapshot() {
     _checkoutEntryDiscounts = const {};
     _checkoutPlan = null;
@@ -582,7 +585,6 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                     !passReturnedIds.contains(id))
                   id,
           };
-          final switchPendingIds = switchConflictIds;
           // A live pass (switched or handed back as-is) shows no share.
           Discount? checkShareFor(String childId) =>
               activePassByChild.containsKey(childId)
@@ -634,18 +636,100 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                               ) ??
                           0),
           };
+          // An upgrade is priced right here from the server's quote, so it
+          // is paid and printed in one press like any sale: the switching
+          // child costs only its surcharge. Until the quote lands (or when
+          // it fails — older backend) the press falls back to "Davom etish"
+          // and the switch modal collects.
+          final quoteChildIds = switchConflictIds.toList()..sort();
+          final quoteKey = switchConflictIds.isEmpty
+              ? null
+              : [
+                  customer.id,
+                  _selectedPlan!.key,
+                  for (final id in quoteChildIds)
+                    '$id:${activePassByChild[id]!.planKey}:'
+                        '${activePassByChild[id]!.expiresAt.millisecondsSinceEpoch}',
+                ].join('|');
+          final quote = state.switchQuote?.key == quoteKey
+              ? state.switchQuote
+              : null;
+          if (quoteKey != null &&
+              quote == null &&
+              _quoteRequestedKey != quoteKey) {
+            _quoteRequestedKey = quoteKey;
+            final planKey = _selectedPlan!.key;
+            final bloc = context.read<PosAccountBloc>();
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              bloc.add(
+                PosAccountSwitchQuoteRequested(
+                  key: quoteKey,
+                  planKey: planKey,
+                  childIds: quoteChildIds,
+                ),
+              );
+            });
+          }
+          final quotedById = {
+            for (final c in quote?.conflicts ?? const <PosEntryConflict>[])
+              c.childId: c,
+          };
+          // Every quoted switch is allowed and priced: one-press upgrade. A
+          // child the server does not quote is a plain sale for it.
+          final upgradeReady =
+              quote?.conflicts != null &&
+              quotedById.values.every(
+                (c) => c.switchable && c.upgradeDueUzs != null,
+              );
+          final upgradeDueByChild = <String, int>{
+            if (upgradeReady)
+              for (final c in quotedById.values)
+                if (switchConflictIds.contains(c.childId))
+                  c.childId: planSwitchDueUzs(
+                    [c],
+                    netFlatByChild: {c.childId: ?childDueUzs[c.childId]},
+                    requestedPlanFlatUzs: _selectedPlan?.flatUzs,
+                  ),
+          };
+          final switchPendingIds = upgradeReady
+              ? const <String>{}
+              : switchConflictIds;
+          final upgradeLines = [
+            for (final c in quotedById.values)
+              if (upgradeDueByChild.containsKey(c.childId))
+                AppLocalization.of(context).planUpgradeLine(
+                  customer.children
+                          .where((child) => child.id == c.childId)
+                          .firstOrNull
+                          ?.fullName ??
+                      '',
+                  c.currentPlanLabel,
+                  _selectedPlan!.name,
+                  formatUzs(c.upgradeCreditUzs),
+                  formatUzs(upgradeDueByChild[c.childId]!),
+                ),
+          ];
           // A pending-switch child is not charged here: the switch modal
-          // collects only its surcharge.
-          final vipTotal = childDueUzs.entries
-              .where((e) => !switchPendingIds.contains(e.key))
-              .fold<int>(0, (sum, e) => sum + e.value);
+          // collects only its surcharge. An upgrading one pays its quoted
+          // surcharge.
+          final vipTotal =
+              childDueUzs.entries
+                  .where(
+                    (e) =>
+                        !switchPendingIds.contains(e.key) &&
+                        !upgradeDueByChild.containsKey(e.key),
+                  )
+                  .fold<int>(0, (sum, e) => sum + e.value) +
+              upgradeDueByChild.values.fold<int>(0, (sum, v) => sum + v);
           // What the promo code takes off the prepaid tariff — shown as its
           // own row so a 100% code reads "Bepul", not a bare 0.
           final promoDiscountUzs =
               promoChildId != null &&
                   (_selectedPlan?.isPrepaid ?? false) &&
                   !alreadyOnSelectedPlan.contains(promoChildId) &&
-                  !switchPendingIds.contains(promoChildId)
+                  !switchPendingIds.contains(promoChildId) &&
+                  !upgradeDueByChild.containsKey(promoChildId)
               ? promo!.discount.appliedDiscountUzs(_selectedPlan!.flatUzs ?? 0)
               : 0;
           // What the check discount takes off the prepaid tariff — its own
@@ -653,7 +737,11 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
           final checkDiscountUzs =
               checkDiscount != null && (_selectedPlan?.isPrepaid ?? false)
               ? orderedChildIds
-                    .where((id) => !alreadyOnSelectedPlan.contains(id))
+                    .where(
+                      (id) =>
+                          !alreadyOnSelectedPlan.contains(id) &&
+                          !upgradeDueByChild.containsKey(id),
+                    )
                     .fold<int>(
                       0,
                       (sum, id) =>
@@ -991,6 +1079,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
             canSubmit: canEnter,
             isBusy: state.isBusy,
             switchPending: switchPending,
+            upgradeLines: hasEntry ? upgradeLines : const [],
             blockedNotes: blockedSwitchNotes,
             onSubmit: () {
               // With a check discount, entryDiscountFor() is the child's
@@ -1029,6 +1118,8 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                 cashUzs: collect ? paySplit.cashUzs : 0,
                 cardUzs: collect ? paySplit.cardUzs : 0,
                 discountId: _selectedDiscountId,
+                // The quoted upgrade is confirmed by this very press.
+                replacePlan: hasEntry && upgradeDueByChild.isNotEmpty,
               );
               _lastCheckout = PlanSwitchCheckout(
                 request: request,
@@ -2803,6 +2894,7 @@ class _CheckoutSection extends StatelessWidget {
     required this.isBusy,
     required this.onSubmit,
     this.switchPending = false,
+    this.upgradeLines = const [],
     this.blockedNotes = const [],
   });
 
@@ -2897,6 +2989,11 @@ class _CheckoutSection extends StatelessWidget {
   /// asks the server ("Davom etish"), collects nothing, and the switch
   /// modal collects the amount — so no "To'lanadi" / payment method here.
   final bool switchPending;
+
+  /// One line per child whose live pass this press upgrades ("80 000
+  /// oldin to'langan — qo'shimcha to'lov: 10 000"); non-empty turns the
+  /// button into "Tarifni yangilash".
+  final List<String> upgradeLines;
 
   /// Plan switches the backend refuses for the selected children — shown
   /// as warnings; the press stays disabled while there are any.
@@ -3135,6 +3232,15 @@ class _CheckoutSection extends StatelessWidget {
             padding: const EdgeInsets.only(top: 8),
             child: _Note(text: note, icon: PhosphorIconsRegular.checkCircle),
           ),
+        for (final line in upgradeLines)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: _Note(
+              text: line,
+              tone: ChipTone.positive,
+              icon: PhosphorIconsRegular.arrowCircleUp,
+            ),
+          ),
         for (final note in blockedNotes)
           Padding(
             padding: const EdgeInsets.only(top: 8),
@@ -3268,6 +3374,8 @@ class _CheckoutSection extends StatelessWidget {
             : Icon(
                 switchPending
                     ? PhosphorIconsRegular.arrowRight
+                    : upgradeLines.isNotEmpty
+                    ? PhosphorIconsRegular.arrowCircleUp
                     : neededTotal > 0
                     ? PhosphorIconsRegular.printer
                     : PhosphorIconsRegular.doorOpen,
@@ -3283,6 +3391,8 @@ class _CheckoutSection extends StatelessWidget {
               Text(
                 switchPending
                     ? l10n.planSwitchContinue
+                    : upgradeLines.isNotEmpty
+                    ? l10n.planUpgradeAndPrint
                     : neededTotal > 0
                     ? l10n.paymentAndPrint
                     : selectedChildCount > 0

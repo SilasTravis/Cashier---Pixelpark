@@ -49,6 +49,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     on<PosAccountPlayingRequested>(_onPlayingRequested);
     on<PosAccountTransactionsRequested>(_onTransactionsRequested);
     on<PosAccountActivePassesRequested>(_onActivePassesRequested);
+    on<PosAccountSwitchQuoteRequested>(_onSwitchQuoteRequested);
     on<PosAccountCheckoutRequested>(_onCheckoutRequested);
     on<PosAccountConfigRequested>(_onConfigRequested);
     on<PosAccountDiscountsRequested>(_onDiscountsRequested);
@@ -764,6 +765,32 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
         emit(state.copyWith(activePasses: passes));
       }
     });
+  }
+
+  Future<void> _onSwitchQuoteRequested(
+    PosAccountSwitchQuoteRequested event,
+    Emitter<PosAccountState> emit,
+  ) async {
+    final customer = state.selectedCustomer;
+    if (customer == null) return;
+    List<PosEntryConflict>? conflicts;
+    try {
+      final result = await _repository.planSwitchQuote(
+        customerId: customer.id,
+        planKey: event.planKey,
+        childIds: event.childIds,
+      );
+      conflicts = result.fold((failure) => null, (quoted) => quoted);
+    } catch (_) {
+      // Best-effort: no quote = the switch modal prices it, as before.
+      conflicts = null;
+    }
+    if (state.selectedCustomer?.id != customer.id) return;
+    emit(
+      state.copyWith(
+        switchQuote: PlanSwitchQuote(key: event.key, conflicts: conflicts),
+      ),
+    );
   }
 
   Future<void> _onProductsRequested(

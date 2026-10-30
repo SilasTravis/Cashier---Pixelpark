@@ -3748,6 +3748,32 @@ class AppLocalization {
       args: [],
     );
   }
+
+  /// `Upgrade plan`
+  String get planUpgradeAndPrint {
+    return Intl.message(
+      'Upgrade plan',
+      name: 'planUpgradeAndPrint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{child}: {from} → {to}. {paid} already paid — surcharge: {due}`
+  String planUpgradeLine(
+    String child,
+    String from,
+    String to,
+    String paid,
+    String due,
+  ) {
+    return Intl.message(
+      '$child: $from → $to. $paid already paid — surcharge: $due',
+      name: 'planUpgradeLine',
+      desc: '',
+      args: [child, from, to, paid, due],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalization> {

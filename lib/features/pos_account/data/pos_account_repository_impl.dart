@@ -114,6 +114,18 @@ class PosAccountRepository {
   Future<Either<Failure, List<ActivePass>>> listActivePasses(int customerId) =>
       _call(() => remote.listActivePasses(customerId));
 
+  Future<Either<Failure, List<PosEntryConflict>>> planSwitchQuote({
+    required int customerId,
+    required String planKey,
+    required List<String> childIds,
+  }) => _call(
+    () => remote.planSwitchQuote(
+      customerId: customerId,
+      planKey: planKey,
+      childIds: childIds,
+    ),
+  );
+
   Future<Either<Failure, ParentPass>> issueParentPass(int customerId) =>
       _call(() => remote.issueParentPass(customerId));
 

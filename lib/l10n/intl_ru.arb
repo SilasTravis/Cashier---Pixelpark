@@ -738,5 +738,8 @@
   "planSwitchBlocked": "«{name}»: нельзя перейти {from} → {to}",
   "foreignPhone": "Иностранный номер",
   "foreignPhoneHint": "Введите номер с кодом страны, например 7 916 123 45 67. На иностранные номера SMS не отправляются.",
-  "foreignPhoneIsUzbek": "998… — это узбекский номер. Выключите «Иностранный номер» и введите его после +998."
+  "foreignPhoneIsUzbek": "998… — это узбекский номер. Выключите «Иностранный номер» и введите его после +998.",
+  "planUpgradeAndPrint": "Обновить тариф",
+  "planUpgradeLine": "{child}: {from} → {to}. {paid} уже оплачено — доплата: {due}",
+  "@planUpgradeLine": {"placeholders": {"child": {"type": "String"}, "from": {"type": "String"}, "to": {"type": "String"}, "paid": {"type": "String"}, "due": {"type": "String"}}}
 }

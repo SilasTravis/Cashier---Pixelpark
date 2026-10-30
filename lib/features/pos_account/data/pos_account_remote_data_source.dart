@@ -86,6 +86,14 @@ abstract class PosAccountRemoteDataSource {
   /// Each child's still-valid day pass — the children-list plan badge.
   Future<List<ActivePass>> listActivePasses(int customerId);
 
+  /// The plan switch each child would need for [planKey] (list price) —
+  /// nothing is written. Lets the panel price an upgrade up front.
+  Future<List<PosEntryConflict>> planSwitchQuote({
+    required int customerId,
+    required String planKey,
+    required List<String> childIds,
+  });
+
   /// The customer's free parent QR — idempotent per day, so re-tapping
   /// re-prints the same sticker.
   Future<ParentPass> issueParentPass(int customerId);
@@ -353,6 +361,23 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
     );
     return (response as List)
         .map((json) => _activePassFromJson(json as Map<String, dynamic>))
+        .toList();
+  }
+
+  @override
+  Future<List<PosEntryConflict>> planSwitchQuote({
+    required int customerId,
+    required String planKey,
+    required List<String> childIds,
+  }) async {
+    final response = await _request(
+      () => dio.post(
+        '/v1/pos/customers/$customerId/plan-switch-quote',
+        data: {'planKey': planKey, 'childIds': childIds},
+      ),
+    );
+    return (response as List)
+        .map((json) => _posEntryConflictFromJson(json as Map<String, dynamic>))
         .toList();
   }
 
