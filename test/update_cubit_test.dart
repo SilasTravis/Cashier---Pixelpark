@@ -269,30 +269,23 @@ void main() {
     expect(failure.releasePageUrl, 'https://example.test/releases/tag/v1.2.3');
   });
 
-  test(
-    'restart failure is presented the same way as check/download',
-    () async {
-      service.progressSteps = const [100];
-      final cubit = UpdateCubit(service);
-      await cubit.download(_release());
-      expect(cubit.state, isA<UpdateReadyToRestart>());
+  test('restart failure is presented the same way as check/download', () async {
+    service.progressSteps = const [100];
+    final cubit = UpdateCubit(service);
+    await cubit.download(_release());
+    expect(cubit.state, isA<UpdateReadyToRestart>());
 
-      // UpdateService.applyAndRestart isn't overridden with a restartError
-      // here, so calling restart() drives the real implementation, which
-      // throws UpdateException('Self-update is only supported on Windows')
-      // on any non-Windows test runner.
-      await cubit.restart();
+    // UpdateService.applyAndRestart isn't overridden with a restartError
+    // here, so calling restart() drives the real implementation, which
+    // throws UpdateException('Self-update is only supported on Windows')
+    // on any non-Windows test runner.
+    await cubit.restart();
 
-      final failure = cubit.state as UpdateFailureKnown;
-      expect(failure.message, 'Self-update is only supported on Windows');
-      expect(failure.code, UpdateFailureCode.unsupportedPlatform);
-      expect(
-        failure.releasePageUrl,
-        'https://example.test/releases/tag/v1.2.3',
-      );
-    },
-    testOn: '!windows',
-  );
+    final failure = cubit.state as UpdateFailureKnown;
+    expect(failure.message, 'Self-update is only supported on Windows');
+    expect(failure.code, UpdateFailureCode.unsupportedPlatform);
+    expect(failure.releasePageUrl, 'https://example.test/releases/tag/v1.2.3');
+  }, testOn: '!windows');
 
   // --- Emit-after-close safety (Task 6 finding 2) ---
   //

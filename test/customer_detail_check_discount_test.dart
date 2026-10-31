@@ -26,6 +26,7 @@ class _FakeRemote implements PosAccountRemoteDataSource {
 
   String? lastCheckDiscountId;
   Map<String, String>? lastEntryDiscounts;
+  Map<String, int>? lastBirthdayAges;
   ({String code, String childId})? lastPromoCode;
   List<String>? lastChildIds;
   int checkoutCalls = 0;
@@ -39,6 +40,7 @@ class _FakeRemote implements PosAccountRemoteDataSource {
     required int cashUzs,
     required int cardUzs,
     Map<String, String> entryDiscounts = const {},
+    Map<String, int> birthdayAges = const {},
     int companions = 0,
     String? discountId,
     ({String code, String childId})? promoCode,
@@ -48,6 +50,7 @@ class _FakeRemote implements PosAccountRemoteDataSource {
     checkoutCalls++;
     lastCheckDiscountId = checkDiscountId;
     lastEntryDiscounts = entryDiscounts;
+    lastBirthdayAges = birthdayAges;
     lastPromoCode = promoCode;
     lastChildIds = childIds;
     return const PosEntryResult(entries: [], failures: [], conflicts: []);
@@ -80,6 +83,14 @@ class _FakeRemote implements PosAccountRemoteDataSource {
         name: "Tug'ilgan kun",
         kind: DiscountKind.percent,
         value: 100,
+        scope: DiscountScope.entry,
+        marksBirthday: true,
+      ),
+      Discount(
+        id: 'e-aile',
+        name: 'AILE',
+        kind: DiscountKind.percent,
+        value: 50,
         scope: DiscountScope.entry,
       ),
     ],
@@ -413,5 +424,63 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('−${formatUzs(15000)}'), findsNothing);
     expect(find.text('−${formatUzs(30000)}'), findsOneWidget);
+  });
+
+  group('birthday age', () {
+    Future<void> pickEntryDiscount(WidgetTester tester, String name) async {
+      await tester.tap(
+        find.byKey(const ValueKey('child-discount-button')).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(name));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a birthday discount asks the age and sends it', (
+      tester,
+    ) async {
+      await pumpPanel(tester);
+      await selectChildrenAndPlan(tester, ['k1'], 'VIP');
+      await pickEntryDiscount(tester, "Tug'ilgan kun");
+
+      expect(find.text('How old today?'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('birthday-age-6')));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('6 y.o.'), findsOneWidget);
+      // Free entry: the action button reads "Enter (1)" instead.
+      await tester.tap(find.textContaining('(1)').last);
+      await tester.pumpAndSettle();
+      expect(_remote.lastEntryDiscounts, {'k1': 'e-free'});
+      expect(_remote.lastBirthdayAges, {'k1': 6});
+    });
+
+    testWidgets('closing the age dialog leaves the discount off', (
+      tester,
+    ) async {
+      await pumpPanel(tester);
+      await selectChildrenAndPlan(tester, ['k1'], 'VIP');
+      await pickEntryDiscount(tester, "Tug'ilgan kun");
+
+      await tester.tap(find.byTooltip('Cancel').last);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(_payAndPrint));
+      await tester.pumpAndSettle();
+      expect(_remote.lastEntryDiscounts, isEmpty);
+      expect(_remote.lastBirthdayAges, isEmpty);
+    });
+
+    testWidgets('another discount never asks the age', (tester) async {
+      await pumpPanel(tester);
+      await selectChildrenAndPlan(tester, ['k1'], 'VIP');
+      await pickEntryDiscount(tester, 'AILE');
+
+      expect(find.text('How old today?'), findsNothing);
+      await tester.tap(find.text(_payAndPrint));
+      await tester.pumpAndSettle();
+      expect(_remote.lastEntryDiscounts, {'k1': 'e-aile'});
+      expect(_remote.lastBirthdayAges, isEmpty);
+    });
   });
 }

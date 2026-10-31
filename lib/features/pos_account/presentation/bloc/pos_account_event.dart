@@ -218,6 +218,7 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
     required this.cardUzs,
     this.withParentQr = false,
     this.entryDiscounts = const {},
+    this.birthdayAges = const {},
     this.companions = 0,
     this.discountId,
     this.promoCode,
@@ -239,6 +240,10 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
   /// discounted (100% reproduces the old free-pass behavior) and the
   /// catalog name is recorded for statistics.
   final Map<String, String> entryDiscounts;
+
+  /// childId → the age the child turns today, picked with a birthday
+  /// discount from [entryDiscounts].
+  final Map<String, int> birthdayAges;
 
   /// Paid HAMROH stickers to buy (companion price each, from the balance).
   final int companions;
@@ -269,6 +274,7 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
     cardUzs,
     withParentQr,
     entryDiscounts,
+    birthdayAges,
     companions,
     discountId,
     promoCode,

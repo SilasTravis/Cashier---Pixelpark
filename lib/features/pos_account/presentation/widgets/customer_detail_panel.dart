@@ -27,6 +27,7 @@ import '../../domain/pos_entry.dart';
 import '../../domain/promo_code_check.dart';
 import 'account_ui.dart';
 import 'check_discount_sheet.dart';
+import 'birthday_age_dialog.dart';
 import 'entry_discount_dialog.dart';
 import 'confirm_topup_dialog.dart';
 import '../bloc/pos_account_bloc.dart';
@@ -58,6 +59,9 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
   /// row's 3-dots menu. Only the picks of SELECTED children are sent with
   /// the checkout.
   final Map<String, String> _childEntryDiscountIds = {};
+
+  /// childId → the age picked with a birthday discount (sent beside it).
+  final Map<String, int> _childBirthdayAges = {};
 
   /// The cashier's "Qaysi bolaga" pick for the verified partner promo code
   /// (`state.promo`) — null (or deselected) falls back to the first
@@ -216,6 +220,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
     _selectedChildIds.clear();
     _selectedPlan = null;
     _childEntryDiscountIds.clear();
+    _childBirthdayAges.clear();
     _promoChildId = null;
     _companions = 0;
     _addingChild = false;
@@ -876,16 +881,25 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
             childEntryDiscountIds: checkDiscount == null
                 ? _childEntryDiscountIds
                 : const {},
+            childBirthdayAges: checkDiscount == null
+                ? _childBirthdayAges
+                : const {},
             checkShareLabels: checkShareLabels,
             promoChildId: promoChildId,
             promoLabel: promo == null ? null : promoCodeLabel(promo),
-            onChildEntryDiscountChanged: (id, discountId) => setState(() {
-              if (discountId == null) {
-                _childEntryDiscountIds.remove(id);
-              } else {
-                _childEntryDiscountIds[id] = discountId;
-              }
-            }),
+            onChildEntryDiscountChanged: (id, discountId, birthdayAge) =>
+                setState(() {
+                  if (discountId == null) {
+                    _childEntryDiscountIds.remove(id);
+                  } else {
+                    _childEntryDiscountIds[id] = discountId;
+                  }
+                  if (birthdayAge == null) {
+                    _childBirthdayAges.remove(id);
+                  } else {
+                    _childBirthdayAges[id] = birthdayAge;
+                  }
+                }),
             addingChild: _addingChild,
             onStartAddChild: () => setState(() => _addingChild = true),
             onCancelAddChild: () => setState(() {
@@ -1104,6 +1118,15 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                         for (final entry in _childEntryDiscountIds.entries)
                           if (_selectedChildIds.contains(entry.key) &&
                               entry.key != promoChildId)
+                            entry.key: entry.value,
+                      },
+                birthdayAges: checkDiscount != null
+                    ? const {}
+                    : {
+                        for (final entry in _childBirthdayAges.entries)
+                          if (_selectedChildIds.contains(entry.key) &&
+                              entry.key != promoChildId &&
+                              _childEntryDiscountIds.containsKey(entry.key))
                             entry.key: entry.value,
                       },
                 checkDiscountId: checkDiscount?.id,
@@ -1332,6 +1355,10 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
         cardUzs: 0,
         entryDiscounts: {
           for (final e in request.entryDiscounts.entries)
+            if (childIds.contains(e.key)) e.key: e.value,
+        },
+        birthdayAges: {
+          for (final e in request.birthdayAges.entries)
             if (childIds.contains(e.key)) e.key: e.value,
         },
         promoCode:
@@ -1736,6 +1763,7 @@ class _ChildrenCard extends StatelessWidget {
     required this.onRenameChild,
     required this.entryDiscounts,
     required this.childEntryDiscountIds,
+    this.childBirthdayAges = const {},
     required this.onChildEntryDiscountChanged,
     required this.promoChildId,
     required this.promoLabel,
@@ -1767,7 +1795,10 @@ class _ChildrenCard extends StatelessWidget {
   /// Optional per-child entry discount picked from the tile's 3-dots menu —
   /// null discountId in the callback clears the child's pick.
   final Map<String, String> childEntryDiscountIds;
-  final void Function(String childId, String? discountId)
+
+  /// childId → the age picked with that child's birthday discount.
+  final Map<String, int> childBirthdayAges;
+  final void Function(String childId, String? discountId, int? birthdayAge)
   onChildEntryDiscountChanged;
 
   /// The child the verified promo code discounts, and its chip text —
@@ -1829,8 +1860,13 @@ class _ChildrenCard extends StatelessWidget {
                     onRename: (name) => onRenameChild(child.id, name),
                     entryDiscounts: entryDiscounts,
                     selectedDiscountId: childEntryDiscountIds[child.id],
-                    onEntryDiscountChanged: (discountId) =>
-                        onChildEntryDiscountChanged(child.id, discountId),
+                    birthdayAge: childBirthdayAges[child.id],
+                    onEntryDiscountChanged: (discountId, birthdayAge) =>
+                        onChildEntryDiscountChanged(
+                          child.id,
+                          discountId,
+                          birthdayAge,
+                        ),
                     promoLabel: child.id == promoChildId ? promoLabel : null,
                     checkShareLabel: checkShareLabels[child.id],
                     insideMinutes: insideMinutes[child.id],
@@ -1977,6 +2013,7 @@ class _ChildRow extends StatelessWidget {
     required this.entryDiscounts,
     required this.selectedDiscountId,
     required this.onEntryDiscountChanged,
+    this.birthdayAge,
     this.promoLabel,
     this.checkShareLabel,
     this.insideMinutes,
@@ -2002,7 +2039,13 @@ class _ChildRow extends StatelessWidget {
   /// This checkout's entry-discount pick for the child, or null (bills
   /// normally). Chosen from the 3-dots menu; null in the callback clears.
   final String? selectedDiscountId;
-  final ValueChanged<String?> onEntryDiscountChanged;
+
+  /// A null discount clears; a birthday discount carries the picked age.
+  final void Function(String? discountId, int? birthdayAge)
+  onEntryDiscountChanged;
+
+  /// The age picked with a birthday discount, shown on the discount chip.
+  final int? birthdayAge;
 
   /// Set on the child the partner promo code discounts — shown instead of
   /// the 3-dots pick (the code's tier replaces it), and the menu is hidden.
@@ -2011,6 +2054,13 @@ class _ChildRow extends StatelessWidget {
   /// This child's share of the selected check discount ("−10 000 so'm"),
   /// or null — a badge, since the check discount replaces the 3-dots pick.
   final String? checkShareLabel;
+
+  /// The age the stored birth date gives this year — a hint only, null when
+  /// it is not a plausible park age (placeholder dates give 0).
+  int? _ageTurningToday() {
+    final turns = DateTime.now().year - child.birthDate.year;
+    return birthdayAges.contains(turns) ? turns : null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -2106,7 +2156,10 @@ class _ChildRow extends StatelessWidget {
                           ),
                         if (selectedDiscount != null)
                           StatusChip(
-                            label: '${l10n.discount}: ${selectedDiscount.name}',
+                            label: birthdayAge == null
+                                ? '${l10n.discount}: ${selectedDiscount.name}'
+                                : '${l10n.discount}: ${selectedDiscount.name} · '
+                                      '${l10n.birthdayAgeChip(birthdayAge!)}',
                             tone: ChipTone.positive,
                           ),
                         if (checkShareLabel != null)
@@ -2145,7 +2198,25 @@ class _ChildRow extends StatelessWidget {
                           discounts: entryDiscounts,
                           selectedId: selectedDiscountId,
                         );
-                        if (pick != null) onEntryDiscountChanged(pick.id);
+                        if (pick == null) return;
+                        final discount = entryDiscounts
+                            .where((d) => d.id == pick.id)
+                            .firstOrNull;
+                        if (discount == null || !discount.marksBirthday) {
+                          onEntryDiscountChanged(pick.id, null);
+                          return;
+                        }
+                        if (!context.mounted) return;
+                        // The cashier just checked the birthday: one tap
+                        // for the age, and the backend saves the date.
+                        final turns = await showBirthdayAgeDialog(
+                          context,
+                          childName: child.firstName,
+                          suggested: _ageTurningToday(),
+                        );
+                        if (turns != null) {
+                          onEntryDiscountChanged(pick.id, turns);
+                        }
                       },
                       child: SizedBox(
                         width: 32,

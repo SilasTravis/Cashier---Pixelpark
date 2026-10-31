@@ -829,6 +829,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
       cashUzs: event.cashUzs,
       cardUzs: event.cardUzs,
       entryDiscounts: event.entryDiscounts,
+      birthdayAges: event.birthdayAges,
       companions: event.companions,
       discountId: event.discountId,
       promoCode: event.promoCode,

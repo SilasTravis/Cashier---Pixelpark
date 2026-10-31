@@ -279,6 +279,36 @@ class AppLocalization {
     return Intl.message('No discount', name: 'noDiscount', desc: '', args: []);
   }
 
+  /// `How old today?`
+  String get birthdayAgeTitle {
+    return Intl.message(
+      'How old today?',
+      name: 'birthdayAgeTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `It's {name}'s birthday. Pick the age — the date is saved on the child.`
+  String birthdayAgeHint(Object name) {
+    return Intl.message(
+      'It\'s $name\'s birthday. Pick the age — the date is saved on the child.',
+      name: 'birthdayAgeHint',
+      desc: '',
+      args: [name],
+    );
+  }
+
+  /// `{age} y.o.`
+  String birthdayAgeChip(Object age) {
+    return Intl.message(
+      '$age y.o.',
+      name: 'birthdayAgeChip',
+      desc: '',
+      args: [age],
+    );
+  }
+
   /// `Free (100%)`
   String get discountGroupFree {
     return Intl.message(

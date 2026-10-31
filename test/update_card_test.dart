@@ -348,51 +348,49 @@ void main() {
   // UpdateFailureCode.unsupportedPlatform) rather than replacing the
   // process, and landing in that failure state — reachable no other way
   // from UpdateReadyToRestart — is the proof restart() actually ran.
-  testWidgets(
-    'confirming the restart dialog calls UpdateCubit.restart()',
-    (tester) async {
-      late UpdateCubit cubit;
-      await tester.pumpWidget(
-        MaterialApp(
-          localizationsDelegates: const [
-            AppLocalization.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
-          supportedLocales: AppLocalization.delegate.supportedLocales,
-          locale: const Locale('en'),
-          home: Scaffold(
-            body: BlocProvider<UpdateCubit>(
-              create: (_) {
-                cubit = _StaticCubit(
-                  UpdateReadyToRestart(_release(), Directory.systemTemp),
-                );
-                return cubit;
-              },
-              child: const UpdateCard(),
-            ),
+  testWidgets('confirming the restart dialog calls UpdateCubit.restart()', (
+    tester,
+  ) async {
+    late UpdateCubit cubit;
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: const [
+          AppLocalization.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalization.delegate.supportedLocales,
+        locale: const Locale('en'),
+        home: Scaffold(
+          body: BlocProvider<UpdateCubit>(
+            create: (_) {
+              cubit = _StaticCubit(
+                UpdateReadyToRestart(_release(), Directory.systemTemp),
+              );
+              return cubit;
+            },
+            child: const UpdateCard(),
           ),
         ),
-      );
-      await tester.pumpAndSettle();
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Restart now'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Continue'));
-      await tester.pumpAndSettle();
+    await tester.tap(find.text('Restart now'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
 
-      final failure = cubit.state;
-      expect(failure, isA<UpdateFailureKnown>());
-      expect(
-        (failure as UpdateFailureKnown).code,
-        UpdateFailureCode.unsupportedPlatform,
-      );
-      expect(
-        find.text('Update failed: Automatic updates work on Windows only'),
-        findsOneWidget,
-      );
-    },
-    skip: Platform.isWindows,
-  );
+    final failure = cubit.state;
+    expect(failure, isA<UpdateFailureKnown>());
+    expect(
+      (failure as UpdateFailureKnown).code,
+      UpdateFailureCode.unsupportedPlatform,
+    );
+    expect(
+      find.text('Update failed: Automatic updates work on Windows only'),
+      findsOneWidget,
+    );
+  }, skip: Platform.isWindows);
 }

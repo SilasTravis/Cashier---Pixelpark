@@ -107,7 +107,9 @@ abstract class PosAccountRemoteDataSource {
   /// to the goods leg (`products`) — never to the plan/VIP or companion
   /// legs; omitted from the request entirely when null. [checkDiscountId]
   /// (Butun chek) discounts every child's pass; omitted when null so older
-  /// backends never see it.
+  /// backends never see it. [birthdayAges] maps childId → the age a child
+  /// with a birthday discount turns today; sent beside that child's
+  /// discount so the backend saves the birth date.
   Future<PosEntryResult> planEntryCheckout({
     required int customerId,
     required String? planKey,
@@ -116,6 +118,7 @@ abstract class PosAccountRemoteDataSource {
     required int cashUzs,
     required int cardUzs,
     Map<String, String> entryDiscounts = const {},
+    Map<String, int> birthdayAges = const {},
     int companions = 0,
     String? discountId,
     ({String code, String childId})? promoCode,
@@ -433,6 +436,7 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
     required int cashUzs,
     required int cardUzs,
     Map<String, String> entryDiscounts = const {},
+    Map<String, int> birthdayAges = const {},
     int companions = 0,
     String? discountId,
     ({String code, String childId})? promoCode,
@@ -460,7 +464,11 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
           if (entryDiscounts.isNotEmpty)
             'entryDiscounts': [
               for (final entry in entryDiscounts.entries)
-                {'childId': entry.key, 'discountId': entry.value},
+                {
+                  'childId': entry.key,
+                  'discountId': entry.value,
+                  'birthdayAge': ?birthdayAges[entry.key],
+                },
             ],
           if (companions > 0) 'companions': companions,
           'discountId': ?discountId,
