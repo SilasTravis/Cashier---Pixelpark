@@ -46,7 +46,7 @@ class MessageLookup extends MessageLookupByLibrary {
   static String m11(value) =>
       "Недостаточно средств — необходимо оплатить минимум ${value}.";
 
-  static String m12(age) => "${age} лет";
+  static String m12(age) => "Возраст: ${age}";
 
   static String m13(name) =>
       "Сегодня день рождения: ${name}. Выберите возраст — дата сохранится у ребёнка.";

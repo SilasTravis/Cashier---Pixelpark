@@ -34,7 +34,7 @@
   "noDiscount": "Без скидки",
   "birthdayAgeTitle": "Сколько исполнилось?",
   "birthdayAgeHint": "Сегодня день рождения: {name}. Выберите возраст — дата сохранится у ребёнка.",
-  "birthdayAgeChip": "{age} лет",
+  "birthdayAgeChip": "Возраст: {age}",
   "discountGroupFree": "Бесплатно (100%)",
   "discountGroupPercent": "В процентах",
   "discountGroupFixed": "Фиксированная сумма",

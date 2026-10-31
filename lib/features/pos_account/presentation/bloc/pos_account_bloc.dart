@@ -906,9 +906,13 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
                 : null,
             promoErrorMessage: releaseReason,
             lastEntryResult: entryResult,
-            selectedCustomer: entryResult.balance == null
-                ? customer
-                : customer.copyWith(balance: entryResult.balance!),
+            selectedCustomer: _withBirthdays(
+              entryResult.balance == null
+                  ? customer
+                  : customer.copyWith(balance: entryResult.balance!),
+              event.birthdayAges,
+              {for (final e in entryResult.entries) e.childId},
+            ),
           ),
         );
         // A child's entry discount was unavailable/mismatched (per-child
@@ -1123,4 +1127,37 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
       _ => 'Xatolik yuz berdi',
     };
   }
+}
+
+/// Mirrors the backend's birthday confirm on the open customer, so the
+/// child's tile shows the new age without a refetch: a child who got a
+/// pass with a picked age and whose stored birth date is a placeholder
+/// (under a year old — the till's quick-add stores the registration day)
+/// now turns that age today. A real birth date is left alone, as on the
+/// server.
+Customer _withBirthdays(
+  Customer customer,
+  Map<String, int> ages,
+  Set<String> issued,
+) {
+  if (ages.isEmpty) return customer;
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  return customer.copyWith(
+    children: [
+      for (final child in customer.children)
+        switch (ages[child.id]) {
+          final age?
+              when issued.contains(child.id) &&
+                  today.difference(child.birthDate).inDays < 366 =>
+            Child(
+              id: child.id,
+              firstName: child.firstName,
+              lastName: child.lastName,
+              birthDate: DateTime(now.year - age, now.month, now.day),
+            ),
+          _ => child,
+        },
+    ],
+  );
 }

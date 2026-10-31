@@ -2156,10 +2156,15 @@ class _ChildRow extends StatelessWidget {
                           ),
                         if (selectedDiscount != null)
                           StatusChip(
-                            label: birthdayAge == null
-                                ? '${l10n.discount}: ${selectedDiscount.name}'
-                                : '${l10n.discount}: ${selectedDiscount.name} · '
-                                      '${l10n.birthdayAgeChip(birthdayAge!)}',
+                            label: '${l10n.discount}: ${selectedDiscount.name}',
+                            tone: ChipTone.positive,
+                          ),
+                        // Its own chip: the discount name already fills a
+                        // tile's width, the age must stay readable.
+                        if (selectedDiscount != null && birthdayAge != null)
+                          StatusChip(
+                            label: l10n.birthdayAgeChip(birthdayAge!),
+                            icon: PhosphorIconsRegular.cake,
                             tone: ChipTone.positive,
                           ),
                         if (checkShareLabel != null)
