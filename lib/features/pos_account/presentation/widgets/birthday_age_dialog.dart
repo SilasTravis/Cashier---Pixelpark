@@ -10,7 +10,8 @@ const birthdayAges = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
 /// Asks the age [childName] turns today, right after the cashier picks a
 /// birthday discount. One tap answers; dismissing returns null and the
 /// discount is not applied. [suggested] (the age the stored birth date
-/// gives, when plausible) is pre-highlighted.
+/// gives, when plausible) gets an outline as a hint — never a filled tile,
+/// which would read as already picked.
 Future<int?> showBirthdayAgeDialog(
   BuildContext context, {
   required String childName,
@@ -106,11 +107,16 @@ class _AgeTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = PosPalette.of(context);
+    // A hint, not a pick: outlined, never filled — the dialog closes on the
+    // tap, so nothing here ever looks already chosen.
     return Material(
-      color: highlighted ? p.accent : p.surfaceMuted,
+      color: highlighted ? p.accentSoft : p.surfaceMuted,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: highlighted ? p.accent : p.border),
+        side: BorderSide(
+          color: highlighted ? p.accent : p.border,
+          width: highlighted ? 2 : 1,
+        ),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
@@ -118,7 +124,9 @@ class _AgeTile extends StatelessWidget {
         child: Center(
           child: Text(
             '$age',
-            style: p.heading.copyWith(color: highlighted ? p.onAccent : p.text),
+            style: p.heading.copyWith(
+              color: highlighted ? p.accentStrong : p.text,
+            ),
           ),
         ),
       ),
