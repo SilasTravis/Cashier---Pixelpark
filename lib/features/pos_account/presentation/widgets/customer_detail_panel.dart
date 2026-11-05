@@ -311,6 +311,11 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
             // The checkout's own plan, snapshotted on submit: a confirmed
             // switch lands after the panel's pick was cleared.
             final plan = _checkoutPlan ?? _selectedPlan;
+            // The dashboard's "Kirish QR" switch: off at a branch without a
+            // QR turnstile, where the passes are just paper to throw away.
+            final printQr =
+                !sl.isRegistered<LocalSource>() ||
+                sl<LocalSource>().getPrintEntryQr();
             printPlanEntryLabels(
               context,
               result,
@@ -319,14 +324,18 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               planPriceUzs: (plan?.isPrepaid ?? false) ? plan?.flatUzs : null,
               entryDiscountsByChild: _checkoutEntryDiscounts,
               companionPriceUzs: state.companionPriceUzs,
+              printQr: printQr,
             );
             // Cashback is earned on entries: its QR rides on an SLK entry
-            // receipt, printed only when the server issued one.
+            // receipt, printed when the server issued one — and always for a
+            // school group or with the entry QR off, so the payment still
+            // gets its paper.
             final entryReceipt = entryCashbackReceipt(
               result,
               childNames,
               planName: plan?.name,
               companionPriceUzs: state.companionPriceUzs,
+              evenWithoutCashback: !printQr || isSchoolGroup(result),
             );
             if (entryReceipt != null) {
               unawaited(printSaleReceiptDirect(context, entryReceipt));
