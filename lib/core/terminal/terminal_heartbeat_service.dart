@@ -33,6 +33,7 @@ class TerminalHeartbeatService {
     required this._hostname,
     required this._osVersion,
     this._sessionChanges,
+    this._onPrintEntryQr,
     this._interval = const Duration(minutes: 2),
   });
 
@@ -70,6 +71,11 @@ class TerminalHeartbeatService {
   /// beat, so "just signed in" reaches the dashboard without waiting for
   /// the next tick.
   final Stream<void>? _sessionChanges;
+
+  /// Receives the cashier's dashboard switch "Kirish QR" from the beat's
+  /// reply, so a change reaches the till within one beat. An older backend
+  /// replies 204 with no body: nothing is called.
+  final void Function(bool printEntryQr)? _onPrintEntryQr;
 
   final Duration _interval;
 
@@ -140,7 +146,7 @@ class TerminalHeartbeatService {
     try {
       if (!_hasSession()) return;
       _hadSession = true;
-      await _api.post<void>(
+      final response = await _api.post<Object?>(
         path,
         data: buildBody(),
         options: Options(
@@ -149,6 +155,10 @@ class TerminalHeartbeatService {
           extra: {ConnectivityInterceptor.backgroundKey: true},
         ),
       );
+      final body = response.data;
+      if (body is Map && body['printEntryQr'] is bool) {
+        _onPrintEntryQr?.call(body['printEntryQr'] as bool);
+      }
     } catch (_) {
       // Diagnostics only — an unreachable or older backend (404) is fine.
     }
