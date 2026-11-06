@@ -26,6 +26,7 @@ class TodayPassesCard extends StatelessWidget {
     required this.busy,
     required this.onReprint,
     required this.onStale,
+    this.canReprint = true,
   });
 
   /// `PosAccountState.activePasses` — only children still on the account
@@ -36,6 +37,10 @@ class TodayPassesCard extends StatelessWidget {
 
   /// One group per plan, in the order to print them.
   final ValueChanged<List<ReprintGroup>> onReprint;
+
+  /// False at a branch without a turnstile: there is no sticker to replace,
+  /// so the list is reference only.
+  final bool canReprint;
 
   /// A tapped pass had already expired (the list outlived midnight): the
   /// panel re-reads the passes. Never sent on: past expiry the same request
@@ -95,7 +100,7 @@ class TodayPassesCard extends StatelessWidget {
               const SizedBox(width: 8),
               StatusChip(label: '${rows.length}', tone: ChipTone.neutral),
               const Spacer(),
-              if (rows.length > 1 && all.isNotEmpty)
+              if (canReprint && rows.length > 1 && all.isNotEmpty)
                 TextButton.icon(
                   key: const ValueKey('reprint-all'),
                   onPressed: busy ? null : () => _reprint(rows),
@@ -104,11 +109,13 @@ class TodayPassesCard extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            l10n.accountTodayQrsHint,
-            style: p.bodyMuted.copyWith(fontSize: 12),
-          ),
+          if (canReprint) ...[
+            const SizedBox(height: 4),
+            Text(
+              l10n.accountTodayQrsHint,
+              style: p.bodyMuted.copyWith(fontSize: 12),
+            ),
+          ],
           const SizedBox(height: 8),
           for (final (i, pass) in rows.indexed) ...[
             if (i > 0) Divider(height: 1, color: p.border),
@@ -116,7 +123,7 @@ class TodayPassesCard extends StatelessWidget {
               pass: pass,
               childName: childNames[pass.childId]!,
               busy: busy,
-              onReprint: () => _reprint([pass]),
+              onReprint: canReprint ? () => _reprint([pass]) : null,
             ),
           ],
         ],
@@ -136,14 +143,16 @@ class _PassRow extends StatelessWidget {
   final ActivePass pass;
   final String childName;
   final bool busy;
-  final VoidCallback onReprint;
+
+  /// Null hides the button (no turnstile at this branch).
+  final VoidCallback? onReprint;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalization.of(context);
     final p = PosPalette.of(context);
     final until = l10n.accountValidUntil(_hhmm(pass.expiresAt));
-    final canReprint = pass.planKey != null;
+    final canReprint = onReprint != null && pass.planKey != null;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: LayoutBuilder(
