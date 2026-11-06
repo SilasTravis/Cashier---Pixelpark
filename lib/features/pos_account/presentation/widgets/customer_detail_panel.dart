@@ -26,6 +26,7 @@ import '../../domain/playing_child.dart';
 import '../../domain/pos_entry.dart';
 import '../../domain/promo_code_check.dart';
 import 'account_ui.dart';
+import 'balance_switch.dart';
 import 'check_discount_sheet.dart';
 import 'birthday_age_dialog.dart';
 import 'entry_discount_dialog.dart';
@@ -3161,7 +3162,7 @@ class _CheckoutSection extends StatelessWidget {
         ],
         if (neededTotal > 0 && balance > 0) ...[
           const SizedBox(height: 10),
-          _BalanceSwitch(
+          BalanceSwitch(
             value: payFromBalance,
             onChanged: onPayFromBalanceChanged,
             balance: balance,
@@ -3538,63 +3539,6 @@ class _ReceiptRule extends StatelessWidget {
                 );
               },
             ),
-    );
-  }
-}
-
-/// "Balansdan yechish" as a tappable row: switch and the current balance —
-/// how much it pays is a line on the receipt below.
-class _BalanceSwitch extends StatelessWidget {
-  const _BalanceSwitch({
-    required this.value,
-    required this.onChanged,
-    required this.balance,
-  });
-
-  final bool value;
-  final ValueChanged<bool> onChanged;
-  final int balance;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalization.of(context);
-    final p = PosPalette.of(context);
-    final radius = BorderRadius.circular(12);
-    return Material(
-      color: value ? p.accentSoft : p.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: radius,
-        side: BorderSide(color: value ? p.accent : p.border, width: 1.5),
-      ),
-      child: InkWell(
-        onTap: () => onChanged(!value),
-        borderRadius: radius,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(6, 6, 12, 6),
-          child: Row(
-            children: [
-              Switch(value: value, onChanged: onChanged),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      l10n.payFromBalance,
-                      style: p.heading.copyWith(fontSize: 13.5),
-                    ),
-                    Text(
-                      l10n.currentBalanceValue(formatUzs(balance)),
-                      style: p.bodyMuted.copyWith(fontSize: 11.5),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
