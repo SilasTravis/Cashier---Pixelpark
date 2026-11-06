@@ -92,6 +92,22 @@ class PosAccountChildAddRequested extends PosAccountEvent {
   List<Object?> get props => [firstName, lastName, birthDate];
 }
 
+/// A school class by count: the bloc makes sure the customer has [count]
+/// anonymous group seats, puts them into the customer's children and hands
+/// their ids to [onSeats] so the panel can select exactly those.
+class PosAccountGroupSeatsRequested extends PosAccountEvent {
+  const PosAccountGroupSeatsRequested({
+    required this.count,
+    required this.onSeats,
+  });
+
+  final int count;
+  final void Function(List<String> seatIds) onSeats;
+
+  @override
+  List<Object?> get props => [count];
+}
+
 class PosAccountCustomerNameUpdateRequested extends PosAccountEvent {
   const PosAccountCustomerNameUpdateRequested(this.fullName);
   final String fullName;

@@ -37,6 +37,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     on<PosAccountCustomerRefreshRequested>(_onCustomerRefreshRequested);
     on<PosAccountNewCustomerRequested>(_onNewCustomerRequested);
     on<PosAccountChildAddRequested>(_onChildAddRequested);
+    on<PosAccountGroupSeatsRequested>(_onGroupSeatsRequested);
     on<PosAccountCustomerNameUpdateRequested>(_onCustomerNameUpdateRequested);
     on<PosAccountChildNameUpdateRequested>(_onChildNameUpdateRequested);
     on<PosAccountTopupRequested>(_onTopupRequested);
@@ -514,6 +515,41 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _onGroupSeatsRequested(
+    PosAccountGroupSeatsRequested event,
+    Emitter<PosAccountState> emit,
+  ) async {
+    if (state.isBusy) return;
+    final customer = state.selectedCustomer;
+    if (customer == null) return;
+    emit(state.copyWith(isBusy: true, errorMessage: null));
+    final result = await _repository.ensureGroupSeats(
+      customerId: customer.id,
+      count: event.count,
+    );
+    result.fold(
+      (failure) => emit(
+        state.copyWith(isBusy: false, errorMessage: _messageOf(failure)),
+      ),
+      (seats) {
+        final fresh = {for (final seat in seats) seat.id};
+        emit(
+          state.copyWith(
+            isBusy: false,
+            selectedCustomer: customer.copyWith(
+              children: [
+                for (final child in customer.children)
+                  if (!fresh.contains(child.id)) child,
+                ...seats,
+              ],
+            ),
+          ),
+        );
+        event.onSeats([for (final seat in seats) seat.id]);
+      },
     );
   }
 

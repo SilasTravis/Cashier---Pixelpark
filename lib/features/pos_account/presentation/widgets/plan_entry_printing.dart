@@ -224,7 +224,9 @@ SaleReceipt? entryCashbackReceipt(
   for (final entry in result.entries) {
     final name = passLine(entry);
     final price = entry.priceUzs ?? 0;
-    final same = school
+    // Nameless passes (a school group, group seats) merge into "plan × N".
+    final nameless = school || (childNamesById[entry.childId] ?? '').isEmpty;
+    final same = nameless
         ? passLines.indexWhere(
             (line) =>
                 line.nameSnapshot == name && line.priceSnapshotUzs == price,

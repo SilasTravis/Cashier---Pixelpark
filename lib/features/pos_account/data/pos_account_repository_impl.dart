@@ -45,6 +45,13 @@ class PosAccountRepository {
     ),
   );
 
+  Future<Either<Failure, List<Child>>> ensureGroupSeats({
+    required int customerId,
+    required int count,
+  }) => _call(
+    () => remote.ensureGroupSeats(customerId: customerId, count: count),
+  );
+
   Future<Either<Failure, Customer>> updateCustomerName({
     required int customerId,
     required String fullName,

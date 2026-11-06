@@ -38,6 +38,13 @@ abstract class PosAccountRemoteDataSource {
     required String birthDate,
   });
 
+  /// Seats 1..[count] of the customer for a school class checked in by
+  /// count — created on first use, the same ones reused on later visits.
+  Future<List<Child>> ensureGroupSeats({
+    required int customerId,
+    required int count,
+  });
+
   Future<Customer> updateCustomerName({
     required int customerId,
     required String fullName,
@@ -200,6 +207,23 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
       ),
     );
     return _childFromJson(response as Map<String, dynamic>);
+  }
+
+  @override
+  Future<List<Child>> ensureGroupSeats({
+    required int customerId,
+    required int count,
+  }) async {
+    final response = await _request(
+      () => dio.post(
+        '/v1/pos/customers/$customerId/group-seats',
+        data: {'count': count},
+      ),
+    );
+    return [
+      for (final seat in response as List<dynamic>)
+        _childFromJson(seat as Map<String, dynamic>),
+    ];
   }
 
   @override
@@ -582,6 +606,7 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
       firstName: json['firstName'] as String,
       lastName: json['lastName'] as String?,
       birthDate: DateTime.parse(json['birthDate'] as String),
+      groupSeat: (json['groupSeat'] as num?)?.toInt(),
     );
   }
 
