@@ -3804,6 +3804,271 @@ class AppLocalization {
       args: [child, from, to, paid, due],
     );
   }
+
+  /// `Sell birthday party`
+  String get birthdaySell {
+    return Intl.message(
+      'Sell birthday party',
+      name: 'birthdaySell',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Package`
+  String get birthdayPlan {
+    return Intl.message('Package', name: 'birthdayPlan', desc: '', args: []);
+  }
+
+  /// `Number of children`
+  String get birthdayChildCount {
+    return Intl.message(
+      'Number of children',
+      name: 'birthdayChildCount',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Extra child`
+  String get birthdayExtraChild {
+    return Intl.message(
+      'Extra child',
+      name: 'birthdayExtraChild',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Party date`
+  String get birthdayDate {
+    return Intl.message('Party date', name: 'birthdayDate', desc: '', args: []);
+  }
+
+  /// `Total`
+  String get birthdayTotal {
+    return Intl.message('Total', name: 'birthdayTotal', desc: '', args: []);
+  }
+
+  /// `Full payment`
+  String get birthdayPayFull {
+    return Intl.message(
+      'Full payment',
+      name: 'birthdayPayFull',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Deposit`
+  String get birthdayDeposit {
+    return Intl.message('Deposit', name: 'birthdayDeposit', desc: '', args: []);
+  }
+
+  /// `Due before the party`
+  String get birthdayPaidBeforeParty {
+    return Intl.message(
+      'Due before the party',
+      name: 'birthdayPaidBeforeParty',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Book and print receipt`
+  String get birthdayBookAndReceipt {
+    return Intl.message(
+      'Book and print receipt',
+      name: 'birthdayBookAndReceipt',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Included`
+  String get birthdayIncludes {
+    return Intl.message(
+      'Included',
+      name: 'birthdayIncludes',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `from {price}`
+  String birthdayFromPrice(String price) {
+    return Intl.message(
+      'from $price',
+      name: 'birthdayFromPrice',
+      desc: '',
+      args: [price],
+    );
+  }
+
+  /// `+1 child {price}`
+  String birthdayExtraPlusPrice(String price) {
+    return Intl.message(
+      '+1 child $price',
+      name: 'birthdayExtraPlusPrice',
+      desc: '',
+      args: [price],
+    );
+  }
+
+  /// `children`
+  String get birthdayChildrenUnit {
+    return Intl.message(
+      'children',
+      name: 'birthdayChildrenUnit',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Deposit amount`
+  String get birthdayDepositAmount {
+    return Intl.message(
+      'Deposit amount',
+      name: 'birthdayDepositAmount',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Reset to 0`
+  String get birthdayResetExtra {
+    return Intl.message(
+      'Reset to 0',
+      name: 'birthdayResetExtra',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{plan} for {size} · each {price}`
+  String birthdayExtraHint(String size, String plan, String price) {
+    return Intl.message(
+      '$plan for $size · each $price',
+      name: 'birthdayExtraHint',
+      desc: '',
+      args: [size, plan, price],
+    );
+  }
+
+  /// `Price changed by hand — reported as a {amount} discount.`
+  String birthdayDiscountNote(String amount) {
+    return Intl.message(
+      'Price changed by hand — reported as a $amount discount.',
+      name: 'birthdayDiscountNote',
+      desc: '',
+      args: [amount],
+    );
+  }
+
+  /// `Birthday sales need an internet connection`
+  String get birthdayOffline {
+    return Intl.message(
+      'Birthday sales need an internet connection',
+      name: 'birthdayOffline',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Pick a package first`
+  String get birthdayPickPlanFirst {
+    return Intl.message(
+      'Pick a package first',
+      name: 'birthdayPickPlanFirst',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No birthday packages at this branch`
+  String get birthdayNoPlans {
+    return Intl.message(
+      'No birthday packages at this branch',
+      name: 'birthdayNoPlans',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Birthday action failed`
+  String get birthdayErrGeneric {
+    return Intl.message(
+      'Birthday action failed',
+      name: 'birthdayErrGeneric',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `This package is not available here`
+  String get birthdayErrPlanNotAvailable {
+    return Intl.message(
+      'This package is not available here',
+      name: 'birthdayErrPlanNotAvailable',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `This child count is not in the package`
+  String get birthdayErrSizeNotFound {
+    return Intl.message(
+      'This child count is not in the package',
+      name: 'birthdayErrSizeNotFound',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No payment amount entered`
+  String get birthdayErrPaymentEmpty {
+    return Intl.message(
+      'No payment amount entered',
+      name: 'birthdayErrPaymentEmpty',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Party not found`
+  String get birthdayErrPartyNotFound {
+    return Intl.message(
+      'Party not found',
+      name: 'birthdayErrPartyNotFound',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The party is already completed or cancelled`
+  String get birthdayErrNotBooked {
+    return Intl.message(
+      'The party is already completed or cancelled',
+      name: 'birthdayErrNotBooked',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Cannot complete before the party date`
+  String get birthdayErrCompleteTooEarly {
+    return Intl.message(
+      'Cannot complete before the party date',
+      name: 'birthdayErrCompleteTooEarly',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Payment`
+  String get birthdayPayment {
+    return Intl.message('Payment', name: 'birthdayPayment', desc: '', args: []);
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalization> {
