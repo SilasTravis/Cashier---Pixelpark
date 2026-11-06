@@ -81,8 +81,8 @@ void main() {
     expect(r.rows, contains(('Qaytarilgan', '100 000')));
     expect(r.summary.first, ("Jami to'langan", '300 000'));
     expect(
-      r.rows.indexWhere((e) => e.\$1 == 'Qaytarilgan'),
-      lessThan(r.rows.indexWhere((e) => e.\$1 == "Jami to'langan")),
+      r.rows.indexWhere((e) => e.$1 == 'Qaytarilgan'),
+      lessThan(r.rows.indexWhere((e) => e.$1 == "Jami to'langan")),
     );
   });
 
