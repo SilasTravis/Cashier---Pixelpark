@@ -69,7 +69,7 @@ class LocalSource {
     await box.put(AppKeys.printEntryQr, value);
   }
 
-  /// The signed-in cashier's "Kirish QR chop etish" — only then does
+  /// The branch's "Kassada QR stiker chiqarilsin" — only then does
   /// checkout print each child's entry QR (sticker / ticket), the parent QR
   /// and re-prints. True when never set.
   bool getPrintEntryQr() =>
