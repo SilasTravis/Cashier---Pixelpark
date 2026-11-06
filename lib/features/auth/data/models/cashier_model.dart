@@ -7,7 +7,6 @@ class CashierModel extends Cashier {
     required super.username,
     required super.branchId,
     required super.active,
-    super.printEntryQr,
   });
 
   factory CashierModel.fromJson(Map<String, dynamic> json) => CashierModel(
@@ -16,8 +15,6 @@ class CashierModel extends Cashier {
     username: json['username'] as String,
     branchId: json['branchId'] as String,
     active: json['active'] as bool,
-    // Older backends omit it: on, as before.
-    printEntryQr: json['printEntryQr'] as bool? ?? true,
   );
 }
 
@@ -26,11 +23,14 @@ class BranchModel extends Branch {
     required super.id,
     required super.slug,
     required super.name,
+    super.hasTurnstile,
   });
 
   factory BranchModel.fromJson(Map<String, dynamic> json) => BranchModel(
     id: json['id'] as String,
     slug: json['slug'] as String,
     name: json['name'] as String,
+    // Older backends omit it: a turnstile, as before.
+    hasTurnstile: json['hasTurnstile'] as bool? ?? true,
   );
 }

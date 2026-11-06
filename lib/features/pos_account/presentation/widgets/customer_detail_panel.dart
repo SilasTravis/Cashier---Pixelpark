@@ -169,6 +169,11 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
 
   static bool _savedPrintParentQr() => _local?.getPrintParentQr() ?? false;
 
+  /// The branch's dashboard switch "Turniket bor". Without a turnstile the
+  /// till prints no entry QR (stickers/tickets), no parent QR and offers no
+  /// re-print — only the payment receipt.
+  static bool get _hasTurnstile => _local?.getBranchHasTurnstile() ?? true;
+
   PaymentMethod _topupMethod = PaymentMethod.cash;
   final _topupAmountController = TextEditingController();
   final _topupCashController = TextEditingController();
@@ -348,11 +353,9 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
             // The checkout's own plan, snapshotted on submit: a confirmed
             // switch lands after the panel's pick was cleared.
             final plan = _checkoutPlan ?? _selectedPlan;
-            // The dashboard's "Kirish QR" switch: off at a branch without a
-            // QR turnstile, where the passes are just paper to throw away.
-            final printQr =
-                !sl.isRegistered<LocalSource>() ||
-                sl<LocalSource>().getPrintEntryQr();
+            // No turnstile at this branch (dashboard switch): the passes
+            // would be paper to throw away — the receipt alone prints.
+            final printQr = _hasTurnstile;
             printPlanEntryLabels(
               context,
               result,
@@ -1134,10 +1137,12 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                   ),
             ],
             printParentQr: _printParentQr,
-            onPrintParentQrChanged: (v) {
-              setState(() => _printParentQr = v);
-              _local?.setPrintParentQr(v);
-            },
+            onPrintParentQrChanged: _hasTurnstile
+                ? (v) {
+                    setState(() => _printParentQr = v);
+                    _local?.setPrintParentQr(v);
+                  }
+                : null,
             showPayAmount: _showPayAmount,
             onShowPayAmount: () => setState(() => _showPayAmount = true),
             canSubmit: canEnter,
@@ -1161,7 +1166,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               final request = PosAccountCheckoutRequested(
                 planKey: hasEntry ? _selectedPlan!.key : null,
                 childIds: hasEntry ? orderedChildIds : const [],
-                withParentQr: hasEntry && _printParentQr,
+                withParentQr: hasEntry && _printParentQr && _hasTurnstile,
                 entryDiscounts: checkDiscount != null
                     ? const {}
                     : {
@@ -1246,9 +1251,11 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
             onRefresh: () => context.read<PosAccountBloc>().add(
               const PosAccountCustomerRefreshRequested(),
             ),
-            onParentQr: () => context.read<PosAccountBloc>().add(
-              const PosAccountParentQrRequested(),
-            ),
+            onParentQr: _hasTurnstile
+                ? () => context.read<PosAccountBloc>().add(
+                    const PosAccountParentQrRequested(),
+                  )
+                : null,
             onBack: () => context.read<PosAccountBloc>().add(
               const PosAccountSelectionCleared(),
             ),
@@ -1291,6 +1298,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               },
               busy: state.isBusy,
               onReprint: _startReprint,
+              canReprint: _hasTurnstile,
               onStale: () => context.read<PosAccountBloc>().add(
                 const PosAccountActivePassesRequested(),
               ),
@@ -1655,7 +1663,8 @@ class _SummaryStrip extends StatelessWidget {
 
   /// Prints the customer's free parent QR — the ruleless both-direction
   /// day sticker for the accompanying adult.
-  final VoidCallback onParentQr;
+  /// Null hides the button (no turnstile at this branch).
+  final VoidCallback? onParentQr;
   final ValueChanged<String> onRename;
   final VoidCallback onRefresh;
   final VoidCallback onBack;
@@ -1748,7 +1757,9 @@ class _SummaryStrip extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              if (narrow)
+              if (onParentQr == null)
+                const SizedBox.shrink()
+              else if (narrow)
                 IconButton.outlined(
                   tooltip: l10n.parentQr,
                   onPressed: isBusy ? null : onParentQr,
@@ -3182,7 +3193,9 @@ class _CheckoutSection extends StatelessWidget {
 
   /// The free parent sticker rides along with the checkout print.
   final bool printParentQr;
-  final ValueChanged<bool> onPrintParentQrChanged;
+
+  /// Null hides the "parent QR too" row (no turnstile at this branch).
+  final ValueChanged<bool>? onPrintParentQrChanged;
 
   /// Whether the "Boshqa summa olish" field is open.
   final bool showPayAmount;
@@ -3523,45 +3536,47 @@ class _CheckoutSection extends StatelessWidget {
               ),
             ),
         ],
-        const SizedBox(height: 8),
-        // Transparent Material keeps the row's ink plumbing happy inside
-        // the card's DecoratedBox (asserts in widget tests otherwise).
-        Material(
-          type: MaterialType.transparency,
-          child: InkWell(
-            onTap: () => onPrintParentQrChanged(!printParentQr),
-            borderRadius: BorderRadius.circular(8),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 28,
-                    height: 28,
-                    child: Checkbox(
-                      value: printParentQr,
-                      onChanged: (v) => onPrintParentQrChanged(v ?? false),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(5),
+        if (onPrintParentQrChanged case final onParentQrChanged?) ...[
+          const SizedBox(height: 8),
+          // Transparent Material keeps the row's ink plumbing happy inside
+          // the card's DecoratedBox (asserts in widget tests otherwise).
+          Material(
+            type: MaterialType.transparency,
+            child: InkWell(
+              onTap: () => onParentQrChanged(!printParentQr),
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: Checkbox(
+                        value: printParentQr,
+                        onChanged: (v) => onParentQrChanged(v ?? false),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(5),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Tooltip(
-                      message: l10n.unlimitedFreeEntry,
-                      child: Text(
-                        l10n.printParentQr,
-                        overflow: TextOverflow.ellipsis,
-                        style: p.body.copyWith(fontSize: 13.5),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Tooltip(
+                        message: l10n.unlimitedFreeEntry,
+                        child: Text(
+                          l10n.printParentQr,
+                          overflow: TextOverflow.ellipsis,
+                          style: p.body.copyWith(fontSize: 13.5),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
-        ),
+        ],
       ],
     );
     final action = SizedBox(
