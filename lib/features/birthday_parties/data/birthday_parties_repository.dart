@@ -86,11 +86,18 @@ class BirthdayPartiesRepository {
         ),
       );
 
-  Future<BirthdayParty> addExtraChildren(String id, int count) => _guard(
+  /// [expectedExtraChildren] is the count the cashier saw: the server answers
+  /// a repeat of the same tap with the party unchanged and a stale view with
+  /// 409 BIRTHDAY_REQUEST_CONFLICT. Absent, it always adds.
+  Future<BirthdayParty> addExtraChildren(
+    String id,
+    int count, {
+    int? expectedExtraChildren,
+  }) => _guard(
     () async => _party(
       await dio.post(
         '/v1/pos/birthday-parties/$id/extra-children',
-        data: {'count': count},
+        data: {'count': count, 'expectedExtraChildren': ?expectedExtraChildren},
       ),
     ),
   );
@@ -104,11 +111,16 @@ class BirthdayPartiesRepository {
     ),
   );
 
-  Future<BirthdayParty> addComment(String id, String text) => _guard(
+  /// A repeat with the same [requestId] and text adds no second comment.
+  Future<BirthdayParty> addComment(
+    String id,
+    String text, {
+    String? requestId,
+  }) => _guard(
     () async => _party(
       await dio.post(
         '/v1/pos/birthday-parties/$id/comments',
-        data: {'text': text},
+        data: {'text': text, 'requestId': ?requestId},
       ),
     ),
   );

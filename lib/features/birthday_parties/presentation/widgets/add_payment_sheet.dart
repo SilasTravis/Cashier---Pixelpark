@@ -56,6 +56,9 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
   bool _busy = false;
   bool _balanceFailed = false;
 
+  /// The close re-check could not reach the server: the sheet stays locked.
+  bool _offline = false;
+
   /// The last submit ended without a clear answer: the payment may exist. The
   /// amounts stay locked to [_pendingMoney] and only the same requestId is
   /// retried.
@@ -78,18 +81,18 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
     super.dispose();
   }
 
-  Future<void> _loadBalance() async {
+  Future<void> _loadBalance({bool refresh = false}) async {
     final balance = await lookupCustomerBalance(
       widget.party.customerId,
       widget.party.customerPhone,
     );
     if (!mounted) return;
     setState(() {
-      if (balance == null) {
+      if (balance != null) {
+        _balance = balance;
+      } else if (!refresh) {
         _balanceFailed = true;
         _payFromBalance = false;
-      } else {
-        _balance = balance;
       }
     });
   }
@@ -133,7 +136,13 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
         // The response may have been lost after the server took the money.
         final fresh = await refetchParty(repo, widget.party.id);
         if (!mounted) return;
-        if (fresh != null && paymentReflected(widget.party, fresh, money)) {
+        if (fresh != null &&
+            paymentReflected(
+              widget.party,
+              fresh,
+              money,
+              requestId: _requestId,
+            )) {
           Navigator.of(context).pop(fresh);
           return;
         }
@@ -151,6 +160,10 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
         _errorCode = code ?? 'UNKNOWN';
         _errorMessage = message;
       });
+      // The balance shown was stale: show the real one.
+      if (code == 'BIRTHDAY_BALANCE_INSUFFICIENT') {
+        await _loadBalance(refresh: true);
+      }
     }
   }
 
@@ -162,17 +175,34 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
       navigator.pop();
       return;
     }
-    setState(() => _busy = true);
-    final fresh = await refetchParty(
+    setState(() {
+      _busy = true;
+      _offline = false;
+    });
+    final lookup = await lookupParty(
       sl<BirthdayPartiesRepository>(),
       widget.party.id,
     );
+    if (!mounted) return;
+    if (lookup is PartyUnreachable) {
+      // Cannot tell whether the payment landed: keep the sheet locked.
+      setState(() {
+        _busy = false;
+        _offline = true;
+      });
+      return;
+    }
     final money = _pendingMoney;
     final landed =
-        fresh != null &&
+        lookup is PartyFound &&
         money != null &&
-        paymentReflected(widget.party, fresh, money);
-    if (mounted) navigator.pop(landed ? fresh : null);
+        paymentReflected(
+          widget.party,
+          lookup.party,
+          money,
+          requestId: _requestId,
+        );
+    navigator.pop(landed ? (lookup).party : null);
   }
 
   @override
@@ -254,6 +284,14 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
                       style: p.bodyMuted.copyWith(fontSize: 12.5),
                     ),
                   ],
+                ],
+                if (_offline) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    l10n.bdOfflineHint,
+                    key: const ValueKey('bd-pay-offline-hint'),
+                    style: TextStyle(color: p.danger, fontSize: 12.5),
+                  ),
                 ],
                 const SizedBox(height: 16),
                 Row(

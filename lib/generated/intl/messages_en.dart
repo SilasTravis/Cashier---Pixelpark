@@ -342,6 +342,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "bdNoComments": MessageLookupByLibrary.simpleMessage("No comments"),
     "bdNoPayments": MessageLookupByLibrary.simpleMessage("No payments yet"),
     "bdNoRefund": MessageLookupByLibrary.simpleMessage("Keep the money"),
+    "bdOfflineHint": MessageLookupByLibrary.simpleMessage(
+      "No network — try again",
+    ),
     "bdPaidNet": MessageLookupByLibrary.simpleMessage("Paid"),
     "bdPayAmount": MessageLookupByLibrary.simpleMessage("Payment amount"),
     "bdPayOverDebt": MessageLookupByLibrary.simpleMessage(

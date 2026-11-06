@@ -4560,6 +4560,16 @@ class AppLocalization {
     );
   }
 
+  /// `No network — try again`
+  String get bdOfflineHint {
+    return Intl.message(
+      'No network — try again',
+      name: 'bdOfflineHint',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Collect now`
   String get bdTakeNow {
     return Intl.message('Collect now', name: 'bdTakeNow', desc: '', args: []);

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/theme/pos_palette.dart';
 import '../../../../core/utils/currency.dart';
+import 'package:uuid/uuid.dart';
 import '../../../../generated/l10n.dart';
 import '../../../../injector_container.dart';
 
@@ -99,7 +100,8 @@ class _EventDetailDialogState extends State<EventDetailDialog> {
         });
         // The party moved on (or is gone) under us: show the truth.
         if (e.code == 'BIRTHDAY_PARTY_NOT_FOUND' ||
-            e.code == 'BIRTHDAY_PARTY_NOT_BOOKED') {
+            e.code == 'BIRTHDAY_PARTY_NOT_BOOKED' ||
+            e.code == birthdayRequestConflict) {
           await _refresh();
         }
       }
@@ -197,9 +199,15 @@ class _EventDetailDialogState extends State<EventDetailDialog> {
   }
 
   Future<void> _addChildren() async {
+    // The count the cashier saw: the server refuses a stale view (409) and
+    // answers a repeated tap with the party unchanged.
+    final seen = _party.extraChildren;
     final count = await showAddChildrenDialog(context, _party);
     if (count == null || !mounted) return;
-    await _run(() => _repo.addExtraChildren(_party.id, count));
+    await _run(
+      () =>
+          _repo.addExtraChildren(_party.id, count, expectedExtraChildren: seen),
+    );
   }
 
   Future<void> _changeDate() async {
@@ -217,8 +225,29 @@ class _EventDetailDialogState extends State<EventDetailDialog> {
     await _run(() => _repo.changeDate(_party.id, birthdayDateString(picked)));
   }
 
-  Future<bool> _addComment(String text) async =>
-      await _run(() => _repo.addComment(_party.id, text)) != null;
+  /// One id per comment: a retry of the same text reuses it, so the server
+  /// never stores it twice.
+  String? _commentText;
+  String? _commentRequestId;
+
+  Future<bool> _addComment(String text) async {
+    final trimmed = text.trim();
+    if (_commentRequestId == null || _commentText != trimmed) {
+      _commentText = trimmed;
+      _commentRequestId = const Uuid().v4();
+    }
+    final requestId = _commentRequestId;
+    final saved =
+        await _run(
+          () => _repo.addComment(_party.id, text, requestId: requestId),
+        ) !=
+        null;
+    if (saved) {
+      _commentText = null;
+      _commentRequestId = null;
+    }
+    return saved;
+  }
 
   @override
   Widget build(BuildContext context) {

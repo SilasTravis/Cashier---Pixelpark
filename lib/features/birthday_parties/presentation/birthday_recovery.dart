@@ -28,21 +28,59 @@ Future<BirthdayParty?> refetchParty(
   }
 }
 
-/// Did a payment of [money] land between [before] and [fresh]?
+/// What re-reading a party told us. Only [PartyMissing] is a confirmed "the
+/// server has no such party"; [PartyUnreachable] says nothing about it.
+sealed class PartyLookup {
+  const PartyLookup();
+}
+
+class PartyFound extends PartyLookup {
+  const PartyFound(this.party);
+  final BirthdayParty party;
+}
+
+class PartyMissing extends PartyLookup {
+  const PartyMissing();
+}
+
+class PartyUnreachable extends PartyLookup {
+  const PartyUnreachable();
+}
+
+Future<PartyLookup> lookupParty(
+  BirthdayPartiesRepository repository,
+  String id,
+) async {
+  try {
+    return PartyFound(await repository.get(id));
+  } on ServerException catch (e) {
+    return e.code == 'BIRTHDAY_PARTY_NOT_FOUND'
+        ? const PartyMissing()
+        : const PartyUnreachable();
+  } catch (_) {
+    return const PartyUnreachable();
+  }
+}
+
+/// Did the payment sent under [requestId] ([money]) land between [before] and
+/// [fresh]? Rows that carry a requestId are matched on it exactly; only rows
+/// without one (older servers) fall back to "a new row with the same split".
 bool paymentReflected(
   BirthdayParty before,
   BirthdayParty fresh,
-  BirthdayMoney money,
-) {
+  BirthdayMoney money, {
+  String? requestId,
+}) {
   final known = before.payments.map((p) => p.id).toSet();
-  return fresh.payments.any(
-    (p) =>
-        p.kind == BirthdayPaymentKind.payment &&
-        !known.contains(p.id) &&
+  return fresh.payments.any((p) {
+    if (p.kind != BirthdayPaymentKind.payment) return false;
+    final sent = p.requestId;
+    if (sent != null && requestId != null) return sent == requestId;
+    return !known.contains(p.id) &&
         p.fromBalanceUzs == money.fromBalanceUzs &&
         p.cashUzs == money.cashUzs &&
-        p.cardUzs == money.cardUzs,
-  );
+        p.cardUzs == money.cardUzs;
+  });
 }
 
 /// The customer's current balance, null when it cannot be looked up.

@@ -4,6 +4,7 @@ import 'package:cashier_app/features/birthday_parties/data/birthday_parties_repo
 import 'package:cashier_app/features/birthday_parties/domain/birthday_party.dart';
 import 'package:cashier_app/features/birthday_parties/domain/birthday_plan.dart';
 import 'package:cashier_app/features/birthday_parties/presentation/bloc/birthday_sell_cubit.dart';
+import 'package:cashier_app/features/birthday_parties/presentation/birthday_recovery.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/birthday_fixtures.dart';
@@ -154,8 +155,21 @@ void main() {
     await cubit.submit(customerId: 42);
     expect(cubit.state.unclear, isTrue);
     repo.getResult = fixtureParty();
-    final party = await cubit.resolveOnClose();
-    expect(party, isNotNull);
+    final lookup = await cubit.resolveOnClose();
+    expect(lookup, isA<PartyFound>());
+  });
+
+  test('closing while the server is unreachable is not a release', () async {
+    final repo = _Repo();
+    final cubit = await _ready(repo);
+    repo.sellResults.add(_timeout);
+    await cubit.submit(customerId: 42);
+    repo.getResult = ServerException(message: 'timeout');
+    expect(await cubit.resolveOnClose(), isA<PartyUnreachable>());
+    expect(cubit.state.unclear, isTrue);
+    expect(cubit.state.busy, isFalse);
+    repo.getResult = null; // the default: BIRTHDAY_PARTY_NOT_FOUND
+    expect(await cubit.resolveOnClose(), isA<PartyMissing>());
   });
 
   test('a clear refusal is not unclear and does not refetch', () async {

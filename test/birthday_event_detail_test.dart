@@ -4,6 +4,10 @@ import 'package:cashier_app/core/utils/currency.dart';
 import 'package:cashier_app/features/birthday_parties/data/birthday_parties_repository.dart';
 import 'package:cashier_app/features/birthday_parties/domain/birthday_party.dart';
 import 'package:cashier_app/features/birthday_parties/presentation/widgets/event_detail_dialog.dart';
+import 'package:cashier_app/features/pos_account/data/pos_account_repository_impl.dart';
+import 'package:cashier_app/features/pos_account/domain/customer.dart';
+import 'package:cashier_app/core/error/failure.dart';
+import 'package:dartz/dartz.dart' show Either, Right;
 import 'package:cashier_app/generated/l10n.dart';
 import 'package:cashier_app/injector_container.dart';
 import 'package:flutter/material.dart';
@@ -83,11 +87,30 @@ class _FakeRepo implements BirthdayPartiesRepository {
   final payRequestIds = <String>[];
   Object? payError;
   Object? cancelError;
+  Object? extraError;
+
+  /// When set, `get` throws it (an unreachable server or a refusal).
+  Object? getError;
+  final commentRequestIds = <String?>[];
+  final expectedExtra = <int?>[];
 
   @override
   Future<BirthdayParty> get(String id) async {
     gets++;
+    if (getError != null) throw getError!;
     return getAnswer ?? after;
+  }
+
+  @override
+  Future<BirthdayParty> addExtraChildren(
+    String id,
+    int count, {
+    int? expectedExtraChildren,
+  }) async {
+    expectedExtra.add(expectedExtraChildren);
+    calls['extra'] = {'count': count};
+    if (extraError != null) throw extraError!;
+    return after;
   }
 
   @override
@@ -121,10 +144,18 @@ class _FakeRepo implements BirthdayPartiesRepository {
   }
 
   @override
-  Future<BirthdayParty> addComment(String id, String text) async {
+  Future<BirthdayParty> addComment(
+    String id,
+    String text, {
+    String? requestId,
+  }) async {
     calls['comment'] = {'text': text};
+    commentRequestIds.add(requestId);
+    if (commentError != null) throw commentError!;
     return after;
   }
+
+  Object? commentError;
 
   @override
   Future<BirthdayParty> complete(String id) async {
@@ -537,6 +568,198 @@ void main() {
     });
   });
 
+  group('follow-ups', () {
+    final before = fixtureParty(
+      paid: 1040000,
+      debt: 1200000,
+      payments: [paymentJson(id: 'pay1', cash: 1040000, requestId: 'old-rq')],
+    );
+
+    Future<void> openPaySheet(WidgetTester tester) async {
+      await tester.tap(find.byKey(const ValueKey('bd-add-payment')));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> submitPay(WidgetTester tester) async {
+      await tester.tap(find.byKey(const ValueKey('bd-pay-submit')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('an identical split with another requestId is not this pay', (
+      tester,
+    ) async {
+      // The lost payment never landed; a different row with the same split
+      // (here: the list copy was stale and lacked it) must not count.
+      final stale = fixtureParty(paid: 0, debt: 2240000);
+      final other = fixtureParty(
+        paid: 1200000,
+        debt: 1040000,
+        payments: [paymentJson(id: 'x1', cash: 2240000, requestId: 'other')],
+      );
+      final repo = await _open(tester, stale);
+      repo.payError = ServerException(message: 'timeout');
+      repo.getAnswer = other;
+      await openPaySheet(tester);
+      await submitPay(tester);
+      // Not treated as landed: the sheet is still open and locked.
+      expect(find.byKey(const ValueKey('bd-pay-unclear-hint')), findsOneWidget);
+    });
+
+    testWidgets('a row under this requestId counts as landed', (tester) async {
+      final repo = await _open(tester, before);
+      repo.payError = ServerException(message: 'timeout');
+      await openPaySheet(tester);
+      await tester.tap(find.byKey(const ValueKey('bd-pay-submit')));
+      await tester.pump();
+      await tester.pumpAndSettle();
+      final sent = repo.payRequestIds.single;
+      expect(find.byKey(const ValueKey('bd-pay-unclear-hint')), findsOneWidget);
+      repo.getAnswer = fixtureParty(
+        paid: 2240000,
+        debt: 0,
+        payments: [
+          paymentJson(id: 'pay1', cash: 1040000, requestId: 'old-rq'),
+          paymentJson(id: 'pay2', cash: 1200000, requestId: sent),
+        ],
+      );
+      await tester.tap(find.byKey(const ValueKey('bd-pay-close')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('bd-pay-submit')), findsNothing);
+      expect(find.byKey(const ValueKey('bd-left')), findsNothing);
+    });
+
+    testWidgets('pay sheet closing while offline stays locked', (tester) async {
+      final repo = await _open(tester, before);
+      repo.payError = ServerException(message: 'timeout');
+      await openPaySheet(tester);
+      await submitPay(tester);
+      repo.getError = ServerException(message: 'timeout');
+      await tester.tap(find.byKey(const ValueKey('bd-pay-close')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('bd-pay-offline-hint')), findsOneWidget);
+      expect(find.text('Tarmoq yo‘q — qayta urinib ko‘ring'), findsOneWidget);
+      expect(find.byKey(const ValueKey('bd-pay-submit')), findsOneWidget);
+      // A confirmed "not found" releases the lock.
+      repo.getError = ServerException(
+        message: 'x',
+        code: 'BIRTHDAY_PARTY_NOT_FOUND',
+      );
+      await tester.tap(find.byKey(const ValueKey('bd-pay-close')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('bd-pay-submit')), findsNothing);
+    });
+
+    testWidgets('cancel dialog closing while offline stays locked', (
+      tester,
+    ) async {
+      final repo = await _open(tester, before);
+      repo.cancelError = ServerException(message: 'timeout');
+      await tester.tap(find.byKey(const ValueKey('bd-more')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Bekor qilish'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('bd-cancel-reason')),
+        'Oila kelmaydi',
+      );
+      await tester.tap(find.byKey(const ValueKey('bd-cancel-norefund')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('bd-cancel-confirm')));
+      await tester.pumpAndSettle();
+      repo.getError = ServerException(message: 'timeout');
+      await tester.tap(find.text('Yopish'));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('bd-cancel-offline-hint')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('bd-cancel-confirm')), findsOneWidget);
+    });
+
+    testWidgets('BIRTHDAY_BALANCE_INSUFFICIENT re-reads the balance', (
+      tester,
+    ) async {
+      final account = _FakeAccountRepo(600000);
+      sl.registerSingleton<PosAccountRepository>(account);
+      final repo = await _open(tester, before);
+      repo.payError = ServerException(
+        message: 'x',
+        code: 'BIRTHDAY_BALANCE_INSUFFICIENT',
+      );
+      await openPaySheet(tester);
+      expect(account.lookups, 1);
+      account.balance = 100000;
+      await submitPay(tester);
+      expect(account.lookups, 2);
+      expect(find.byKey(const ValueKey('bd-pay-error')), findsOneWidget);
+    });
+
+    testWidgets('+ bola sends the count the cashier saw', (tester) async {
+      final repo = await _open(tester, before);
+      await tester.tap(find.byKey(const ValueKey('bd-more')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('+ bola'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('bd-child-submit')));
+      await tester.pumpAndSettle();
+      expect(repo.expectedExtra, [2]);
+      expect(repo.calls['extra']!['count'], 1);
+    });
+
+    testWidgets('+ bola 409 conflict re-fetches and shows the party', (
+      tester,
+    ) async {
+      final repo = await _open(tester, before);
+      repo.extraError = ServerException(
+        message: 'c',
+        code: 'BIRTHDAY_REQUEST_CONFLICT',
+      );
+      await tester.tap(find.byKey(const ValueKey('bd-more')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('+ bola'));
+      await tester.pumpAndSettle();
+      final getsBefore = repo.gets;
+      repo.getAnswer = fixtureParty(
+        paid: 2240000,
+        debt: 0,
+        payments: [paymentJson(id: 'pay1', cash: 2240000)],
+      );
+      await tester.tap(find.byKey(const ValueKey('bd-child-submit')));
+      await tester.pumpAndSettle();
+      expect(repo.gets, greaterThan(getsBefore));
+      expect(find.byKey(const ValueKey('bd-left')), findsNothing);
+      expect(find.byKey(const ValueKey('bd-error')), findsOneWidget);
+    });
+
+    testWidgets('a comment retry reuses its requestId, a new text gets one', (
+      tester,
+    ) async {
+      final repo = await _open(tester, before);
+      repo.commentError = ServerException(message: 'timeout');
+      Future<void> send(String text) async {
+        await tester.enterText(
+          find.byKey(const ValueKey('bd-comment-field')),
+          text,
+        );
+        await tester.tap(find.byKey(const ValueKey('bd-comment-send')));
+        await tester.pumpAndSettle();
+      }
+
+      await send('Tort');
+      await send('Tort');
+      expect(repo.commentRequestIds, hasLength(2));
+      expect(repo.commentRequestIds[0], isNotNull);
+      expect(repo.commentRequestIds[0], repo.commentRequestIds[1]);
+      await send('Boshqa matn');
+      expect(repo.commentRequestIds[2], isNot(repo.commentRequestIds[0]));
+      // After a success the next comment starts a new id.
+      repo.commentError = null;
+      await send('Boshqa matn');
+      await send('Yana');
+      expect(repo.commentRequestIds.last, isNot(repo.commentRequestIds[3]));
+    });
+  });
+
   testWidgets('opening re-fetches the party and shows the fresh state', (
     tester,
   ) async {
@@ -622,4 +845,31 @@ void main() {
     expect(find.text('Balans noma‘lum'), findsOneWidget);
     expect(tester.widget<Switch>(find.byType(Switch)).onChanged, isNull);
   });
+}
+
+class _FakeAccountRepo implements PosAccountRepository {
+  _FakeAccountRepo(this.balance);
+  int balance;
+  int lookups = 0;
+
+  @override
+  Future<Either<Failure, List<Customer>>> searchCustomers(
+    String query, {
+    int page = 1,
+  }) async {
+    lookups++;
+    return Right([
+      Customer(
+        id: 42,
+        phoneNumber: '998901112233',
+        firstName: 'Jasur',
+        lastName: null,
+        balance: balance,
+        children: const [],
+      ),
+    ]);
+  }
+
+  @override
+  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

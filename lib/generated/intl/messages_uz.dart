@@ -346,6 +346,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "bdNoComments": MessageLookupByLibrary.simpleMessage("Izoh yo‘q"),
     "bdNoPayments": MessageLookupByLibrary.simpleMessage("To‘lov hali yo‘q"),
     "bdNoRefund": MessageLookupByLibrary.simpleMessage("Qaytarmaslik"),
+    "bdOfflineHint": MessageLookupByLibrary.simpleMessage(
+      "Tarmoq yo‘q — qayta urinib ko‘ring",
+    ),
     "bdPaidNet": MessageLookupByLibrary.simpleMessage("To‘langan"),
     "bdPayAmount": MessageLookupByLibrary.simpleMessage("To‘lov summasi"),
     "bdPayOverDebt": MessageLookupByLibrary.simpleMessage(

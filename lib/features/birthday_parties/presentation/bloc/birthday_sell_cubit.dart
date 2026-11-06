@@ -300,12 +300,15 @@ class BirthdaySellCubit extends Cubit<BirthdaySellState> {
 
   /// Closing after an unclear failure: the sale may have gone through, so the
   /// caller must learn about it (receipt, customer refresh).
-  Future<BirthdayParty?> resolveOnClose() async {
+  ///
+  /// Null when nothing was unclear (just close). [PartyUnreachable] means the
+  /// server could not be asked: the sheet must stay locked, not close.
+  Future<PartyLookup?> resolveOnClose() async {
     if (!state.unclear) return null;
     emit(state.copyWith(busy: true));
-    final party = await bookedParty();
+    final lookup = await lookupParty(_repository, requestId);
     if (!isClosed) emit(state.copyWith(busy: false));
-    return party;
+    return lookup;
   }
 
   Future<void> submit({required int customerId}) async {

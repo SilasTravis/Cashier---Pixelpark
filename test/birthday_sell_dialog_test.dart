@@ -74,11 +74,13 @@ class _FakeRepo implements BirthdayPartiesRepository {
   /// What `get(requestId)` answers (null = not found).
   BirthdayParty? getResult;
   final gets = <String>[];
+  Object? getError;
   final calls = <Map<String, Object?>>[];
 
   @override
   Future<BirthdayParty> get(String id) async {
     gets.add(id);
+    if (getError != null) throw getError!;
     return getResult ??
         (throw ServerException(message: 'x', code: 'BIRTHDAY_PARTY_NOT_FOUND'));
   }
@@ -305,7 +307,7 @@ void main() {
     ));
   });
 
-  testWidgets('a non-server failure unlocks the sheet and retries same id', (
+  testWidgets('a non-server failure locks the amounts and retries same id', (
     tester,
   ) async {
     final repo = _FakeRepo(failPlain: true);
@@ -313,6 +315,7 @@ void main() {
     await _fillSale(tester);
     await _tap(tester, 'birthday-submit');
     expect(find.byKey(const ValueKey('birthday-error')), findsOneWidget);
+    expect(find.byKey(const ValueKey('birthday-unclear-hint')), findsOneWidget);
     expect(
       tester
           .widget<FilledButton>(find.byKey(const ValueKey('birthday-submit')))
@@ -410,6 +413,23 @@ void main() {
     await _tap(tester, 'birthday-submit');
     expect(repo.calls, hasLength(1));
     expect(repo.gets, hasLength(1));
+    expect(find.byKey(const ValueKey('birthday-submit')), findsNothing);
+  });
+
+  testWidgets('closing while offline keeps the sell sheet locked', (
+    tester,
+  ) async {
+    final repo = _FakeRepo(failWith: ServerException(message: 'timeout'));
+    await _openDialog(tester, repo);
+    await _fillSale(tester);
+    await _tap(tester, 'birthday-submit');
+    repo.getError = ServerException(message: 'timeout');
+    await _tap(tester, 'birthday-close');
+    expect(find.byKey(const ValueKey('birthday-offline-hint')), findsOneWidget);
+    expect(find.byKey(const ValueKey('birthday-submit')), findsOneWidget);
+    // Confirmed not booked: released.
+    repo.getError = null;
+    await _tap(tester, 'birthday-close');
     expect(find.byKey(const ValueKey('birthday-submit')), findsNothing);
   });
 

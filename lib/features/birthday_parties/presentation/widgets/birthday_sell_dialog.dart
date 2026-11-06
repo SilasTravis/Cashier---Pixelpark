@@ -60,6 +60,9 @@ class _BirthdaySellDialogState extends State<BirthdaySellDialog> {
   final _cashController = TextEditingController();
   final _cardController = TextEditingController();
 
+  /// The close re-check could not reach the server: the sheet stays locked.
+  bool _offline = false;
+
   @override
   void dispose() {
     _totalController.dispose();
@@ -76,8 +79,15 @@ class _BirthdaySellDialogState extends State<BirthdaySellDialog> {
   /// refreshed.
   Future<void> _close() async {
     final navigator = Navigator.of(context);
-    final party = await _cubit.resolveOnClose();
-    if (mounted) navigator.pop(party);
+    setState(() => _offline = false);
+    final lookup = await _cubit.resolveOnClose();
+    if (!mounted) return;
+    if (lookup is PartyUnreachable) {
+      // Cannot tell whether the sale went through: stay locked.
+      setState(() => _offline = true);
+      return;
+    }
+    navigator.pop(lookup is PartyFound ? lookup.party : null);
   }
 
   Future<void> _pickDate(DateTime current) async {
@@ -246,6 +256,17 @@ class _BirthdaySellDialogState extends State<BirthdaySellDialog> {
                                 l10n.bdUnclearHint,
                                 key: const ValueKey('birthday-unclear-hint'),
                                 style: p.bodyMuted.copyWith(fontSize: 12.5),
+                              ),
+                            ],
+                            if (_offline) ...[
+                              const SizedBox(height: 6),
+                              Text(
+                                l10n.bdOfflineHint,
+                                key: const ValueKey('birthday-offline-hint'),
+                                style: TextStyle(
+                                  color: p.danger,
+                                  fontSize: 12.5,
+                                ),
                               ),
                             ],
                           ],

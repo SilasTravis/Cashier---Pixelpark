@@ -351,6 +351,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "bdNoComments": MessageLookupByLibrary.simpleMessage("Заметок нет"),
     "bdNoPayments": MessageLookupByLibrary.simpleMessage("Оплат ещё нет"),
     "bdNoRefund": MessageLookupByLibrary.simpleMessage("Не возвращать"),
+    "bdOfflineHint": MessageLookupByLibrary.simpleMessage(
+      "Нет сети — повторите попытку",
+    ),
     "bdPaidNet": MessageLookupByLibrary.simpleMessage("Оплачено"),
     "bdPayAmount": MessageLookupByLibrary.simpleMessage("Сумма оплаты"),
     "bdPayOverDebt": MessageLookupByLibrary.simpleMessage(

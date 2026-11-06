@@ -58,6 +58,7 @@ Map<String, dynamic> sampleParty() => {
       'cashUzs': 0,
       'cardUzs': 0,
       'refundTo': 'cash',
+      'requestId': 'rq_cash',
       'cashier': null,
       'createdAt': '2026-11-07T10:00:00.000Z',
     },
@@ -111,6 +112,8 @@ void main() {
     expect(p.payments[0].cashUzs, 500000);
     expect(p.payments[0].cardUzs, 100000);
     expect(p.payments[0].refundTo, isNull);
+    expect(p.payments[0].requestId, isNull);
+    expect(p.payments[1].requestId, 'rq_cash');
     expect(p.payments[0].cashierUsername, 'kassir1');
     expect(p.payments[1].kind, BirthdayPaymentKind.refund);
     expect(p.payments[1].refundTo, 'cash');

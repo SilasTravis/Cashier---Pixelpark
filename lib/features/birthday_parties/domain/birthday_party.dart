@@ -32,6 +32,7 @@ class BirthdayPartyPayment extends Equatable {
     required this.refundTo,
     required this.cashierUsername,
     required this.createdAt,
+    this.requestId,
   });
 
   final String id;
@@ -46,6 +47,10 @@ class BirthdayPartyPayment extends Equatable {
   final String? cashierUsername;
   final DateTime createdAt;
 
+  /// The idempotency key the row was written under, null when the backend
+  /// does not send it (older servers).
+  final String? requestId;
+
   factory BirthdayPartyPayment.fromJson(Map<String, dynamic> json) =>
       BirthdayPartyPayment(
         id: json['id'] as String,
@@ -59,6 +64,7 @@ class BirthdayPartyPayment extends Equatable {
         refundTo: json['refundTo'] as String?,
         cashierUsername: _username(json['cashier']),
         createdAt: DateTime.parse(json['createdAt'] as String),
+        requestId: json['requestId'] as String?,
       );
 
   @override
@@ -72,6 +78,7 @@ class BirthdayPartyPayment extends Equatable {
     refundTo,
     cashierUsername,
     createdAt,
+    requestId,
   ];
 }
 

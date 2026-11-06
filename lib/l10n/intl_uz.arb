@@ -924,6 +924,7 @@
   "bdRequestConflict": "Bu amal allaqachon bajarilgan — tadbir yangilandi",
   "bdClose": "Yopish",
   "bdUnclearHint": "Javob kelmadi. Summalar qulflandi — qayta urinib ko‘ring yoki yoping.",
+  "bdOfflineHint": "Tarmoq yo‘q — qayta urinib ko‘ring",
   "bdTakeNow": "Hozir olinadi",
   "bdFromBalanceLine": "Balansdan −{amount}",
   "@bdFromBalanceLine": {"placeholders": {"amount": {"type": "String"}}},

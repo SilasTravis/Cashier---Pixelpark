@@ -849,6 +849,7 @@
   "bdRequestConflict": "This action was already done — the event was refreshed",
   "bdClose": "Close",
   "bdUnclearHint": "No response received. Amounts are locked — try again or close.",
+  "bdOfflineHint": "No network — try again",
   "bdTakeNow": "Collect now",
   "bdFromBalanceLine": "From balance −{amount}",
   "@bdFromBalanceLine": {"placeholders": {"amount": {"type": "String"}}},

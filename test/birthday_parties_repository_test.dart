@@ -147,6 +147,8 @@ void main() {
     await r2.addExtraChildren('p1', 3);
     expect(a2.requests.last.path, '/v1/pos/birthday-parties/p1/extra-children');
     expect(a2.requests.last.data, {'count': 3});
+    await r2.addExtraChildren('p1', 3, expectedExtraChildren: 2);
+    expect(a2.requests.last.data, {'count': 3, 'expectedExtraChildren': 2});
     await r2.changeDate('p1', '2026-12-01');
     expect(a2.requests.last.method, 'PATCH');
     expect(a2.requests.last.path, '/v1/pos/birthday-parties/p1/date');
@@ -154,6 +156,8 @@ void main() {
     await r2.addComment('p1', 'salom');
     expect(a2.requests.last.path, '/v1/pos/birthday-parties/p1/comments');
     expect(a2.requests.last.data, {'text': 'salom'});
+    await r2.addComment('p1', 'salom', requestId: 'rq-1');
+    expect(a2.requests.last.data, {'text': 'salom', 'requestId': 'rq-1'});
     await r2.complete('p1');
     expect(a2.requests.last.path, '/v1/pos/birthday-parties/p1/complete');
     await r2.cancel(

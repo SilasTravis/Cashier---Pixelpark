@@ -7,6 +7,7 @@ Map<String, dynamic> paymentJson({
   int cash = 0,
   int card = 0,
   String? refundTo,
+  String? requestId,
   String createdAt = '2026-11-06T10:00:00.000Z',
 }) => {
   'id': id,
@@ -16,6 +17,7 @@ Map<String, dynamic> paymentJson({
   'cashUzs': cash,
   'cardUzs': card,
   'refundTo': refundTo,
+  'requestId': requestId,
   'cashier': {'id': 'c1', 'username': 'dilnoza'},
   'createdAt': createdAt,
 };

@@ -48,6 +48,9 @@ class _CancelPartyDialogState extends State<CancelPartyDialog> {
   bool? _refund;
   bool _busy = false;
 
+  /// The close re-check could not reach the server: the dialog stays locked.
+  bool _offline = false;
+
   /// The last submit ended without a clear answer: the party may be cancelled.
   /// Reason and refund stay locked and only the same requestId is retried.
   bool _unclear = false;
@@ -145,14 +148,27 @@ class _CancelPartyDialogState extends State<CancelPartyDialog> {
       navigator.pop();
       return;
     }
-    setState(() => _busy = true);
-    final fresh = await refetchParty(
+    setState(() {
+      _busy = true;
+      _offline = false;
+    });
+    final lookup = await lookupParty(
       sl<BirthdayPartiesRepository>(),
       widget.party.id,
     );
+    if (!mounted) return;
+    if (lookup is PartyUnreachable) {
+      // Cannot tell whether it was cancelled: keep the dialog locked.
+      setState(() {
+        _busy = false;
+        _offline = true;
+      });
+      return;
+    }
+    final fresh = lookup is PartyFound ? lookup.party : null;
     final cancelled =
         fresh != null && fresh.status == BirthdayPartyStatus.cancelled;
-    if (mounted) navigator.pop(cancelled ? fresh : null);
+    navigator.pop(cancelled ? fresh : null);
   }
 
   String? _errorText(AppLocalization l10n) => switch (_formError) {
@@ -305,6 +321,14 @@ class _CancelPartyDialogState extends State<CancelPartyDialog> {
                       style: p.bodyMuted.copyWith(fontSize: 12.5),
                     ),
                   ],
+                ],
+                if (_offline) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    l10n.bdOfflineHint,
+                    key: const ValueKey('bd-cancel-offline-hint'),
+                    style: TextStyle(color: p.danger, fontSize: 12.5),
+                  ),
                 ],
                 const SizedBox(height: 16),
                 Row(
