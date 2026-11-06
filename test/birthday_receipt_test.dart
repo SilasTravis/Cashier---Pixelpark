@@ -17,7 +17,7 @@ BirthdayPartyPayment _pay({int cash = 0, int card = 0, int balance = 0}) =>
       createdAt: DateTime.utc(2026, 11, 6, 10),
     );
 
-BirthdayParty _party({int discount = 0}) => BirthdayParty(
+BirthdayParty _party({int discount = 0, int refunded = 0}) => BirthdayParty(
   id: 'b1',
   status: BirthdayPartyStatus.booked,
   paymentState: BirthdayPaymentState.partial,
@@ -38,7 +38,7 @@ BirthdayParty _party({int discount = 0}) => BirthdayParty(
   agreedPriceUzs: 1600000,
   discountUzs: discount,
   paidUzs: 400000,
-  refundedUzs: 0,
+  refundedUzs: refunded,
   debtUzs: 1200000,
   keptUzs: 0,
   maxCashRefundUzs: 0,
@@ -74,6 +74,16 @@ void main() {
     );
     expect(r.rows, contains(('Chegirma', '40 000')));
     expect(r.items, ['Tort', 'Animator']);
+  });
+
+  test('refund shows Qaytarilgan and net paid total', () {
+    final r = BirthdayReceipt.fromParty(_party(refunded: 100000));
+    expect(r.rows, contains(('Qaytarilgan', '100 000')));
+    expect(r.summary.first, ("Jami to'langan", '300 000'));
+    expect(
+      r.rows.indexWhere((e) => e.\$1 == 'Qaytarilgan'),
+      lessThan(r.rows.indexWhere((e) => e.\$1 == "Jami to'langan")),
+    );
   });
 
   test('renders a pdf', () async {

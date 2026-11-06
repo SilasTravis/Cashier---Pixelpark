@@ -6,13 +6,21 @@ import '../utils/currency.dart';
 class BirthdayReceipt {
   const BirthdayReceipt({
     required this.title,
-    required this.rows,
+    required this.details,
+    required this.summary,
     required this.items,
     required this.createdAt,
   });
 
   final String title;
-  final List<(String, String)> rows;
+
+  /// Everything above the totals block.
+  final List<(String, String)> details;
+
+  /// The totals block: paid so far and what is left.
+  final List<(String, String)> summary;
+
+  List<(String, String)> get rows => [...details, ...summary];
 
   /// Included items; empty unless the sale receipt asked for them.
   final List<String> items;
@@ -30,7 +38,7 @@ class BirthdayReceipt {
     return BirthdayReceipt(
       title: "Tug'ilgan kun",
       createdAt: payment?.createdAt ?? p.createdAt,
-      rows: [
+      details: [
         ('Ota-ona', p.customerName),
         ('Filial', p.branchName),
         ('Tarif', p.planName),
@@ -46,7 +54,11 @@ class BirthdayReceipt {
           if (payment.cashUzs > 0) ('Naqd', groupDigits(payment.cashUzs)),
           if (payment.cardUzs > 0) ('Karta', groupDigits(payment.cardUzs)),
         ],
-        ("Jami to'langan", groupDigits(p.paidUzs)),
+        if (p.refundedUzs > 0) ('Qaytarilgan', groupDigits(p.refundedUzs)),
+      ],
+      summary: [
+        // Net of refunds, so paid + left always adds up to the price.
+        ("Jami to'langan", groupDigits(p.paidUzs - p.refundedUzs)),
         ('Qoldi', groupDigits(p.debtUzs)),
       ],
       items: withItems ? List.of(p.includedItems) : const [],

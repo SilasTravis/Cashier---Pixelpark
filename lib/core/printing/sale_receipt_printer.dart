@@ -250,10 +250,8 @@ class SaleReceiptPrinter {
         marginBottom: _bottomPaddingMm * PdfPageFormat.mm,
       ),
       build: (_) {
-        final summary = receipt.rows.where(
-          (r) => r.$1 == "Jami to'langan" || r.$1 == 'Qoldi',
-        );
-        final details = receipt.rows.where((r) => !summary.contains(r));
+        final summary = receipt.summary;
+        final details = receipt.details;
         return pw.SizedBox(
           width: _contentWidthMm * PdfPageFormat.mm,
           child: pw.Column(
