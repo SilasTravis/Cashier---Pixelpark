@@ -38,7 +38,7 @@ class TodayPassesCard extends StatelessWidget {
   /// One group per plan, in the order to print them.
   final ValueChanged<List<ReprintGroup>> onReprint;
 
-  /// False when the cashier prints no entry QR: there is no sticker to
+  /// False when the branch prints no entry QR: there is no sticker to
   /// replace, so the list is reference only.
   final bool canReprint;
 
@@ -144,7 +144,7 @@ class _PassRow extends StatelessWidget {
   final String childName;
   final bool busy;
 
-  /// Null hides the button (the cashier prints no entry QR).
+  /// Null hides the button (the branch prints no entry QR).
   final VoidCallback? onReprint;
 
   @override

@@ -11,7 +11,7 @@ abstract final class AppKeys {
   static const String branchId = 'branchId';
   static const String branchName = 'branchName';
 
-  /// The signed-in cashier's dashboard checkbox "Kirish QR chop etish": on,
+  /// The signed-in branch's dashboard switch "Kassada QR stiker chiqarilsin": on,
   /// the till prints each child's entry QR; off, only the payment receipt.
   /// Session: refreshed on login and by every terminal heartbeat, cleared
   /// on logout (absent = on).

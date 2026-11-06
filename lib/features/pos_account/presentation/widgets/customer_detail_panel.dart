@@ -169,7 +169,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
 
   static bool _savedPrintParentQr() => _local?.getPrintParentQr() ?? false;
 
-  /// The cashier's dashboard checkbox "Kirish QR chop etish". Off: the
+  /// The branch's dashboard switch "Kassada QR stiker chiqarilsin". Off: the
   /// till prints no entry QR (stickers/tickets), no parent QR and offers no
   /// re-print — only the payment receipt.
   static bool get _printEntryQr => _local?.getPrintEntryQr() ?? true;
@@ -353,7 +353,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
             // The checkout's own plan, snapshotted on submit: a confirmed
             // switch lands after the panel's pick was cleared.
             final plan = _checkoutPlan ?? _selectedPlan;
-            // The cashier's "Kirish QR chop etish" (dashboard): off, the
+            // The branch's "Kassada QR stiker chiqarilsin" (dashboard): off, the
             // passes would be paper to throw away — the receipt alone prints.
             final printQr = _printEntryQr;
             printPlanEntryLabels(
@@ -1663,7 +1663,7 @@ class _SummaryStrip extends StatelessWidget {
 
   /// Prints the customer's free parent QR — the ruleless both-direction
   /// day sticker for the accompanying adult.
-  /// Null hides the button (the cashier prints no entry QR).
+  /// Null hides the button (the branch prints no entry QR).
   final VoidCallback? onParentQr;
   final ValueChanged<String> onRename;
   final VoidCallback onRefresh;
@@ -3194,7 +3194,7 @@ class _CheckoutSection extends StatelessWidget {
   /// The free parent sticker rides along with the checkout print.
   final bool printParentQr;
 
-  /// Null hides the "parent QR too" row (the cashier prints no entry QR).
+  /// Null hides the "parent QR too" row (the branch prints no entry QR).
   final ValueChanged<bool>? onPrintParentQrChanged;
 
   /// Whether the "Boshqa summa olish" field is open.

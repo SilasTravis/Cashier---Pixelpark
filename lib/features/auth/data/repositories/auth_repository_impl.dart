@@ -89,6 +89,6 @@ class AuthRepositoryImpl implements AuthRepository {
       branchId: session.branch.id,
       branchName: session.branch.name,
     );
-    localSource.setPrintEntryQr(session.cashier.printEntryQr);
+    localSource.setPrintEntryQr(session.branch.printEntryQr);
   }
 }
