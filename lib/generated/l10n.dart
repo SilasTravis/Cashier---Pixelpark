@@ -4069,6 +4069,131 @@ class AppLocalization {
   String get birthdayPayment {
     return Intl.message('Payment', name: 'birthdayPayment', desc: '', args: []);
   }
+
+  /// `Events`
+  String get tabEvents {
+    return Intl.message('Events', name: 'tabEvents', desc: '', args: []);
+  }
+
+  /// `Upcoming`
+  String get eventsBooked {
+    return Intl.message('Upcoming', name: 'eventsBooked', desc: '', args: []);
+  }
+
+  /// `Completed`
+  String get eventsCompleted {
+    return Intl.message(
+      'Completed',
+      name: 'eventsCompleted',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Cancelled`
+  String get eventsCancelled {
+    return Intl.message(
+      'Cancelled',
+      name: 'eventsCancelled',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Overdue`
+  String get eventsOverdue {
+    return Intl.message('Overdue', name: 'eventsOverdue', desc: '', args: []);
+  }
+
+  /// `Today`
+  String get eventsToday {
+    return Intl.message('Today', name: 'eventsToday', desc: '', args: []);
+  }
+
+  /// `Tomorrow`
+  String get eventsTomorrow {
+    return Intl.message('Tomorrow', name: 'eventsTomorrow', desc: '', args: []);
+  }
+
+  /// `This week`
+  String get eventsThisWeek {
+    return Intl.message(
+      'This week',
+      name: 'eventsThisWeek',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Next week`
+  String get eventsNextWeek {
+    return Intl.message(
+      'Next week',
+      name: 'eventsNextWeek',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Later`
+  String get eventsLater {
+    return Intl.message('Later', name: 'eventsLater', desc: '', args: []);
+  }
+
+  /// `Paid`
+  String get eventsPaid {
+    return Intl.message('Paid', name: 'eventsPaid', desc: '', args: []);
+  }
+
+  /// `Debt {amount}`
+  String eventsDebt(String amount) {
+    return Intl.message(
+      'Debt $amount',
+      name: 'eventsDebt',
+      desc: '',
+      args: [amount],
+    );
+  }
+
+  /// `Unpaid`
+  String get eventsUnpaid {
+    return Intl.message('Unpaid', name: 'eventsUnpaid', desc: '', args: []);
+  }
+
+  /// `+ Payment`
+  String get eventsAddPayment {
+    return Intl.message(
+      '+ Payment',
+      name: 'eventsAddPayment',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Complete`
+  String get eventsComplete {
+    return Intl.message('Complete', name: 'eventsComplete', desc: '', args: []);
+  }
+
+  /// `children`
+  String get eventsChildUnit {
+    return Intl.message(
+      'children',
+      name: 'eventsChildUnit',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No events`
+  String get eventsEmpty {
+    return Intl.message('No events', name: 'eventsEmpty', desc: '', args: []);
+  }
+
+  /// `Retry`
+  String get eventsRetry {
+    return Intl.message('Retry', name: 'eventsRetry', desc: '', args: []);
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalization> {

@@ -99,115 +99,117 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m33(message) => "Kirmadi: ${message}";
 
-  static String m34(value) =>
+  static String m34(amount) => "Qarz ${amount}";
+
+  static String m35(value) =>
       "Balans yetarli emas — chiqish uchun kamida ${value} to‘ldirish kerak.";
 
-  static String m35(count) => "${count} ta";
+  static String m36(count) => "${count} ta";
 
-  static String m36(name) =>
+  static String m37(name) =>
       "«${name}» allaqachon faol 1 soat tarifda — qayta to‘lov olinmaydi.";
 
-  static String m37(count) =>
+  static String m38(count) =>
       "${count} ta bolaning vaqti tugagan — ota-onasini chaqiring";
 
-  static String m38(count) => "${count} daq oshdi";
+  static String m39(count) => "${count} daq oshdi";
 
-  static String m39(count) => "${count} daq qoldi";
+  static String m40(count) => "${count} daq qoldi";
 
-  static String m40(count) => "Ichkarida: ${count}";
-
-  static String m41(count) =>
-      "${count} ta savdo sinxronlanmagan. Chiqishdan oldin onlayn rejimda sinxronlang.";
+  static String m41(count) => "Ichkarida: ${count}";
 
   static String m42(count) =>
+      "${count} ta savdo sinxronlanmagan. Chiqishdan oldin onlayn rejimda sinxronlang.";
+
+  static String m43(count) =>
       "${count} ta savdo serverga o‘tmadi (xato). Ular kassada saqlanadi. Baribir chiqasizmi?";
 
-  static String m43(child, amount) =>
+  static String m44(child, amount) =>
       "${child} chiqarildi deb belgilanadi. Hozirgi hisob ${amount} bo‘yicha yopilib, ota-ona balansidan yechiladi. Davom etilsinmi?";
 
-  static String m44(count) => "${count} daqiqa";
+  static String m45(count) => "${count} daqiqa";
 
-  static String m45(count) => "OFFLINE · ${count} ta savdo kutmoqda";
+  static String m46(count) => "OFFLINE · ${count} ta savdo kutmoqda";
 
-  static String m46(count) =>
+  static String m47(count) =>
       "Onlayn rejimga o‘tib, ${count} ta savdoni sinxronlaymizmi?";
 
-  static String m47(value) => "Balans: ${value}";
+  static String m48(value) => "Balans: ${value}";
 
-  static String m48(value) => "Karta: ${value}";
+  static String m49(value) => "Karta: ${value}";
 
-  static String m49(value) => "Naqd: ${value}";
+  static String m50(value) => "Naqd: ${value}";
 
-  static String m50(value) => "Kamida ${value} — ortig‘i balansda qoladi";
+  static String m51(value) => "Kamida ${value} — ortig‘i balansda qoladi";
 
-  static String m51(name, plan) =>
+  static String m52(name, plan) =>
       "«${name}» allaqachon faol «${plan}» tarifda — qayta to‘lov olinmaydi.";
 
-  static String m52(plan) =>
+  static String m53(plan) =>
       "«${plan}» tarif puli chop etilganda balansdan darhol yechiladi.";
 
-  static String m53(name, from, to) =>
+  static String m54(name, from, to) =>
       "«${name}»: ${from} → ${to} ga o\'tib bo\'lmaydi";
 
-  static String m54(plan) =>
+  static String m55(plan) =>
       "«${plan}» rejasiga almashtirilsinmi? Eski stiker bekor qilinadi va yangi QR chop etiladi.";
 
-  static String m55(plan, price) =>
+  static String m56(plan, price) =>
       "«${plan}» rejasiga o‘tkazilsinmi? Faqat qo‘shimcha to‘lov (${price}) hozir naqd yoki karta bilan olinadi — balansga ortiqcha pul tushmaydi. Eski stiker to‘xtatiladi va yangi QR «upgrade» bo‘lib chop etiladi.";
 
-  static String m56(plan, price) =>
+  static String m57(plan, price) =>
       "«${plan}» rejasiga o‘tkazilsinmi? Faqat qo‘shimcha to‘lov (${price}) balansdan yechiladi. Eski stiker to‘xtatiladi va yangi QR «upgrade» bo‘lib chop etiladi.";
 
-  static String m57(plan, price) =>
+  static String m58(plan, price) =>
       "«${plan}» rejasiga almashtirilsinmi? ${plan} narxi (${price}) balansdan darhol yechiladi. Eski stiker bekor qilinadi va yangi QR chop etiladi.";
 
-  static String m58(child, from, to, paid, due) =>
+  static String m59(child, from, to, paid, due) =>
       "${child}: ${from} → ${to}. ${paid} oldin to‘langan — qo‘shimcha to‘lov: ${due}";
 
-  static String m59(value) => "${value} / daq dan";
+  static String m60(value) => "${value} / daq dan";
 
-  static String m60(value) => "${value} / kun";
+  static String m61(value) => "${value} / kun";
 
-  static String m61(value) => "${value} / soat";
+  static String m62(value) => "${value} / soat";
 
-  static String m62(code) =>
+  static String m63(code) =>
       "Blogger promokodi ${code} qabul qilindi — mijozni tanlang";
 
-  static String m63(reason) =>
+  static String m64(reason) =>
       "Promokod qo‘llanmadi, kod qaytarildi: ${reason}";
 
-  static String m64(date, name) => "${date} · ${name}";
+  static String m65(date, name) => "${date} · ${name}";
 
-  static String m65(amount, method) =>
+  static String m66(amount, method) =>
       "${amount} ${method} orqali qaytariladi. Bu amal audit tarixida saqlanadi va o‘chirib bo‘lmaydi.";
 
-  static String m66(balance) => "Mijoz balansi: ${balance}";
+  static String m67(balance) => "Mijoz balansi: ${balance}";
 
-  static String m67(count) =>
+  static String m68(count) =>
       "Shuningdek ${count} ta chipta bekor qilinadi va endi kirishda ishlamaydi.";
 
-  static String m68(amount) => "${amount} muvaffaqiyatli qaytarildi";
+  static String m69(amount) => "${amount} muvaffaqiyatli qaytarildi";
 
-  static String m69(count) => "tanlangan: ${count}";
+  static String m70(count) => "tanlangan: ${count}";
 
-  static String m70(count) => "${count} ta";
+  static String m71(count) => "${count} ta";
 
-  static String m71(time) => "Smena ${time} da ochildi";
+  static String m72(time) => "Smena ${time} da ochildi";
 
-  static String m72(synced, failed) =>
+  static String m73(synced, failed) =>
       "${synced} ta savdo sinxronlandi, ${failed} ta xato.";
 
-  static String m73(reason) =>
+  static String m74(reason) =>
       "Sinxronlab bo‘lmadi: ${reason}. Offline rejim davom etadi.";
 
-  static String m74(code) => "Kod: ${code}";
+  static String m75(code) => "Kod: ${code}";
 
-  static String m75(version) => "Yangi versiya mavjud: ${version}";
+  static String m76(version) => "Yangi versiya mavjud: ${version}";
 
-  static String m76(paid, due) =>
+  static String m77(paid, due) =>
       "${paid} allaqachon to‘langan — qo‘shimcha to‘lov: ${due}.";
 
-  static String m77(name) =>
+  static String m78(name) =>
       "«${name}» allaqachon faol VIP tarifda — qayta to‘lov olinmaydi.";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
@@ -487,7 +489,24 @@ class MessageLookup extends MessageLookupByLibrary {
     "enteredAt": MessageLookupByLibrary.simpleMessage("Kirgan vaqti"),
     "enteredAtMinutes": m32,
     "entryFailed": m33,
-    "exitBalanceInsufficient": m34,
+    "eventsAddPayment": MessageLookupByLibrary.simpleMessage("+ To‘lov"),
+    "eventsBooked": MessageLookupByLibrary.simpleMessage("Kutilmoqda"),
+    "eventsCancelled": MessageLookupByLibrary.simpleMessage("Bekor qilingan"),
+    "eventsChildUnit": MessageLookupByLibrary.simpleMessage("bola"),
+    "eventsComplete": MessageLookupByLibrary.simpleMessage("Yakunlash"),
+    "eventsCompleted": MessageLookupByLibrary.simpleMessage("Yakunlangan"),
+    "eventsDebt": m34,
+    "eventsEmpty": MessageLookupByLibrary.simpleMessage("Tadbirlar yo‘q"),
+    "eventsLater": MessageLookupByLibrary.simpleMessage("Keyinroq"),
+    "eventsNextWeek": MessageLookupByLibrary.simpleMessage("Keyingi hafta"),
+    "eventsOverdue": MessageLookupByLibrary.simpleMessage("O‘tib ketgan"),
+    "eventsPaid": MessageLookupByLibrary.simpleMessage("To‘langan"),
+    "eventsRetry": MessageLookupByLibrary.simpleMessage("Qayta urinish"),
+    "eventsThisWeek": MessageLookupByLibrary.simpleMessage("Shu hafta"),
+    "eventsToday": MessageLookupByLibrary.simpleMessage("Bugun"),
+    "eventsTomorrow": MessageLookupByLibrary.simpleMessage("Ertaga"),
+    "eventsUnpaid": MessageLookupByLibrary.simpleMessage("To‘lanmagan"),
+    "exitBalanceInsufficient": m35,
     "findCustomerHint": MessageLookupByLibrary.simpleMessage(
       "Mijozni topish uchun telefon raqamini kiriting",
     ),
@@ -509,7 +528,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "historyChoosePeriod": MessageLookupByLibrary.simpleMessage(
       "Sotuv davrini tanlang",
     ),
-    "historyCount": m35,
+    "historyCount": m36,
     "historyDateRange": MessageLookupByLibrary.simpleMessage("Sana oralig‘i"),
     "historyEmpty": MessageLookupByLibrary.simpleMessage(
       "Bu davrda sotuvlar yo‘q",
@@ -521,18 +540,18 @@ class MessageLookup extends MessageLookupByLibrary {
     "historySales": MessageLookupByLibrary.simpleMessage("Sotuvlar"),
     "historyToday": MessageLookupByLibrary.simpleMessage("Bugun"),
     "historyYear": MessageLookupByLibrary.simpleMessage("Bu yil"),
-    "hourAlreadyActive": m36,
+    "hourAlreadyActive": m37,
     "hourChargedImmediately": MessageLookupByLibrary.simpleMessage(
       "1 soat tarif puli chop etilganda balansdan darhol yechiladi.",
     ),
     "hourEndedAtLabel": MessageLookupByLibrary.simpleMessage("Tugadi"),
     "hourEndsAtLabel": MessageLookupByLibrary.simpleMessage("Tugaydi"),
-    "hourOvertimeBanner": m37,
-    "hourOvertimeBy": m38,
+    "hourOvertimeBanner": m38,
+    "hourOvertimeBy": m39,
     "hourOvertimeShow": MessageLookupByLibrary.simpleMessage("Ko‘rsatish"),
-    "hourRemaining": m39,
+    "hourRemaining": m40,
     "hourTariff": MessageLookupByLibrary.simpleMessage("1 soat tarif"),
-    "insideCount": m40,
+    "insideCount": m41,
     "insideEmpty": MessageLookupByLibrary.simpleMessage(
       "Hozir park ichida bolalar yo‘q",
     ),
@@ -585,9 +604,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "loginUsername": MessageLookupByLibrary.simpleMessage("Login"),
     "logout": MessageLookupByLibrary.simpleMessage("Chiqish"),
     "logoutAnyway": MessageLookupByLibrary.simpleMessage("Baribir chiqish"),
-    "logoutBlockedUnsynced": m41,
-    "logoutFailedSalesConfirm": m42,
-    "manualExitQuestion": m43,
+    "logoutBlockedUnsynced": m42,
+    "logoutFailedSalesConfirm": m43,
+    "manualExitQuestion": m44,
     "manualExitSucceeded": MessageLookupByLibrary.simpleMessage(
       "Bola muvaffaqiyatli chiqarildi deb belgilandi",
     ),
@@ -597,7 +616,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "menuClose": MessageLookupByLibrary.simpleMessage("Menyuni yopish"),
     "menuOpen": MessageLookupByLibrary.simpleMessage("Menyuni ochish"),
-    "minutesCount": m44,
+    "minutesCount": m45,
     "needsInternet": MessageLookupByLibrary.simpleMessage("Internet kerak"),
     "newBalance": MessageLookupByLibrary.simpleMessage("Yangi balans"),
     "noChildren": MessageLookupByLibrary.simpleMessage("farzand yo‘q"),
@@ -609,7 +628,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Windows’da o‘rnatilgan printer topilmadi",
     ),
     "notSyncedBadge": MessageLookupByLibrary.simpleMessage("Sinxronlanmagan"),
-    "offlineBanner": m45,
+    "offlineBanner": m46,
     "offlineBannerSyncing": MessageLookupByLibrary.simpleMessage(
       "Sinxronlanmoqda…",
     ),
@@ -626,7 +645,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "onlinePromptAccept": MessageLookupByLibrary.simpleMessage(
       "Ha, sinxronlash",
     ),
-    "onlinePromptBody": m46,
+    "onlinePromptBody": m47,
     "onlinePromptLater": MessageLookupByLibrary.simpleMessage("Keyinroq"),
     "onlinePromptTitle": MessageLookupByLibrary.simpleMessage(
       "Internet qaytdi",
@@ -643,22 +662,22 @@ class MessageLookup extends MessageLookupByLibrary {
       "To‘lov va chop etish",
     ),
     "paymentBalance": MessageLookupByLibrary.simpleMessage("Balansdan savdo"),
-    "paymentBalanceValue": m47,
+    "paymentBalanceValue": m48,
     "paymentCard": MessageLookupByLibrary.simpleMessage("Karta"),
-    "paymentCardValue": m48,
+    "paymentCardValue": m49,
     "paymentCash": MessageLookupByLibrary.simpleMessage("Naqd"),
-    "paymentCashValue": m49,
+    "paymentCashValue": m50,
     "paymentExcess": MessageLookupByLibrary.simpleMessage("Ortiqcha kiritildi"),
     "paymentMatched": MessageLookupByLibrary.simpleMessage("Summa mos keldi"),
-    "paymentMinimumHint": m50,
+    "paymentMinimumHint": m51,
     "paymentMissing": MessageLookupByLibrary.simpleMessage("Yetmayapti"),
     "paymentSplit": MessageLookupByLibrary.simpleMessage("Aralash"),
     "phoneNotFound": MessageLookupByLibrary.simpleMessage("Bu raqam topilmadi"),
     "phoneNumber": MessageLookupByLibrary.simpleMessage("Telefon raqami"),
-    "planAlreadyActive": m51,
-    "planChargedImmediately": m52,
+    "planAlreadyActive": m52,
+    "planChargedImmediately": m53,
     "planSwitch": MessageLookupByLibrary.simpleMessage("Reja almashtirish"),
-    "planSwitchBlocked": m53,
+    "planSwitchBlocked": m54,
     "planSwitchCollectNow": MessageLookupByLibrary.simpleMessage(
       "Hozir olinadi",
     ),
@@ -669,17 +688,17 @@ class MessageLookup extends MessageLookupByLibrary {
     "planSwitchPayInDialog": MessageLookupByLibrary.simpleMessage(
       "Tanlangan bolada bugun boshqa tarif bor — to‘lov keyingi oynada, faqat qo‘shimcha to‘lov bilan hisoblanadi.",
     ),
-    "planSwitchQuestion": m54,
-    "planSwitchUpgradeCollectQuestion": m55,
-    "planSwitchUpgradeQuestion": m56,
-    "planSwitchVipQuestion": m57,
+    "planSwitchQuestion": m55,
+    "planSwitchUpgradeCollectQuestion": m56,
+    "planSwitchUpgradeQuestion": m57,
+    "planSwitchVipQuestion": m58,
     "planUpgradeAndPrint": MessageLookupByLibrary.simpleMessage(
       "Tarifni yangilash",
     ),
-    "planUpgradeLine": m58,
-    "priceFromPerMinute": m59,
-    "pricePerDay": m60,
-    "pricePerHour": m61,
+    "planUpgradeLine": m59,
+    "priceFromPerMinute": m60,
+    "pricePerDay": m61,
+    "pricePerHour": m62,
     "printParentQr": MessageLookupByLibrary.simpleMessage(
       "Ota-ona QR ham chop etish",
     ),
@@ -698,7 +717,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Bu mijoz ushbu promokoddan allaqachon foydalangan",
     ),
     "promoCodeBlogger": MessageLookupByLibrary.simpleMessage("Blogger"),
-    "promoCodeBloggerPending": m62,
+    "promoCodeBloggerPending": m63,
     "promoCodeCheck": MessageLookupByLibrary.simpleMessage("Tekshirish"),
     "promoCodeChildHasPass": MessageLookupByLibrary.simpleMessage(
       "Bu bolada bugun faol propusk bor — promokod faqat yangi kirishga yoki VIP’ga o‘tishga qo‘llanadi",
@@ -722,7 +741,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "promoCodeOwnerNotFound": MessageLookupByLibrary.simpleMessage(
       "Promokod egasi topilmadi",
     ),
-    "promoCodeReleased": m63,
+    "promoCodeReleased": m64,
     "promoCodeRemove": MessageLookupByLibrary.simpleMessage(
       "Promokodni olib tashlash",
     ),
@@ -749,7 +768,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "refundAmount": MessageLookupByLibrary.simpleMessage(
       "Qaytariladigan summa",
     ),
-    "refundAuditBy": m64,
+    "refundAuditBy": m65,
     "refundBalanceLimitNote": MessageLookupByLibrary.simpleMessage(
       "To‘ldirishni qaytarish puli balansdan yechiladi, shuning uchun balansda qolgan summadan ortiq qaytarib bo‘lmaydi.",
     ),
@@ -757,15 +776,15 @@ class MessageLookup extends MessageLookupByLibrary {
     "refundCardWarning": MessageLookupByLibrary.simpleMessage(
       "Karta orqali qaytarish terminalda ham alohida bajarilishi kerak. Ilovadagi amal terminal tranzaksiyasini avtomatik bekor qilmaydi.",
     ),
-    "refundConfirmMessage": m65,
+    "refundConfirmMessage": m66,
     "refundConfirmTitle": MessageLookupByLibrary.simpleMessage(
       "Qaytarishni tasdiqlang",
     ),
-    "refundCustomerBalance": m66,
+    "refundCustomerBalance": m67,
     "refundFullBadge": MessageLookupByLibrary.simpleMessage(
       "To‘liq qaytarilgan",
     ),
-    "refundFundedConfirm": m67,
+    "refundFundedConfirm": m68,
     "refundFundedHint": MessageLookupByLibrary.simpleMessage(
       "Mijoz qaytarayotgan chiptalarni belgilang: ularning puli avval balansga qaytadi, keyin naqd yoki kartaga beriladi. Belgilangan chiptalar darhol bekor qilinadi.",
     ),
@@ -803,7 +822,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "refundSelectedPassesTotal": MessageLookupByLibrary.simpleMessage(
       "Tanlangan chiptalar summasi",
     ),
-    "refundSuccess": m68,
+    "refundSuccess": m69,
     "refundTitle": MessageLookupByLibrary.simpleMessage("To‘lovdan qaytarish"),
     "refundedTotal": MessageLookupByLibrary.simpleMessage("Qaytarilgan"),
     "reprint": MessageLookupByLibrary.simpleMessage("Qayta chop etish"),
@@ -818,15 +837,15 @@ class MessageLookup extends MessageLookupByLibrary {
     "searchHistory": MessageLookupByLibrary.simpleMessage("Qidiruv tarixi"),
     "searchResult": MessageLookupByLibrary.simpleMessage("Qidiruv natijasi"),
     "selectForQr": MessageLookupByLibrary.simpleMessage("QR uchun tanlang"),
-    "selectedCount": m69,
+    "selectedCount": m70,
     "shiftClose": MessageLookupByLibrary.simpleMessage("Smenani yopish"),
     "shiftClosed": MessageLookupByLibrary.simpleMessage("Smena yopildi"),
-    "shiftCountUnit": m70,
+    "shiftCountUnit": m71,
     "shiftEnteredChildren": MessageLookupByLibrary.simpleMessage(
       "Ichkariga kirgan",
     ),
     "shiftOpen": MessageLookupByLibrary.simpleMessage("Smenani ochish"),
-    "shiftOpenedAt": m71,
+    "shiftOpenedAt": m72,
     "shiftOpeningCash": MessageLookupByLibrary.simpleMessage(
       "Boshlang‘ich naqd (so‘m)",
     ),
@@ -857,13 +876,14 @@ class MessageLookup extends MessageLookupByLibrary {
     "switchAndPrint": MessageLookupByLibrary.simpleMessage(
       "Almashtirish va chop etish",
     ),
-    "syncResultBody": m72,
+    "syncResultBody": m73,
     "syncResultTitle": MessageLookupByLibrary.simpleMessage(
       "Sinxronlash natijasi",
     ),
-    "syncTransportFailed": m73,
+    "syncTransportFailed": m74,
     "syncViewFailures": MessageLookupByLibrary.simpleMessage("Ko‘rish"),
     "tabAccount": MessageLookupByLibrary.simpleMessage("Hisob va QR"),
+    "tabEvents": MessageLookupByLibrary.simpleMessage("Tadbirlar"),
     "tabHistory": MessageLookupByLibrary.simpleMessage("Sotuv tarixi"),
     "tabInside": MessageLookupByLibrary.simpleMessage("Park ichida"),
     "tabSales": MessageLookupByLibrary.simpleMessage("Savdo"),
@@ -950,8 +970,8 @@ class MessageLookup extends MessageLookupByLibrary {
     "unsyncedRetryNeedsOnline": MessageLookupByLibrary.simpleMessage(
       "Qayta yuborish uchun avval onlayn rejimga o‘ting",
     ),
-    "unsyncedSupportCode": m74,
-    "updateAvailable": m75,
+    "unsyncedSupportCode": m75,
+    "updateAvailable": m76,
     "updateCancel": MessageLookupByLibrary.simpleMessage("Bekor qilish"),
     "updateCheck": MessageLookupByLibrary.simpleMessage(
       "Yangilanishni tekshirish",
@@ -997,9 +1017,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "updateWindowsOnly": MessageLookupByLibrary.simpleMessage(
       "Avtomatik yangilash faqat Windows’da ishlaydi",
     ),
-    "upgradeCredit": m76,
+    "upgradeCredit": m77,
     "version": MessageLookupByLibrary.simpleMessage("Versiya"),
-    "vipAlreadyActive": m77,
+    "vipAlreadyActive": m78,
     "vipChargedImmediately": MessageLookupByLibrary.simpleMessage(
       "VIP tarif puli chop etilganda balansdan darhol yechiladi.",
     ),

@@ -8,6 +8,7 @@ enum ShellTab {
   salesHistory(icon: PhosphorIconsRegular.clockCounterClockwise),
   visitHistory(icon: PhosphorIconsRegular.arrowsLeftRight),
   inside(icon: PhosphorIconsRegular.personSimpleRun),
+  events(icon: PhosphorIconsRegular.cake),
   settings(icon: PhosphorIconsRegular.gearSix),
   unsynced(icon: PhosphorIconsRegular.cloudArrowUp);
 
@@ -22,12 +23,16 @@ enum ShellTab {
     salesHistory,
     visitHistory,
     inside,
+    events,
     settings,
   ];
 
   /// Tabs that can't work without the server — disabled in offline mode.
   bool get needsInternet => switch (this) {
-    ShellTab.posAccount || ShellTab.visitHistory || ShellTab.inside => true,
+    ShellTab.posAccount ||
+    ShellTab.visitHistory ||
+    ShellTab.inside ||
+    ShellTab.events => true,
     _ => false,
   };
 
@@ -37,6 +42,7 @@ enum ShellTab {
     ShellTab.salesHistory => l10n.tabHistory,
     ShellTab.visitHistory => l10n.tabVisitHistory,
     ShellTab.inside => l10n.tabInside,
+    ShellTab.events => l10n.tabEvents,
     ShellTab.settings => l10n.tabSettings,
     ShellTab.unsynced => l10n.tabUnsynced,
   };
