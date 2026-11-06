@@ -146,6 +146,7 @@
   "shiftClosed": "Смена закрыта",
   "receiptCount": "Количество чеков",
   "balanceSalesNotIncome": "Продажи с баланса (не выручка)",
+  "shiftBirthdayIncome": "Из них дни рождения",
   "shiftTotalIncome": "Итого выручка смены",
   "findCustomerHint": "Введите номер телефона для поиска клиента",
   "recentCustomers": "Недавние клиенты",

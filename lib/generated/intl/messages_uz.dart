@@ -908,6 +908,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "searchResult": MessageLookupByLibrary.simpleMessage("Qidiruv natijasi"),
     "selectForQr": MessageLookupByLibrary.simpleMessage("QR uchun tanlang"),
     "selectedCount": m78,
+    "shiftBirthdayIncome": MessageLookupByLibrary.simpleMessage(
+      "Shundan tug‘ilgan kun",
+    ),
     "shiftClose": MessageLookupByLibrary.simpleMessage("Smenani yopish"),
     "shiftClosed": MessageLookupByLibrary.simpleMessage("Smena yopildi"),
     "shiftCountUnit": m79,

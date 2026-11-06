@@ -55,6 +55,7 @@ class ShiftReportPrinter {
       ('Naqd', _money(t.cashUzs)),
       ('Karta', _money(t.cardUzs)),
       if (t.topupUzs > 0) ('Shundan balans to\'ldirish', _money(t.topupUzs)),
+      if (t.birthdayUzs > 0) ("Shundan tug'ilgan kun", _money(t.birthdayUzs)),
       if (t.balanceSalesUzs > 0)
         ('Balansdan (tushum emas)', _money(t.balanceSalesUzs)),
       if (t.discountUzs > 0) ('Chegirma', '-${_money(t.discountUzs)}'),

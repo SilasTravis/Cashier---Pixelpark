@@ -876,6 +876,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "searchResult": MessageLookupByLibrary.simpleMessage("Search results"),
     "selectForQr": MessageLookupByLibrary.simpleMessage("Select for QR"),
     "selectedCount": m78,
+    "shiftBirthdayIncome": MessageLookupByLibrary.simpleMessage(
+      "of which birthday parties",
+    ),
     "shiftClose": MessageLookupByLibrary.simpleMessage("Close shift"),
     "shiftClosed": MessageLookupByLibrary.simpleMessage("Shift closed"),
     "shiftCountUnit": m79,

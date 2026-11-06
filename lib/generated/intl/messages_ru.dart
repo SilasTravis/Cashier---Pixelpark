@@ -915,6 +915,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "searchResult": MessageLookupByLibrary.simpleMessage("Результаты поиска"),
     "selectForQr": MessageLookupByLibrary.simpleMessage("Выберите для QR"),
     "selectedCount": m78,
+    "shiftBirthdayIncome": MessageLookupByLibrary.simpleMessage(
+      "Из них дни рождения",
+    ),
     "shiftClose": MessageLookupByLibrary.simpleMessage("Закрыть смену"),
     "shiftClosed": MessageLookupByLibrary.simpleMessage("Смена закрыта"),
     "shiftCountUnit": m79,

@@ -146,6 +146,7 @@
   "shiftClosed": "Shift closed",
   "receiptCount": "Receipt count",
   "balanceSalesNotIncome": "Balance-funded sales (not income)",
+  "shiftBirthdayIncome": "of which birthday parties",
   "shiftTotalIncome": "Total shift income",
   "findCustomerHint": "Enter a phone number to find a customer",
   "recentCustomers": "Recent customers",

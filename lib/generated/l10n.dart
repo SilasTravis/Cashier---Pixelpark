@@ -844,6 +844,16 @@ class AppLocalization {
     );
   }
 
+  /// `of which birthday parties`
+  String get shiftBirthdayIncome {
+    return Intl.message(
+      'of which birthday parties',
+      name: 'shiftBirthdayIncome',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Total shift income`
   String get shiftTotalIncome {
     return Intl.message(

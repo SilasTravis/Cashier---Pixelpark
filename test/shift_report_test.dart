@@ -1,6 +1,52 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:cashier_app/core/printing/shift_report_printer.dart';
+import 'package:cashier_app/features/shift/data/shift_remote_data_source.dart';
 import 'package:cashier_app/features/shift/domain/shift.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+/// Answers every request with [body] as JSON — no network involved.
+class _JsonAdapter implements HttpClientAdapter {
+  _JsonAdapter(this.body);
+
+  final Map<String, dynamic> body;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    return ResponseBody.fromString(
+      jsonEncode(body),
+      200,
+      headers: {
+        Headers.contentTypeHeader: [Headers.jsonContentType],
+      },
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
+Map<String, dynamic> _shiftJson(Map<String, dynamic> totals) => {
+  'id': '11111111-2222-3333-4444-555555555555',
+  'openedAt': '2026-10-14T05:00:00Z',
+  'closedAt': null,
+  'status': 'open',
+  'totals': {
+    'salesCount': 70,
+    'subtotalUzs': 5000000,
+    'cashUzs': 3000000,
+    'cardUzs': 2000000,
+    'topupUzs': 400000,
+    'balanceSalesUzs': 100000,
+    ...totals,
+  },
+};
 
 void main() {
   const entries = ShiftEntrySummary(
@@ -14,7 +60,7 @@ void main() {
     enteredChildren: 59,
   );
 
-  Shift shift({ShiftEntrySummary? entries}) => Shift(
+  Shift shift({ShiftEntrySummary? entries, int birthdayUzs = 0}) => Shift(
     id: '11111111-2222-3333-4444-555555555555',
     openedAt: DateTime.utc(2026, 10, 14, 5),
     closedAt: DateTime.utc(2026, 10, 14, 17),
@@ -26,6 +72,7 @@ void main() {
       cardUzs: 2000000,
       topupUzs: 400000,
       balanceSalesUzs: 100000,
+      birthdayUzs: birthdayUzs,
       entries: entries,
     ),
   );
@@ -39,6 +86,31 @@ void main() {
     final json = shift().totals.toCacheJson();
     expect(json.containsKey('entries'), isFalse);
     expect(ShiftTotals.fromCacheJson(json).entries, isNull);
+  });
+
+  test('birthday money survives the cache round trip', () {
+    final totals = shift(birthdayUzs: 400000).totals;
+    expect(ShiftTotals.fromCacheJson(totals.toCacheJson()).birthdayUzs, 400000);
+  });
+
+  test('older cache entries without birthdayUzs parse to 0', () {
+    final json = shift().totals.toCacheJson()..remove('birthdayUzs');
+    expect(ShiftTotals.fromCacheJson(json).birthdayUzs, 0);
+  });
+
+  test('server totals with birthdayUzs are read into the model', () async {
+    final dio = Dio()
+      ..httpClientAdapter = _JsonAdapter(
+        _shiftJson({'birthdayUzs': 400000}),
+      );
+    final current = await ShiftRemoteDataSourceImpl(dio).getCurrentShift();
+    expect(current.totals.birthdayUzs, 400000);
+  });
+
+  test('an older backend without birthdayUzs reads as 0', () async {
+    final dio = Dio()..httpClientAdapter = _JsonAdapter(_shiftJson({}));
+    final current = await ShiftRemoteDataSourceImpl(dio).getCurrentShift();
+    expect(current.totals.birthdayUzs, 0);
   });
 
   test('the check lists each tariff, VIP and children', () {
@@ -57,6 +129,16 @@ void main() {
       ]),
     );
     expect(lines, contains(('Naqd', "3 000 000 so'm")));
+  });
+
+  test('the check shows birthday money as a line when there is some', () {
+    final lines = ShiftReportPrinter.lines(shift(birthdayUzs: 400000));
+    expect(lines, contains(("Shundan tug'ilgan kun", "400 000 so'm")));
+  });
+
+  test('the check has no birthday line without birthday money', () {
+    final lines = ShiftReportPrinter.lines(shift());
+    expect(lines.any((line) => line.$1.contains('tug\'ilgan kun')), isFalse);
   });
 
   test('without entries from the server the check keeps only money', () {
