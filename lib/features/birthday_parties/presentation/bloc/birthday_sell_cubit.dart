@@ -181,7 +181,7 @@ class BirthdaySellCubit extends Cubit<BirthdaySellState> {
   /// total (and a deposit that no longer fits) start over.
   void selectPlan(String id) {
     final plan = state.plans.where((p) => p.id == id).firstOrNull;
-    if (plan == null) return;
+    if (plan == null || id == state.selectedPlanId) return;
     final keep = plan.sizes.any((s) => s.childCount == state.childCount);
     emit(
       state.copyWith(
@@ -194,14 +194,16 @@ class BirthdaySellCubit extends Cubit<BirthdaySellState> {
     );
   }
 
-  void selectSize(int childCount) => emit(
-    state.copyWith(
-      childCount: childCount,
-      extraChildren: 0,
-      clearOverride: true,
-      clearError: true,
-    ),
-  );
+  void selectSize(int childCount) => childCount == state.childCount
+      ? null
+      : emit(
+          state.copyWith(
+            childCount: childCount,
+            extraChildren: 0,
+            clearOverride: true,
+            clearError: true,
+          ),
+        );
 
   void addExtraChild() => emit(
     state.copyWith(
@@ -211,9 +213,15 @@ class BirthdaySellCubit extends Cubit<BirthdaySellState> {
     ),
   );
 
-  void resetExtraChildren() => emit(
-    state.copyWith(extraChildren: 0, clearOverride: true, clearError: true),
-  );
+  void resetExtraChildren() => state.extraChildren == 0
+      ? null
+      : emit(
+          state.copyWith(
+            extraChildren: 0,
+            clearOverride: true,
+            clearError: true,
+          ),
+        );
 
   void setPartyDate(DateTime date) => emit(state.copyWith(partyDate: date));
 
@@ -264,6 +272,10 @@ class BirthdaySellCubit extends Cubit<BirthdaySellState> {
           errorMessage: e.message,
         ),
       );
+    } catch (_) {
+      // E.g. a malformed success body after the party was booked: unlock the
+      // sheet; a retry reuses [requestId] and returns the existing party.
+      emit(state.copyWith(busy: false, errorCode: 'UNKNOWN'));
     }
   }
 }

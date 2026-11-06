@@ -1,4 +1,5 @@
 import 'package:cashier_app/core/error/exceptions.dart';
+import 'package:cashier_app/core/utils/currency.dart';
 import 'package:cashier_app/core/offline/app_mode_cubit.dart';
 import 'package:cashier_app/features/birthday_parties/data/birthday_parties_repository.dart';
 import 'package:cashier_app/features/birthday_parties/domain/birthday_party.dart';
@@ -65,8 +66,9 @@ BirthdayParty _party() => BirthdayParty.fromJson({
 });
 
 class _FakeRepo implements BirthdayPartiesRepository {
-  _FakeRepo({this.failWith});
+  _FakeRepo({this.failWith, this.failPlain = false});
   final ServerException? failWith;
+  final bool failPlain;
   final calls = <Map<String, Object?>>[];
 
   @override
@@ -93,6 +95,7 @@ class _FakeRepo implements BirthdayPartiesRepository {
       'requestId': requestId,
     });
     if (failWith != null) throw failWith!;
+    if (failPlain) throw Exception('bad body');
     return _party();
   }
 
@@ -243,6 +246,65 @@ void main() {
       expect((repo.calls[0]['requestId'] as String).length, 36);
     },
   );
+
+  testWidgets('re-tapping the same size keeps Jami and the sale price equal', (
+    tester,
+  ) async {
+    final repo = _FakeRepo();
+    await _openDialog(tester, repo);
+    await _fillSale(tester);
+    await tester.enterText(
+      find.byKey(const ValueKey('birthday-total-field')),
+      '2200000',
+    );
+    await tester.pumpAndSettle();
+    await _tap(tester, 'birthday-size-10');
+    final field = tester.widget<TextField>(
+      find.byKey(const ValueKey('birthday-total-field')),
+    );
+    await _tap(tester, 'birthday-submit');
+    expect(
+      repo.calls.single['agreedPriceUzs'],
+      parseUzs(field.controller!.text),
+    );
+  });
+
+  testWidgets('Zaklad with no amount books with no money now', (tester) async {
+    final repo = _FakeRepo();
+    await _openDialog(tester, repo);
+    await _fillSale(tester);
+    await _tap(tester, 'birthday-mode-deposit');
+    final remaining = find.byKey(const ValueKey('birthday-remaining'));
+    expect(
+      find.descendant(of: remaining, matching: find.text("2 240 000 so'm")),
+      findsOneWidget,
+    );
+    await _tap(tester, 'birthday-submit');
+    expect(repo.calls.single['money'], (
+      fromBalanceUzs: 0,
+      cashUzs: 0,
+      cardUzs: 0,
+    ));
+  });
+
+  testWidgets('a non-server failure unlocks the sheet and retries same id', (
+    tester,
+  ) async {
+    final repo = _FakeRepo(failPlain: true);
+    await _openDialog(tester, repo);
+    await _fillSale(tester);
+    await _tap(tester, 'birthday-submit');
+    expect(find.byKey(const ValueKey('birthday-error')), findsOneWidget);
+    expect(
+      tester
+          .widget<FilledButton>(find.byKey(const ValueKey('birthday-submit')))
+          .onPressed,
+      isNotNull,
+    );
+    await _tap(tester, 'birthday-submit');
+    expect(repo.calls, hasLength(2));
+    expect(repo.calls[0]['requestId'], repo.calls[1]['requestId']);
+  });
 
   group('sell button on the account page', () {
     Future<void> pumpPanel(WidgetTester tester) async {

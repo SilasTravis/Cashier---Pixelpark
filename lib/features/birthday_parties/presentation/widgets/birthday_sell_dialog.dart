@@ -83,13 +83,16 @@ class _BirthdaySellDialogState extends State<BirthdaySellDialog> {
     final customer = widget.customer;
     return BlocConsumer<BirthdaySellCubit, BirthdaySellState>(
       listenWhen: (a, b) =>
-          a.listPriceUzs != b.listPriceUzs || a.party != b.party,
+          a.listPriceUzs != b.listPriceUzs ||
+          a.party != b.party ||
+          (a.agreedOverrideUzs != null && b.agreedOverrideUzs == null),
       listener: (context, state) {
         if (state.party != null) {
           Navigator.of(context).pop<BirthdayParty>(state.party);
           return;
         }
-        // A re-priced sale starts the total field over at the list price.
+        // The total field always shows what will be submitted: a re-priced sale
+        // or a dropped override starts it over at the list price.
         _totalController.text = state.listPriceUzs == 0
             ? ''
             : groupDigits(state.listPriceUzs);

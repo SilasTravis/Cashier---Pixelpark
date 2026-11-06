@@ -27,11 +27,8 @@ class BirthdayPayment {
   final int remainingAfterUzs;
   final bool isValid;
 
-  BirthdayMoney get money => (
-    fromBalanceUzs: fromBalanceUzs,
-    cashUzs: cashUzs,
-    cardUzs: cardUzs,
-  );
+  BirthdayMoney get money =>
+      (fromBalanceUzs: fromBalanceUzs, cashUzs: cashUzs, cardUzs: cardUzs);
 
   factory BirthdayPayment.compute({
     required int dueUzs,
@@ -60,7 +57,7 @@ class BirthdayPayment {
       cashUzs: split.cashUzs,
       cardUzs: split.cardUzs,
       remainingAfterUzs: dueUzs - target,
-      isValid: split.isValid && !(deposit && depositUzs <= 0),
+      isValid: split.isValid,
     );
   }
 }
