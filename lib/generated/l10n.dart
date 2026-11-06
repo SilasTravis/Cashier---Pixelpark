@@ -3804,6 +3804,81 @@ class AppLocalization {
       args: [child, from, to, paid, due],
     );
   }
+
+  /// `Group (school)`
+  String get groupEntry {
+    return Intl.message(
+      'Group (school)',
+      name: 'groupEntry',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Count only — no names`
+  String get groupEntryHint {
+    return Intl.message(
+      'Count only — no names',
+      name: 'groupEntryHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Group: {count} kids`
+  String groupSelected(int count) {
+    return Intl.message(
+      'Group: $count kids',
+      name: 'groupSelected',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `Group (school) — how many kids?`
+  String get groupDialogTitle {
+    return Intl.message(
+      'Group (school) — how many kids?',
+      name: 'groupDialogTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Kids enter without names: the receipt shows only the count, statistics count each one.`
+  String get groupDialogHint {
+    return Intl.message(
+      'Kids enter without names: the receipt shows only the count, statistics count each one.',
+      name: 'groupDialogHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Number of kids`
+  String get groupCountLabel {
+    return Intl.message(
+      'Number of kids',
+      name: 'groupCountLabel',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Select`
+  String get groupApply {
+    return Intl.message('Select', name: 'groupApply', desc: '', args: []);
+  }
+
+  /// `Remove group`
+  String get groupRemove {
+    return Intl.message(
+      'Remove group',
+      name: 'groupRemove',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalization> {

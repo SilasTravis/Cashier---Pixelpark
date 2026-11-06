@@ -28,6 +28,7 @@ import '../../domain/promo_code_check.dart';
 import 'account_ui.dart';
 import 'check_discount_sheet.dart';
 import 'birthday_age_dialog.dart';
+import 'group_count_dialog.dart';
 import 'entry_discount_dialog.dart';
 import 'confirm_topup_dialog.dart';
 import '../bloc/pos_account_bloc.dart';
@@ -111,6 +112,36 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
   String? _reprintPlanName;
   String? _reprintPlanKey;
   List<ReprintGroup> _reprintQueue = const [];
+
+  /// "Guruh (maktab)": asks the class size, then selects that many
+  /// anonymous seats of the customer (created on first use) instead of
+  /// whatever seats were picked before. 0 drops the group.
+  Future<void> _pickGroup(BuildContext context, Customer customer) async {
+    final seatIds = {
+      for (final child in customer.children)
+        if (child.isGroupSeat) child.id,
+    };
+    final current = _selectedChildIds.where(seatIds.contains).length;
+    final count = await showGroupCountDialog(context, current: current);
+    if (count == null || !context.mounted) return;
+    if (count == 0) {
+      setState(() => _selectedChildIds.removeAll(seatIds));
+      return;
+    }
+    context.read<PosAccountBloc>().add(
+      PosAccountGroupSeatsRequested(
+        count: count,
+        onSeats: (ids) {
+          if (!mounted) return;
+          setState(() {
+            _selectedChildIds
+              ..removeAll(seatIds)
+              ..addAll(ids);
+          });
+        },
+      ),
+    );
+  }
 
   void _startReprint(List<ReprintGroup> groups) {
     if (groups.isEmpty) return;
@@ -277,10 +308,16 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               await printSaleReceiptDirect(context, productReceipt);
               if (!context.mounted) return;
             }
+            // Group seats print nameless: a class is a count, not names.
             final childNames = {
               for (final child
                   in state.selectedCustomer?.children ?? const <Child>[])
-                child.id: child.fullName,
+                child.id: child.isGroupSeat ? '' : child.fullName,
+            };
+            final seatIds = {
+              for (final child
+                  in state.selectedCustomer?.children ?? const <Child>[])
+                if (child.isGroupSeat) child.id,
             };
             final reprintPlanName = _reprintPlanName;
             if (reprintPlanName != null) {
@@ -335,7 +372,10 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               childNames,
               planName: plan?.name,
               companionPriceUzs: state.companionPriceUzs,
-              evenWithoutCashback: !printQr || isSchoolGroup(result),
+              evenWithoutCashback:
+                  !printQr ||
+                  isSchoolGroup(result) ||
+                  result.entries.any((e) => seatIds.contains(e.childId)),
             );
             if (entryReceipt != null) {
               unawaited(printSaleReceiptDirect(context, entryReceipt));
@@ -876,6 +916,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               for (final row in state.playing) row.childId: row.minutes,
             },
             selectedChildIds: _selectedChildIds,
+            onGroupTap: () => _pickGroup(context, customer),
             onToggleChild: (id) => setState(
               () => _selectedChildIds.contains(id)
                   ? _selectedChildIds.remove(id)
@@ -1768,6 +1809,7 @@ class _ChildrenCard extends StatelessWidget {
     required this.customer,
     required this.activePasses,
     required this.selectedChildIds,
+    required this.onGroupTap,
     required this.onToggleChild,
     required this.onRenameChild,
     required this.entryDiscounts,
@@ -1794,6 +1836,9 @@ class _ChildrenCard extends StatelessWidget {
   /// staff see "already on Standart today" BEFORE picking a tariff.
   final List<ActivePass> activePasses;
   final Set<String> selectedChildIds;
+
+  /// Opens the "Guruh (maktab)" count dialog — a school class by count.
+  final VoidCallback onGroupTap;
   final ValueChanged<String> onToggleChild;
   final void Function(String childId, String fullName) onRenameChild;
 
@@ -1831,6 +1876,14 @@ class _ChildrenCard extends StatelessWidget {
     final p = PosPalette.of(context);
     final selCount = selectedChildIds.length;
     final passByChildId = {for (final pass in activePasses) pass.childId: pass};
+    // Group seats are a count, not kids to pick one by one: one tile.
+    final namedChildren = [
+      for (final child in customer.children)
+        if (!child.isGroupSeat) child,
+    ];
+    final selectedSeats = customer.children
+        .where((c) => c.isGroupSeat && selectedChildIds.contains(c.id))
+        .length;
     return AccountCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1860,7 +1913,7 @@ class _ChildrenCard extends StatelessWidget {
                   ? 2
                   : 1;
               final tiles = <Widget>[
-                for (final child in customer.children)
+                for (final child in namedChildren)
                   _ChildRow(
                     child: child,
                     activePass: passByChildId[child.id],
@@ -1882,6 +1935,7 @@ class _ChildrenCard extends StatelessWidget {
                   ),
                 if (!addingChild)
                   _AddChildTile(label: l10n.quickAdd, onTap: onStartAddChild),
+                _GroupTile(selectedCount: selectedSeats, onTap: onGroupTap),
               ];
               // A grid whose rows share one height, so a tile with badges
               // never leaves its neighbours looking short.
@@ -1999,6 +2053,73 @@ class _AddChildTile extends StatelessWidget {
                   fontSize: 13.5,
                   fontWeight: FontWeight.w600,
                   color: p.accent,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "Guruh (maktab)": a school class checked in by count, no names. Shows
+/// the picked count once set; tapping opens the count dialog again.
+class _GroupTile extends StatelessWidget {
+  const _GroupTile({required this.selectedCount, required this.onTap});
+
+  final int selectedCount;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
+    final p = PosPalette.of(context);
+    final active = selectedCount > 0;
+    return Material(
+      color: active ? p.accentSoft : Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: active ? p.accent : p.accentBorder, width: 1.5),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        hoverColor: p.accentSoft,
+        child: SizedBox(
+          height: 74,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    active
+                        ? PhosphorIconsFill.usersThree
+                        : PhosphorIconsRegular.usersThree,
+                    size: 17,
+                    color: p.accent,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    active
+                        ? l10n.groupSelected(selectedCount)
+                        : l10n.groupEntry,
+                    style: AppTextStyles.body.copyWith(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      color: p.accent,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 3),
+              Text(
+                l10n.groupEntryHint,
+                style: AppTextStyles.body.copyWith(
+                  fontSize: 11.5,
+                  color: p.textMuted,
                 ),
               ),
             ],

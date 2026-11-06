@@ -745,5 +745,14 @@
   "foreignPhoneIsUzbek": "998… is an Uzbek number — turn off \"Foreign number\" and type it after +998.",
   "planUpgradeAndPrint": "Upgrade plan",
   "planUpgradeLine": "{child}: {from} → {to}. {paid} already paid — surcharge: {due}",
-  "@planUpgradeLine": {"placeholders": {"child": {"type": "String"}, "from": {"type": "String"}, "to": {"type": "String"}, "paid": {"type": "String"}, "due": {"type": "String"}}}
+  "@planUpgradeLine": {"placeholders": {"child": {"type": "String"}, "from": {"type": "String"}, "to": {"type": "String"}, "paid": {"type": "String"}, "due": {"type": "String"}}},
+  "groupEntry": "Group (school)",
+  "groupEntryHint": "Count only — no names",
+  "groupSelected": "Group: {count} kids",
+  "@groupSelected": {"placeholders": {"count": {"type": "int"}}},
+  "groupDialogTitle": "Group (school) — how many kids?",
+  "groupDialogHint": "Kids enter without names: the receipt shows only the count, statistics count each one.",
+  "groupCountLabel": "Number of kids",
+  "groupApply": "Select",
+  "groupRemove": "Remove group"
 }

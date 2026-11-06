@@ -744,5 +744,14 @@
   "foreignPhoneIsUzbek": "998… — это узбекский номер. Выключите «Иностранный номер» и введите его после +998.",
   "planUpgradeAndPrint": "Обновить тариф",
   "planUpgradeLine": "{child}: {from} → {to}. {paid} уже оплачено — доплата: {due}",
-  "@planUpgradeLine": {"placeholders": {"child": {"type": "String"}, "from": {"type": "String"}, "to": {"type": "String"}, "paid": {"type": "String"}, "due": {"type": "String"}}}
+  "@planUpgradeLine": {"placeholders": {"child": {"type": "String"}, "from": {"type": "String"}, "to": {"type": "String"}, "paid": {"type": "String"}, "due": {"type": "String"}}},
+  "groupEntry": "Группа (школа)",
+  "groupEntryHint": "Только количество — без имён",
+  "groupSelected": "Группа: {count} детей",
+  "@groupSelected": {"placeholders": {"count": {"type": "int"}}},
+  "groupDialogTitle": "Группа (школа) — сколько детей?",
+  "groupDialogHint": "Дети входят без имён: в чеке только количество, в статистике каждый считается отдельно.",
+  "groupCountLabel": "Количество детей",
+  "groupApply": "Выбрать",
+  "groupRemove": "Убрать группу"
 }

@@ -157,6 +157,24 @@ void main() {
     );
   });
 
+  test('group seats (any count) print as one nameless line', () {
+    final seats = [for (var i = 0; i < 4; i++) _entry('s$i', 30000)];
+    final receipt = entryCashbackReceipt(
+      _result(
+        entries: seats,
+        sale: const EntrySalePayment(id: 'g', cashUzs: 120000, cardUzs: 0),
+      ),
+      {for (var i = 0; i < 4; i++) 's$i': ''},
+      planName: 'Maktab',
+      evenWithoutCashback: true,
+      now: now,
+    )!;
+    final line = receipt.items.single;
+    expect(line.nameSnapshot, 'Maktab');
+    expect(line.qty, 4);
+    expect(line.lineTotalUzs, 120000);
+  });
+
   test('entrySale parses defensively', () {
     expect(
       EntrySalePayment.tryFromJson({'id': 's', 'cashUzs': 1, 'cardUzs': 2}),
