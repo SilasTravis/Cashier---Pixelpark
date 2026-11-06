@@ -72,7 +72,7 @@ class TerminalHeartbeatService {
   /// the next tick.
   final Stream<void>? _sessionChanges;
 
-  /// Receives the cashier's dashboard checkbox "Kirish QR chop etish" from
+  /// Receives the branch's dashboard switch "Kassada QR stiker chiqarilsin" from
   /// the beat's reply, so a change reaches the till within one beat. An
   /// older backend replies 204 with no body: nothing is called.
   final void Function(bool printEntryQr)? _onPrintEntryQr;
