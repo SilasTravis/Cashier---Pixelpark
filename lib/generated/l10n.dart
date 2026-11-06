@@ -279,6 +279,36 @@ class AppLocalization {
     return Intl.message('No discount', name: 'noDiscount', desc: '', args: []);
   }
 
+  /// `How old today?`
+  String get birthdayAgeTitle {
+    return Intl.message(
+      'How old today?',
+      name: 'birthdayAgeTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `It's {name}'s birthday. Pick the age — the date is saved on the child.`
+  String birthdayAgeHint(Object name) {
+    return Intl.message(
+      'It\'s $name\'s birthday. Pick the age — the date is saved on the child.',
+      name: 'birthdayAgeHint',
+      desc: '',
+      args: [name],
+    );
+  }
+
+  /// `{age} y.o.`
+  String birthdayAgeChip(Object age) {
+    return Intl.message(
+      '$age y.o.',
+      name: 'birthdayAgeChip',
+      desc: '',
+      args: [age],
+    );
+  }
+
   /// `Free (100%)`
   String get discountGroupFree {
     return Intl.message(
@@ -914,10 +944,10 @@ class AppLocalization {
     );
   }
 
-  /// `No account exists for +998 {phone}.`
+  /// `No account exists for {phone}.`
   String accountNotFoundForPhone(String phone) {
     return Intl.message(
-      'No account exists for +998 $phone.',
+      'No account exists for $phone.',
       name: 'accountNotFoundForPhone',
       desc: '',
       args: [phone],
@@ -3949,6 +3979,137 @@ class AppLocalization {
     return Intl.message(
       'No incoming orders yet',
       name: 'marketIncomingEmpty',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Foreign number`
+  String get foreignPhone {
+    return Intl.message(
+      'Foreign number',
+      name: 'foreignPhone',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Type the number with its country code, e.g. 7 916 123 45 67. No SMS is sent to foreign numbers.`
+  String get foreignPhoneHint {
+    return Intl.message(
+      'Type the number with its country code, e.g. 7 916 123 45 67. No SMS is sent to foreign numbers.',
+      name: 'foreignPhoneHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `998… is an Uzbek number — turn off "Foreign number" and type it after +998.`
+  String get foreignPhoneIsUzbek {
+    return Intl.message(
+      '998… is an Uzbek number — turn off "Foreign number" and type it after +998.',
+      name: 'foreignPhoneIsUzbek',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Upgrade plan`
+  String get planUpgradeAndPrint {
+    return Intl.message(
+      'Upgrade plan',
+      name: 'planUpgradeAndPrint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{child}: {from} → {to}. {paid} already paid — surcharge: {due}`
+  String planUpgradeLine(
+    String child,
+    String from,
+    String to,
+    String paid,
+    String due,
+  ) {
+    return Intl.message(
+      '$child: $from → $to. $paid already paid — surcharge: $due',
+      name: 'planUpgradeLine',
+      desc: '',
+      args: [child, from, to, paid, due],
+    );
+  }
+
+  /// `Group (school)`
+  String get groupEntry {
+    return Intl.message(
+      'Group (school)',
+      name: 'groupEntry',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Count only — no names`
+  String get groupEntryHint {
+    return Intl.message(
+      'Count only — no names',
+      name: 'groupEntryHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Group: {count} kids`
+  String groupSelected(int count) {
+    return Intl.message(
+      'Group: $count kids',
+      name: 'groupSelected',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `Group (school) — how many kids?`
+  String get groupDialogTitle {
+    return Intl.message(
+      'Group (school) — how many kids?',
+      name: 'groupDialogTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Kids enter without names: the receipt shows only the count, statistics count each one.`
+  String get groupDialogHint {
+    return Intl.message(
+      'Kids enter without names: the receipt shows only the count, statistics count each one.',
+      name: 'groupDialogHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Number of kids`
+  String get groupCountLabel {
+    return Intl.message(
+      'Number of kids',
+      name: 'groupCountLabel',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Select`
+  String get groupApply {
+    return Intl.message('Select', name: 'groupApply', desc: '', args: []);
+  }
+
+  /// `Remove group`
+  String get groupRemove {
+    return Intl.message(
+      'Remove group',
+      name: 'groupRemove',
       desc: '',
       args: [],
     );

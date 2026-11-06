@@ -32,6 +32,9 @@
   "cartEmpty": "Корзина пуста",
   "discount": "Скидка",
   "noDiscount": "Без скидки",
+  "birthdayAgeTitle": "Сколько исполнилось?",
+  "birthdayAgeHint": "Сегодня день рождения: {name}. Выберите возраст — дата сохранится у ребёнка.",
+  "birthdayAgeChip": "Возраст: {age}",
   "discountGroupFree": "Бесплатно (100%)",
   "discountGroupPercent": "В процентах",
   "discountGroupFixed": "Фиксированная сумма",
@@ -167,7 +170,7 @@
     }
   },
   "phoneNotFound": "Номер не найден",
-  "accountNotFoundForPhone": "Для +998 {phone} аккаунт не найден.",
+  "accountNotFoundForPhone": "Для {phone} аккаунт не найден.",
   "@accountNotFoundForPhone": {
     "placeholders": {
       "phone": {
@@ -961,5 +964,20 @@
     }
   },
   "marketTotal": "Итого",
-  "marketIncomingEmpty": "Пока нет заказов в пути"
+  "marketIncomingEmpty": "Пока нет заказов в пути",
+  "foreignPhone": "Иностранный номер",
+  "foreignPhoneHint": "Введите номер с кодом страны, например 7 916 123 45 67. На иностранные номера SMS не отправляются.",
+  "foreignPhoneIsUzbek": "998… — это узбекский номер. Выключите «Иностранный номер» и введите его после +998.",
+  "planUpgradeAndPrint": "Обновить тариф",
+  "planUpgradeLine": "{child}: {from} → {to}. {paid} уже оплачено — доплата: {due}",
+  "@planUpgradeLine": {"placeholders": {"child": {"type": "String"}, "from": {"type": "String"}, "to": {"type": "String"}, "paid": {"type": "String"}, "due": {"type": "String"}}},
+  "groupEntry": "Группа (школа)",
+  "groupEntryHint": "Только количество — без имён",
+  "groupSelected": "Группа: {count} детей",
+  "@groupSelected": {"placeholders": {"count": {"type": "int"}}},
+  "groupDialogTitle": "Группа (школа) — сколько детей?",
+  "groupDialogHint": "Дети входят без имён: в чеке только количество, в статистике каждый считается отдельно.",
+  "groupCountLabel": "Количество детей",
+  "groupApply": "Выбрать",
+  "groupRemove": "Убрать группу"
 }

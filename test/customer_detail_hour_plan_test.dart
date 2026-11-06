@@ -39,6 +39,7 @@ class _FakeRemote implements PosAccountRemoteDataSource {
     required int cashUzs,
     required int cardUzs,
     Map<String, String> entryDiscounts = const {},
+    Map<String, int> birthdayAges = const {},
     int companions = 0,
     String? discountId,
     ({String code, String childId})? promoCode,

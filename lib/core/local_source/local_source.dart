@@ -21,6 +21,7 @@ class LocalSource {
       AppKeys.cashierUsername,
       AppKeys.branchId,
       AppKeys.branchName,
+      AppKeys.printEntryQr,
     ]);
   }
 
@@ -63,6 +64,16 @@ class LocalSource {
   String? getCashierUsername() => box.get(AppKeys.cashierUsername) as String?;
   String? getBranchId() => box.get(AppKeys.branchId) as String?;
   String? getBranchName() => box.get(AppKeys.branchName) as String?;
+
+  Future<void> setPrintEntryQr(bool value) async {
+    await box.put(AppKeys.printEntryQr, value);
+  }
+
+  /// The signed-in cashier's "Kirish QR chop etish" — only then does
+  /// checkout print each child's entry QR (sticker / ticket), the parent QR
+  /// and re-prints. True when never set.
+  bool getPrintEntryQr() =>
+      box.get(AppKeys.printEntryQr, defaultValue: true) as bool;
 
   Future<void> setApiBaseUrl(String value) async {
     await box.put(AppKeys.apiBaseUrl, value);

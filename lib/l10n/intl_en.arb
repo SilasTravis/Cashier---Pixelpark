@@ -32,6 +32,9 @@
   "cartEmpty": "Cart is empty",
   "discount": "Discount",
   "noDiscount": "No discount",
+  "birthdayAgeTitle": "How old today?",
+  "birthdayAgeHint": "It's {name}'s birthday. Pick the age — the date is saved on the child.",
+  "birthdayAgeChip": "{age} y.o.",
   "discountGroupFree": "Free (100%)",
   "discountGroupPercent": "Percentage",
   "discountGroupFixed": "Fixed amount",
@@ -167,7 +170,7 @@
     }
   },
   "phoneNotFound": "Number not found",
-  "accountNotFoundForPhone": "No account exists for +998 {phone}.",
+  "accountNotFoundForPhone": "No account exists for {phone}.",
   "@accountNotFoundForPhone": {
     "placeholders": {
       "phone": {
@@ -974,5 +977,20 @@
     }
   },
   "marketTotal": "Total",
-  "marketIncomingEmpty": "No incoming orders yet"
+  "marketIncomingEmpty": "No incoming orders yet",
+  "foreignPhone": "Foreign number",
+  "foreignPhoneHint": "Type the number with its country code, e.g. 7 916 123 45 67. No SMS is sent to foreign numbers.",
+  "foreignPhoneIsUzbek": "998… is an Uzbek number — turn off \"Foreign number\" and type it after +998.",
+  "planUpgradeAndPrint": "Upgrade plan",
+  "planUpgradeLine": "{child}: {from} → {to}. {paid} already paid — surcharge: {due}",
+  "@planUpgradeLine": {"placeholders": {"child": {"type": "String"}, "from": {"type": "String"}, "to": {"type": "String"}, "paid": {"type": "String"}, "due": {"type": "String"}}},
+  "groupEntry": "Group (school)",
+  "groupEntryHint": "Count only — no names",
+  "groupSelected": "Group: {count} kids",
+  "@groupSelected": {"placeholders": {"count": {"type": "int"}}},
+  "groupDialogTitle": "Group (school) — how many kids?",
+  "groupDialogHint": "Kids enter without names: the receipt shows only the count, statistics count each one.",
+  "groupCountLabel": "Number of kids",
+  "groupApply": "Select",
+  "groupRemove": "Remove group"
 }

@@ -27,6 +27,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     : super(const PosAccountState()) {
     on<PosAccountDigitPressed>(_onDigitPressed);
     on<PosAccountBackspacePressed>(_onBackspacePressed);
+    on<PosAccountForeignPhoneToggled>(_onForeignPhoneToggled);
     on<PosAccountSearchRequested>(_onSearchRequested);
     on<PosAccountQueryChanged>(_onQueryChanged);
     on<PosAccountRecentCustomersRequested>(_onRecentCustomersRequested);
@@ -36,6 +37,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     on<PosAccountCustomerRefreshRequested>(_onCustomerRefreshRequested);
     on<PosAccountNewCustomerRequested>(_onNewCustomerRequested);
     on<PosAccountChildAddRequested>(_onChildAddRequested);
+    on<PosAccountGroupSeatsRequested>(_onGroupSeatsRequested);
     on<PosAccountCustomerNameUpdateRequested>(_onCustomerNameUpdateRequested);
     on<PosAccountChildNameUpdateRequested>(_onChildNameUpdateRequested);
     on<PosAccountTopupRequested>(_onTopupRequested);
@@ -48,6 +50,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     on<PosAccountPlayingRequested>(_onPlayingRequested);
     on<PosAccountTransactionsRequested>(_onTransactionsRequested);
     on<PosAccountActivePassesRequested>(_onActivePassesRequested);
+    on<PosAccountSwitchQuoteRequested>(_onSwitchQuoteRequested);
     on<PosAccountCheckoutRequested>(_onCheckoutRequested);
     on<PosAccountConfigRequested>(_onConfigRequested);
     on<PosAccountDiscountsRequested>(_onDiscountsRequested);
@@ -67,6 +70,9 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
   final LocalSource? _localSource;
 
   static const _maxPhoneDigits = 9;
+
+  /// E.164 allows at most 15 digits including the country code.
+  static const _maxForeignPhoneDigits = 15;
   static const _minSearchDigits = 7;
   static const _searchDebounce = Duration(milliseconds: 350);
 
@@ -76,7 +82,8 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     PosAccountDigitPressed event,
     Emitter<PosAccountState> emit,
   ) {
-    if (state.phoneDigits.length >= _maxPhoneDigits) return;
+    final max = state.foreignPhone ? _maxForeignPhoneDigits : _maxPhoneDigits;
+    if (state.phoneDigits.length >= max) return;
     emit(
       state.copyWith(
         phoneDigits: state.phoneDigits + event.digit,
@@ -105,6 +112,23 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
       ),
     );
     _scheduleAutoSearch();
+  }
+
+  void _onForeignPhoneToggled(
+    PosAccountForeignPhoneToggled event,
+    Emitter<PosAccountState> emit,
+  ) {
+    _debounce?.cancel();
+    emit(
+      state.copyWith(
+        foreignPhone: !state.foreignPhone,
+        phoneDigits: '',
+        searchQuery: '',
+        results: const [],
+        isSearching: false,
+        errorMessage: null,
+      ),
+    );
   }
 
   /// Live search — fires shortly after the cashier stops typing, once there
@@ -439,8 +463,8 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     final result = await _repository.createCustomer(
       // Existing customers are stored as `+998XXXXXXXXX` — sending the bare
       // 9 digits here created a second, unprefixed record for the same
-      // number instead of matching it.
-      phoneNumber: '+998${state.phoneDigits}',
+      // number instead of matching it. A foreign number goes as `+<digits>`.
+      phoneNumber: state.fullPhone,
       fullName: event.fullName,
     );
     result.fold(
@@ -491,6 +515,41 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _onGroupSeatsRequested(
+    PosAccountGroupSeatsRequested event,
+    Emitter<PosAccountState> emit,
+  ) async {
+    if (state.isBusy) return;
+    final customer = state.selectedCustomer;
+    if (customer == null) return;
+    emit(state.copyWith(isBusy: true, errorMessage: null));
+    final result = await _repository.ensureGroupSeats(
+      customerId: customer.id,
+      count: event.count,
+    );
+    result.fold(
+      (failure) => emit(
+        state.copyWith(isBusy: false, errorMessage: _messageOf(failure)),
+      ),
+      (seats) {
+        final fresh = {for (final seat in seats) seat.id};
+        emit(
+          state.copyWith(
+            isBusy: false,
+            selectedCustomer: customer.copyWith(
+              children: [
+                for (final child in customer.children)
+                  if (!fresh.contains(child.id)) child,
+                ...seats,
+              ],
+            ),
+          ),
+        );
+        event.onSeats([for (final seat in seats) seat.id]);
+      },
     );
   }
 
@@ -744,6 +803,32 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     });
   }
 
+  Future<void> _onSwitchQuoteRequested(
+    PosAccountSwitchQuoteRequested event,
+    Emitter<PosAccountState> emit,
+  ) async {
+    final customer = state.selectedCustomer;
+    if (customer == null) return;
+    List<PosEntryConflict>? conflicts;
+    try {
+      final result = await _repository.planSwitchQuote(
+        customerId: customer.id,
+        planKey: event.planKey,
+        childIds: event.childIds,
+      );
+      conflicts = result.fold((failure) => null, (quoted) => quoted);
+    } catch (_) {
+      // Best-effort: no quote = the switch modal prices it, as before.
+      conflicts = null;
+    }
+    if (state.selectedCustomer?.id != customer.id) return;
+    emit(
+      state.copyWith(
+        switchQuote: PlanSwitchQuote(key: event.key, conflicts: conflicts),
+      ),
+    );
+  }
+
   Future<void> _onProductsRequested(
     PosAccountProductsRequested event,
     Emitter<PosAccountState> emit,
@@ -780,6 +865,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
       cashUzs: event.cashUzs,
       cardUzs: event.cardUzs,
       entryDiscounts: event.entryDiscounts,
+      birthdayAges: event.birthdayAges,
       companions: event.companions,
       discountId: event.discountId,
       promoCode: event.promoCode,
@@ -856,9 +942,13 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
                 : null,
             promoErrorMessage: releaseReason,
             lastEntryResult: entryResult,
-            selectedCustomer: entryResult.balance == null
-                ? customer
-                : customer.copyWith(balance: entryResult.balance!),
+            selectedCustomer: _withBirthdays(
+              entryResult.balance == null
+                  ? customer
+                  : customer.copyWith(balance: entryResult.balance!),
+              event.birthdayAges,
+              {for (final e in entryResult.entries) e.childId},
+            ),
           ),
         );
         // A child's entry discount was unavailable/mismatched (per-child
@@ -1073,4 +1163,37 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
       _ => 'Xatolik yuz berdi',
     };
   }
+}
+
+/// Mirrors the backend's birthday confirm on the open customer, so the
+/// child's tile shows the new age without a refetch: a child who got a
+/// pass with a picked age and whose stored birth date is a placeholder
+/// (under a year old — the till's quick-add stores the registration day)
+/// now turns that age today. A real birth date is left alone, as on the
+/// server.
+Customer _withBirthdays(
+  Customer customer,
+  Map<String, int> ages,
+  Set<String> issued,
+) {
+  if (ages.isEmpty) return customer;
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  return customer.copyWith(
+    children: [
+      for (final child in customer.children)
+        switch (ages[child.id]) {
+          final age?
+              when issued.contains(child.id) &&
+                  today.difference(child.birthDate).inDays < 366 =>
+            Child(
+              id: child.id,
+              firstName: child.firstName,
+              lastName: child.lastName,
+              birthDate: DateTime(now.year - age, now.month, now.day),
+            ),
+          _ => child,
+        },
+    ],
+  );
 }

@@ -45,6 +45,13 @@ class PosAccountRepository {
     ),
   );
 
+  Future<Either<Failure, List<Child>>> ensureGroupSeats({
+    required int customerId,
+    required int count,
+  }) => _call(
+    () => remote.ensureGroupSeats(customerId: customerId, count: count),
+  );
+
   Future<Either<Failure, Customer>> updateCustomerName({
     required int customerId,
     required String fullName,
@@ -114,6 +121,18 @@ class PosAccountRepository {
   Future<Either<Failure, List<ActivePass>>> listActivePasses(int customerId) =>
       _call(() => remote.listActivePasses(customerId));
 
+  Future<Either<Failure, List<PosEntryConflict>>> planSwitchQuote({
+    required int customerId,
+    required String planKey,
+    required List<String> childIds,
+  }) => _call(
+    () => remote.planSwitchQuote(
+      customerId: customerId,
+      planKey: planKey,
+      childIds: childIds,
+    ),
+  );
+
   Future<Either<Failure, ParentPass>> issueParentPass(int customerId) =>
       _call(() => remote.issueParentPass(customerId));
 
@@ -125,6 +144,7 @@ class PosAccountRepository {
     required int cashUzs,
     required int cardUzs,
     Map<String, String> entryDiscounts = const {},
+    Map<String, int> birthdayAges = const {},
     int companions = 0,
     String? discountId,
     ({String code, String childId})? promoCode,
@@ -139,6 +159,7 @@ class PosAccountRepository {
       cashUzs: cashUzs,
       cardUzs: cardUzs,
       entryDiscounts: entryDiscounts,
+      birthdayAges: birthdayAges,
       companions: companions,
       discountId: discountId,
       promoCode: promoCode,

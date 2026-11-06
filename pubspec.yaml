@@ -2,7 +2,7 @@ name: cashier_app
 description: "Bolajon kassa terminali — Flutter Windows desktop POS."
 publish_to: 'none'
 
-version: 1.0.25+26
+version: 1.0.30+31
 
 environment:
   sdk: ^3.12.2
@@ -72,6 +72,7 @@ flutter:
     # static wght=600 instance of the variable font — thermal paper needs
     # the heavier strokes).
     - assets/images/receipt_bear.png
+    - assets/images/receipt_logo.png
     - assets/fonts/
 
 flutter_intl:

@@ -288,14 +288,12 @@ class _Ui {
         children: [
           ReceiptArt.svg(ReceiptArt.confettiLeft, 9, 6),
           pw.SizedBox(width: 3),
-          pw.Text(
-            'PIXEL PARK',
-            style: text(art.display, 21).copyWith(letterSpacing: 1.5),
-          ),
+          pw.Image(art.logo, width: 38 * _mm),
           pw.SizedBox(width: 3),
           ReceiptArt.svg(ReceiptArt.confettiRight, 9, 6),
         ],
       ),
+      pw.SizedBox(height: 1.5),
       if (branchName.isNotEmpty)
         pw.Text(
           branchName,
@@ -373,6 +371,19 @@ class _Ui {
     ),
   );
 
+  /// Black pill with the cashback percent, e.g. `5%`, set before the sum.
+  pw.Widget _percentBadge(String percent) => pw.Container(
+    padding: const pw.EdgeInsets.symmetric(horizontal: 2.5, vertical: 1),
+    decoration: pw.BoxDecoration(
+      color: PdfColors.black,
+      borderRadius: pw.BorderRadius.circular(4),
+    ),
+    child: pw.Text(
+      '$percent%',
+      style: text(art.display, 10.5).copyWith(color: PdfColors.white),
+    ),
+  );
+
   pw.Widget _starRule() => pw.Padding(
     padding: const pw.EdgeInsets.only(top: 4, bottom: 2),
     child: pw.Row(
@@ -409,12 +420,22 @@ class _Ui {
               children: [
                 pw.Row(
                   children: [
-                    ReceiptArt.svg(ReceiptArt.coin, 4.2, 4.2),
+                    // The percent badge takes the coin's place; older
+                    // backends send no percent, so the sum stands alone.
+                    if (cashback.percent > 0)
+                      _percentBadge(cashback.percentLabel)
+                    else
+                      ReceiptArt.svg(ReceiptArt.coin, 4.2, 4.2),
                     pw.SizedBox(width: 2),
-                    pw.Flexible(
-                      child: pw.Text(
-                        SaleReceiptPrinter._money(cashback.amountUzs),
-                        style: text(art.display, 14.5),
+                    // One line next to the badge: shrink the sum to fit.
+                    pw.Expanded(
+                      child: pw.FittedBox(
+                        fit: pw.BoxFit.scaleDown,
+                        alignment: pw.Alignment.centerLeft,
+                        child: pw.Text(
+                          SaleReceiptPrinter._money(cashback.amountUzs),
+                          style: text(art.display, 14.5),
+                        ),
                       ),
                     ),
                   ],

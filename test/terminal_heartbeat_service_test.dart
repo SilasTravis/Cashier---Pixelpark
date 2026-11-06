@@ -14,9 +14,10 @@ import 'package:cashier_app/core/update/update_failure_log.dart';
 /// Answers every request with [statusCode] (or throws [error]) and records
 /// what was sent.
 class _RecordingAdapter implements HttpClientAdapter {
-  _RecordingAdapter({this.statusCode = 204, this.error});
+  _RecordingAdapter({this.statusCode = 204, this.error, this.body = ''});
 
   final int statusCode;
+  final String body;
   final Object? error;
   final List<RequestOptions> requests = [];
 
@@ -28,7 +29,15 @@ class _RecordingAdapter implements HttpClientAdapter {
   ) async {
     requests.add(options);
     if (error != null) throw error!;
-    return ResponseBody.fromString('', statusCode);
+    return ResponseBody.fromString(
+      body,
+      statusCode,
+      headers: body.isEmpty
+          ? const {}
+          : {
+              Headers.contentTypeHeader: [Headers.jsonContentType],
+            },
+    );
   }
 
   @override
@@ -53,6 +62,7 @@ class _Harness {
   UpdateFailureRecord? failure;
   String hostname = 'KASSA-1';
   String osVersion = 'Windows 10 Pro 22H2 (build 19045)';
+  final printEntryQr = <bool>[];
 
   late final TerminalHeartbeatService service = TerminalHeartbeatService(
     api: api,
@@ -66,6 +76,7 @@ class _Harness {
     lastUpdateFailure: () => failure,
     hostname: () => hostname,
     osVersion: () => osVersion,
+    onPrintEntryQr: printEntryQr.add,
   );
 
   List<Map<String, dynamic>> get bodies => [
@@ -144,6 +155,21 @@ void main() {
       h.adapter.requests.single.extra[ConnectivityInterceptor.backgroundKey],
       isTrue,
     );
+  });
+
+  test('hands the reply printEntryQr to the till; 204 hands nothing', () async {
+    final h = _Harness(
+      adapter: _RecordingAdapter(
+        statusCode: 200,
+        body: '{"printEntryQr":false}',
+      ),
+    );
+    await h.service.beat();
+    expect(h.printEntryQr, [false]);
+
+    final old = _Harness();
+    await old.service.beat();
+    expect(old.printEntryQr, isEmpty);
   });
 
   test('sends nothing without a session', () async {

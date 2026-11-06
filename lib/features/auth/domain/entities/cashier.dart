@@ -18,6 +18,7 @@ class Cashier extends Equatable {
     required this.username,
     required this.branchId,
     required this.active,
+    this.printEntryQr = true,
   });
 
   final String id;
@@ -26,8 +27,18 @@ class Cashier extends Equatable {
   final String branchId;
   final bool active;
 
+  /// Dashboard switch "Kirish QR": print each child's entry QR at checkout.
+  final bool printEntryQr;
+
   @override
-  List<Object?> get props => [id, fullName, username, branchId, active];
+  List<Object?> get props => [
+    id,
+    fullName,
+    username,
+    branchId,
+    active,
+    printEntryQr,
+  ];
 }
 
 /// The signed-in cashier together with its branch — what the app shell

@@ -6,6 +6,7 @@ class Child extends Equatable {
     required this.firstName,
     required this.lastName,
     required this.birthDate,
+    this.groupSeat,
   });
 
   final String id;
@@ -13,10 +14,16 @@ class Child extends Equatable {
   final String? lastName;
   final DateTime birthDate;
 
+  /// Anonymous group seat N of the customer — one child of a school class
+  /// checked in by count ("Guruh"), never by name. Null = a real child.
+  final int? groupSeat;
+
+  bool get isGroupSeat => groupSeat != null;
+
   String get fullName => [firstName, lastName].whereType<String>().join(' ');
 
   @override
-  List<Object?> get props => [id, firstName, lastName, birthDate];
+  List<Object?> get props => [id, firstName, lastName, birthDate, groupSeat];
 }
 
 class Customer extends Equatable {

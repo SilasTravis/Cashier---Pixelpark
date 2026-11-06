@@ -117,6 +117,64 @@ void main() {
     expect(rendered.heightMm, greaterThan(180));
   });
 
+  test('entry QR off: the receipt prints even without cashback', () {
+    final receipt = entryCashbackReceipt(
+      _result(entries: [_entry('c1', 75000), _entry('c2', 75000)]),
+      names,
+      planName: 'VIP',
+      evenWithoutCashback: true,
+      now: now,
+    )!;
+    expect(receipt.cashback, isNull);
+    expect(receipt.items.map((i) => i.nameSnapshot), [
+      'VIP - Ali',
+      'VIP - Vali',
+    ]);
+  });
+
+  test('a school group (15+) prints one nameless "plan x N" line', () {
+    final kids = [for (var i = 0; i < 16; i++) _entry('k$i', 9375)];
+    final receipt = entryCashbackReceipt(
+      _result(entries: kids),
+      {for (var i = 0; i < 16; i++) 'k$i': 'Bola $i'},
+      planName: 'Maktab',
+      evenWithoutCashback: isSchoolGroup(_result(entries: kids)),
+      now: now,
+    )!;
+    final line = receipt.items.single;
+    expect(line.nameSnapshot, 'Maktab');
+    expect(line.qty, 16);
+    expect(line.priceSnapshotUzs, 9375);
+    expect(line.lineTotalUzs, 150000);
+  });
+
+  test('14 children are not a school group: names stay', () {
+    final kids = [for (var i = 0; i < 14; i++) _entry('k$i', 0)];
+    expect(isSchoolGroup(_result(entries: kids)), isFalse);
+    expect(
+      isSchoolGroup(_result(entries: [...kids, _entry('k14', 0)])),
+      isTrue,
+    );
+  });
+
+  test('group seats (any count) print as one nameless line', () {
+    final seats = [for (var i = 0; i < 4; i++) _entry('s$i', 30000)];
+    final receipt = entryCashbackReceipt(
+      _result(
+        entries: seats,
+        sale: const EntrySalePayment(id: 'g', cashUzs: 120000, cardUzs: 0),
+      ),
+      {for (var i = 0; i < 4; i++) 's$i': ''},
+      planName: 'Maktab',
+      evenWithoutCashback: true,
+      now: now,
+    )!;
+    final line = receipt.items.single;
+    expect(line.nameSnapshot, 'Maktab');
+    expect(line.qty, 4);
+    expect(line.lineTotalUzs, 120000);
+  });
+
   test('entrySale parses defensively', () {
     expect(
       EntrySalePayment.tryFromJson({'id': 's', 'cashUzs': 1, 'cardUzs': 2}),

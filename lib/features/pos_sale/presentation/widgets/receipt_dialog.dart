@@ -125,7 +125,7 @@ class _ReceiptDialogState extends State<_ReceiptDialog> {
               _SummaryRow(
                 label:
                     '${AppLocalization.of(context).cashback}'
-                    ' (${_percent(cashback.percent)}%)',
+                    ' (${cashback.percentLabel}%)',
                 value: '+${formatUzs(cashback.amountUzs)}',
               ),
           ],
@@ -156,11 +156,6 @@ class _ReceiptDialogState extends State<_ReceiptDialog> {
     );
   }
 }
-
-/// `3.0` → `3`, `1.5` → `1.5`, `2.25` → `2.25`.
-String _percent(double value) => value == value.roundToDouble()
-    ? value.toInt().toString()
-    : value.toStringAsFixed(2).replaceFirst(RegExp(r'0$'), '');
 
 class _SummaryRow extends StatelessWidget {
   const _SummaryRow({

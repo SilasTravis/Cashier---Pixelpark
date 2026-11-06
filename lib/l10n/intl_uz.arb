@@ -32,6 +32,9 @@
   "cartEmpty": "Chek bo‘sh",
   "discount": "Chegirma",
   "noDiscount": "Chegirmasiz",
+  "birthdayAgeTitle": "Necha yoshga to'ldi?",
+  "birthdayAgeHint": "Bugun {name}ning tug'ilgan kuni. Yoshini tanlang — sana bolaga saqlanadi.",
+  "birthdayAgeChip": "{age} yosh",
   "discountGroupFree": "Bepul (100%)",
   "discountGroupPercent": "Foizli",
   "discountGroupFixed": "Summali",
@@ -167,7 +170,7 @@
     }
   },
   "phoneNotFound": "Bu raqam topilmadi",
-  "accountNotFoundForPhone": "+998 {phone} bo‘yicha hisob yo‘q.",
+  "accountNotFoundForPhone": "{phone} bo‘yicha hisob yo‘q.",
   "@accountNotFoundForPhone": {
     "placeholders": {
       "phone": {
@@ -1037,5 +1040,20 @@
     }
   },
   "marketTotal": "Jami",
-  "marketIncomingEmpty": "Hozircha kelayotgan buyurtma yo‘q"
+  "marketIncomingEmpty": "Hozircha kelayotgan buyurtma yo‘q",
+  "foreignPhone": "Chet el raqami",
+  "foreignPhoneHint": "Raqamni davlat kodi bilan yozing, masalan 7 916 123 45 67. Chet el raqamiga SMS yuborilmaydi.",
+  "foreignPhoneIsUzbek": "998… — bu o‘zbek raqami. \"Chet el raqami\"ni o‘chirib, +998 dan keyin yozing.",
+  "planUpgradeAndPrint": "Tarifni yangilash",
+  "planUpgradeLine": "{child}: {from} → {to}. {paid} oldin to‘langan — qo‘shimcha to‘lov: {due}",
+  "@planUpgradeLine": {"placeholders": {"child": {"type": "String"}, "from": {"type": "String"}, "to": {"type": "String"}, "paid": {"type": "String"}, "due": {"type": "String"}}},
+  "groupEntry": "Guruh (maktab)",
+  "groupEntryHint": "Faqat soni — ismlarsiz",
+  "groupSelected": "Guruh: {count} bola",
+  "@groupSelected": {"placeholders": {"count": {"type": "int"}}},
+  "groupDialogTitle": "Guruh (maktab) — nechta bola?",
+  "groupDialogHint": "Bolalar ismsiz kiradi: chekda faqat soni chiqadi, statistikada har biri alohida sanaladi.",
+  "groupCountLabel": "Bolalar soni",
+  "groupApply": "Tanlash",
+  "groupRemove": "Guruhni olib tashlash"
 }

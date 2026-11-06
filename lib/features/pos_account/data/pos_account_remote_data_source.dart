@@ -38,6 +38,13 @@ abstract class PosAccountRemoteDataSource {
     required String birthDate,
   });
 
+  /// Seats 1..[count] of the customer for a school class checked in by
+  /// count — created on first use, the same ones reused on later visits.
+  Future<List<Child>> ensureGroupSeats({
+    required int customerId,
+    required int count,
+  });
+
   Future<Customer> updateCustomerName({
     required int customerId,
     required String fullName,
@@ -86,6 +93,14 @@ abstract class PosAccountRemoteDataSource {
   /// Each child's still-valid day pass — the children-list plan badge.
   Future<List<ActivePass>> listActivePasses(int customerId);
 
+  /// The plan switch each child would need for [planKey] (list price) —
+  /// nothing is written. Lets the panel price an upgrade up front.
+  Future<List<PosEntryConflict>> planSwitchQuote({
+    required int customerId,
+    required String planKey,
+    required List<String> childIds,
+  });
+
   /// The customer's free parent QR — idempotent per day, so re-tapping
   /// re-prints the same sticker.
   Future<ParentPass> issueParentPass(int customerId);
@@ -99,7 +114,9 @@ abstract class PosAccountRemoteDataSource {
   /// to the goods leg (`products`) — never to the plan/VIP or companion
   /// legs; omitted from the request entirely when null. [checkDiscountId]
   /// (Butun chek) discounts every child's pass; omitted when null so older
-  /// backends never see it.
+  /// backends never see it. [birthdayAges] maps childId → the age a child
+  /// with a birthday discount turns today; sent beside that child's
+  /// discount so the backend saves the birth date.
   Future<PosEntryResult> planEntryCheckout({
     required int customerId,
     required String? planKey,
@@ -108,6 +125,7 @@ abstract class PosAccountRemoteDataSource {
     required int cashUzs,
     required int cardUzs,
     Map<String, String> entryDiscounts = const {},
+    Map<String, int> birthdayAges = const {},
     int companions = 0,
     String? discountId,
     ({String code, String childId})? promoCode,
@@ -189,6 +207,23 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
       ),
     );
     return _childFromJson(response as Map<String, dynamic>);
+  }
+
+  @override
+  Future<List<Child>> ensureGroupSeats({
+    required int customerId,
+    required int count,
+  }) async {
+    final response = await _request(
+      () => dio.post(
+        '/v1/pos/customers/$customerId/group-seats',
+        data: {'count': count},
+      ),
+    );
+    return [
+      for (final seat in response as List<dynamic>)
+        _childFromJson(seat as Map<String, dynamic>),
+    ];
   }
 
   @override
@@ -357,6 +392,23 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
   }
 
   @override
+  Future<List<PosEntryConflict>> planSwitchQuote({
+    required int customerId,
+    required String planKey,
+    required List<String> childIds,
+  }) async {
+    final response = await _request(
+      () => dio.post(
+        '/v1/pos/customers/$customerId/plan-switch-quote',
+        data: {'planKey': planKey, 'childIds': childIds},
+      ),
+    );
+    return (response as List)
+        .map((json) => _posEntryConflictFromJson(json as Map<String, dynamic>))
+        .toList();
+  }
+
+  @override
   Future<ParentPass> issueParentPass(int customerId) async {
     final response = await _request(
       () => dio.post('/v1/pos/customers/$customerId/parent-pass'),
@@ -408,6 +460,7 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
     required int cashUzs,
     required int cardUzs,
     Map<String, String> entryDiscounts = const {},
+    Map<String, int> birthdayAges = const {},
     int companions = 0,
     String? discountId,
     ({String code, String childId})? promoCode,
@@ -435,7 +488,11 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
           if (entryDiscounts.isNotEmpty)
             'entryDiscounts': [
               for (final entry in entryDiscounts.entries)
-                {'childId': entry.key, 'discountId': entry.value},
+                {
+                  'childId': entry.key,
+                  'discountId': entry.value,
+                  'birthdayAge': ?birthdayAges[entry.key],
+                },
             ],
           if (companions > 0) 'companions': companions,
           'discountId': ?discountId,
@@ -549,6 +606,7 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
       firstName: json['firstName'] as String,
       lastName: json['lastName'] as String?,
       birthDate: DateTime.parse(json['birthDate'] as String),
+      groupSeat: (json['groupSeat'] as num?)?.toInt(),
     );
   }
 

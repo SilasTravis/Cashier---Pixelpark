@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -127,6 +128,8 @@ void _terminalFeature(String appVersion) {
       lastUpdateFailure: sl<UpdateFailureLog>().current,
       hostname: () => Platform.localHostname,
       osVersion: () => Platform.operatingSystemVersion,
+      onPrintEntryQr: (value) =>
+          unawaited(sl<LocalSource>().setPrintEntryQr(value)),
     ),
     dispose: (service) => service.dispose(),
   );

@@ -68,8 +68,15 @@ class _CustomerResultsListState extends State<CustomerResultsList> {
             ),
           );
         } else if (state.results.isEmpty) {
-          content = RegExp(r'^\d{9}$').hasMatch(query)
+          content = query == state.phoneDigits && state.canCreateWithPhone
               ? const _NotFoundCard()
+              : state.foreignPhone && state.phoneDigits.startsWith('998')
+              // 998… is an Uzbek number — it must go through the normal
+              // +998 keypad, not be registered as "foreign".
+              ? _CenteredHint(
+                  icon: PhosphorIconsRegular.warningCircle,
+                  text: l10n.foreignPhoneIsUzbek,
+                )
               : _CenteredHint(
                   icon: PhosphorIconsRegular.userCircleDashed,
                   text: l10n.phoneNotFound,
@@ -363,7 +370,9 @@ class _NotFoundCardState extends State<_NotFoundCard> {
                 Text(l10n.phoneNotFound, style: p.heading),
                 const SizedBox(height: 2),
                 Text(
-                  l10n.accountNotFoundForPhone(state.phoneDigits),
+                  l10n.accountNotFoundForPhone(
+                    formatPhoneNumber(state.fullPhone),
+                  ),
                   style: p.bodyMuted.copyWith(fontSize: 13),
                 ),
                 const SizedBox(height: 14),
