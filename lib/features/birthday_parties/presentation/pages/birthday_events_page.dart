@@ -10,6 +10,7 @@ import '../../domain/birthday_party.dart';
 import '../bloc/birthday_events_cubit.dart';
 import '../model/event_groups.dart';
 import '../widgets/event_card.dart';
+import '../widgets/event_detail_dialog.dart';
 
 /// Tadbirlar tab: the branch's birthday parties by segment, grouped by date.
 class BirthdayEventsPage extends StatelessWidget {
@@ -18,8 +19,8 @@ class BirthdayEventsPage extends StatelessWidget {
   /// Reserved for the detail dialog (Task C6) to jump to the parent account.
   final ValueChanged<Customer>? onOpenCustomer;
 
-  /// Card / primary-button tap. C6 wires the detail dialog here and calls
-  /// `cubit.replace(updated)` with the party it returns.
+  /// Card / primary-button tap. Defaults to the detail dialog; every change
+  /// made there is swapped into the list through `cubit.replace`.
   final ValueChanged<BirthdayParty>? onOpen;
 
   @override
@@ -89,12 +90,15 @@ class _View extends StatelessWidget {
             ),
             if (state.loading) const LinearProgressIndicator(minHeight: 2),
             Expanded(
-              child: state.error != null && state.parties.isEmpty
+              child: state.failed && state.parties.isEmpty
                   ? Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(state.error!, style: TextStyle(color: p.danger)),
+                          Text(
+                            state.error ?? l10n.eventsLoadError,
+                            style: TextStyle(color: p.danger),
+                          ),
                           const SizedBox(height: 8),
                           OutlinedButton(
                             onPressed: cubit.refresh,
@@ -137,7 +141,13 @@ class _View extends StatelessWidget {
                               child: EventCard(
                                 party: party,
                                 today: today,
-                                onOpen: onOpen ?? (_) {},
+                                onOpen:
+                                    onOpen ??
+                                    (party) => showEventDetailDialog(
+                                      context,
+                                      party,
+                                      onChanged: cubit.replace,
+                                    ),
                               ),
                             ),
                         ],

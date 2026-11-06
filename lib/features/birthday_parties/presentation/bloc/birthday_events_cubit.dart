@@ -11,15 +11,21 @@ class BirthdayEventsState extends Equatable {
     this.parties = const [],
     this.loading = false,
     this.error,
+    this.failed = false,
   });
 
   final BirthdayPartyStatus status;
   final List<BirthdayParty> parties;
   final bool loading;
+
+  /// The server's own message when it sent one.
   final String? error;
 
+  /// The last load failed ([error] null = show the generic localized text).
+  final bool failed;
+
   @override
-  List<Object?> get props => [status, parties, loading, error];
+  List<Object?> get props => [status, parties, loading, error, failed];
 }
 
 class BirthdayEventsCubit extends Cubit<BirthdayEventsState> {
@@ -47,9 +53,8 @@ class BirthdayEventsCubit extends Cubit<BirthdayEventsState> {
         BirthdayEventsState(
           status: status,
           parties: state.parties,
-          error: error is ServerException
-              ? error.message
-              : 'Unable to load events',
+          error: error is ServerException ? error.message : null,
+          failed: true,
         ),
       );
     }
@@ -71,6 +76,7 @@ class BirthdayEventsCubit extends Cubit<BirthdayEventsState> {
         parties: list,
         loading: state.loading,
         error: state.error,
+        failed: state.failed,
       ),
     );
   }
