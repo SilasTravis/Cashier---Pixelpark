@@ -62,7 +62,7 @@ class _Harness {
   UpdateFailureRecord? failure;
   String hostname = 'KASSA-1';
   String osVersion = 'Windows 10 Pro 22H2 (build 19045)';
-  final hasTurnstile = <bool>[];
+  final printEntryQr = <bool>[];
 
   late final TerminalHeartbeatService service = TerminalHeartbeatService(
     api: api,
@@ -76,7 +76,7 @@ class _Harness {
     lastUpdateFailure: () => failure,
     hostname: () => hostname,
     osVersion: () => osVersion,
-    onHasTurnstile: hasTurnstile.add,
+    onPrintEntryQr: printEntryQr.add,
   );
 
   List<Map<String, dynamic>> get bodies => [
@@ -157,19 +157,19 @@ void main() {
     );
   });
 
-  test('hands the reply hasTurnstile to the till; 204 hands nothing', () async {
+  test('hands the reply printEntryQr to the till; 204 hands nothing', () async {
     final h = _Harness(
       adapter: _RecordingAdapter(
         statusCode: 200,
-        body: '{"hasTurnstile":false}',
+        body: '{"printEntryQr":false}',
       ),
     );
     await h.service.beat();
-    expect(h.hasTurnstile, [false]);
+    expect(h.printEntryQr, [false]);
 
     final old = _Harness();
     await old.service.beat();
-    expect(old.hasTurnstile, isEmpty);
+    expect(old.printEntryQr, isEmpty);
   });
 
   test('sends nothing without a session', () async {

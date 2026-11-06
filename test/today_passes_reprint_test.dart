@@ -237,7 +237,7 @@ void main() {
     expect(find.byKey(const ValueKey('reprint-k1')), findsOneWidget);
   });
 
-  testWidgets('no turnstile at the branch: the list has no re-print', (
+  testWidgets('entry QR off for the cashier: the list has no re-print', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -250,7 +250,7 @@ void main() {
             childNames: const {'k1': 'Ali', 'k2': 'Vali'},
             busy: false,
             canReprint: false,
-            onReprint: (_) => fail('no re-print without a turnstile'),
+            onReprint: (_) => fail('no re-print with entry QR off'),
             onStale: () {},
           ),
         ),

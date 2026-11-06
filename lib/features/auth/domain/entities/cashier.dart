@@ -1,23 +1,14 @@
 import 'package:equatable/equatable.dart';
 
 class Branch extends Equatable {
-  const Branch({
-    required this.id,
-    required this.slug,
-    required this.name,
-    this.hasTurnstile = true,
-  });
+  const Branch({required this.id, required this.slug, required this.name});
 
   final String id;
   final String slug;
   final String name;
 
-  /// The dashboard's per-branch "Turniket bor" switch. False: the till
-  /// prints no entry QR (stickers/tickets), only the payment receipt.
-  final bool hasTurnstile;
-
   @override
-  List<Object?> get props => [id, slug, name, hasTurnstile];
+  List<Object?> get props => [id, slug, name];
 }
 
 class Cashier extends Equatable {
@@ -27,6 +18,7 @@ class Cashier extends Equatable {
     required this.username,
     required this.branchId,
     required this.active,
+    this.printEntryQr = true,
   });
 
   final String id;
@@ -35,8 +27,18 @@ class Cashier extends Equatable {
   final String branchId;
   final bool active;
 
+  /// Dashboard switch "Kirish QR": print each child's entry QR at checkout.
+  final bool printEntryQr;
+
   @override
-  List<Object?> get props => [id, fullName, username, branchId, active];
+  List<Object?> get props => [
+    id,
+    fullName,
+    username,
+    branchId,
+    active,
+    printEntryQr,
+  ];
 }
 
 /// The signed-in cashier together with its branch — what the app shell
