@@ -123,8 +123,8 @@ void _terminalFeature(String appVersion) {
       lastUpdateFailure: sl<UpdateFailureLog>().current,
       hostname: () => Platform.localHostname,
       osVersion: () => Platform.operatingSystemVersion,
-      onHasTurnstile: (value) =>
-          unawaited(sl<LocalSource>().setBranchHasTurnstile(value)),
+      onPrintEntryQr: (value) =>
+          unawaited(sl<LocalSource>().setPrintEntryQr(value)),
     ),
     dispose: (service) => service.dispose(),
   );

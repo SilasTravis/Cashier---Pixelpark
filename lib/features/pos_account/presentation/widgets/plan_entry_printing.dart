@@ -74,7 +74,7 @@ bool isSchoolGroup(PosEntryResult result) =>
 /// and why — not the plan's list price.
 ///
 /// [printQr] false (the cashier's dashboard switch "Kirish QR" is off — a
-/// branch without a QR turnstile) prints no passes at all; failures still
+/// till that should hand out only the receipt) prints no passes at all; failures still
 /// surface.
 void printPlanEntryLabels(
   BuildContext context,

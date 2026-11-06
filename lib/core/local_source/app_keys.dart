@@ -11,11 +11,11 @@ abstract final class AppKeys {
   static const String branchId = 'branchId';
   static const String branchName = 'branchName';
 
-  /// The signed-in branch's dashboard switch "Turniket bor": with a
-  /// turnstile the till prints each child's entry QR; without one only the
-  /// payment receipt. Session: refreshed on login and by every terminal
-  /// heartbeat, cleared on logout (absent = has a turnstile).
-  static const String branchHasTurnstile = 'branchHasTurnstile';
+  /// The signed-in cashier's dashboard checkbox "Kirish QR chop etish": on,
+  /// the till prints each child's entry QR; off, only the payment receipt.
+  /// Session: refreshed on login and by every terminal heartbeat, cleared
+  /// on logout (absent = on).
+  static const String printEntryQr = 'printEntryQr';
 
   static const String apiBaseUrl = 'apiBaseUrl';
   static const String languageCode = 'languageCode';

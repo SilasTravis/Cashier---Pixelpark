@@ -21,7 +21,7 @@ class LocalSource {
       AppKeys.cashierUsername,
       AppKeys.branchId,
       AppKeys.branchName,
-      AppKeys.branchHasTurnstile,
+      AppKeys.printEntryQr,
     ]);
   }
 
@@ -65,15 +65,15 @@ class LocalSource {
   String? getBranchId() => box.get(AppKeys.branchId) as String?;
   String? getBranchName() => box.get(AppKeys.branchName) as String?;
 
-  Future<void> setBranchHasTurnstile(bool value) async {
-    await box.put(AppKeys.branchHasTurnstile, value);
+  Future<void> setPrintEntryQr(bool value) async {
+    await box.put(AppKeys.printEntryQr, value);
   }
 
-  /// Whether this till's branch has a QR turnstile — only then does
+  /// The signed-in cashier's "Kirish QR chop etish" — only then does
   /// checkout print each child's entry QR (sticker / ticket), the parent QR
   /// and re-prints. True when never set.
-  bool getBranchHasTurnstile() =>
-      box.get(AppKeys.branchHasTurnstile, defaultValue: true) as bool;
+  bool getPrintEntryQr() =>
+      box.get(AppKeys.printEntryQr, defaultValue: true) as bool;
 
   Future<void> setApiBaseUrl(String value) async {
     await box.put(AppKeys.apiBaseUrl, value);
