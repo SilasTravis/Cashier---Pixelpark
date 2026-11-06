@@ -97,6 +97,7 @@ class ShiftTotals extends Equatable {
     required this.topupUzs,
     required this.balanceSalesUzs,
     this.birthdayUzs = 0,
+    this.birthdayRefundedUzs = 0,
     this.refundedUzs = 0,
     this.discountUzs = 0,
     this.entries,
@@ -116,6 +117,10 @@ class ShiftTotals extends Equatable {
   /// in cash or card). Informational, like [topupUzs]: already counted in
   /// [cashUzs]/[cardUzs]. 0 from a server without it.
   final int birthdayUzs;
+
+  /// Birthday-party money handed back this shift (cash refunds and deposits
+  /// returned to a balance). Informational. 0 from a server without it.
+  final int birthdayRefundedUzs;
 
   /// Physical money handed back during the shift. Money credited to a stored
   /// balance is not counted — it never left the drawer.
@@ -142,6 +147,7 @@ class ShiftTotals extends Equatable {
     'topupUzs': topupUzs,
     'balanceSalesUzs': balanceSalesUzs,
     'birthdayUzs': birthdayUzs,
+    'birthdayRefundedUzs': birthdayRefundedUzs,
     'refundedUzs': refundedUzs,
     'discountUzs': discountUzs,
     if (entries != null) 'entries': entries!.toJson(),
@@ -158,6 +164,7 @@ class ShiftTotals extends Equatable {
       topupUzs: read('topupUzs'),
       balanceSalesUzs: read('balanceSalesUzs'),
       birthdayUzs: read('birthdayUzs'),
+      birthdayRefundedUzs: read('birthdayRefundedUzs'),
       refundedUzs: read('refundedUzs'),
       discountUzs: read('discountUzs'),
       entries: json['entries'] is Map
@@ -186,6 +193,7 @@ class ShiftTotals extends Equatable {
     topupUzs,
     balanceSalesUzs,
     birthdayUzs,
+    birthdayRefundedUzs,
     refundedUzs,
     discountUzs,
     entries,

@@ -11,6 +11,7 @@ String birthdayErrorText(AppLocalization l10n, String? code, String? message) {
     'BIRTHDAY_PARTY_NOT_FOUND' => l10n.birthdayErrPartyNotFound,
     'BIRTHDAY_PARTY_NOT_BOOKED' => l10n.birthdayErrNotBooked,
     'BIRTHDAY_COMPLETE_TOO_EARLY' => l10n.birthdayErrCompleteTooEarly,
+    'BIRTHDAY_REQUEST_CONFLICT' => l10n.bdRequestConflict,
     _ => null,
   };
   return fixed ?? message ?? l10n.birthdayErrGeneric;

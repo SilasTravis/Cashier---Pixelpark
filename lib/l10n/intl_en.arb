@@ -845,5 +845,19 @@
   "bdNetPaid": "Net paid: {amount}",
   "@bdNetPaid": {"placeholders": {"amount": {"type": "String"}}},
   "bdCancelledReason": "Reason: {reason}",
-  "@bdCancelledReason": {"placeholders": {"reason": {"type": "String"}}}
+  "@bdCancelledReason": {"placeholders": {"reason": {"type": "String"}}},
+  "bdRequestConflict": "This action was already done — the event was refreshed",
+  "bdClose": "Close",
+  "bdUnclearHint": "No response received. Amounts are locked — try again or close.",
+  "bdTakeNow": "Collect now",
+  "bdFromBalanceLine": "From balance −{amount}",
+  "@bdFromBalanceLine": {"placeholders": {"amount": {"type": "String"}}},
+  "bdSplitMethod": "Split {cash} + {card}",
+  "@bdSplitMethod": {"placeholders": {"cash": {"type": "String"}, "card": {"type": "String"}}},
+  "bdKeptChip": "Kept {amount}",
+  "@bdKeptChip": {"placeholders": {"amount": {"type": "String"}}},
+  "bdCancelledChip": "Cancelled",
+  "shiftBirthdayRefunded": "Birthday refunded",
+  "bdBalanceUnknown": "Balance unknown",
+  "bdKeptLabel": "Kept"
 }

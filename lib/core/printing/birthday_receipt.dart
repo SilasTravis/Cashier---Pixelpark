@@ -29,15 +29,26 @@ class BirthdayReceipt {
   factory BirthdayReceipt.fromParty(
     BirthdayParty p, {
     BirthdayPartyPayment? payment,
+    List<BirthdayPartyPayment> refunds = const [],
     bool withItems = false,
   }) {
     final children = p.extraChildren > 0
         ? '${p.childCount} + ${p.extraChildren}'
         : '${p.childCount}';
-    final isRefund = payment?.kind == BirthdayPaymentKind.refund;
+    // A cancel's new refund rows (one per destination) make this a refund
+    // receipt; so does a single refund row passed as [payment].
+    final refundRows = refunds.isNotEmpty
+        ? refunds
+        : [if (payment?.kind == BirthdayPaymentKind.refund) payment!];
+    final isRefund = refundRows.isNotEmpty;
+    final shown = isRefund ? null : payment;
     return BirthdayReceipt(
-      title: "Tug'ilgan kun",
-      createdAt: payment?.createdAt ?? p.createdAt,
+      title: isRefund ? "Tug'ilgan kun - qaytarish" : "Tug'ilgan kun",
+      createdAt: isRefund
+          ? refundRows
+                .map((r) => r.createdAt)
+                .reduce((a, b) => b.isAfter(a) ? b : a)
+          : payment?.createdAt ?? p.createdAt,
       details: [
         ('Ota-ona', p.customerName),
         ('Filial', p.branchName),
@@ -46,15 +57,17 @@ class BirthdayReceipt {
         ('Bayram kuni', _dmy(p.partyDate)),
         ('Narx', groupDigits(p.agreedPriceUzs)),
         if (p.discountUzs > 0) ('Chegirma', groupDigits(p.discountUzs)),
-        if (payment != null && isRefund)
-          ('Qaytarildi', groupDigits(payment.amountUzs))
-        else if (payment != null) ...[
-          if (payment.fromBalanceUzs > 0)
-            ('Balansdan', groupDigits(payment.fromBalanceUzs)),
-          if (payment.cashUzs > 0) ('Naqd', groupDigits(payment.cashUzs)),
-          if (payment.cardUzs > 0) ('Karta', groupDigits(payment.cardUzs)),
+        if (isRefund)
+          for (final r in refundRows)
+            (_refundLabel(r), groupDigits(r.amountUzs))
+        else if (shown != null) ...[
+          if (shown.fromBalanceUzs > 0)
+            ('Balansdan', groupDigits(shown.fromBalanceUzs)),
+          if (shown.cashUzs > 0) ('Naqd', groupDigits(shown.cashUzs)),
+          if (shown.cardUzs > 0) ('Karta', groupDigits(shown.cardUzs)),
         ],
-        if (p.refundedUzs > 0) ('Qaytarilgan', groupDigits(p.refundedUzs)),
+        if (p.refundedUzs > 0 && !isRefund)
+          ('Qaytarilgan', groupDigits(p.refundedUzs)),
       ],
       summary: [
         // Net of refunds, so paid + left always adds up to the price.
@@ -65,9 +78,9 @@ class BirthdayReceipt {
     );
   }
 
-  /// `2026-11-06` -> `06.11.2026`; anything unexpected is printed as is.
-  static String _dmy(String ymd) {
-    final m = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(ymd);
-    return m == null ? ymd : '${m[3]}.${m[2]}.${m[1]}';
-  }
+  /// Where one refund row went: `Balansga` / `Naqd`.
+  static String _refundLabel(BirthdayPartyPayment r) =>
+      r.refundTo == 'balance' ? 'Balansga' : 'Naqd';
+
+  static String _dmy(String ymd) => partyDateLabel(ymd);
 }

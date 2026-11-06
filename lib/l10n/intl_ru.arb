@@ -844,5 +844,19 @@
   "bdNetPaid": "Оплачено (нетто): {amount}",
   "@bdNetPaid": {"placeholders": {"amount": {"type": "String"}}},
   "bdCancelledReason": "Причина: {reason}",
-  "@bdCancelledReason": {"placeholders": {"reason": {"type": "String"}}}
+  "@bdCancelledReason": {"placeholders": {"reason": {"type": "String"}}},
+  "bdRequestConflict": "Это действие уже выполнено — событие обновлено",
+  "bdClose": "Закрыть",
+  "bdUnclearHint": "Ответ не получен. Суммы заблокированы — повторите попытку или закройте.",
+  "bdTakeNow": "Берётся сейчас",
+  "bdFromBalanceLine": "С баланса −{amount}",
+  "@bdFromBalanceLine": {"placeholders": {"amount": {"type": "String"}}},
+  "bdSplitMethod": "Смешанно {cash} + {card}",
+  "@bdSplitMethod": {"placeholders": {"cash": {"type": "String"}, "card": {"type": "String"}}},
+  "bdKeptChip": "Удержано {amount}",
+  "@bdKeptChip": {"placeholders": {"amount": {"type": "String"}}},
+  "bdCancelledChip": "Отменено",
+  "shiftBirthdayRefunded": "Возврат по дню рождения",
+  "bdBalanceUnknown": "Баланс неизвестен",
+  "bdKeptLabel": "Удержано"
 }

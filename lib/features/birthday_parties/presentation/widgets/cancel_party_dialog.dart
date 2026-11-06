@@ -9,6 +9,7 @@ import '../../../../injector_container.dart';
 import '../../data/birthday_parties_repository.dart';
 import '../../domain/birthday_party.dart';
 import '../birthday_error_text.dart';
+import '../birthday_recovery.dart';
 import '../model/cancel_refund_form.dart';
 
 /// "Bekor qilish": a reason and what happens to the money already paid.
@@ -46,6 +47,10 @@ class _CancelPartyDialogState extends State<CancelPartyDialog> {
   /// null = the cashier has not decided yet (only asked when money was paid).
   bool? _refund;
   bool _busy = false;
+
+  /// The last submit ended without a clear answer: the party may be cancelled.
+  /// Reason and refund stay locked and only the same requestId is retried.
+  bool _unclear = false;
   String? _errorCode;
   String? _errorMessage;
 
@@ -94,8 +99,9 @@ class _CancelPartyDialogState extends State<CancelPartyDialog> {
       _errorCode = null;
       _errorMessage = null;
     });
+    final repo = sl<BirthdayPartiesRepository>();
     try {
-      final party = await sl<BirthdayPartiesRepository>().cancel(
+      final party = await repo.cancel(
         widget.party.id,
         reason: _reason.text.trim(),
         refundBalanceUzs: refundBalance,
@@ -103,22 +109,50 @@ class _CancelPartyDialogState extends State<CancelPartyDialog> {
         requestId: _requestId,
       );
       if (mounted) Navigator.of(context).pop(party);
-    } on ServerException catch (e) {
-      if (mounted) {
+    } catch (error) {
+      if (!mounted) return;
+      final code = error is ServerException ? error.code : null;
+      final message = error is ServerException ? error.message : null;
+      if (isUnclearFailure(error)) {
+        // The response may have been lost after the server cancelled it.
+        final fresh = await refetchParty(repo, widget.party.id);
+        if (!mounted) return;
+        if (fresh != null && fresh.status == BirthdayPartyStatus.cancelled) {
+          Navigator.of(context).pop(fresh);
+          return;
+        }
         setState(() {
           _busy = false;
-          _errorCode = e.code ?? 'UNKNOWN';
-          _errorMessage = e.message;
+          _unclear = true;
+          _errorCode = code ?? 'UNKNOWN';
+          _errorMessage = message;
         });
+        return;
       }
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          _busy = false;
-          _errorCode = 'UNKNOWN';
-        });
-      }
+      setState(() {
+        _busy = false;
+        _errorCode = code ?? 'UNKNOWN';
+        _errorMessage = message;
+      });
     }
+  }
+
+  /// Closing after an unclear failure first re-reads the party: it may be
+  /// cancelled after all (then the refund receipt prints).
+  Future<void> _close() async {
+    final navigator = Navigator.of(context);
+    if (!_unclear) {
+      navigator.pop();
+      return;
+    }
+    setState(() => _busy = true);
+    final fresh = await refetchParty(
+      sl<BirthdayPartiesRepository>(),
+      widget.party.id,
+    );
+    final cancelled =
+        fresh != null && fresh.status == BirthdayPartyStatus.cancelled;
+    if (mounted) navigator.pop(cancelled ? fresh : null);
   }
 
   String? _errorText(AppLocalization l10n) => switch (_formError) {
@@ -154,6 +188,7 @@ class _CancelPartyDialogState extends State<CancelPartyDialog> {
                 TextField(
                   key: const ValueKey('bd-cancel-reason'),
                   controller: _reason,
+                  enabled: !_unclear,
                   maxLength: 500,
                   maxLines: 2,
                   decoration: InputDecoration(
@@ -169,61 +204,81 @@ class _CancelPartyDialogState extends State<CancelPartyDialog> {
                   const SizedBox(height: 14),
                   Text(l10n.bdNetPaid(formatUzs(_net)), style: p.heading),
                   const SizedBox(height: 8),
-                  SegmentedButton<bool>(
-                    showSelectedIcon: false,
-                    emptySelectionAllowed: true,
-                    segments: [
-                      ButtonSegment(
-                        value: true,
-                        label: Text(
-                          l10n.bdRefund,
-                          key: const ValueKey('bd-cancel-refund'),
-                        ),
-                      ),
-                      ButtonSegment(
-                        value: false,
-                        label: Text(
-                          l10n.bdNoRefund,
-                          key: const ValueKey('bd-cancel-norefund'),
-                        ),
-                      ),
-                    ],
-                    selected: {?_refund},
-                    onSelectionChanged: (s) {
-                      if (s.isNotEmpty) _choose(s.first);
-                    },
-                  ),
-                  if (_doRefund) ...[
-                    const SizedBox(height: 12),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: _field(
-                            'bd-cancel-balance',
-                            _balance,
-                            l10n.bdToBalance,
+                  IgnorePointer(
+                    ignoring: _unclear,
+                    child: Opacity(
+                      opacity: _unclear ? 0.55 : 1,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          SegmentedButton<bool>(
+                            showSelectedIcon: false,
+                            emptySelectionAllowed: true,
+                            segments: [
+                              ButtonSegment(
+                                value: true,
+                                label: Text(
+                                  l10n.bdRefund,
+                                  key: const ValueKey('bd-cancel-refund'),
+                                ),
+                              ),
+                              ButtonSegment(
+                                value: false,
+                                label: Text(
+                                  l10n.bdNoRefund,
+                                  key: const ValueKey('bd-cancel-norefund'),
+                                ),
+                              ),
+                            ],
+                            selected: {?_refund},
+                            onSelectionChanged: (s) {
+                              if (s.isNotEmpty) _choose(s.first);
+                            },
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _field('bd-cancel-cash', _cash, l10n.bdToCash),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    if (formError != null)
-                      Text(
-                        formError,
-                        key: const ValueKey('bd-cancel-form-error'),
-                        style: TextStyle(color: p.danger, fontSize: 12.5),
-                      )
-                    else
-                      Text(
-                        l10n.bdKept(formatUzs(_net - _balanceUzs - _cashUzs)),
-                        style: p.bodyMuted,
+                          if (_doRefund) ...[
+                            const SizedBox(height: 12),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: _field(
+                                    'bd-cancel-balance',
+                                    _balance,
+                                    l10n.bdToBalance,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _field(
+                                    'bd-cancel-cash',
+                                    _cash,
+                                    l10n.bdToCash,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            if (formError != null)
+                              Text(
+                                formError,
+                                key: const ValueKey('bd-cancel-form-error'),
+                                style: TextStyle(
+                                  color: p.danger,
+                                  fontSize: 12.5,
+                                ),
+                              )
+                            else
+                              Text(
+                                l10n.bdKept(
+                                  formatUzs(_net - _balanceUzs - _cashUzs),
+                                ),
+                                style: p.bodyMuted,
+                              ),
+                          ],
+                        ],
                       ),
-                  ],
+                    ),
+                  ),
                 ],
                 if (_errorCode != null) ...[
                   const SizedBox(height: 12),
@@ -242,6 +297,14 @@ class _CancelPartyDialogState extends State<CancelPartyDialog> {
                       style: TextStyle(color: p.danger, fontSize: 13),
                     ),
                   ),
+                  if (_unclear) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      l10n.bdUnclearHint,
+                      key: const ValueKey('bd-cancel-unclear-hint'),
+                      style: p.bodyMuted.copyWith(fontSize: 12.5),
+                    ),
+                  ],
                 ],
                 const SizedBox(height: 16),
                 Row(
@@ -251,10 +314,9 @@ class _CancelPartyDialogState extends State<CancelPartyDialog> {
                       child: SizedBox(
                         height: 52,
                         child: OutlinedButton(
-                          onPressed: _busy
-                              ? null
-                              : () => Navigator.of(context).pop(),
-                          child: Text(l10n.bdBack),
+                          key: const ValueKey('bd-cancel-close'),
+                          onPressed: _busy ? null : _close,
+                          child: Text(_unclear ? l10n.bdClose : l10n.bdBack),
                         ),
                       ),
                     ),
@@ -277,7 +339,11 @@ class _CancelPartyDialogState extends State<CancelPartyDialog> {
                                     strokeWidth: 2,
                                   ),
                                 )
-                              : Text(l10n.bdCancelConfirm),
+                              : Text(
+                                  _unclear
+                                      ? l10n.eventsRetry
+                                      : l10n.bdCancelConfirm,
+                                ),
                         ),
                       ),
                     ),

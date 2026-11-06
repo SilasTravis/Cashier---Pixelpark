@@ -11,6 +11,7 @@ import '../../domain/birthday_party.dart';
 import '../../domain/birthday_plan.dart' show colorOf;
 import '../bloc/birthday_sell_cubit.dart' show birthdayDateString;
 import '../birthday_error_text.dart';
+import '../birthday_recovery.dart';
 import '../birthday_printing.dart';
 import '../model/event_groups.dart';
 import 'add_children_dialog.dart';
@@ -53,6 +54,25 @@ class _EventDetailDialogState extends State<EventDetailDialog> {
   String? _errorCode;
   String? _errorMessage;
 
+  /// Bumped on every applied result so a slow background refresh never
+  /// overwrites something newer.
+  int _generation = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // The list copy shows meanwhile; the server's current state replaces it.
+    _refresh();
+  }
+
+  /// Re-reads the party from the server (silent when that fails).
+  Future<void> _refresh() async {
+    final generation = _generation;
+    final fresh = await refetchParty(_repo, _party.id);
+    if (fresh == null || !mounted || generation != _generation) return;
+    if (fresh != _party) _apply(fresh);
+  }
+
   BirthdayPartiesRepository get _repo => sl<BirthdayPartiesRepository>();
 
   bool get _booked => _party.status == BirthdayPartyStatus.booked;
@@ -77,6 +97,11 @@ class _EventDetailDialogState extends State<EventDetailDialog> {
           _errorCode = e.code ?? 'UNKNOWN';
           _errorMessage = e.message;
         });
+        // The party moved on (or is gone) under us: show the truth.
+        if (e.code == 'BIRTHDAY_PARTY_NOT_FOUND' ||
+            e.code == 'BIRTHDAY_PARTY_NOT_BOOKED') {
+          await _refresh();
+        }
       }
     } catch (_) {
       if (mounted) {
@@ -90,6 +115,7 @@ class _EventDetailDialogState extends State<EventDetailDialog> {
   }
 
   void _apply(BirthdayParty updated) {
+    _generation++;
     widget.onChanged?.call(updated);
     if (mounted) {
       setState(() {
@@ -99,8 +125,8 @@ class _EventDetailDialogState extends State<EventDetailDialog> {
     }
   }
 
-  /// The payment row [updated] gained over [old] (a payment or a refund).
-  BirthdayPartyPayment? _added(
+  /// The payment rows [updated] gained over [old] (payments or refunds).
+  List<BirthdayPartyPayment> _added(
     BirthdayParty old,
     BirthdayParty updated,
     BirthdayPaymentKind kind,
@@ -108,29 +134,38 @@ class _EventDetailDialogState extends State<EventDetailDialog> {
     final ids = old.payments.map((p) => p.id).toSet();
     return updated.payments
         .where((p) => p.kind == kind && !ids.contains(p.id))
-        .lastOrNull;
+        .toList();
   }
 
   Future<void> _addPayment() async {
     final old = _party;
     final updated = await showAddPaymentSheet(context, old);
-    if (updated == null || !mounted) return;
+    if (!mounted) return;
+    if (updated == null) {
+      // Closed without a result: the payment may still have landed.
+      await _refresh();
+      return;
+    }
     _apply(updated);
     await printBirthdayReceipt(
       context,
       updated,
-      payment: _added(old, updated, BirthdayPaymentKind.payment),
+      payment: _added(old, updated, BirthdayPaymentKind.payment).lastOrNull,
     );
   }
 
   Future<void> _cancel() async {
     final old = _party;
     final updated = await showCancelPartyDialog(context, old);
-    if (updated == null || !mounted) return;
+    if (!mounted) return;
+    if (updated == null) {
+      await _refresh();
+      return;
+    }
     _apply(updated);
-    final refund = _added(old, updated, BirthdayPaymentKind.refund);
-    if (refund != null) {
-      await printBirthdayReceipt(context, updated, payment: refund);
+    final refunds = _added(old, updated, BirthdayPaymentKind.refund);
+    if (refunds.isNotEmpty) {
+      await printBirthdayReceipt(context, updated, refunds: refunds);
     }
     if (mounted) Navigator.of(context).pop();
   }
@@ -270,7 +305,7 @@ class _EventDetailDialogState extends State<EventDetailDialog> {
               const SizedBox(height: 3),
               Text(
                 [
-                  party.partyDate,
+                  partyDateLabel(party.partyDate),
                   if (party.soldByUsername != null) party.soldByUsername!,
                   party.customerPhone,
                 ].join(' · '),

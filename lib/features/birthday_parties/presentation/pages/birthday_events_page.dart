@@ -50,7 +50,12 @@ class _View extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalization.of(context);
     final p = PosPalette.of(context);
-    return BlocBuilder<BirthdayEventsCubit, BirthdayEventsState>(
+    return BlocConsumer<BirthdayEventsCubit, BirthdayEventsState>(
+      // A failed refresh keeps the old list on screen: say so, don't stay mute.
+      listenWhen: (a, b) => !a.failed && b.failed && b.parties.isNotEmpty,
+      listener: (context, state) => ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.eventsLoadError))),
       builder: (context, state) {
         final cubit = context.read<BirthdayEventsCubit>();
         final today = tashkentToday();

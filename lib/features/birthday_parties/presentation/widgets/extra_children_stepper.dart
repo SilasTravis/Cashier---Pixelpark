@@ -3,6 +3,7 @@ import 'package:phosphor_icons/phosphor_icons.dart';
 
 import '../../../../core/theme/pos_palette.dart';
 import '../../../../generated/l10n.dart';
+import '../bloc/birthday_sell_cubit.dart' show maxExtraChildren;
 
 /// Step "Qo'shimcha bola": `+` only — a miscounted cashier resets with
 /// "0 ga qaytarish" (tap the number) instead of a minus that could go below
@@ -28,13 +29,14 @@ class ExtraChildrenStepper extends StatelessWidget {
     return Row(
       children: [
         Expanded(child: Text(hint, style: p.bodyMuted.copyWith(fontSize: 13))),
-        PopupMenuButton<void>(
+        PopupMenuButton<bool>(
           key: const ValueKey('birthday-extra-count'),
           enabled: count > 0,
           tooltip: '',
           onSelected: (_) => onReset(),
           itemBuilder: (_) => [
-            PopupMenuItem<void>(
+            PopupMenuItem<bool>(
+              value: true,
               key: const ValueKey('birthday-extra-reset'),
               child: Text(l10n.birthdayResetExtra),
             ),
@@ -59,7 +61,7 @@ class ExtraChildrenStepper extends StatelessWidget {
           height: 48,
           child: IconButton.filled(
             key: const ValueKey('birthday-extra-plus'),
-            onPressed: onAdd,
+            onPressed: count >= maxExtraChildren ? null : onAdd,
             icon: const Icon(PhosphorIconsRegular.plus, size: 20),
           ),
         ),

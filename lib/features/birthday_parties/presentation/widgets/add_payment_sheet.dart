@@ -7,11 +7,11 @@ import '../../../../core/utils/currency.dart';
 import '../../../../core/widgets/payment_method_selector.dart';
 import '../../../../generated/l10n.dart';
 import '../../../../injector_container.dart';
-import '../../../pos_account/data/pos_account_repository_impl.dart';
 import '../../data/birthday_parties_repository.dart';
 import '../../domain/birthday_party.dart';
 import '../../domain/birthday_payment.dart';
 import '../birthday_error_text.dart';
+import '../birthday_recovery.dart';
 import 'birthday_payment_block.dart';
 
 /// "+ To'lov qo'shish": takes (part of) the remaining debt. Resolves with the
@@ -54,6 +54,13 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
   bool _payFromBalance = false;
   PaymentMethod _method = PaymentMethod.cash;
   bool _busy = false;
+  bool _balanceFailed = false;
+
+  /// The last submit ended without a clear answer: the payment may exist. The
+  /// amounts stay locked to [_pendingMoney] and only the same requestId is
+  /// retried.
+  bool _unclear = false;
+  BirthdayMoney? _pendingMoney;
   String? _errorCode;
   String? _errorMessage;
 
@@ -72,21 +79,19 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
   }
 
   Future<void> _loadBalance() async {
-    try {
-      final result = await sl<PosAccountRepository>().searchCustomers(
-        widget.party.customerPhone,
-      );
-      final balance = result.fold<int?>(
-        (_) => null,
-        (list) => list
-            .where((c) => c.id == widget.party.customerId)
-            .firstOrNull
-            ?.balance,
-      );
-      if (balance != null && mounted) setState(() => _balance = balance);
-    } catch (_) {
-      // No balance known: the cashier can still take cash / card.
-    }
+    final balance = await lookupCustomerBalance(
+      widget.party.customerId,
+      widget.party.customerPhone,
+    );
+    if (!mounted) return;
+    setState(() {
+      if (balance == null) {
+        _balanceFailed = true;
+        _payFromBalance = false;
+      } else {
+        _balance = balance;
+      }
+    });
   }
 
   int get _amountUzs => parseUzs(_amount.text) ?? 0;
@@ -109,35 +114,65 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
 
   Future<void> _submit() async {
     if (!_canSubmit) return;
-    final money = _payment.money;
+    // After an unclear failure the very same money is retried.
+    final money = _pendingMoney ?? _payment.money;
     setState(() {
       _busy = true;
       _errorCode = null;
       _errorMessage = null;
     });
+    final repo = sl<BirthdayPartiesRepository>();
     try {
-      final party = await sl<BirthdayPartiesRepository>().pay(
-        widget.party.id,
-        money,
-        _requestId,
-      );
+      final party = await repo.pay(widget.party.id, money, _requestId);
       if (mounted) Navigator.of(context).pop(party);
-    } on ServerException catch (e) {
-      if (mounted) {
+    } catch (error) {
+      if (!mounted) return;
+      final code = error is ServerException ? error.code : null;
+      final message = error is ServerException ? error.message : null;
+      if (isUnclearFailure(error)) {
+        // The response may have been lost after the server took the money.
+        final fresh = await refetchParty(repo, widget.party.id);
+        if (!mounted) return;
+        if (fresh != null && paymentReflected(widget.party, fresh, money)) {
+          Navigator.of(context).pop(fresh);
+          return;
+        }
         setState(() {
           _busy = false;
-          _errorCode = e.code ?? 'UNKNOWN';
-          _errorMessage = e.message;
+          _unclear = true;
+          _pendingMoney = money;
+          _errorCode = code ?? 'UNKNOWN';
+          _errorMessage = message;
         });
+        return;
       }
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          _busy = false;
-          _errorCode = 'UNKNOWN';
-        });
-      }
+      setState(() {
+        _busy = false;
+        _errorCode = code ?? 'UNKNOWN';
+        _errorMessage = message;
+      });
     }
+  }
+
+  /// Closing after an unclear failure first re-reads the party: the payment
+  /// may have landed after all (then it counts and its receipt prints).
+  Future<void> _close() async {
+    final navigator = Navigator.of(context);
+    if (!_unclear) {
+      navigator.pop();
+      return;
+    }
+    setState(() => _busy = true);
+    final fresh = await refetchParty(
+      sl<BirthdayPartiesRepository>(),
+      widget.party.id,
+    );
+    final money = _pendingMoney;
+    final landed =
+        fresh != null &&
+        money != null &&
+        paymentReflected(widget.party, fresh, money);
+    if (mounted) navigator.pop(landed ? fresh : null);
   }
 
   @override
@@ -165,6 +200,7 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
                 TextField(
                   key: const ValueKey('bd-pay-amount'),
                   controller: _amount,
+                  enabled: !_unclear,
                   keyboardType: TextInputType.number,
                   inputFormatters: const [ThousandsInputFormatter()],
                   decoration: InputDecoration(
@@ -174,16 +210,24 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
                   onChanged: (_) => setState(() {}),
                 ),
                 const SizedBox(height: 12),
-                BirthdayPaymentBlock(
-                  payment: _payment,
-                  balanceUzs: _balance,
-                  payFromBalance: _payFromBalance,
-                  onPayFromBalance: (v) => setState(() => _payFromBalance = v),
-                  method: _method,
-                  onMethod: (m) => setState(() => _method = m),
-                  cashController: _cash,
-                  cardController: _card,
-                  onChanged: () => setState(() {}),
+                IgnorePointer(
+                  ignoring: _unclear,
+                  child: Opacity(
+                    opacity: _unclear ? 0.55 : 1,
+                    child: BirthdayPaymentBlock(
+                      payment: _payment,
+                      balanceUnknown: _balanceFailed,
+                      balanceUzs: _balance,
+                      payFromBalance: _payFromBalance,
+                      onPayFromBalance: (v) =>
+                          setState(() => _payFromBalance = v),
+                      method: _method,
+                      onMethod: (m) => setState(() => _method = m),
+                      cashController: _cash,
+                      cardController: _card,
+                      onChanged: () => setState(() {}),
+                    ),
+                  ),
                 ),
                 if (_errorCode != null) ...[
                   const SizedBox(height: 12),
@@ -202,6 +246,14 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
                       style: TextStyle(color: p.danger, fontSize: 13),
                     ),
                   ),
+                  if (_unclear) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      l10n.bdUnclearHint,
+                      key: const ValueKey('bd-pay-unclear-hint'),
+                      style: p.bodyMuted.copyWith(fontSize: 12.5),
+                    ),
+                  ],
                 ],
                 const SizedBox(height: 16),
                 Row(
@@ -211,10 +263,9 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
                       child: SizedBox(
                         height: 52,
                         child: OutlinedButton(
-                          onPressed: _busy
-                              ? null
-                              : () => Navigator.of(context).pop(),
-                          child: Text(l10n.cancel),
+                          key: const ValueKey('bd-pay-close'),
+                          onPressed: _busy ? null : _close,
+                          child: Text(_unclear ? l10n.bdClose : l10n.cancel),
                         ),
                       ),
                     ),
@@ -236,7 +287,11 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
                                 )
                               : FittedBox(
                                   fit: BoxFit.scaleDown,
-                                  child: Text(l10n.bdPaySubmit),
+                                  child: Text(
+                                    _unclear
+                                        ? l10n.eventsRetry
+                                        : l10n.bdPaySubmit,
+                                  ),
                                 ),
                         ),
                       ),

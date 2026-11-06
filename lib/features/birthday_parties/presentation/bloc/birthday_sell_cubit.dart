@@ -5,9 +5,13 @@ import 'package:uuid/uuid.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/widgets/payment_method_selector.dart';
 import '../../data/birthday_parties_repository.dart';
+import '../birthday_recovery.dart';
 import '../../domain/birthday_party.dart';
 import '../../domain/birthday_payment.dart';
 import '../../domain/birthday_plan.dart';
+
+/// The backend DTO caps extra children per party at 50.
+const maxExtraChildren = 50;
 
 String birthdayDateString(DateTime date) =>
     '${date.year.toString().padLeft(4, '0')}-'
@@ -30,6 +34,8 @@ class BirthdaySellState extends Equatable {
     this.cashInput = '',
     this.cardInput = '',
     this.busy = false,
+    this.balanceUzs = 0,
+    this.unclear = false,
     this.errorCode,
     this.errorMessage,
     this.party,
@@ -53,6 +59,15 @@ class BirthdaySellState extends Equatable {
   final String cashInput;
   final String cardInput;
   final bool busy;
+
+  /// The customer's balance, re-read after a balance refusal.
+  final int balanceUzs;
+
+  /// The last submit ended without a clear answer (timeout, dropped
+  /// connection): the sale may or may not exist. The amounts are locked and
+  /// only a retry with the same [BirthdaySellCubit.requestId] (or closing) is
+  /// offered.
+  final bool unclear;
   final String? errorCode;
   final String? errorMessage;
 
@@ -71,9 +86,9 @@ class BirthdaySellState extends Equatable {
   int get agreedUzs => agreedOverrideUzs ?? listPriceUzs;
 
   int get discountUzs =>
-      agreedUzs < listPriceUzs ? listPriceUzs - agreedUzs : 0;
+      agreedUzs > 0 && agreedUzs < listPriceUzs ? listPriceUzs - agreedUzs : 0;
 
-  BirthdayPayment payment(int balanceUzs) => BirthdayPayment.compute(
+  BirthdayPayment get payment => BirthdayPayment.compute(
     dueUzs: agreedUzs,
     balanceUzs: balanceUzs,
     deposit: deposit,
@@ -84,8 +99,8 @@ class BirthdaySellState extends Equatable {
     cardInput: cardInput,
   );
 
-  bool canSubmit(int balanceUzs) =>
-      !busy && size != null && agreedUzs > 0 && payment(balanceUzs).isValid;
+  bool get canSubmit =>
+      !busy && size != null && agreedUzs > 0 && payment.isValid;
 
   BirthdaySellState copyWith({
     bool? loading,
@@ -103,6 +118,8 @@ class BirthdaySellState extends Equatable {
     String? cashInput,
     String? cardInput,
     bool? busy,
+    int? balanceUzs,
+    bool? unclear,
     String? errorCode,
     String? errorMessage,
     bool clearError = false,
@@ -124,6 +141,8 @@ class BirthdaySellState extends Equatable {
     cashInput: cashInput ?? this.cashInput,
     cardInput: cardInput ?? this.cardInput,
     busy: busy ?? this.busy,
+    balanceUzs: balanceUzs ?? this.balanceUzs,
+    unclear: unclear ?? this.unclear,
     errorCode: clearError ? null : (errorCode ?? this.errorCode),
     errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     party: party ?? this.party,
@@ -145,6 +164,8 @@ class BirthdaySellState extends Equatable {
     cashInput,
     cardInput,
     busy,
+    balanceUzs,
+    unclear,
     errorCode,
     errorMessage,
     party,
@@ -155,12 +176,27 @@ class BirthdaySellState extends Equatable {
 /// life of the sheet, so a retry after a timeout (same sheet, same tap) is the
 /// same sale on the server and never books twice.
 class BirthdaySellCubit extends Cubit<BirthdaySellState> {
-  BirthdaySellCubit(this._repository, {DateTime? today})
-    : requestId = const Uuid().v4(),
-      super(BirthdaySellState(partyDate: today ?? DateTime.now()));
+  BirthdaySellCubit(
+    this._repository, {
+    DateTime? today,
+    int balanceUzs = 0,
+    Future<int?> Function()? balanceLookup,
+  }) : requestId = const Uuid().v4(),
+       // ignore: prefer_initializing_formals
+       _balanceLookup = balanceLookup,
+       super(
+         BirthdaySellState(
+           partyDate: today ?? DateTime.now(),
+           balanceUzs: balanceUzs,
+         ),
+       );
 
   final BirthdayPartiesRepository _repository;
+  final Future<int?> Function()? _balanceLookup;
   final String requestId;
+
+  /// Amounts are frozen once a submit ended unclearly.
+  bool get _locked => state.unclear;
 
   Future<void> load() async {
     try {
@@ -170,10 +206,13 @@ class BirthdaySellCubit extends Cubit<BirthdaySellState> {
       emit(
         state.copyWith(
           loading: false,
-          errorCode: e.code,
+          errorCode: e.code ?? 'UNKNOWN',
           errorMessage: e.message,
         ),
       );
+    } catch (_) {
+      // Never leave the spinner hanging on an unexpected failure.
+      emit(state.copyWith(loading: false, errorCode: 'UNKNOWN'));
     }
   }
 
@@ -181,7 +220,7 @@ class BirthdaySellCubit extends Cubit<BirthdaySellState> {
   /// total (and a deposit that no longer fits) start over.
   void selectPlan(String id) {
     final plan = state.plans.where((p) => p.id == id).firstOrNull;
-    if (plan == null || id == state.selectedPlanId) return;
+    if (_locked || plan == null || id == state.selectedPlanId) return;
     final keep = plan.sizes.any((s) => s.childCount == state.childCount);
     emit(
       state.copyWith(
@@ -194,7 +233,7 @@ class BirthdaySellCubit extends Cubit<BirthdaySellState> {
     );
   }
 
-  void selectSize(int childCount) => childCount == state.childCount
+  void selectSize(int childCount) => _locked || childCount == state.childCount
       ? null
       : emit(
           state.copyWith(
@@ -205,15 +244,17 @@ class BirthdaySellCubit extends Cubit<BirthdaySellState> {
           ),
         );
 
-  void addExtraChild() => emit(
-    state.copyWith(
-      extraChildren: state.extraChildren + 1,
-      clearOverride: true,
-      clearError: true,
-    ),
-  );
+  void addExtraChild() => _locked || state.extraChildren >= maxExtraChildren
+      ? null
+      : emit(
+          state.copyWith(
+            extraChildren: state.extraChildren + 1,
+            clearOverride: true,
+            clearError: true,
+          ),
+        );
 
-  void resetExtraChildren() => state.extraChildren == 0
+  void resetExtraChildren() => _locked || state.extraChildren == 0
       ? null
       : emit(
           state.copyWith(
@@ -223,34 +264,54 @@ class BirthdaySellCubit extends Cubit<BirthdaySellState> {
           ),
         );
 
-  void setPartyDate(DateTime date) => emit(state.copyWith(partyDate: date));
+  void setPartyDate(DateTime date) =>
+      _locked ? null : emit(state.copyWith(partyDate: date));
 
-  /// null (or the list price itself) = no override.
-  void setAgreedPrice(int? uzs) => uzs == null || uzs == state.listPriceUzs
-      ? emit(state.copyWith(clearOverride: true))
-      : emit(state.copyWith(agreedOverrideUzs: uzs));
+  /// The list price itself = no override. An emptied field is an override of
+  /// 0 (nothing to submit) — it must not snap back to the list price while
+  /// the cashier is still typing; only re-pricing rewrites the field.
+  void setAgreedPrice(int? uzs) {
+    if (_locked) return;
+    uzs == state.listPriceUzs
+        ? emit(state.copyWith(clearOverride: true))
+        : emit(state.copyWith(agreedOverrideUzs: uzs ?? 0));
+  }
 
   /// Zaklad takes no balance by default; the cashier can switch it on.
-  void setDeposit(bool deposit) =>
-      emit(state.copyWith(deposit: deposit, payFromBalance: !deposit));
+  void setDeposit(bool deposit) => _locked
+      ? null
+      : emit(state.copyWith(deposit: deposit, payFromBalance: !deposit));
 
-  void setDepositUzs(int uzs) => emit(state.copyWith(depositUzs: uzs));
+  void setDepositUzs(int uzs) =>
+      _locked ? null : emit(state.copyWith(depositUzs: uzs));
 
   void setPayFromBalance(bool value) =>
-      emit(state.copyWith(payFromBalance: value));
+      _locked ? null : emit(state.copyWith(payFromBalance: value));
 
-  void setMethod(PaymentMethod method) => emit(state.copyWith(method: method));
+  void setMethod(PaymentMethod method) =>
+      _locked ? null : emit(state.copyWith(method: method));
 
   void setSplitInputs({String? cash, String? card}) =>
-      emit(state.copyWith(cashInput: cash, cardInput: card));
+      _locked ? null : emit(state.copyWith(cashInput: cash, cardInput: card));
 
-  Future<void> submit({
-    required int customerId,
-    required int balanceUzs,
-  }) async {
+  /// The party this sheet's requestId booked, null when the server has none
+  /// (or cannot be reached): the party id IS the sell requestId.
+  Future<BirthdayParty?> bookedParty() => refetchParty(_repository, requestId);
+
+  /// Closing after an unclear failure: the sale may have gone through, so the
+  /// caller must learn about it (receipt, customer refresh).
+  Future<BirthdayParty?> resolveOnClose() async {
+    if (!state.unclear) return null;
+    emit(state.copyWith(busy: true));
+    final party = await bookedParty();
+    if (!isClosed) emit(state.copyWith(busy: false));
+    return party;
+  }
+
+  Future<void> submit({required int customerId}) async {
     final plan = state.plan;
-    if (plan == null || !state.canSubmit(balanceUzs)) return;
-    final payment = state.payment(balanceUzs);
+    if (plan == null || !state.canSubmit) return;
+    final payment = state.payment;
     emit(state.copyWith(busy: true, clearError: true));
     try {
       final party = await _repository.sell(
@@ -264,18 +325,42 @@ class BirthdaySellCubit extends Cubit<BirthdaySellState> {
         requestId: requestId,
       );
       emit(state.copyWith(busy: false, party: party));
-    } on ServerException catch (e) {
+    } catch (error) {
+      final code = error is ServerException ? error.code : null;
+      final message = error is ServerException ? error.message : null;
+      if (isUnclearFailure(error)) {
+        // The response may have been lost after the server booked it.
+        final booked = await bookedParty();
+        if (isClosed) return;
+        if (booked != null) {
+          emit(state.copyWith(busy: false, party: booked));
+          return;
+        }
+        emit(
+          state.copyWith(
+            busy: false,
+            unclear: true,
+            errorCode: code ?? 'UNKNOWN',
+            errorMessage: message,
+          ),
+        );
+        return;
+      }
       emit(
         state.copyWith(
           busy: false,
-          errorCode: e.code ?? 'UNKNOWN',
-          errorMessage: e.message,
+          errorCode: code ?? 'UNKNOWN',
+          errorMessage: message,
         ),
       );
-    } catch (_) {
-      // E.g. a malformed success body after the party was booked: unlock the
-      // sheet; a retry reuses [requestId] and returns the existing party.
-      emit(state.copyWith(busy: false, errorCode: 'UNKNOWN'));
+      if (code == 'BIRTHDAY_BALANCE_INSUFFICIENT') await _refreshBalance();
     }
+  }
+
+  Future<void> _refreshBalance() async {
+    final lookup = _balanceLookup;
+    if (lookup == null) return;
+    final balance = await lookup();
+    if (balance != null && !isClosed) emit(state.copyWith(balanceUzs: balance));
   }
 }

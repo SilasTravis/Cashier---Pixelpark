@@ -9,6 +9,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/birthday_fixtures.dart';
+
 BirthdayParty _party(String date) => BirthdayParty.fromJson({
   'id': 'p1',
   'status': 'booked',
@@ -66,10 +68,24 @@ class _FakeRepo implements BirthdayPartiesRepository {
   _FakeRepo(this.party);
   final BirthdayParty party;
   final calls = <BirthdayPartyStatus>[];
+  bool failNext = false;
 
   @override
   Future<List<BirthdayParty>> list(BirthdayPartyStatus status) async {
     calls.add(status);
+    if (failNext) throw Exception('offline');
+    if (status == BirthdayPartyStatus.cancelled) {
+      return [
+        fixtureParty(
+          status: 'cancelled',
+          paid: 800000,
+          refunded: 500000,
+          debt: 0,
+          kept: 300000,
+          payments: [paymentJson(cash: 800000)],
+        ),
+      ];
+    }
     return status == BirthdayPartyStatus.booked ? [party] : [];
   }
 
@@ -131,5 +147,33 @@ void main() {
     expect(find.text('+ To‘lov'), findsNothing);
     await tester.tap(find.text('Yakunlash'));
     expect(opened?.id, 'p1');
+  });
+
+  testWidgets('a failed refresh over a filled list shows a snackbar', (
+    tester,
+  ) async {
+    final repo = await _pump(tester, '2999-01-01');
+    expect(find.text('Tadbirlarni yuklab bo‘lmadi'), findsNothing);
+    repo.failNext = true;
+    await tester.tap(find.byIcon(Icons.refresh));
+    await tester.pumpAndSettle();
+    expect(find.byType(SnackBar), findsOneWidget);
+    expect(find.text('Tadbirlarni yuklab bo‘lmadi'), findsOneWidget);
+    // The old list stays.
+    expect(find.text('Ali Valiyev'), findsOneWidget);
+  });
+
+  testWidgets('a cancelled party shows Bekor qilingan and the kept amount', (
+    tester,
+  ) async {
+    await _pump(tester, '2999-01-01');
+    await tester.tap(find.text('Bekor qilingan'));
+    await tester.pumpAndSettle();
+    // Segment label + the card's chip.
+    expect(find.text('Bekor qilingan'), findsNWidgets(2));
+    expect(find.byKey(const ValueKey('event-kept')), findsOneWidget);
+    expect(find.text('Ushlab qolingan ${groupDigits(300000)}'), findsOneWidget);
+    expect(find.textContaining('Qarz'), findsNothing);
+    expect(find.textContaining('To‘langan'), findsNothing);
   });
 }

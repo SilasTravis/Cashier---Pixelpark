@@ -7,6 +7,7 @@ import '../../../../generated/l10n.dart';
 import '../../../pos_account/presentation/widgets/account_ui.dart';
 import '../../domain/birthday_party.dart';
 import '../../domain/birthday_plan.dart';
+import '../model/event_badge.dart';
 
 /// One birthday party in the Tadbirlar list. Built to be scanned: left stripe
 /// = payment state, date tile, tier, money progress, one primary action.
@@ -27,8 +28,6 @@ class EventCard extends StatelessWidget {
   /// primary button both call it.
   final ValueChanged<BirthdayParty> onOpen;
 
-  bool get _hasPayment => party.payments.isNotEmpty;
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalization.of(context);
@@ -36,10 +35,12 @@ class EventCard extends StatelessWidget {
     final booked = party.status == BirthdayPartyStatus.booked;
     final due = party.partyDate.compareTo(today) <= 0;
     final isToday = party.partyDate == today;
-    final stripe = switch (party.paymentState) {
-      BirthdayPaymentState.paid => p.positive,
-      BirthdayPaymentState.partial => p.warning,
-      BirthdayPaymentState.unpaid => p.textFaint,
+    final badge = eventBadge(party);
+    final stripe = switch (badge.stripe) {
+      EventStripe.positive => p.positive,
+      EventStripe.warning => p.warning,
+      EventStripe.faint => p.textFaint,
+      EventStripe.neutral => p.textMuted,
     };
     final net = party.paidUzs - party.refundedUzs;
     final progress = party.agreedPriceUzs <= 0
@@ -49,13 +50,14 @@ class EventCard extends StatelessWidget {
     final kids = party.extraChildren > 0
         ? '${party.childCount} + ${party.extraChildren}'
         : '${party.childCount}';
-    final (chipLabel, chipTone) = switch (party.paymentState) {
-      BirthdayPaymentState.paid => ('✓ ${l10n.eventsPaid}', ChipTone.positive),
-      BirthdayPaymentState.partial when _hasPayment || net > 0 => (
+    final (chipLabel, chipTone) = switch (badge.kind) {
+      EventBadgeKind.paid => ('✓ ${l10n.eventsPaid}', ChipTone.positive),
+      EventBadgeKind.debt => (
         '🔒 ${l10n.eventsDebt(groupDigits(party.debtUzs))}',
         ChipTone.warning,
       ),
-      _ => (l10n.eventsUnpaid, ChipTone.neutral),
+      EventBadgeKind.cancelled => (l10n.bdCancelledChip, ChipTone.neutral),
+      EventBadgeKind.unpaid => (l10n.eventsUnpaid, ChipTone.neutral),
     };
 
     return Material(
@@ -130,6 +132,14 @@ class EventCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       StatusChip(label: chipLabel, tone: chipTone),
+                      if (badge.keptUzs > 0) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          l10n.bdKeptChip(groupDigits(badge.keptUzs)),
+                          key: const ValueKey('event-kept'),
+                          style: TextStyle(fontSize: 12, color: p.textMuted),
+                        ),
+                      ],
                       if (booked) ...[
                         const SizedBox(height: 8),
                         FilledButton(

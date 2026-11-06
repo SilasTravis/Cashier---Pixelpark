@@ -17,6 +17,7 @@ import 'package:cashier_app/generated/l10n.dart';
 import 'package:cashier_app/injector_container.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 const _vip = BirthdayPlan(
@@ -69,7 +70,18 @@ class _FakeRepo implements BirthdayPartiesRepository {
   _FakeRepo({this.failWith, this.failPlain = false});
   final ServerException? failWith;
   final bool failPlain;
+
+  /// What `get(requestId)` answers (null = not found).
+  BirthdayParty? getResult;
+  final gets = <String>[];
   final calls = <Map<String, Object?>>[];
+
+  @override
+  Future<BirthdayParty> get(String id) async {
+    gets.add(id);
+    return getResult ??
+        (throw ServerException(message: 'x', code: 'BIRTHDAY_PARTY_NOT_FOUND'));
+  }
 
   @override
   Future<List<BirthdayPlan>> plans() async => [_vip];
@@ -127,7 +139,13 @@ Future<void> _openDialog(WidgetTester tester, _FakeRepo repo) async {
   sl.registerSingleton<BirthdayPartiesRepository>(repo);
   await tester.pumpWidget(
     MaterialApp(
-      localizationsDelegates: const [AppLocalization.delegate],
+      locale: const Locale('uz'),
+      localizationsDelegates: const [
+        AppLocalization.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       supportedLocales: AppLocalization.delegate.supportedLocales,
       home: Builder(
         builder: (context) => Scaffold(
@@ -304,6 +322,123 @@ void main() {
     await _tap(tester, 'birthday-submit');
     expect(repo.calls, hasLength(2));
     expect(repo.calls[0]['requestId'], repo.calls[1]['requestId']);
+  });
+
+  testWidgets('0 ga qaytarish resets the extra children', (tester) async {
+    await _openDialog(tester, _FakeRepo());
+    await _fillSale(tester);
+    expect(find.text('+2'), findsOneWidget);
+    await _tap(tester, 'birthday-extra-count');
+    await tester.tap(find.byKey(const ValueKey('birthday-extra-reset')));
+    await tester.pumpAndSettle();
+    expect(find.text('+2'), findsNothing);
+    final field = tester.widget<TextField>(
+      find.byKey(const ValueKey('birthday-total-field')),
+    );
+    expect(field.controller!.text, '2 000 000');
+  });
+
+  testWidgets('the plus stops at 50 extra children', (tester) async {
+    await _openDialog(tester, _FakeRepo());
+    await _tap(tester, 'birthday-tier-vip');
+    await _tap(tester, 'birthday-size-10');
+    for (var i = 0; i < 50; i++) {
+      await tester.tap(find.byKey(const ValueKey('birthday-extra-plus')));
+      await tester.pump();
+    }
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<IconButton>(find.byKey(const ValueKey('birthday-extra-plus')))
+          .onPressed,
+      isNull,
+    );
+  });
+
+  testWidgets('Hozir olinadi shows what to take after the balance', (
+    tester,
+  ) async {
+    await _openDialog(tester, _FakeRepo());
+    await _fillSale(tester);
+    // Jami 2 240 000, balance 600 000 switched on (the default).
+    expect(
+      tester
+          .widget<Text>(find.byKey(const ValueKey('bd-take-now-amount')))
+          .data,
+      "1 640 000 so'm",
+    );
+    expect(find.textContaining('Hozir olinadi'), findsOneWidget);
+    expect(find.textContaining('Naqd'), findsWidgets);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('bd-from-balance')),
+        matching: find.text("Balansdan −600 000 so'm"),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a clearing the Jami field disables submit and keeps it empty', (
+    tester,
+  ) async {
+    await _openDialog(tester, _FakeRepo());
+    await _fillSale(tester);
+    await tester.enterText(
+      find.byKey(const ValueKey('birthday-total-field')),
+      '',
+    );
+    await tester.pumpAndSettle();
+    final field = tester.widget<TextField>(
+      find.byKey(const ValueKey('birthday-total-field')),
+    );
+    expect(field.controller!.text, '');
+    expect(
+      tester
+          .widget<FilledButton>(find.byKey(const ValueKey('birthday-submit')))
+          .onPressed,
+      isNull,
+    );
+  });
+
+  testWidgets('a lost response whose party exists books once and closes', (
+    tester,
+  ) async {
+    final repo = _FakeRepo(failWith: ServerException(message: 'timeout'))
+      ..getResult = _party();
+    await _openDialog(tester, repo);
+    await _fillSale(tester);
+    await _tap(tester, 'birthday-submit');
+    expect(repo.calls, hasLength(1));
+    expect(repo.gets, hasLength(1));
+    expect(find.byKey(const ValueKey('birthday-submit')), findsNothing);
+  });
+
+  testWidgets('an unclear failure locks the amounts and offers a retry', (
+    tester,
+  ) async {
+    final repo = _FakeRepo(failWith: ServerException(message: 'timeout'));
+    await _openDialog(tester, repo);
+    await _fillSale(tester);
+    await _tap(tester, 'birthday-submit');
+    expect(find.byKey(const ValueKey('birthday-unclear-hint')), findsOneWidget);
+    expect(find.text('Qayta urinish'), findsOneWidget);
+    // Frozen: a tap on + changes nothing.
+    await tester.tap(
+      find.byKey(const ValueKey('birthday-extra-plus')),
+      warnIfMissed: false,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('+2'), findsOneWidget);
+    // Retry: same requestId.
+    repo.getResult = null;
+    await _tap(tester, 'birthday-submit');
+    expect(repo.calls, hasLength(2));
+    expect(repo.calls[0]['requestId'], repo.calls[1]['requestId']);
+    // Closing re-fetches the party first; the sale did go through.
+    repo.getResult = _party();
+    await _tap(tester, 'birthday-close');
+    expect(repo.gets.length, greaterThanOrEqualTo(3));
+    expect(find.byKey(const ValueKey('birthday-submit')), findsNothing);
   });
 
   group('sell button on the account page', () {

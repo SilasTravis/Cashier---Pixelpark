@@ -149,6 +149,12 @@ class _Summary extends StatelessWidget {
             label: l10n.shiftBirthdayIncome,
             value: _uzs(totals.birthdayUzs),
           ),
+        // Handed back for birthday parties (already out of cash/card above).
+        if (totals.birthdayRefundedUzs > 0)
+          _SummaryRow(
+            label: l10n.shiftBirthdayRefunded,
+            value: '−${_uzs(totals.birthdayRefundedUzs)}',
+          ),
         // Cash/card above already reflect the discounted (net) amounts —
         // this is purely informational, "how much was given away".
         if (totals.discountUzs > 0)

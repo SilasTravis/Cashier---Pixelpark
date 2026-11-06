@@ -58,7 +58,21 @@ class PartySummary extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _row(p, l10n.birthdayTotal, formatUzs(party.agreedPriceUzs)),
+        if (party.discountUzs > 0)
+          _row(
+            p,
+            l10n.discount,
+            '−${formatUzs(party.discountUzs)}',
+            key: const ValueKey('bd-discount'),
+          ),
         _row(p, l10n.bdPaidNet, formatUzs(net)),
+        if (party.keptUzs > 0)
+          _row(
+            p,
+            l10n.bdKeptLabel,
+            formatUzs(party.keptUzs),
+            key: const ValueKey('bd-kept'),
+          ),
         const SizedBox(height: 8),
         if (cancelled)
           Text(
@@ -88,7 +102,8 @@ class PartySummary extends StatelessWidget {
     );
   }
 
-  Widget _row(PosPalette p, String label, String value) => Padding(
+  Widget _row(PosPalette p, String label, String value, {Key? key}) => Padding(
+    key: key,
     padding: const EdgeInsets.symmetric(vertical: 2),
     child: Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,

@@ -12,6 +12,7 @@ import '../../domain/birthday_party.dart';
 import '../../domain/birthday_payment.dart';
 import '../../domain/birthday_plan.dart';
 import '../bloc/birthday_sell_cubit.dart';
+import '../birthday_recovery.dart';
 import '../birthday_error_text.dart';
 import 'birthday_payment_block.dart';
 import 'birthday_total_card.dart';
@@ -32,7 +33,12 @@ Future<BirthdayParty?> showBirthdaySellDialog(
     builder: (_) => Theme(
       data: theme,
       child: BlocProvider(
-        create: (_) => BirthdaySellCubit(sl())..load(),
+        create: (_) => BirthdaySellCubit(
+          sl(),
+          balanceUzs: customer.balance,
+          balanceLookup: () =>
+              lookupCustomerBalance(customer.id, customer.phoneNumber),
+        )..load(),
         child: BirthdaySellDialog(customer: customer),
       ),
     ),
@@ -64,6 +70,15 @@ class _BirthdaySellDialogState extends State<BirthdaySellDialog> {
   }
 
   BirthdaySellCubit get _cubit => context.read<BirthdaySellCubit>();
+
+  /// Closing after an unclear failure first asks the server whether the sale
+  /// went through, and hands the party back so it is printed and the customer
+  /// refreshed.
+  Future<void> _close() async {
+    final navigator = Navigator.of(context);
+    final party = await _cubit.resolveOnClose();
+    if (mounted) navigator.pop(party);
+  }
 
   Future<void> _pickDate(DateTime current) async {
     final today = DateTime.now();
@@ -98,7 +113,7 @@ class _BirthdaySellDialogState extends State<BirthdaySellDialog> {
             : groupDigits(state.listPriceUzs);
       },
       builder: (context, state) {
-        final payment = state.payment(customer.balance);
+        final payment = state.payment;
         final plan = state.plan;
         final size = state.size;
         final color = colorOf(plan?.color ?? '', p.accent);
@@ -119,59 +134,90 @@ class _BirthdaySellDialogState extends State<BirthdaySellDialog> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          StepHeader(step: 1, title: l10n.birthdayPlan),
-                          const SizedBox(height: 10),
-                          if (state.loading)
-                            const Center(child: CircularProgressIndicator())
-                          else if (state.plans.isEmpty)
-                            Text(l10n.birthdayNoPlans, style: p.bodyMuted)
-                          else
-                            TierPicker(
-                              plans: state.plans,
-                              selectedId: state.selectedPlanId,
-                              onSelected: _cubit.selectPlan,
-                            ),
-                          if (plan != null) ...[
-                            const SizedBox(height: 18),
-                            StepHeader(step: 2, title: l10n.birthdayChildCount),
-                            const SizedBox(height: 10),
-                            SizePicker(
-                              sizes: plan.sizes,
-                              selected: state.childCount,
-                              color: color,
-                              onSelected: _cubit.selectSize,
-                            ),
-                          ],
-                          if (size != null) ...[
-                            const SizedBox(height: 18),
-                            StepHeader(step: 3, title: l10n.birthdayExtraChild),
-                            const SizedBox(height: 10),
-                            ExtraChildrenStepper(
-                              count: state.extraChildren,
-                              hint: l10n.birthdayExtraHint(
-                                '${size.childCount}',
-                                plan!.name,
-                                groupDigits(size.extraChildUzs),
+                          // After an unclear failure the amounts are frozen:
+                          // a retry must be the very same sale.
+                          IgnorePointer(
+                            ignoring: state.unclear,
+                            child: Opacity(
+                              opacity: state.unclear ? 0.55 : 1,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  StepHeader(step: 1, title: l10n.birthdayPlan),
+                                  const SizedBox(height: 10),
+                                  if (state.loading)
+                                    const Center(
+                                      child: CircularProgressIndicator(),
+                                    )
+                                  else if (state.plans.isEmpty)
+                                    Text(
+                                      l10n.birthdayNoPlans,
+                                      style: p.bodyMuted,
+                                    )
+                                  else
+                                    TierPicker(
+                                      plans: state.plans,
+                                      selectedId: state.selectedPlanId,
+                                      onSelected: _cubit.selectPlan,
+                                    ),
+                                  if (plan != null) ...[
+                                    const SizedBox(height: 18),
+                                    StepHeader(
+                                      step: 2,
+                                      title: l10n.birthdayChildCount,
+                                    ),
+                                    const SizedBox(height: 10),
+                                    SizePicker(
+                                      sizes: plan.sizes,
+                                      selected: state.childCount,
+                                      color: color,
+                                      onSelected: _cubit.selectSize,
+                                    ),
+                                  ],
+                                  if (size != null) ...[
+                                    const SizedBox(height: 18),
+                                    StepHeader(
+                                      step: 3,
+                                      title: l10n.birthdayExtraChild,
+                                    ),
+                                    const SizedBox(height: 10),
+                                    ExtraChildrenStepper(
+                                      count: state.extraChildren,
+                                      hint: l10n.birthdayExtraHint(
+                                        '${size.childCount}',
+                                        plan!.name,
+                                        groupDigits(size.extraChildUzs),
+                                      ),
+                                      onAdd: _cubit.addExtraChild,
+                                      onReset: _cubit.resetExtraChildren,
+                                    ),
+                                    const SizedBox(height: 18),
+                                    StepHeader(
+                                      step: 4,
+                                      title: l10n.birthdayDate,
+                                    ),
+                                    const SizedBox(height: 10),
+                                    BirthdayTotalCard(
+                                      state: state,
+                                      size: size,
+                                      totalController: _totalController,
+                                      onPickDate: () =>
+                                          _pickDate(state.partyDate),
+                                      onTotalChanged: (v) =>
+                                          _cubit.setAgreedPrice(parseUzs(v)),
+                                    ),
+                                    const SizedBox(height: 18),
+                                    StepHeader(
+                                      step: 5,
+                                      title: l10n.birthdayPayment,
+                                    ),
+                                    const SizedBox(height: 10),
+                                    _payment(p, l10n, state, payment),
+                                  ],
+                                ],
                               ),
-                              onAdd: _cubit.addExtraChild,
-                              onReset: _cubit.resetExtraChildren,
                             ),
-                            const SizedBox(height: 18),
-                            StepHeader(step: 4, title: l10n.birthdayDate),
-                            const SizedBox(height: 10),
-                            BirthdayTotalCard(
-                              state: state,
-                              size: size,
-                              totalController: _totalController,
-                              onPickDate: () => _pickDate(state.partyDate),
-                              onTotalChanged: (v) =>
-                                  _cubit.setAgreedPrice(parseUzs(v)),
-                            ),
-                            const SizedBox(height: 18),
-                            StepHeader(step: 5, title: l10n.birthdayPayment),
-                            const SizedBox(height: 10),
-                            _payment(p, l10n, state, payment),
-                          ],
+                          ),
                           if (state.errorMessage != null ||
                               state.errorCode != null) ...[
                             const SizedBox(height: 14),
@@ -194,6 +240,14 @@ class _BirthdaySellDialogState extends State<BirthdaySellDialog> {
                                 style: TextStyle(color: p.danger, fontSize: 13),
                               ),
                             ),
+                            if (state.unclear) ...[
+                              const SizedBox(height: 6),
+                              Text(
+                                l10n.bdUnclearHint,
+                                key: const ValueKey('birthday-unclear-hint'),
+                                style: p.bodyMuted.copyWith(fontSize: 12.5),
+                              ),
+                            ],
                           ],
                         ],
                       ),
@@ -303,7 +357,7 @@ class _BirthdaySellDialogState extends State<BirthdaySellDialog> {
         const SizedBox(height: 12),
         BirthdayPaymentBlock(
           payment: payment,
-          balanceUzs: widget.customer.balance,
+          balanceUzs: state.balanceUzs,
           payFromBalance: state.payFromBalance,
           onPayFromBalance: _cubit.setPayFromBalance,
           method: state.method,
@@ -361,8 +415,9 @@ class _BirthdaySellDialogState extends State<BirthdaySellDialog> {
           child: SizedBox(
             height: 52,
             child: OutlinedButton(
-              onPressed: state.busy ? null : () => Navigator.of(context).pop(),
-              child: Text(l10n.cancel),
+              key: const ValueKey('birthday-close'),
+              onPressed: state.busy ? null : _close,
+              child: Text(state.unclear ? l10n.bdClose : l10n.cancel),
             ),
           ),
         ),
@@ -373,11 +428,8 @@ class _BirthdaySellDialogState extends State<BirthdaySellDialog> {
             height: 52,
             child: FilledButton(
               key: const ValueKey('birthday-submit'),
-              onPressed: state.canSubmit(widget.customer.balance)
-                  ? () => _cubit.submit(
-                      customerId: widget.customer.id,
-                      balanceUzs: widget.customer.balance,
-                    )
+              onPressed: state.canSubmit
+                  ? () => _cubit.submit(customerId: widget.customer.id)
                   : null,
               child: state.busy
                   ? const SizedBox(
@@ -387,7 +439,11 @@ class _BirthdaySellDialogState extends State<BirthdaySellDialog> {
                     )
                   : FittedBox(
                       fit: BoxFit.scaleDown,
-                      child: Text(l10n.birthdayBookAndReceipt),
+                      child: Text(
+                        state.unclear
+                            ? l10n.eventsRetry
+                            : l10n.birthdayBookAndReceipt,
+                      ),
                     ),
             ),
           ),

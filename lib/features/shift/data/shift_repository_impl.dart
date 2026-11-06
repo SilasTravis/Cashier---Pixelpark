@@ -185,6 +185,7 @@ class ShiftRepository {
         topupUzs: t.topupUzs,
         balanceSalesUzs: t.balanceSalesUzs,
         birthdayUzs: t.birthdayUzs,
+        birthdayRefundedUzs: t.birthdayRefundedUzs,
         refundedUzs: t.refundedUzs,
         discountUzs: t.discountUzs + sum((s) => s.discountUzs),
         entries: t.entries,

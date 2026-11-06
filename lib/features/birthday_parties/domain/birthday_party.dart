@@ -9,6 +9,12 @@ enum BirthdayPaymentKind { payment, refund }
 /// How a payment/deposit is split across sources, in so'm.
 typedef BirthdayMoney = ({int fromBalanceUzs, int cashUzs, int cardUzs});
 
+/// `2026-11-06` -> `06.11.2026`; anything unexpected is returned as is.
+String partyDateLabel(String ymd) {
+  final m = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(ymd);
+  return m == null ? ymd : '${m[3]}.${m[2]}.${m[1]}';
+}
+
 DateTime? _date(Object? raw) =>
     raw == null ? null : DateTime.parse(raw as String);
 

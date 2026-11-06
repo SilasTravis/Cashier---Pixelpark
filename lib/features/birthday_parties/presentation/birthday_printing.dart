@@ -12,18 +12,27 @@ import '../domain/birthday_party.dart';
 /// With no [payment] the party's latest payment is printed (right after a
 /// sale that is the deposit/full payment just taken); a party without any
 /// payment prints with no payment rows. [withItems] lists the included items
-/// and is meant for the sale receipt only.
+/// and is meant for the sale receipt only. [refunds] (a cancel's new rows)
+/// make it a refund receipt with one row per destination.
 Future<void> printBirthdayReceipt(
   BuildContext context,
   BirthdayParty party, {
   BirthdayPartyPayment? payment,
+  List<BirthdayPartyPayment> refunds = const [],
   bool withItems = false,
 }) async {
   try {
     final local = sl<LocalSource>();
-    final shown = payment ?? _latest(party.payments);
+    final shown =
+        payment ??
+        (refunds.isNotEmpty ? refunds.last : _latest(party.payments));
     final printed = await SaleReceiptPrinter.printBirthdayDirect(
-      BirthdayReceipt.fromParty(party, payment: shown, withItems: withItems),
+      BirthdayReceipt.fromParty(
+        party,
+        payment: shown,
+        refunds: refunds,
+        withItems: withItems,
+      ),
       branchName: local.getBranchName() ?? party.branchName,
       cashierName: shown?.cashierUsername ?? local.getCashierFullName() ?? '',
       preferredPrinterName: local.getReceiptPrinterName(),

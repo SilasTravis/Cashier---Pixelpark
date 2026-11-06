@@ -86,6 +86,38 @@ void main() {
     );
   });
 
+  test(
+    'a split refund prints one row per destination under a refund title',
+    () {
+      BirthdayPartyPayment refund(String to, int amount) =>
+          BirthdayPartyPayment(
+            id: 'r-$to',
+            kind: BirthdayPaymentKind.refund,
+            amountUzs: amount,
+            fromBalanceUzs: 0,
+            cashUzs: 0,
+            cardUzs: 0,
+            refundTo: to,
+            cashierUsername: 'kassa',
+            createdAt: DateTime.utc(2026, 11, 7, 9),
+          );
+      final r = BirthdayReceipt.fromParty(
+        _party(refunded: 300000),
+        refunds: [refund('balance', 200000), refund('cash', 100000)],
+      );
+      expect(r.title, "Tug'ilgan kun - qaytarish");
+      expect(r.rows, contains(('Balansga', '200 000')));
+      expect(r.rows, contains(('Naqd', '100 000')));
+      expect(r.rows.any((e) => e.$1 == 'Karta'), isFalse);
+      expect(r.createdAt, DateTime.utc(2026, 11, 7, 9));
+      // A normal payment receipt keeps the plain title.
+      expect(
+        BirthdayReceipt.fromParty(_party(), payment: _pay(cash: 1)).title,
+        "Tug'ilgan kun",
+      );
+    },
+  );
+
   test('renders a pdf', () async {
     final out = await SaleReceiptPrinter.renderBirthday(
       BirthdayReceipt.fromParty(

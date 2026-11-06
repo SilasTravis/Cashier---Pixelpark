@@ -4534,6 +4534,101 @@ class AppLocalization {
       args: [reason],
     );
   }
+
+  /// `This action was already done — the event was refreshed`
+  String get bdRequestConflict {
+    return Intl.message(
+      'This action was already done — the event was refreshed',
+      name: 'bdRequestConflict',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Close`
+  String get bdClose {
+    return Intl.message('Close', name: 'bdClose', desc: '', args: []);
+  }
+
+  /// `No response received. Amounts are locked — try again or close.`
+  String get bdUnclearHint {
+    return Intl.message(
+      'No response received. Amounts are locked — try again or close.',
+      name: 'bdUnclearHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Collect now`
+  String get bdTakeNow {
+    return Intl.message('Collect now', name: 'bdTakeNow', desc: '', args: []);
+  }
+
+  /// `From balance −{amount}`
+  String bdFromBalanceLine(String amount) {
+    return Intl.message(
+      'From balance −$amount',
+      name: 'bdFromBalanceLine',
+      desc: '',
+      args: [amount],
+    );
+  }
+
+  /// `Split {cash} + {card}`
+  String bdSplitMethod(String cash, String card) {
+    return Intl.message(
+      'Split $cash + $card',
+      name: 'bdSplitMethod',
+      desc: '',
+      args: [cash, card],
+    );
+  }
+
+  /// `Kept {amount}`
+  String bdKeptChip(String amount) {
+    return Intl.message(
+      'Kept $amount',
+      name: 'bdKeptChip',
+      desc: '',
+      args: [amount],
+    );
+  }
+
+  /// `Cancelled`
+  String get bdCancelledChip {
+    return Intl.message(
+      'Cancelled',
+      name: 'bdCancelledChip',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Birthday refunded`
+  String get shiftBirthdayRefunded {
+    return Intl.message(
+      'Birthday refunded',
+      name: 'shiftBirthdayRefunded',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Balance unknown`
+  String get bdBalanceUnknown {
+    return Intl.message(
+      'Balance unknown',
+      name: 'bdBalanceUnknown',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Kept`
+  String get bdKeptLabel {
+    return Intl.message('Kept', name: 'bdKeptLabel', desc: '', args: []);
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalization> {
