@@ -153,6 +153,7 @@
   "allCustomers": "Все клиенты",
   "customerDirectorySearchHint": "Поиск по имени или последним цифрам телефона",
   "searchResult": "Результаты поиска",
+  "similarNumbers": "Похожие номера — другие клиенты",
   "customerCount": "Клиентов: {count}",
   "@customerCount": {
     "placeholders": {

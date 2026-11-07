@@ -914,6 +914,16 @@ class AppLocalization {
     );
   }
 
+  /// `Similar numbers — other customers`
+  String get similarNumbers {
+    return Intl.message(
+      'Similar numbers — other customers',
+      name: 'similarNumbers',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `{count} customers`
   String customerCount(int count) {
     return Intl.message(

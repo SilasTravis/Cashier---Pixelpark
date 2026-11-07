@@ -153,6 +153,7 @@
   "allCustomers": "All customers",
   "customerDirectorySearchHint": "Search by name or the last phone digits",
   "searchResult": "Search results",
+  "similarNumbers": "Similar numbers — other customers",
   "customerCount": "{count} customers",
   "@customerCount": {
     "placeholders": {

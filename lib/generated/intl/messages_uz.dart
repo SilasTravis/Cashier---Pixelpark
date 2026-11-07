@@ -777,6 +777,9 @@ class MessageLookup extends MessageLookupByLibrary {
       "Takrorlanmas bolalar",
     ),
     "shiftVipTickets": MessageLookupByLibrary.simpleMessage("Shundan VIP"),
+    "similarNumbers": MessageLookupByLibrary.simpleMessage(
+      "O‘xshash raqamlar — boshqa mijozlar",
+    ),
     "stickerPrintFailed": MessageLookupByLibrary.simpleMessage(
       "Stiker chop etilmadi — printerni tekshiring",
     ),
