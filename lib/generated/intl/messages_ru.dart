@@ -605,6 +605,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "menuClose": MessageLookupByLibrary.simpleMessage("Закрыть меню"),
     "menuOpen": MessageLookupByLibrary.simpleMessage("Открыть меню"),
     "minutesCount": m44,
+    "moreActions": MessageLookupByLibrary.simpleMessage("Ещё"),
     "needsInternet": MessageLookupByLibrary.simpleMessage("Нужен интернет"),
     "newBalance": MessageLookupByLibrary.simpleMessage("Новый баланс"),
     "noChildren": MessageLookupByLibrary.simpleMessage("детей нет"),

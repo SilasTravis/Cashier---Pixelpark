@@ -1050,6 +1050,7 @@
   "@planUpgradeLine": {"placeholders": {"child": {"type": "String"}, "from": {"type": "String"}, "to": {"type": "String"}, "paid": {"type": "String"}, "due": {"type": "String"}}},
   "groupEntry": "Guruh (maktab)",
   "groupEntryHint": "Faqat soni — ismlarsiz",
+  "moreActions": "Ko'proq",
   "groupSelected": "Guruh: {count} bola",
   "@groupSelected": {"placeholders": {"count": {"type": "int"}}},
   "groupDialogTitle": "Guruh (maktab) — nechta bola?",
