@@ -134,6 +134,20 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
         onSeats: (ids) {
           if (!mounted) return;
           setState(() {
+            // One discount for the whole group: the new count keeps it.
+            final groupDiscountId = seatIds
+                .map((id) => _childEntryDiscountIds[id])
+                .nonNulls
+                .firstOrNull;
+            for (final id in seatIds) {
+              _childEntryDiscountIds.remove(id);
+              _childBirthdayAges.remove(id);
+            }
+            if (groupDiscountId != null) {
+              for (final id in ids) {
+                _childEntryDiscountIds[id] = groupDiscountId;
+              }
+            }
             _selectedChildIds
               ..removeAll(seatIds)
               ..addAll(ids);
@@ -1892,9 +1906,15 @@ class _ChildrenCard extends StatelessWidget {
       for (final child in customer.children)
         if (!child.isGroupSeat) child,
     ];
-    final selectedSeats = customer.children
-        .where((c) => c.isGroupSeat && selectedChildIds.contains(c.id))
-        .length;
+    final selectedSeatIds = [
+      for (final c in customer.children)
+        if (c.isGroupSeat && selectedChildIds.contains(c.id)) c.id,
+    ];
+    final selectedSeats = selectedSeatIds.length;
+    final groupDiscountId = selectedSeatIds
+        .map((id) => childEntryDiscountIds[id])
+        .nonNulls
+        .firstOrNull;
     return AccountCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1956,7 +1976,21 @@ class _ChildrenCard extends StatelessWidget {
                 // Used once or twice a week: the tile shows only once a
                 // group is picked; it is started from the "Ko'proq" menu.
                 if (selectedSeats > 0)
-                  _GroupTile(selectedCount: selectedSeats, onTap: onGroupTap),
+                  _GroupTile(
+                    selectedCount: selectedSeats,
+                    onTap: onGroupTap,
+                    // A class has no birthdays to check: those are left out.
+                    entryDiscounts: [
+                      for (final d in entryDiscounts)
+                        if (!d.marksBirthday) d,
+                    ],
+                    selectedDiscountId: groupDiscountId,
+                    onDiscountChanged: (discountId) {
+                      for (final id in selectedSeatIds) {
+                        onChildEntryDiscountChanged(id, discountId, null);
+                      }
+                    },
+                  ),
               ];
               // A grid whose rows share one height, so a tile with badges
               // never leaves its neighbours looking short.
@@ -2161,16 +2195,34 @@ class _MoreEntryMenu extends StatelessWidget {
 /// "Guruh (maktab)": a school class checked in by count, no names. Shows
 /// the picked count once set; tapping opens the count dialog again.
 class _GroupTile extends StatelessWidget {
-  const _GroupTile({required this.selectedCount, required this.onTap});
+  const _GroupTile({
+    required this.selectedCount,
+    required this.onTap,
+    required this.entryDiscounts,
+    required this.selectedDiscountId,
+    required this.onDiscountChanged,
+  });
 
   final int selectedCount;
   final VoidCallback onTap;
+
+  /// Entry discounts the whole group can take (one for every seat).
+  final List<Discount> entryDiscounts;
+  final String? selectedDiscountId;
+
+  /// Null clears the group's discount.
+  final ValueChanged<String?> onDiscountChanged;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalization.of(context);
     final p = PosPalette.of(context);
     final active = selectedCount > 0;
+    final selectedDiscount = selectedDiscountId == null
+        ? null
+        : entryDiscounts.where((d) => d.id == selectedDiscountId).firstOrNull;
+    final canDiscount =
+        active && (entryDiscounts.isNotEmpty || selectedDiscountId != null);
     return Material(
       color: active ? p.accentSoft : Colors.transparent,
       shape: RoundedRectangleBorder(
@@ -2181,43 +2233,99 @@ class _GroupTile extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         hoverColor: p.accentSoft,
-        child: SizedBox(
-          height: 74,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    active
-                        ? PhosphorIconsFill.usersThree
-                        : PhosphorIconsRegular.usersThree,
-                    size: 17,
-                    color: p.accent,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 74),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            active
+                                ? PhosphorIconsFill.usersThree
+                                : PhosphorIconsRegular.usersThree,
+                            size: 17,
+                            color: p.accent,
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              active
+                                  ? l10n.groupSelected(selectedCount)
+                                  : l10n.groupEntry,
+                              style: AppTextStyles.body.copyWith(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                                color: p.accent,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      if (selectedDiscount != null)
+                        StatusChip(
+                          label: '${l10n.discount}: ${selectedDiscount.name}',
+                          tone: ChipTone.positive,
+                        )
+                      else
+                        Text(
+                          l10n.groupEntryHint,
+                          style: AppTextStyles.body.copyWith(
+                            fontSize: 11.5,
+                            color: p.textMuted,
+                          ),
+                        ),
+                    ],
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    active
-                        ? l10n.groupSelected(selectedCount)
-                        : l10n.groupEntry,
-                    style: AppTextStyles.body.copyWith(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w600,
-                      color: p.accent,
+                ),
+                if (canDiscount) ...[
+                  const SizedBox(width: 10),
+                  Tooltip(
+                    key: const ValueKey('group-discount-button'),
+                    message: l10n.discount,
+                    child: Material(
+                      color: selectedDiscount == null ? p.accentSoft : p.accent,
+                      shape: CircleBorder(
+                        side: BorderSide(
+                          color: selectedDiscount == null
+                              ? p.accentBorder
+                              : p.accent,
+                        ),
+                      ),
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: () async {
+                          final pick = await showEntryDiscountDialog(
+                            context,
+                            discounts: entryDiscounts,
+                            selectedId: selectedDiscountId,
+                          );
+                          if (pick != null) onDiscountChanged(pick.id);
+                        },
+                        child: SizedBox(
+                          width: 32,
+                          height: 32,
+                          child: Icon(
+                            PhosphorIconsBold.dotsThreeVertical,
+                            size: 18,
+                            color: selectedDiscount == null
+                                ? p.accentStrong
+                                : p.onAccent,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 3),
-              Text(
-                l10n.groupEntryHint,
-                style: AppTextStyles.body.copyWith(
-                  fontSize: 11.5,
-                  color: p.textMuted,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
