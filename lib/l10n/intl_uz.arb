@@ -153,6 +153,7 @@
   "allCustomers": "Barcha mijozlar",
   "customerDirectorySearchHint": "Ism yoki telefonning oxirgi raqamlari bo‘yicha qidiring",
   "searchResult": "Qidiruv natijasi",
+  "similarNumbers": "O‘xshash raqamlar — boshqa mijozlar",
   "customerCount": "{count} ta mijoz",
   "@customerCount": {
     "placeholders": {

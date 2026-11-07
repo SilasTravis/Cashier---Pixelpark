@@ -820,6 +820,9 @@ class MessageLookup extends MessageLookupByLibrary {
       "Unique children",
     ),
     "shiftVipTickets": MessageLookupByLibrary.simpleMessage("of which VIP"),
+    "similarNumbers": MessageLookupByLibrary.simpleMessage(
+      "Similar numbers — other customers",
+    ),
     "stickerPrintFailed": MessageLookupByLibrary.simpleMessage(
       "Sticker was not printed — check the printer",
     ),

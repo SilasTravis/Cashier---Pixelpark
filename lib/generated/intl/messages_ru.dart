@@ -849,6 +849,9 @@ class MessageLookup extends MessageLookupByLibrary {
       "Уникальных детей",
     ),
     "shiftVipTickets": MessageLookupByLibrary.simpleMessage("Из них VIP"),
+    "similarNumbers": MessageLookupByLibrary.simpleMessage(
+      "Похожие номера — другие клиенты",
+    ),
     "stickerPrintFailed": MessageLookupByLibrary.simpleMessage(
       "Стикер не напечатан — проверьте принтер",
     ),
