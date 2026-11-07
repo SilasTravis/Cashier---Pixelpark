@@ -3835,6 +3835,11 @@ class AppLocalization {
     );
   }
 
+  /// `More`
+  String get moreActions {
+    return Intl.message('More', name: 'moreActions', desc: '', args: []);
+  }
+
   /// `Group: {count} kids`
   String groupSelected(int count) {
     return Intl.message(

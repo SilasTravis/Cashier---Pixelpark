@@ -1902,17 +1902,24 @@ class _ChildrenCard extends StatelessWidget {
           StepHeader(
             step: 1,
             title: l10n.accountStepWho,
-            trailing: Text(
-              selCount > 0
-                  ? l10n.selectedCount(selCount)
-                  : customer.children.isEmpty
-                  ? l10n.noChildren
-                  : l10n.selectForQr,
-              style: AppTextStyles.body.copyWith(
-                fontSize: 12.5,
-                fontWeight: selCount > 0 ? FontWeight.w600 : null,
-                color: selCount > 0 ? p.accent : p.textMuted,
-              ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  selCount > 0
+                      ? l10n.selectedCount(selCount)
+                      : customer.children.isEmpty
+                      ? l10n.noChildren
+                      : l10n.selectForQr,
+                  style: AppTextStyles.body.copyWith(
+                    fontSize: 12.5,
+                    fontWeight: selCount > 0 ? FontWeight.w600 : null,
+                    color: selCount > 0 ? p.accent : p.textMuted,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                _MoreEntryMenu(onGroupTap: onGroupTap),
+              ],
             ),
           ),
           const SizedBox(height: 14),
@@ -1946,7 +1953,10 @@ class _ChildrenCard extends StatelessWidget {
                   ),
                 if (!addingChild)
                   _AddChildTile(label: l10n.quickAdd, onTap: onStartAddChild),
-                _GroupTile(selectedCount: selectedSeats, onTap: onGroupTap),
+                // Used once or twice a week: the tile shows only once a
+                // group is picked; it is started from the "Ko'proq" menu.
+                if (selectedSeats > 0)
+                  _GroupTile(selectedCount: selectedSeats, onTap: onGroupTap),
               ];
               // A grid whose rows share one height, so a tile with badges
               // never leaves its neighbours looking short.
@@ -2068,6 +2078,80 @@ class _AddChildTile extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "Ko'proq" in the "Kim kiradi?" header: rarely used entry kinds
+/// (a school group by count) live here so they never crowd the child grid.
+class _MoreEntryMenu extends StatelessWidget {
+  const _MoreEntryMenu({required this.onGroupTap});
+
+  final VoidCallback onGroupTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
+    final p = PosPalette.of(context);
+    return PopupMenuButton<void>(
+      tooltip: l10n.moreActions,
+      position: PopupMenuPosition.under,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      itemBuilder: (context) => [
+        PopupMenuItem<void>(
+          onTap: onGroupTap,
+          child: Row(
+            children: [
+              Icon(PhosphorIconsRegular.usersThree, size: 18, color: p.accent),
+              const SizedBox(width: 10),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      l10n.groupEntry,
+                      style: AppTextStyles.body.copyWith(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      l10n.groupEntryHint,
+                      style: AppTextStyles.body.copyWith(
+                        fontSize: 11.5,
+                        color: p.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: p.accentBorder),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              l10n.moreActions,
+              style: AppTextStyles.body.copyWith(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: p.accent,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(PhosphorIconsRegular.caretDown, size: 13, color: p.accent),
+          ],
         ),
       ),
     );

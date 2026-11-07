@@ -545,6 +545,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "menuClose": MessageLookupByLibrary.simpleMessage("Menyuni yopish"),
     "menuOpen": MessageLookupByLibrary.simpleMessage("Menyuni ochish"),
     "minutesCount": m41,
+    "moreActions": MessageLookupByLibrary.simpleMessage("Ko\'proq"),
     "needsInternet": MessageLookupByLibrary.simpleMessage("Internet kerak"),
     "newBalance": MessageLookupByLibrary.simpleMessage("Yangi balans"),
     "noChildren": MessageLookupByLibrary.simpleMessage("farzand yo‘q"),

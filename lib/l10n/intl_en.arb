@@ -749,6 +749,7 @@
   "@planUpgradeLine": {"placeholders": {"child": {"type": "String"}, "from": {"type": "String"}, "to": {"type": "String"}, "paid": {"type": "String"}, "due": {"type": "String"}}},
   "groupEntry": "Group (school)",
   "groupEntryHint": "Count only — no names",
+  "moreActions": "More",
   "groupSelected": "Group: {count} kids",
   "@groupSelected": {"placeholders": {"count": {"type": "int"}}},
   "groupDialogTitle": "Group (school) — how many kids?",
