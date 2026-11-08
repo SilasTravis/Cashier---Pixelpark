@@ -1416,15 +1416,20 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
       sl.isRegistered<AppModeCubit>() && sl<AppModeCubit>().state.isOffline;
 
   /// "Tug'ilgan kun sotish" → sheet → on success print the booking receipt
-  /// (with the included items) and refresh the customer.
-  Future<void> _sellBirthday(BuildContext context, Customer customer) async {
+  /// (with the included items) and refresh the customer. The receipt prints
+  /// even when this panel was disposed while the sheet was open; the refresh
+  /// is skipped then (its bloc is closed).
+  Future<void> _sellBirthday(BuildContext context, Customer customer) {
     final bloc = context.read<PosAccountBloc>();
-    final party = await showBirthdaySellDialog(context, customer: customer);
-    if (party == null) return;
-    if (context.mounted) {
-      await printBirthdayReceipt(context, party, withItems: true);
-    }
-    bloc.add(const PosAccountCustomerRefreshRequested());
+    return sellBirthdayAndPrint(
+      context,
+      openSheet: () => showBirthdaySellDialog(context, customer: customer),
+      onSold: () {
+        if (!bloc.isClosed) {
+          bloc.add(const PosAccountCustomerRefreshRequested());
+        }
+      },
+    );
   }
 
   /// What the plan-switch modal re-sends for a conflicted [last] checkout.

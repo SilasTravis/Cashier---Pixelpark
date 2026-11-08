@@ -1218,6 +1218,7 @@
     }
   },
   "bdRequestConflict": "Bu amal allaqachon bajarilgan — tadbir yangilandi",
+  "bdExtraChildrenConflict": "Bolalar sonini boshqa kassa o‘zgartirgan. Ma'lumot yangilandi — tekshirib, kerak bo‘lsa qayta qo‘shing.",
   "bdClose": "Yopish",
   "bdUnclearHint": "Javob kelmadi. Summalar qulflandi — qayta urinib ko‘ring yoki yoping.",
   "bdOfflineHint": "Tarmoq yo‘q — qayta urinib ko‘ring",

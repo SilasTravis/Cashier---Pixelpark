@@ -145,86 +145,95 @@ class _BirthdaySellDialogState extends State<BirthdaySellDialog> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           // After an unclear failure the amounts are frozen:
-                          // a retry must be the very same sale.
-                          IgnorePointer(
-                            ignoring: state.unclear,
-                            child: Opacity(
-                              opacity: state.unclear ? 0.55 : 1,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  StepHeader(step: 1, title: l10n.birthdayPlan),
-                                  const SizedBox(height: 10),
-                                  if (state.loading)
-                                    const Center(
-                                      child: CircularProgressIndicator(),
-                                    )
-                                  else if (state.plans.isEmpty)
-                                    Text(
-                                      l10n.birthdayNoPlans,
-                                      style: p.bodyMuted,
-                                    )
-                                  else
-                                    TierPicker(
-                                      plans: state.plans,
-                                      selectedId: state.selectedPlanId,
-                                      onSelected: _cubit.selectPlan,
-                                    ),
-                                  if (plan != null) ...[
-                                    const SizedBox(height: 18),
+                          // a retry must be the very same sale. ExcludeFocus
+                          // also takes the keyboard away from a field that
+                          // still had focus.
+                          ExcludeFocus(
+                            excluding: state.unclear,
+                            child: IgnorePointer(
+                              ignoring: state.unclear,
+                              child: Opacity(
+                                opacity: state.unclear ? 0.55 : 1,
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
                                     StepHeader(
-                                      step: 2,
-                                      title: l10n.birthdayChildCount,
+                                      step: 1,
+                                      title: l10n.birthdayPlan,
                                     ),
                                     const SizedBox(height: 10),
-                                    SizePicker(
-                                      sizes: plan.sizes,
-                                      selected: state.childCount,
-                                      color: color,
-                                      onSelected: _cubit.selectSize,
-                                    ),
-                                  ],
-                                  if (size != null) ...[
-                                    const SizedBox(height: 18),
-                                    StepHeader(
-                                      step: 3,
-                                      title: l10n.birthdayExtraChild,
-                                    ),
-                                    const SizedBox(height: 10),
-                                    ExtraChildrenStepper(
-                                      count: state.extraChildren,
-                                      hint: l10n.birthdayExtraHint(
-                                        '${size.childCount}',
-                                        plan!.name,
-                                        groupDigits(size.extraChildUzs),
+                                    if (state.loading)
+                                      const Center(
+                                        child: CircularProgressIndicator(),
+                                      )
+                                    else if (state.plans.isEmpty)
+                                      Text(
+                                        l10n.birthdayNoPlans,
+                                        style: p.bodyMuted,
+                                      )
+                                    else
+                                      TierPicker(
+                                        plans: state.plans,
+                                        selectedId: state.selectedPlanId,
+                                        onSelected: _cubit.selectPlan,
                                       ),
-                                      onAdd: _cubit.addExtraChild,
-                                      onReset: _cubit.resetExtraChildren,
-                                    ),
-                                    const SizedBox(height: 18),
-                                    StepHeader(
-                                      step: 4,
-                                      title: l10n.birthdayDate,
-                                    ),
-                                    const SizedBox(height: 10),
-                                    BirthdayTotalCard(
-                                      state: state,
-                                      size: size,
-                                      totalController: _totalController,
-                                      onPickDate: () =>
-                                          _pickDate(state.partyDate),
-                                      onTotalChanged: (v) =>
-                                          _cubit.setAgreedPrice(parseUzs(v)),
-                                    ),
-                                    const SizedBox(height: 18),
-                                    StepHeader(
-                                      step: 5,
-                                      title: l10n.birthdayPayment,
-                                    ),
-                                    const SizedBox(height: 10),
-                                    _payment(p, l10n, state, payment),
+                                    if (plan != null) ...[
+                                      const SizedBox(height: 18),
+                                      StepHeader(
+                                        step: 2,
+                                        title: l10n.birthdayChildCount,
+                                      ),
+                                      const SizedBox(height: 10),
+                                      SizePicker(
+                                        sizes: plan.sizes,
+                                        selected: state.childCount,
+                                        color: color,
+                                        onSelected: _cubit.selectSize,
+                                      ),
+                                    ],
+                                    if (size != null) ...[
+                                      const SizedBox(height: 18),
+                                      StepHeader(
+                                        step: 3,
+                                        title: l10n.birthdayExtraChild,
+                                      ),
+                                      const SizedBox(height: 10),
+                                      ExtraChildrenStepper(
+                                        count: state.extraChildren,
+                                        hint: l10n.birthdayExtraHint(
+                                          '${size.childCount}',
+                                          plan!.name,
+                                          groupDigits(size.extraChildUzs),
+                                        ),
+                                        onAdd: _cubit.addExtraChild,
+                                        onReset: _cubit.resetExtraChildren,
+                                      ),
+                                      const SizedBox(height: 18),
+                                      StepHeader(
+                                        step: 4,
+                                        title: l10n.birthdayDate,
+                                      ),
+                                      const SizedBox(height: 10),
+                                      BirthdayTotalCard(
+                                        state: state,
+                                        size: size,
+                                        totalController: _totalController,
+                                        onPickDate: () =>
+                                            _pickDate(state.partyDate),
+                                        onTotalChanged: (v) =>
+                                            _cubit.setAgreedPrice(parseUzs(v)),
+                                      ),
+                                      const SizedBox(height: 18),
+                                      StepHeader(
+                                        step: 5,
+                                        title: l10n.birthdayPayment,
+                                      ),
+                                      const SizedBox(height: 10),
+                                      _payment(p, l10n, state, payment),
+                                    ],
                                   ],
-                                ],
+                                ),
                               ),
                             ),
                           ),

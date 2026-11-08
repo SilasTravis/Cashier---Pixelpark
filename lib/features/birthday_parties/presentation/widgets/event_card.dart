@@ -91,7 +91,7 @@ class EventCard extends StatelessWidget {
                           children: [
                             Flexible(
                               child: Text(
-                                party.customerName,
+                                party.customerLabel,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(

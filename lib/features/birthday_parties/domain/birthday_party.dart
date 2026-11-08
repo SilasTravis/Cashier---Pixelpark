@@ -151,6 +151,11 @@ class BirthdayParty extends Equatable {
   final int customerId;
   final String customerName;
   final String customerPhone;
+
+  /// The parent as shown to the cashier: the name, or the phone number when
+  /// the account has no name.
+  String get customerLabel =>
+      customerName.trim().isEmpty ? customerPhone : customerName;
   final String planId;
   final String planName;
   final String planColor;

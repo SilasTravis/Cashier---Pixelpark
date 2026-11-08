@@ -155,8 +155,14 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
         });
         return;
       }
+      // A clean refusal — also of a retry: a payment already taken under this
+      // requestId would have replayed as a success — so nothing was charged
+      // and the amounts are editable again.
       setState(() {
         _busy = false;
+        _unclear = false;
+        _pendingMoney = null;
+        _offline = false;
         _errorCode = code ?? 'UNKNOWN';
         _errorMessage = message;
       });
@@ -179,7 +185,7 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
       _busy = true;
       _offline = false;
     });
-    final lookup = await lookupParty(
+    final lookup = await lookupPartySettled(
       sl<BirthdayPartiesRepository>(),
       widget.party.id,
     );
@@ -223,7 +229,7 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
               children: [
                 Text(l10n.bdPayTitle, style: p.title.copyWith(fontSize: 19)),
                 const SizedBox(height: 2),
-                Text(party.customerName, style: p.bodyMuted),
+                Text(party.customerLabel, style: p.bodyMuted),
                 const SizedBox(height: 14),
                 _remaining(p, l10n, party.debtUzs),
                 const SizedBox(height: 14),
@@ -240,22 +246,27 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
                   onChanged: (_) => setState(() {}),
                 ),
                 const SizedBox(height: 12),
-                IgnorePointer(
-                  ignoring: _unclear,
-                  child: Opacity(
-                    opacity: _unclear ? 0.55 : 1,
-                    child: BirthdayPaymentBlock(
-                      payment: _payment,
-                      balanceUnknown: _balanceFailed,
-                      balanceUzs: _balance,
-                      payFromBalance: _payFromBalance,
-                      onPayFromBalance: (v) =>
-                          setState(() => _payFromBalance = v),
-                      method: _method,
-                      onMethod: (m) => setState(() => _method = m),
-                      cashController: _cash,
-                      cardController: _card,
-                      onChanged: () => setState(() {}),
+                // Locked after an unclear failure: no clicks and no keyboard
+                // (a split field may still have had focus).
+                ExcludeFocus(
+                  excluding: _unclear,
+                  child: IgnorePointer(
+                    ignoring: _unclear,
+                    child: Opacity(
+                      opacity: _unclear ? 0.55 : 1,
+                      child: BirthdayPaymentBlock(
+                        payment: _payment,
+                        balanceUnknown: _balanceFailed,
+                        balanceUzs: _balance,
+                        payFromBalance: _payFromBalance,
+                        onPayFromBalance: (v) =>
+                            setState(() => _payFromBalance = v),
+                        method: _method,
+                        onMethod: (m) => setState(() => _method = m),
+                        cashController: _cash,
+                        cardController: _card,
+                        onChanged: () => setState(() {}),
+                      ),
                     ),
                   ),
                 ),

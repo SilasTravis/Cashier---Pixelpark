@@ -50,7 +50,7 @@ class BirthdayReceipt {
                 .reduce((a, b) => b.isAfter(a) ? b : a)
           : payment?.createdAt ?? p.createdAt,
       details: [
-        ('Ota-ona', p.customerName),
+        ('Ota-ona', p.customerLabel),
         ('Filial', p.branchName),
         ('Tarif', p.planName),
         ('Bolalar', children),
