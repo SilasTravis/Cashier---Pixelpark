@@ -32,6 +32,9 @@
   "cartEmpty": "Chek bo‘sh",
   "discount": "Chegirma",
   "noDiscount": "Chegirmasiz",
+  "birthdayAgeTitle": "Necha yoshga to'ldi?",
+  "birthdayAgeHint": "Bugun {name}ning tug'ilgan kuni. Yoshini tanlang — sana bolaga saqlanadi.",
+  "birthdayAgeChip": "{age} yosh",
   "discountGroupFree": "Bepul (100%)",
   "discountGroupPercent": "Foizli",
   "discountGroupFixed": "Summali",
@@ -150,6 +153,7 @@
   "allCustomers": "Barcha mijozlar",
   "customerDirectorySearchHint": "Ism yoki telefonning oxirgi raqamlari bo‘yicha qidiring",
   "searchResult": "Qidiruv natijasi",
+  "similarNumbers": "O‘xshash raqamlar — boshqa mijozlar",
   "customerCount": "{count} ta mijoz",
   "@customerCount": {
     "placeholders": {
@@ -819,5 +823,18 @@
   "lanBridgeControl": "Masofaviy kirish",
   "lanBridgeConnected": "ulangan",
   "lanBridgeConnecting": "ulanmoqda",
-  "lanBridgeDisabled": "o‘chiq"
+  "lanBridgeDisabled": "o‘chiq",
+  "planUpgradeAndPrint": "Tarifni yangilash",
+  "planUpgradeLine": "{child}: {from} → {to}. {paid} oldin to‘langan — qo‘shimcha to‘lov: {due}",
+  "@planUpgradeLine": {"placeholders": {"child": {"type": "String"}, "from": {"type": "String"}, "to": {"type": "String"}, "paid": {"type": "String"}, "due": {"type": "String"}}},
+  "groupEntry": "Guruh (maktab)",
+  "groupEntryHint": "Faqat soni — ismlarsiz",
+  "moreActions": "Ko'proq",
+  "groupSelected": "Guruh: {count} bola",
+  "@groupSelected": {"placeholders": {"count": {"type": "int"}}},
+  "groupDialogTitle": "Guruh (maktab) — nechta bola?",
+  "groupDialogHint": "Bolalar ismsiz kiradi: chekda faqat soni chiqadi, statistikada har biri alohida sanaladi.",
+  "groupCountLabel": "Bolalar soni",
+  "groupApply": "Tanlash",
+  "groupRemove": "Guruhni olib tashlash"
 }

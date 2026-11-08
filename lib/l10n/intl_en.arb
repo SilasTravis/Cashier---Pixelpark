@@ -32,6 +32,9 @@
   "cartEmpty": "Cart is empty",
   "discount": "Discount",
   "noDiscount": "No discount",
+  "birthdayAgeTitle": "How old today?",
+  "birthdayAgeHint": "It's {name}'s birthday. Pick the age — the date is saved on the child.",
+  "birthdayAgeChip": "{age} y.o.",
   "discountGroupFree": "Free (100%)",
   "discountGroupPercent": "Percentage",
   "discountGroupFixed": "Fixed amount",
@@ -150,6 +153,7 @@
   "allCustomers": "All customers",
   "customerDirectorySearchHint": "Search by name or the last phone digits",
   "searchResult": "Search results",
+  "similarNumbers": "Similar numbers — other customers",
   "customerCount": "{count} customers",
   "@customerCount": {
     "placeholders": {
@@ -744,5 +748,18 @@
   "lanBridgeControl": "Remote access",
   "lanBridgeConnected": "connected",
   "lanBridgeConnecting": "connecting",
-  "lanBridgeDisabled": "off"
+  "lanBridgeDisabled": "off",
+  "planUpgradeAndPrint": "Upgrade plan",
+  "planUpgradeLine": "{child}: {from} → {to}. {paid} already paid — surcharge: {due}",
+  "@planUpgradeLine": {"placeholders": {"child": {"type": "String"}, "from": {"type": "String"}, "to": {"type": "String"}, "paid": {"type": "String"}, "due": {"type": "String"}}},
+  "groupEntry": "Group (school)",
+  "groupEntryHint": "Count only — no names",
+  "moreActions": "More",
+  "groupSelected": "Group: {count} kids",
+  "@groupSelected": {"placeholders": {"count": {"type": "int"}}},
+  "groupDialogTitle": "Group (school) — how many kids?",
+  "groupDialogHint": "Kids enter without names: the receipt shows only the count, statistics count each one.",
+  "groupCountLabel": "Number of kids",
+  "groupApply": "Select",
+  "groupRemove": "Remove group"
 }

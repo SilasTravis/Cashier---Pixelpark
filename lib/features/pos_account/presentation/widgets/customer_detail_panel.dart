@@ -27,6 +27,8 @@ import '../../domain/pos_entry.dart';
 import '../../domain/promo_code_check.dart';
 import 'account_ui.dart';
 import 'check_discount_sheet.dart';
+import 'birthday_age_dialog.dart';
+import 'group_count_dialog.dart';
 import 'entry_discount_dialog.dart';
 import 'confirm_topup_dialog.dart';
 import '../bloc/pos_account_bloc.dart';
@@ -59,6 +61,9 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
   /// the checkout.
   final Map<String, String> _childEntryDiscountIds = {};
 
+  /// childId → the age picked with a birthday discount (sent beside it).
+  final Map<String, int> _childBirthdayAges = {};
+
   /// The cashier's "Qaysi bolaga" pick for the verified partner promo code
   /// (`state.promo`) — null (or deselected) falls back to the first
   /// selected child without a pass today; see `promoChildId` in build.
@@ -79,6 +84,9 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
   /// with plan-switch conflicts so the modal re-sends the same checkout
   /// with `replacePlan` and the right amount to collect.
   PlanSwitchCheckout? _lastCheckout;
+
+  /// The plan-switch quote last asked for — one request per selection.
+  String? _quoteRequestedKey;
 
   void _clearCheckoutSnapshot() {
     _checkoutEntryDiscounts = const {};
@@ -105,6 +113,50 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
   String? _reprintPlanKey;
   List<ReprintGroup> _reprintQueue = const [];
 
+  /// "Guruh (maktab)": asks the class size, then selects that many
+  /// anonymous seats of the customer (created on first use) instead of
+  /// whatever seats were picked before. 0 drops the group.
+  Future<void> _pickGroup(BuildContext context, Customer customer) async {
+    final seatIds = {
+      for (final child in customer.children)
+        if (child.isGroupSeat) child.id,
+    };
+    final current = _selectedChildIds.where(seatIds.contains).length;
+    final count = await showGroupCountDialog(context, current: current);
+    if (count == null || !context.mounted) return;
+    if (count == 0) {
+      setState(() => _selectedChildIds.removeAll(seatIds));
+      return;
+    }
+    context.read<PosAccountBloc>().add(
+      PosAccountGroupSeatsRequested(
+        count: count,
+        onSeats: (ids) {
+          if (!mounted) return;
+          setState(() {
+            // One discount for the whole group: the new count keeps it.
+            final groupDiscountId = seatIds
+                .map((id) => _childEntryDiscountIds[id])
+                .nonNulls
+                .firstOrNull;
+            for (final id in seatIds) {
+              _childEntryDiscountIds.remove(id);
+              _childBirthdayAges.remove(id);
+            }
+            if (groupDiscountId != null) {
+              for (final id in ids) {
+                _childEntryDiscountIds[id] = groupDiscountId;
+              }
+            }
+            _selectedChildIds
+              ..removeAll(seatIds)
+              ..addAll(ids);
+          });
+        },
+      ),
+    );
+  }
+
   void _startReprint(List<ReprintGroup> groups) {
     if (groups.isEmpty) return;
     final next = groups.first;
@@ -130,6 +182,11 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
       sl.isRegistered<LocalSource>() ? sl<LocalSource>() : null;
 
   static bool _savedPrintParentQr() => _local?.getPrintParentQr() ?? false;
+
+  /// The branch's dashboard switch "Kassada QR stiker chiqarilsin". Off: the
+  /// till prints no entry QR (stickers/tickets), no parent QR and offers no
+  /// re-print — only the payment receipt.
+  static bool get _printEntryQr => _local?.getPrintEntryQr() ?? true;
 
   PaymentMethod _topupMethod = PaymentMethod.cash;
   final _topupAmountController = TextEditingController();
@@ -213,6 +270,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
     _selectedChildIds.clear();
     _selectedPlan = null;
     _childEntryDiscountIds.clear();
+    _childBirthdayAges.clear();
     _promoChildId = null;
     _companions = 0;
     _addingChild = false;
@@ -269,10 +327,16 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               await printSaleReceiptDirect(context, productReceipt);
               if (!context.mounted) return;
             }
+            // Group seats print nameless: a class is a count, not names.
             final childNames = {
               for (final child
                   in state.selectedCustomer?.children ?? const <Child>[])
-                child.id: child.fullName,
+                child.id: child.isGroupSeat ? '' : child.fullName,
+            };
+            final seatIds = {
+              for (final child
+                  in state.selectedCustomer?.children ?? const <Child>[])
+                if (child.isGroupSeat) child.id,
             };
             final reprintPlanName = _reprintPlanName;
             if (reprintPlanName != null) {
@@ -303,6 +367,9 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
             // The checkout's own plan, snapshotted on submit: a confirmed
             // switch lands after the panel's pick was cleared.
             final plan = _checkoutPlan ?? _selectedPlan;
+            // The branch's "Kassada QR stiker chiqarilsin" (dashboard): off, the
+            // passes would be paper to throw away — the receipt alone prints.
+            final printQr = _printEntryQr;
             printPlanEntryLabels(
               context,
               result,
@@ -311,14 +378,21 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               planPriceUzs: (plan?.isPrepaid ?? false) ? plan?.flatUzs : null,
               entryDiscountsByChild: _checkoutEntryDiscounts,
               companionPriceUzs: state.companionPriceUzs,
+              printQr: printQr,
             );
             // Cashback is earned on entries: its QR rides on an SLK entry
-            // receipt, printed only when the server issued one.
+            // receipt, printed when the server issued one — and always for a
+            // school group or with the entry QR off, so the payment still
+            // gets its paper.
             final entryReceipt = entryCashbackReceipt(
               result,
               childNames,
               planName: plan?.name,
               companionPriceUzs: state.companionPriceUzs,
+              evenWithoutCashback:
+                  !printQr ||
+                  isSchoolGroup(result) ||
+                  result.entries.any((e) => seatIds.contains(e.childId)),
             );
             if (entryReceipt != null) {
               unawaited(printSaleReceiptDirect(context, entryReceipt));
@@ -582,7 +656,6 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                     !passReturnedIds.contains(id))
                   id,
           };
-          final switchPendingIds = switchConflictIds;
           // A live pass (switched or handed back as-is) shows no share.
           Discount? checkShareFor(String childId) =>
               activePassByChild.containsKey(childId)
@@ -634,18 +707,100 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                               ) ??
                           0),
           };
+          // An upgrade is priced right here from the server's quote, so it
+          // is paid and printed in one press like any sale: the switching
+          // child costs only its surcharge. Until the quote lands (or when
+          // it fails — older backend) the press falls back to "Davom etish"
+          // and the switch modal collects.
+          final quoteChildIds = switchConflictIds.toList()..sort();
+          final quoteKey = switchConflictIds.isEmpty
+              ? null
+              : [
+                  customer.id,
+                  _selectedPlan!.key,
+                  for (final id in quoteChildIds)
+                    '$id:${activePassByChild[id]!.planKey}:'
+                        '${activePassByChild[id]!.expiresAt.millisecondsSinceEpoch}',
+                ].join('|');
+          final quote = state.switchQuote?.key == quoteKey
+              ? state.switchQuote
+              : null;
+          if (quoteKey != null &&
+              quote == null &&
+              _quoteRequestedKey != quoteKey) {
+            _quoteRequestedKey = quoteKey;
+            final planKey = _selectedPlan!.key;
+            final bloc = context.read<PosAccountBloc>();
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              bloc.add(
+                PosAccountSwitchQuoteRequested(
+                  key: quoteKey,
+                  planKey: planKey,
+                  childIds: quoteChildIds,
+                ),
+              );
+            });
+          }
+          final quotedById = {
+            for (final c in quote?.conflicts ?? const <PosEntryConflict>[])
+              c.childId: c,
+          };
+          // Every quoted switch is allowed and priced: one-press upgrade. A
+          // child the server does not quote is a plain sale for it.
+          final upgradeReady =
+              quote?.conflicts != null &&
+              quotedById.values.every(
+                (c) => c.switchable && c.upgradeDueUzs != null,
+              );
+          final upgradeDueByChild = <String, int>{
+            if (upgradeReady)
+              for (final c in quotedById.values)
+                if (switchConflictIds.contains(c.childId))
+                  c.childId: planSwitchDueUzs(
+                    [c],
+                    netFlatByChild: {c.childId: ?childDueUzs[c.childId]},
+                    requestedPlanFlatUzs: _selectedPlan?.flatUzs,
+                  ),
+          };
+          final switchPendingIds = upgradeReady
+              ? const <String>{}
+              : switchConflictIds;
+          final upgradeLines = [
+            for (final c in quotedById.values)
+              if (upgradeDueByChild.containsKey(c.childId))
+                AppLocalization.of(context).planUpgradeLine(
+                  customer.children
+                          .where((child) => child.id == c.childId)
+                          .firstOrNull
+                          ?.fullName ??
+                      '',
+                  c.currentPlanLabel,
+                  _selectedPlan!.name,
+                  formatUzs(c.upgradeCreditUzs),
+                  formatUzs(upgradeDueByChild[c.childId]!),
+                ),
+          ];
           // A pending-switch child is not charged here: the switch modal
-          // collects only its surcharge.
-          final vipTotal = childDueUzs.entries
-              .where((e) => !switchPendingIds.contains(e.key))
-              .fold<int>(0, (sum, e) => sum + e.value);
+          // collects only its surcharge. An upgrading one pays its quoted
+          // surcharge.
+          final vipTotal =
+              childDueUzs.entries
+                  .where(
+                    (e) =>
+                        !switchPendingIds.contains(e.key) &&
+                        !upgradeDueByChild.containsKey(e.key),
+                  )
+                  .fold<int>(0, (sum, e) => sum + e.value) +
+              upgradeDueByChild.values.fold<int>(0, (sum, v) => sum + v);
           // What the promo code takes off the prepaid tariff — shown as its
           // own row so a 100% code reads "Bepul", not a bare 0.
           final promoDiscountUzs =
               promoChildId != null &&
                   (_selectedPlan?.isPrepaid ?? false) &&
                   !alreadyOnSelectedPlan.contains(promoChildId) &&
-                  !switchPendingIds.contains(promoChildId)
+                  !switchPendingIds.contains(promoChildId) &&
+                  !upgradeDueByChild.containsKey(promoChildId)
               ? promo!.discount.appliedDiscountUzs(_selectedPlan!.flatUzs ?? 0)
               : 0;
           // What the check discount takes off the prepaid tariff — its own
@@ -653,7 +808,11 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
           final checkDiscountUzs =
               checkDiscount != null && (_selectedPlan?.isPrepaid ?? false)
               ? orderedChildIds
-                    .where((id) => !alreadyOnSelectedPlan.contains(id))
+                    .where(
+                      (id) =>
+                          !alreadyOnSelectedPlan.contains(id) &&
+                          !upgradeDueByChild.containsKey(id),
+                    )
                     .fold<int>(
                       0,
                       (sum, id) =>
@@ -774,6 +933,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               for (final row in state.playing) row.childId: row.minutes,
             },
             selectedChildIds: _selectedChildIds,
+            onGroupTap: () => _pickGroup(context, customer),
             onToggleChild: (id) => setState(
               () => _selectedChildIds.contains(id)
                   ? _selectedChildIds.remove(id)
@@ -788,16 +948,25 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
             childEntryDiscountIds: checkDiscount == null
                 ? _childEntryDiscountIds
                 : const {},
+            childBirthdayAges: checkDiscount == null
+                ? _childBirthdayAges
+                : const {},
             checkShareLabels: checkShareLabels,
             promoChildId: promoChildId,
             promoLabel: promo == null ? null : promoCodeLabel(promo),
-            onChildEntryDiscountChanged: (id, discountId) => setState(() {
-              if (discountId == null) {
-                _childEntryDiscountIds.remove(id);
-              } else {
-                _childEntryDiscountIds[id] = discountId;
-              }
-            }),
+            onChildEntryDiscountChanged: (id, discountId, birthdayAge) =>
+                setState(() {
+                  if (discountId == null) {
+                    _childEntryDiscountIds.remove(id);
+                  } else {
+                    _childEntryDiscountIds[id] = discountId;
+                  }
+                  if (birthdayAge == null) {
+                    _childBirthdayAges.remove(id);
+                  } else {
+                    _childBirthdayAges[id] = birthdayAge;
+                  }
+                }),
             addingChild: _addingChild,
             onStartAddChild: () => setState(() => _addingChild = true),
             onCancelAddChild: () => setState(() {
@@ -982,15 +1151,18 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                   ),
             ],
             printParentQr: _printParentQr,
-            onPrintParentQrChanged: (v) {
-              setState(() => _printParentQr = v);
-              _local?.setPrintParentQr(v);
-            },
+            onPrintParentQrChanged: _printEntryQr
+                ? (v) {
+                    setState(() => _printParentQr = v);
+                    _local?.setPrintParentQr(v);
+                  }
+                : null,
             showPayAmount: _showPayAmount,
             onShowPayAmount: () => setState(() => _showPayAmount = true),
             canSubmit: canEnter,
             isBusy: state.isBusy,
             switchPending: switchPending,
+            upgradeLines: hasEntry ? upgradeLines : const [],
             blockedNotes: blockedSwitchNotes,
             onSubmit: () {
               // With a check discount, entryDiscountFor() is the child's
@@ -1008,13 +1180,22 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               final request = PosAccountCheckoutRequested(
                 planKey: hasEntry ? _selectedPlan!.key : null,
                 childIds: hasEntry ? orderedChildIds : const [],
-                withParentQr: hasEntry && _printParentQr,
+                withParentQr: hasEntry && _printParentQr && _printEntryQr,
                 entryDiscounts: checkDiscount != null
                     ? const {}
                     : {
                         for (final entry in _childEntryDiscountIds.entries)
                           if (_selectedChildIds.contains(entry.key) &&
                               entry.key != promoChildId)
+                            entry.key: entry.value,
+                      },
+                birthdayAges: checkDiscount != null
+                    ? const {}
+                    : {
+                        for (final entry in _childBirthdayAges.entries)
+                          if (_selectedChildIds.contains(entry.key) &&
+                              entry.key != promoChildId &&
+                              _childEntryDiscountIds.containsKey(entry.key))
                             entry.key: entry.value,
                       },
                 checkDiscountId: checkDiscount?.id,
@@ -1029,6 +1210,8 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                 cashUzs: collect ? paySplit.cashUzs : 0,
                 cardUzs: collect ? paySplit.cardUzs : 0,
                 discountId: _selectedDiscountId,
+                // The quoted upgrade is confirmed by this very press.
+                replacePlan: hasEntry && upgradeDueByChild.isNotEmpty,
               );
               _lastCheckout = PlanSwitchCheckout(
                 request: request,
@@ -1082,9 +1265,11 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
             onRefresh: () => context.read<PosAccountBloc>().add(
               const PosAccountCustomerRefreshRequested(),
             ),
-            onParentQr: () => context.read<PosAccountBloc>().add(
-              const PosAccountParentQrRequested(),
-            ),
+            onParentQr: _printEntryQr
+                ? () => context.read<PosAccountBloc>().add(
+                    const PosAccountParentQrRequested(),
+                  )
+                : null,
             onBack: () => context.read<PosAccountBloc>().add(
               const PosAccountSelectionCleared(),
             ),
@@ -1127,6 +1312,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
               },
               busy: state.isBusy,
               onReprint: _startReprint,
+              canReprint: _printEntryQr,
               onStale: () => context.read<PosAccountBloc>().add(
                 const PosAccountActivePassesRequested(),
               ),
@@ -1241,6 +1427,10 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
         cardUzs: 0,
         entryDiscounts: {
           for (final e in request.entryDiscounts.entries)
+            if (childIds.contains(e.key)) e.key: e.value,
+        },
+        birthdayAges: {
+          for (final e in request.birthdayAges.entries)
             if (childIds.contains(e.key)) e.key: e.value,
         },
         promoCode:
@@ -1487,7 +1677,8 @@ class _SummaryStrip extends StatelessWidget {
 
   /// Prints the customer's free parent QR — the ruleless both-direction
   /// day sticker for the accompanying adult.
-  final VoidCallback onParentQr;
+  /// Null hides the button (the branch prints no entry QR).
+  final VoidCallback? onParentQr;
   final ValueChanged<String> onRename;
   final VoidCallback onRefresh;
   final VoidCallback onBack;
@@ -1580,7 +1771,9 @@ class _SummaryStrip extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              if (narrow)
+              if (onParentQr == null)
+                const SizedBox.shrink()
+              else if (narrow)
                 IconButton.outlined(
                   tooltip: l10n.parentQr,
                   onPressed: isBusy ? null : onParentQr,
@@ -1641,10 +1834,12 @@ class _ChildrenCard extends StatelessWidget {
     required this.customer,
     required this.activePasses,
     required this.selectedChildIds,
+    required this.onGroupTap,
     required this.onToggleChild,
     required this.onRenameChild,
     required this.entryDiscounts,
     required this.childEntryDiscountIds,
+    this.childBirthdayAges = const {},
     required this.onChildEntryDiscountChanged,
     required this.promoChildId,
     required this.promoLabel,
@@ -1666,6 +1861,9 @@ class _ChildrenCard extends StatelessWidget {
   /// staff see "already on Standart today" BEFORE picking a tariff.
   final List<ActivePass> activePasses;
   final Set<String> selectedChildIds;
+
+  /// Opens the "Guruh (maktab)" count dialog — a school class by count.
+  final VoidCallback onGroupTap;
   final ValueChanged<String> onToggleChild;
   final void Function(String childId, String fullName) onRenameChild;
 
@@ -1676,7 +1874,10 @@ class _ChildrenCard extends StatelessWidget {
   /// Optional per-child entry discount picked from the tile's 3-dots menu —
   /// null discountId in the callback clears the child's pick.
   final Map<String, String> childEntryDiscountIds;
-  final void Function(String childId, String? discountId)
+
+  /// childId → the age picked with that child's birthday discount.
+  final Map<String, int> childBirthdayAges;
+  final void Function(String childId, String? discountId, int? birthdayAge)
   onChildEntryDiscountChanged;
 
   /// The child the verified promo code discounts, and its chip text —
@@ -1700,6 +1901,20 @@ class _ChildrenCard extends StatelessWidget {
     final p = PosPalette.of(context);
     final selCount = selectedChildIds.length;
     final passByChildId = {for (final pass in activePasses) pass.childId: pass};
+    // Group seats are a count, not kids to pick one by one: one tile.
+    final namedChildren = [
+      for (final child in customer.children)
+        if (!child.isGroupSeat) child,
+    ];
+    final selectedSeatIds = [
+      for (final c in customer.children)
+        if (c.isGroupSeat && selectedChildIds.contains(c.id)) c.id,
+    ];
+    final selectedSeats = selectedSeatIds.length;
+    final groupDiscountId = selectedSeatIds
+        .map((id) => childEntryDiscountIds[id])
+        .nonNulls
+        .firstOrNull;
     return AccountCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1707,17 +1922,24 @@ class _ChildrenCard extends StatelessWidget {
           StepHeader(
             step: 1,
             title: l10n.accountStepWho,
-            trailing: Text(
-              selCount > 0
-                  ? l10n.selectedCount(selCount)
-                  : customer.children.isEmpty
-                  ? l10n.noChildren
-                  : l10n.selectForQr,
-              style: AppTextStyles.body.copyWith(
-                fontSize: 12.5,
-                fontWeight: selCount > 0 ? FontWeight.w600 : null,
-                color: selCount > 0 ? p.accent : p.textMuted,
-              ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  selCount > 0
+                      ? l10n.selectedCount(selCount)
+                      : customer.children.isEmpty
+                      ? l10n.noChildren
+                      : l10n.selectForQr,
+                  style: AppTextStyles.body.copyWith(
+                    fontSize: 12.5,
+                    fontWeight: selCount > 0 ? FontWeight.w600 : null,
+                    color: selCount > 0 ? p.accent : p.textMuted,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                _MoreEntryMenu(onGroupTap: onGroupTap),
+              ],
             ),
           ),
           const SizedBox(height: 14),
@@ -1729,7 +1951,7 @@ class _ChildrenCard extends StatelessWidget {
                   ? 2
                   : 1;
               final tiles = <Widget>[
-                for (final child in customer.children)
+                for (final child in namedChildren)
                   _ChildRow(
                     child: child,
                     activePass: passByChildId[child.id],
@@ -1738,14 +1960,37 @@ class _ChildrenCard extends StatelessWidget {
                     onRename: (name) => onRenameChild(child.id, name),
                     entryDiscounts: entryDiscounts,
                     selectedDiscountId: childEntryDiscountIds[child.id],
-                    onEntryDiscountChanged: (discountId) =>
-                        onChildEntryDiscountChanged(child.id, discountId),
+                    birthdayAge: childBirthdayAges[child.id],
+                    onEntryDiscountChanged: (discountId, birthdayAge) =>
+                        onChildEntryDiscountChanged(
+                          child.id,
+                          discountId,
+                          birthdayAge,
+                        ),
                     promoLabel: child.id == promoChildId ? promoLabel : null,
                     checkShareLabel: checkShareLabels[child.id],
                     insideMinutes: insideMinutes[child.id],
                   ),
                 if (!addingChild)
                   _AddChildTile(label: l10n.quickAdd, onTap: onStartAddChild),
+                // Used once or twice a week: the tile shows only once a
+                // group is picked; it is started from the "Ko'proq" menu.
+                if (selectedSeats > 0)
+                  _GroupTile(
+                    selectedCount: selectedSeats,
+                    onTap: onGroupTap,
+                    // A class has no birthdays to check: those are left out.
+                    entryDiscounts: [
+                      for (final d in entryDiscounts)
+                        if (!d.marksBirthday) d,
+                    ],
+                    selectedDiscountId: groupDiscountId,
+                    onDiscountChanged: (discountId) {
+                      for (final id in selectedSeatIds) {
+                        onChildEntryDiscountChanged(id, discountId, null);
+                      }
+                    },
+                  ),
               ];
               // A grid whose rows share one height, so a tile with badges
               // never leaves its neighbours looking short.
@@ -1873,6 +2118,221 @@ class _AddChildTile extends StatelessWidget {
   }
 }
 
+/// "Ko'proq" in the "Kim kiradi?" header: rarely used entry kinds
+/// (a school group by count) live here so they never crowd the child grid.
+class _MoreEntryMenu extends StatelessWidget {
+  const _MoreEntryMenu({required this.onGroupTap});
+
+  final VoidCallback onGroupTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
+    final p = PosPalette.of(context);
+    return PopupMenuButton<void>(
+      tooltip: l10n.moreActions,
+      position: PopupMenuPosition.under,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      itemBuilder: (context) => [
+        PopupMenuItem<void>(
+          onTap: onGroupTap,
+          child: Row(
+            children: [
+              Icon(PhosphorIconsRegular.usersThree, size: 18, color: p.accent),
+              const SizedBox(width: 10),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      l10n.groupEntry,
+                      style: AppTextStyles.body.copyWith(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      l10n.groupEntryHint,
+                      style: AppTextStyles.body.copyWith(
+                        fontSize: 11.5,
+                        color: p.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: p.accentBorder),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              l10n.moreActions,
+              style: AppTextStyles.body.copyWith(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: p.accent,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(PhosphorIconsRegular.caretDown, size: 13, color: p.accent),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// "Guruh (maktab)": a school class checked in by count, no names. Shows
+/// the picked count once set; tapping opens the count dialog again.
+class _GroupTile extends StatelessWidget {
+  const _GroupTile({
+    required this.selectedCount,
+    required this.onTap,
+    required this.entryDiscounts,
+    required this.selectedDiscountId,
+    required this.onDiscountChanged,
+  });
+
+  final int selectedCount;
+  final VoidCallback onTap;
+
+  /// Entry discounts the whole group can take (one for every seat).
+  final List<Discount> entryDiscounts;
+  final String? selectedDiscountId;
+
+  /// Null clears the group's discount.
+  final ValueChanged<String?> onDiscountChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
+    final p = PosPalette.of(context);
+    final active = selectedCount > 0;
+    final selectedDiscount = selectedDiscountId == null
+        ? null
+        : entryDiscounts.where((d) => d.id == selectedDiscountId).firstOrNull;
+    final canDiscount =
+        active && (entryDiscounts.isNotEmpty || selectedDiscountId != null);
+    return Material(
+      color: active ? p.accentSoft : Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: active ? p.accent : p.accentBorder, width: 1.5),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        hoverColor: p.accentSoft,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 74),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            active
+                                ? PhosphorIconsFill.usersThree
+                                : PhosphorIconsRegular.usersThree,
+                            size: 17,
+                            color: p.accent,
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              active
+                                  ? l10n.groupSelected(selectedCount)
+                                  : l10n.groupEntry,
+                              style: AppTextStyles.body.copyWith(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                                color: p.accent,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      if (selectedDiscount != null)
+                        StatusChip(
+                          label: '${l10n.discount}: ${selectedDiscount.name}',
+                          tone: ChipTone.positive,
+                        )
+                      else
+                        Text(
+                          l10n.groupEntryHint,
+                          style: AppTextStyles.body.copyWith(
+                            fontSize: 11.5,
+                            color: p.textMuted,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                if (canDiscount) ...[
+                  const SizedBox(width: 10),
+                  Tooltip(
+                    key: const ValueKey('group-discount-button'),
+                    message: l10n.discount,
+                    child: Material(
+                      color: selectedDiscount == null ? p.accentSoft : p.accent,
+                      shape: CircleBorder(
+                        side: BorderSide(
+                          color: selectedDiscount == null
+                              ? p.accentBorder
+                              : p.accent,
+                        ),
+                      ),
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: () async {
+                          final pick = await showEntryDiscountDialog(
+                            context,
+                            discounts: entryDiscounts,
+                            selectedId: selectedDiscountId,
+                          );
+                          if (pick != null) onDiscountChanged(pick.id);
+                        },
+                        child: SizedBox(
+                          width: 32,
+                          height: 32,
+                          child: Icon(
+                            PhosphorIconsBold.dotsThreeVertical,
+                            size: 18,
+                            color: selectedDiscount == null
+                                ? p.accentStrong
+                                : p.onAccent,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// One child as a selectable tile: checkbox, name (tap to rename), and
 /// badges — today's pass, the promo code, a 3-dots entry discount or the
 /// check discount share. The "QR" chip mirrors the selection.
@@ -1886,6 +2346,7 @@ class _ChildRow extends StatelessWidget {
     required this.entryDiscounts,
     required this.selectedDiscountId,
     required this.onEntryDiscountChanged,
+    this.birthdayAge,
     this.promoLabel,
     this.checkShareLabel,
     this.insideMinutes,
@@ -1911,7 +2372,13 @@ class _ChildRow extends StatelessWidget {
   /// This checkout's entry-discount pick for the child, or null (bills
   /// normally). Chosen from the 3-dots menu; null in the callback clears.
   final String? selectedDiscountId;
-  final ValueChanged<String?> onEntryDiscountChanged;
+
+  /// A null discount clears; a birthday discount carries the picked age.
+  final void Function(String? discountId, int? birthdayAge)
+  onEntryDiscountChanged;
+
+  /// The age picked with a birthday discount, shown on the discount chip.
+  final int? birthdayAge;
 
   /// Set on the child the partner promo code discounts — shown instead of
   /// the 3-dots pick (the code's tier replaces it), and the menu is hidden.
@@ -1920,6 +2387,13 @@ class _ChildRow extends StatelessWidget {
   /// This child's share of the selected check discount ("−10 000 so'm"),
   /// or null — a badge, since the check discount replaces the 3-dots pick.
   final String? checkShareLabel;
+
+  /// The age the stored birth date gives this year — a hint only, null when
+  /// it is not a plausible park age (placeholder dates give 0).
+  int? _ageTurningToday() {
+    final turns = DateTime.now().year - child.birthDate.year;
+    return birthdayAges.contains(turns) ? turns : null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -2018,6 +2492,14 @@ class _ChildRow extends StatelessWidget {
                             label: '${l10n.discount}: ${selectedDiscount.name}',
                             tone: ChipTone.positive,
                           ),
+                        // Its own chip: the discount name already fills a
+                        // tile's width, the age must stay readable.
+                        if (selectedDiscount != null && birthdayAge != null)
+                          StatusChip(
+                            label: l10n.birthdayAgeChip(birthdayAge!),
+                            icon: PhosphorIconsRegular.cake,
+                            tone: ChipTone.positive,
+                          ),
                         if (checkShareLabel != null)
                           StatusChip(
                             label: checkShareLabel!,
@@ -2054,7 +2536,25 @@ class _ChildRow extends StatelessWidget {
                           discounts: entryDiscounts,
                           selectedId: selectedDiscountId,
                         );
-                        if (pick != null) onEntryDiscountChanged(pick.id);
+                        if (pick == null) return;
+                        final discount = entryDiscounts
+                            .where((d) => d.id == pick.id)
+                            .firstOrNull;
+                        if (discount == null || !discount.marksBirthday) {
+                          onEntryDiscountChanged(pick.id, null);
+                          return;
+                        }
+                        if (!context.mounted) return;
+                        // The cashier just checked the birthday: one tap
+                        // for the age, and the backend saves the date.
+                        final turns = await showBirthdayAgeDialog(
+                          context,
+                          childName: child.firstName,
+                          suggested: _ageTurningToday(),
+                        );
+                        if (turns != null) {
+                          onEntryDiscountChanged(pick.id, turns);
+                        }
                       },
                       child: SizedBox(
                         width: 32,
@@ -2803,6 +3303,7 @@ class _CheckoutSection extends StatelessWidget {
     required this.isBusy,
     required this.onSubmit,
     this.switchPending = false,
+    this.upgradeLines = const [],
     this.blockedNotes = const [],
   });
 
@@ -2884,7 +3385,9 @@ class _CheckoutSection extends StatelessWidget {
 
   /// The free parent sticker rides along with the checkout print.
   final bool printParentQr;
-  final ValueChanged<bool> onPrintParentQrChanged;
+
+  /// Null hides the "parent QR too" row (the branch prints no entry QR).
+  final ValueChanged<bool>? onPrintParentQrChanged;
 
   /// Whether the "Boshqa summa olish" field is open.
   final bool showPayAmount;
@@ -2897,6 +3400,11 @@ class _CheckoutSection extends StatelessWidget {
   /// asks the server ("Davom etish"), collects nothing, and the switch
   /// modal collects the amount — so no "To'lanadi" / payment method here.
   final bool switchPending;
+
+  /// One line per child whose live pass this press upgrades ("80 000
+  /// oldin to'langan — qo'shimcha to'lov: 10 000"); non-empty turns the
+  /// button into "Tarifni yangilash".
+  final List<String> upgradeLines;
 
   /// Plan switches the backend refuses for the selected children — shown
   /// as warnings; the press stays disabled while there are any.
@@ -3135,6 +3643,15 @@ class _CheckoutSection extends StatelessWidget {
             padding: const EdgeInsets.only(top: 8),
             child: _Note(text: note, icon: PhosphorIconsRegular.checkCircle),
           ),
+        for (final line in upgradeLines)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: _Note(
+              text: line,
+              tone: ChipTone.positive,
+              icon: PhosphorIconsRegular.arrowCircleUp,
+            ),
+          ),
         for (final note in blockedNotes)
           Padding(
             padding: const EdgeInsets.only(top: 8),
@@ -3211,45 +3728,47 @@ class _CheckoutSection extends StatelessWidget {
               ),
             ),
         ],
-        const SizedBox(height: 8),
-        // Transparent Material keeps the row's ink plumbing happy inside
-        // the card's DecoratedBox (asserts in widget tests otherwise).
-        Material(
-          type: MaterialType.transparency,
-          child: InkWell(
-            onTap: () => onPrintParentQrChanged(!printParentQr),
-            borderRadius: BorderRadius.circular(8),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 28,
-                    height: 28,
-                    child: Checkbox(
-                      value: printParentQr,
-                      onChanged: (v) => onPrintParentQrChanged(v ?? false),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(5),
+        if (onPrintParentQrChanged case final onParentQrChanged?) ...[
+          const SizedBox(height: 8),
+          // Transparent Material keeps the row's ink plumbing happy inside
+          // the card's DecoratedBox (asserts in widget tests otherwise).
+          Material(
+            type: MaterialType.transparency,
+            child: InkWell(
+              onTap: () => onParentQrChanged(!printParentQr),
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: Checkbox(
+                        value: printParentQr,
+                        onChanged: (v) => onParentQrChanged(v ?? false),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(5),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Tooltip(
-                      message: l10n.unlimitedFreeEntry,
-                      child: Text(
-                        l10n.printParentQr,
-                        overflow: TextOverflow.ellipsis,
-                        style: p.body.copyWith(fontSize: 13.5),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Tooltip(
+                        message: l10n.unlimitedFreeEntry,
+                        child: Text(
+                          l10n.printParentQr,
+                          overflow: TextOverflow.ellipsis,
+                          style: p.body.copyWith(fontSize: 13.5),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
-        ),
+        ],
       ],
     );
     final action = SizedBox(
@@ -3268,6 +3787,8 @@ class _CheckoutSection extends StatelessWidget {
             : Icon(
                 switchPending
                     ? PhosphorIconsRegular.arrowRight
+                    : upgradeLines.isNotEmpty
+                    ? PhosphorIconsRegular.arrowCircleUp
                     : neededTotal > 0
                     ? PhosphorIconsRegular.printer
                     : PhosphorIconsRegular.doorOpen,
@@ -3283,6 +3804,8 @@ class _CheckoutSection extends StatelessWidget {
               Text(
                 switchPending
                     ? l10n.planSwitchContinue
+                    : upgradeLines.isNotEmpty
+                    ? l10n.planUpgradeAndPrint
                     : neededTotal > 0
                     ? l10n.paymentAndPrint
                     : selectedChildCount > 0

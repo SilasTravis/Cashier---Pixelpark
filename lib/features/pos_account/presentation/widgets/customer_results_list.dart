@@ -81,6 +81,28 @@ class _CustomerResultsListState extends State<CustomerResultsList> {
                   icon: PhosphorIconsRegular.userCircleDashed,
                   text: l10n.phoneNotFound,
                 );
+        } else if (query == state.phoneDigits &&
+            state.canCreateWithPhone &&
+            !_hasExactPhone(state.results, state.fullPhone)) {
+          // The number is complete but the search only found look-alikes
+          // (e.g. +998 99 890 99 00 vs +998 90 990 07 78 — the backend
+          // matches by substring). Offer to add the typed number first, and
+          // keep the look-alikes below in case the cashier mistyped.
+          content = SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const _NotFoundCard(),
+                const SizedBox(height: 16),
+                _CustomerTileList(
+                  title: l10n.similarNumbers,
+                  subtitle: l10n.customerCount(state.results.length),
+                  customers: state.results,
+                  scrollable: false,
+                ),
+              ],
+            ),
+          );
         } else {
           content = _CustomerTileList(
             title: l10n.searchResult,
@@ -166,48 +188,57 @@ class _CustomerResultsListState extends State<CustomerResultsList> {
   }
 }
 
+/// Whether one of [customers] has exactly [fullPhone] — digits only, so
+/// `+998 90 123-45-67` and `+998901234567` compare equal.
+bool _hasExactPhone(List<Customer> customers, String fullPhone) {
+  String digits(String v) => v.replaceAll(RegExp(r'\D'), '');
+  final wanted = digits(fullPhone);
+  return customers.any((c) => digits(c.phoneNumber) == wanted);
+}
+
 class _CustomerTileList extends StatelessWidget {
   const _CustomerTileList({
     required this.title,
     required this.subtitle,
     required this.customers,
+    this.scrollable = true,
   });
 
   final String title;
   final String subtitle;
   final List<Customer> customers;
+  final bool scrollable;
 
   @override
   Widget build(BuildContext context) {
     final p = PosPalette.of(context);
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(title, style: p.heading.copyWith(fontSize: 15)),
-              const SizedBox(width: 8),
-              StatusChip(label: subtitle, tone: ChipTone.neutral),
-            ],
-          ),
-          const SizedBox(height: 10),
-          for (final customer in customers)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: _CustomerTile(
-                name: customer.fullName,
-                phone: customer.phoneNumber,
-                childCount: customer.children.length,
-                balance: customer.balance,
-                onTap: () => context.read<PosAccountBloc>().add(
-                  PosAccountCustomerSelected(customer),
-                ),
+    final list = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(title, style: p.heading.copyWith(fontSize: 15)),
+            const SizedBox(width: 8),
+            StatusChip(label: subtitle, tone: ChipTone.neutral),
+          ],
+        ),
+        const SizedBox(height: 10),
+        for (final customer in customers)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: _CustomerTile(
+              name: customer.fullName,
+              phone: customer.phoneNumber,
+              childCount: customer.children.length,
+              balance: customer.balance,
+              onTap: () => context.read<PosAccountBloc>().add(
+                PosAccountCustomerSelected(customer),
               ),
             ),
-        ],
-      ),
+          ),
+      ],
     );
+    return scrollable ? SingleChildScrollView(child: list) : list;
   }
 }
 

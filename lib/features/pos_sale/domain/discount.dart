@@ -39,6 +39,7 @@ class Discount extends Equatable {
     required this.value,
     this.scope = DiscountScope.goods,
     this.active = true,
+    this.marksBirthday = false,
   });
 
   final String id;
@@ -48,6 +49,10 @@ class Discount extends Equatable {
   final DiscountScope scope;
   final bool active;
 
+  /// Picking it confirms the child's birthday: the till asks the age the
+  /// child turns and the backend saves the birth date (`marksBirthday`).
+  final bool marksBirthday;
+
   factory Discount.fromJson(Map<String, dynamic> json) => Discount(
     id: json['id'] as String,
     name: json['name'] as String,
@@ -55,6 +60,7 @@ class Discount extends Equatable {
     value: json['value'] as int,
     scope: DiscountScope.fromKey(json['scope'] as String?),
     active: json['active'] as bool? ?? true,
+    marksBirthday: json['marksBirthday'] as bool? ?? false,
   );
 
   /// Cache shape for offline mode — the inverse of [Discount.fromJson].
@@ -65,6 +71,7 @@ class Discount extends Equatable {
     'value': value,
     'scope': scope.key,
     'active': active,
+    'marksBirthday': marksBirthday,
   };
 
   /// Replicates the backend's `applyDiscount()` formula — `percent`:
@@ -103,12 +110,21 @@ class Discount extends Equatable {
           value: each + (i == 0 ? remainder : 0),
           scope: scope,
           active: active,
+          marksBirthday: marksBirthday,
         ),
     ];
   }
 
   @override
-  List<Object?> get props => [id, name, kind, value, scope, active];
+  List<Object?> get props => [
+    id,
+    name,
+    kind,
+    value,
+    scope,
+    active,
+    marksBirthday,
+  ];
 }
 
 /// The discount actually applied to a sale, as snapshotted and echoed back

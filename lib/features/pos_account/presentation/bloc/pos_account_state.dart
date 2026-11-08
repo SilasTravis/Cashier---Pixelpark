@@ -1,5 +1,19 @@
 part of 'pos_account_bloc.dart';
 
+/// The server's quote for switching the panel's selected children onto the
+/// selected plan — what lets an upgrade be paid and printed in ONE press
+/// (only the surcharge, like any sale). [conflicts] is null when the quote
+/// failed (older backend): the panel then falls back to the switch modal.
+class PlanSwitchQuote extends Equatable {
+  const PlanSwitchQuote({required this.key, required this.conflicts});
+
+  final String key;
+  final List<PosEntryConflict>? conflicts;
+
+  @override
+  List<Object?> get props => [key, conflicts];
+}
+
 class PosAccountState extends Equatable {
   const PosAccountState({
     this.phoneDigits = '',
@@ -25,6 +39,7 @@ class PosAccountState extends Equatable {
     this.isLoadingTransactions = false,
     this.transactionsFailed = false,
     this.activePasses = const [],
+    this.switchQuote,
     this.lastEntryResult,
     this.lastParentPass,
     this.companionPriceUzs = defaultCompanionPriceUzs,
@@ -99,6 +114,9 @@ class PosAccountState extends Equatable {
   /// badge; same refresh lifecycle as [playing].
   final List<ActivePass> activePasses;
 
+  /// The latest plan-switch quote — see [PlanSwitchQuote].
+  final PlanSwitchQuote? switchQuote;
+
   /// Set right after a plan-entry request so the UI can pop the
   /// entrance-QR slip dialog and surface any per-child failures; cleared
   /// once acknowledged.
@@ -171,6 +189,7 @@ class PosAccountState extends Equatable {
     bool? isLoadingTransactions,
     bool? transactionsFailed,
     List<ActivePass>? activePasses,
+    PlanSwitchQuote? switchQuote,
     PosEntryResult? lastEntryResult,
     bool clearLastEntryResult = false,
     ParentPass? lastParentPass,
@@ -215,6 +234,7 @@ class PosAccountState extends Equatable {
           isLoadingTransactions ?? this.isLoadingTransactions,
       transactionsFailed: transactionsFailed ?? this.transactionsFailed,
       activePasses: activePasses ?? this.activePasses,
+      switchQuote: switchQuote ?? this.switchQuote,
       lastEntryResult: clearLastEntryResult
           ? null
           : (lastEntryResult ?? this.lastEntryResult),
@@ -263,6 +283,7 @@ class PosAccountState extends Equatable {
     isLoadingTransactions,
     transactionsFailed,
     activePasses,
+    switchQuote,
     lastEntryResult,
     lastParentPass,
     companionPriceUzs,

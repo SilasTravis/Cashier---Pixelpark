@@ -1,14 +1,23 @@
 import 'package:equatable/equatable.dart';
 
 class Branch extends Equatable {
-  const Branch({required this.id, required this.slug, required this.name});
+  const Branch({
+    required this.id,
+    required this.slug,
+    required this.name,
+    this.printEntryQr = true,
+  });
 
   final String id;
   final String slug;
   final String name;
 
+  /// The branch's dashboard switch "Kassada QR stiker chiqarilsin". False:
+  /// the till prints no entry QR (stickers/tickets), only the receipt.
+  final bool printEntryQr;
+
   @override
-  List<Object?> get props => [id, slug, name];
+  List<Object?> get props => [id, slug, name, printEntryQr];
 }
 
 class Cashier extends Equatable {

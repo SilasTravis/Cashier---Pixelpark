@@ -237,6 +237,30 @@ void main() {
     expect(find.byKey(const ValueKey('reprint-k1')), findsOneWidget);
   });
 
+  testWidgets('entry QR off for the cashier: the list has no re-print', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: const [AppLocalization.delegate],
+        supportedLocales: AppLocalization.delegate.supportedLocales,
+        home: Scaffold(
+          body: TodayPassesCard(
+            passes: [_pass('k1', 'vip', 'VIP'), _pass('k2', 'vip', 'VIP')],
+            childNames: const {'k1': 'Ali', 'k2': 'Vali'},
+            busy: false,
+            canReprint: false,
+            onReprint: (_) => fail('no re-print with entry QR off'),
+            onStale: () {},
+          ),
+        ),
+      ),
+    );
+    expect(find.text('Ali'), findsOneWidget);
+    expect(find.byKey(const ValueKey('reprint-k1')), findsNothing);
+    expect(find.byKey(const ValueKey('reprint-all')), findsNothing);
+  });
+
   testWidgets('a pass ending at midnight reads "23:59 gacha"', (tester) async {
     final now = DateTime.now();
     await tester.pumpWidget(
