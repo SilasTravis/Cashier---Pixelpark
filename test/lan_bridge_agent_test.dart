@@ -40,6 +40,10 @@ class _Echo {
   final ServerSocket server;
   int accepted = 0;
   int ended = 0;
+  int received = 0;
+
+  /// [received] when the last connection ended (EOF or error).
+  int? receivedAtEnd;
   final List<Socket> conns = [];
 
   static Future<_Echo> start() async {
@@ -49,13 +53,18 @@ class _Echo {
       e.conns.add(c);
       c.done.then((_) {}, onError: (_) {});
       c.listen(
-        c.add,
+        (d) {
+          e.received += d.length;
+          c.add(d);
+        },
         onDone: () {
           e.ended++;
+          e.receivedAtEnd = e.received;
           c.destroy();
         },
         onError: (_) {
           e.ended++;
+          e.receivedAtEnd = e.received;
           c.destroy();
         },
         cancelOnError: true,
@@ -396,7 +405,7 @@ void main() {
   });
 
   test(
-    'CLOSE from controller destroys the socket; echo server sees EOF',
+    'CLOSE(false) from controller closes gracefully; echo server sees EOF',
     () async {
       h = await _Harness.start();
       h!.send(OpenFrame(1, 'pi.local', echo.port));
@@ -409,6 +418,206 @@ void main() {
       expect(h!.of<CloseFrame>(), isEmpty); // no CLOSE reply
     },
   );
+
+  test(
+    'DATA(1 MiB) then CLOSE(false) → echo server receives all 1 MiB before EOF',
+    () async {
+      h = await _Harness.start();
+      h!.send(OpenFrame(1, 'pi.local', echo.port));
+      await _until(() => h!.of<OpenOkFrame>().isNotEmpty, what: 'OPEN_OK');
+      await _until(() => echo.accepted == 1, what: 'accept');
+      h!.send(DataFrame(1, _bytes(1 << 20)));
+      h!.send(const CloseFrame(1, false));
+      await _until(() => echo.ended == 1, what: 'echo EOF');
+      expect(echo.receivedAtEnd, 1 << 20);
+      expect(h!.agent.openStreams, 0);
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+      expect(h!.of<CloseFrame>(), isEmpty); // no CLOSE reply
+      expect(h!.of<DataFrame>().length, lessThanOrEqualTo(16)); // nothing after
+    },
+  );
+
+  test(
+    'DATA just under the flush mark then CLOSE(false) → nothing buffered is lost',
+    () async {
+      h = await _Harness.start();
+      h!.send(OpenFrame(1, 'pi.local', echo.port));
+      await _until(() => h!.of<OpenOkFrame>().isNotEmpty, what: 'OPEN_OK');
+      await _until(() => echo.accepted == 1, what: 'accept');
+      const n = (1 << 20) - 1; // no agent-side flush before the CLOSE
+      h!.send(DataFrame(1, _bytes(n)));
+      h!.send(const CloseFrame(1, false));
+      await _until(() => echo.ended == 1, what: 'echo EOF');
+      expect(echo.receivedAtEnd, n);
+    },
+  );
+
+  test(
+    'CLOSE(false) behind a held flush closes after it (never destroys); peer EOF releases it',
+    () async {
+      final s = _FakeSocket(holdFlush: true);
+      final ws = _FakeWs();
+      final agent = LanBridgeAgent(
+        socket: ws,
+        info: const {},
+        connect: (a, p, {timeout = const Duration(seconds: 5)}) async => s,
+      )..start();
+      ws.push(const OpenFrame(1, '192.168.1.10', 22));
+      await _until(() => ws.sent.whereType<OpenOkFrame>().isNotEmpty);
+      ws.push(DataFrame(1, _bytes(1 << 20)));
+      await _until(() => s.pendingFlush != null, what: 'flush');
+      // The ws is paused by the flush, so this CLOSE is queued behind it.
+      ws.push(const CloseFrame(1, false));
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      expect(s.closed, isFalse);
+      expect(s.destroyed, isFalse);
+      s.releaseFlush();
+      await _until(() => s.closed, what: 'graceful close');
+      expect(s.destroyed, isFalse);
+      expect(agent.openStreams, 0);
+      // Bytes the peer sends after CLOSE are not forwarded.
+      s.incoming.add(Uint8List.fromList([9, 9]));
+      await s.incoming.close();
+      await _until(() => s.destroyed, what: 'released after peer EOF');
+      expect(ws.sent.whereType<DataFrame>(), isEmpty);
+      expect(ws.sent.whereType<CloseFrame>(), isEmpty);
+      expect(ws.incoming.isPaused, isFalse);
+      await agent.close();
+    },
+  );
+
+  test('CLOSE(true) from controller destroys the socket', () async {
+    final s = _FakeSocket();
+    final ws = _FakeWs();
+    final agent = LanBridgeAgent(
+      socket: ws,
+      info: const {},
+      connect: (a, p, {timeout = const Duration(seconds: 5)}) async => s,
+    )..start();
+    ws.push(const OpenFrame(1, '192.168.1.10', 22));
+    await _until(() => ws.sent.whereType<OpenOkFrame>().isNotEmpty);
+    ws.push(const CloseFrame(1, true));
+    await _until(() => s.destroyed, what: 'destroy');
+    expect(s.closed, isFalse);
+    expect(agent.openStreams, 0);
+    expect(ws.sent.whereType<CloseFrame>(), isEmpty);
+    await agent.close();
+  });
+
+  test('close() destroys a socket still closing gracefully', () async {
+    final s = _FakeSocket();
+    final ws = _FakeWs();
+    final agent = LanBridgeAgent(
+      socket: ws,
+      info: const {},
+      connect: (a, p, {timeout = const Duration(seconds: 5)}) async => s,
+    )..start();
+    ws.push(const OpenFrame(1, '192.168.1.10', 22));
+    await _until(() => ws.sent.whereType<OpenOkFrame>().isNotEmpty);
+    ws.push(const CloseFrame(1, false));
+    await _until(() => s.closed, what: 'graceful close');
+    expect(s.destroyed, isFalse); // peer has not ended yet
+    await agent.close();
+    expect(s.destroyed, isTrue);
+  });
+
+  test(
+    'a peer that never ends after a graceful CLOSE is destroyed after the linger (fakeAsync)',
+    () {
+      fakeAsync((async) {
+        final s = _FakeSocket();
+        final ws = _FakeWs();
+        final agent = LanBridgeAgent(
+          socket: ws,
+          info: const {},
+          connect: (a, p, {timeout = const Duration(seconds: 5)}) async => s,
+        )..start();
+        ws.push(const OpenFrame(1, '192.168.1.10', 22));
+        async.flushMicrotasks();
+        ws.push(const CloseFrame(1, false));
+        async.flushMicrotasks();
+        expect(s.closed, isTrue);
+        async.elapse(lanBridgeCloseLinger - const Duration(seconds: 1));
+        expect(s.destroyed, isFalse);
+        async.elapse(const Duration(seconds: 2));
+        expect(s.destroyed, isTrue);
+        agent.close();
+        async.flushMicrotasks();
+      });
+    },
+  );
+
+  test(
+    'lookup that never completes → timeout after 5 s, slot freed (fakeAsync)',
+    () {
+      fakeAsync((async) {
+        final ws = _FakeWs();
+        var dials = 0;
+        final agent = LanBridgeAgent(
+          socket: ws,
+          info: const {},
+          lookup: (h) => Completer<List<InternetAddress>>().future,
+          connect: (a, p, {timeout = const Duration(seconds: 5)}) async {
+            dials++;
+            return _FakeSocket();
+          },
+        )..start();
+        ws.push(const OpenFrame(1, 'hung.local', 22));
+        async.elapse(const Duration(milliseconds: 4900));
+        expect(ws.sent.whereType<OpenFailFrame>(), isEmpty);
+        expect(agent.openStreams, 1);
+        async.elapse(const Duration(milliseconds: 200));
+        expect(
+          ws.sent.whereType<OpenFailFrame>().single.reason,
+          OpenFailReason.timeout,
+        );
+        expect(agent.openStreams, 0);
+        expect(dials, 0);
+        agent.close();
+        async.flushMicrotasks();
+      });
+    },
+  );
+
+  test('host longer than 253 chars → resolve, resolver not called', () async {
+    final ws = _FakeWs();
+    final asked = <String>[];
+    final agent = LanBridgeAgent(
+      socket: ws,
+      info: const {},
+      lookup: (h) async {
+        asked.add(h);
+        return [InternetAddress('127.0.0.1')];
+      },
+    )..start();
+    ws.push(OpenFrame(1, '${'a' * 250}.local', 22));
+    await _until(() => ws.sent.whereType<OpenFailFrame>().isNotEmpty);
+    expect(
+      ws.sent.whereType<OpenFailFrame>().single.reason,
+      OpenFailReason.resolve,
+    );
+    expect(asked, isEmpty);
+    expect(agent.openStreams, 0);
+    await agent.close();
+  });
+
+  test('a connector that throws synchronously → refused, slot freed', () async {
+    final ws = _FakeWs();
+    final agent = LanBridgeAgent(
+      socket: ws,
+      info: const {},
+      connect: (a, p, {timeout = const Duration(seconds: 5)}) =>
+          throw const SocketException('boom'),
+    )..start();
+    ws.push(const OpenFrame(1, '10.0.0.5', 22));
+    await _until(() => ws.sent.whereType<OpenFailFrame>().isNotEmpty);
+    expect(
+      ws.sent.whereType<OpenFailFrame>().single.reason,
+      OpenFailReason.refused,
+    );
+    expect(agent.openStreams, 0);
+    await agent.close();
+  });
 
   test(
     'WebSocket closed by the server → every socket destroyed and done completes',
