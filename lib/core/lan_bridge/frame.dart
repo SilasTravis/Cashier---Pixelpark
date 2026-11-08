@@ -109,6 +109,9 @@ void _assertPort(int port) {
 }
 
 Uint8List encodeFrame(Frame f) {
+  if (f.streamId < 0 || f.streamId > 0xFFFFFFFF) {
+    throw ArgumentError.value(f.streamId, 'streamId', 'must fit in u32');
+  }
   final Uint8List payload;
   final FrameType type;
   switch (f) {
@@ -183,7 +186,7 @@ Frame decodeFrame(Uint8List bytes) {
     case FrameType.info:
       final Object? decoded;
       try {
-        decoded = jsonDecode(utf8.decode(payload));
+        decoded = jsonDecode(utf8.decode(payload, allowMalformed: true));
       } on FormatException {
         throw FrameError(FrameErrorCode.badJson, 'INFO is not valid JSON');
       }

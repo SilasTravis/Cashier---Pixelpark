@@ -113,4 +113,47 @@ void main() {
       );
     }
   });
+
+  test('OPEN byte layout', () {
+    expect(encodeFrame(const OpenFrame(1, 'h', 22)), [
+      1,
+      0,
+      0,
+      0,
+      1,
+      0,
+      22,
+      104,
+    ]);
+  });
+
+  test('empty DATA round-trips', () {
+    final f = roundTrip(DataFrame(5, Uint8List(0))) as DataFrame;
+    expect(f.data, isEmpty);
+    expect(f.streamId, 5);
+  });
+
+  test('encode rejects out-of-range streamId', () {
+    for (final id in [-1, 0x100000000]) {
+      expect(
+        () => encodeFrame(CloseFrame(id, false)),
+        throwsA(isA<ArgumentError>()),
+      );
+    }
+  });
+
+  test('INFO tolerates malformed UTF-8 in strings', () {
+    final bytes = Uint8List.fromList([
+      6,
+      0,
+      0,
+      0,
+      0,
+      ...utf8.encode('{"a":"'),
+      0xFF,
+      ...utf8.encode('"}'),
+    ]);
+    final f = decodeFrame(bytes) as InfoFrame;
+    expect(f.info['a'], '\uFFFD');
+  });
 }
