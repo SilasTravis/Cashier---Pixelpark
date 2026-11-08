@@ -29,6 +29,11 @@ abstract final class AppKeys {
   /// Device config, not session: never cleared on logout.
   static const String terminalId = 'terminalId';
 
+  /// The LAN-bridge terminal token minted by the backend after a cashier
+  /// login (`lbt_…`). Device config, not session: never cleared on logout,
+  /// so the bridge stays connected with no cashier signed in.
+  static const String terminalToken = 'terminalToken';
+
   /// The most recent failed self-update attempt (a JSON-compatible map, see
   /// `UpdateFailureLog`). Device config, not session: never cleared on
   /// logout.

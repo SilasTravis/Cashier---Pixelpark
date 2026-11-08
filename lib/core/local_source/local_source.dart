@@ -77,6 +77,16 @@ class LocalSource {
   String getLanguageCode() =>
       box.get(AppKeys.languageCode, defaultValue: 'uz') as String;
 
+  String? getTerminalToken() => box.get(AppKeys.terminalToken) as String?;
+
+  Future<void> setTerminalToken(String? value) async {
+    if (value == null) return box.delete(AppKeys.terminalToken);
+    await box.put(AppKeys.terminalToken, value);
+  }
+
+  /// Fires on every write or delete of the terminal token.
+  Stream<void> watchTerminalToken() => box.watch(key: AppKeys.terminalToken);
+
   Future<void> setQrPrinterName(String? value) async {
     if (value == null) return box.delete(AppKeys.qrPrinterName);
     await box.put(AppKeys.qrPrinterName, value);
