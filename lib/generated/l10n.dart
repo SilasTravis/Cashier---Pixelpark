@@ -2884,10 +2884,10 @@ class AppLocalization {
     );
   }
 
-  /// `Match the last characters with the code in the customer's SMS`
+  /// `Match the code with the one in the customer's SMS`
   String get promoCodeActiveHint {
     return Intl.message(
-      'Match the last characters with the code in the customer\'s SMS',
+      'Match the code with the one in the customer\'s SMS',
       name: 'promoCodeActiveHint',
       desc: '',
       args: [],

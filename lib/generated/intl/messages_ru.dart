@@ -673,7 +673,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Нет активных промокодов",
     ),
     "promoCodeActiveHint": MessageLookupByLibrary.simpleMessage(
-      "Сверьте последние символы с кодом из SMS клиента",
+      "Сверьте код с кодом из SMS клиента",
     ),
     "promoCodeAlreadyUsedByCustomer": MessageLookupByLibrary.simpleMessage(
       "Этот клиент уже использовал этот промокод",

@@ -64,10 +64,9 @@ void main() {
       async.elapse(Duration.zero);
       expect(h.adapter.requests, hasLength(1));
       expect(h.adapter.requests.single.path, TerminalTokenIssuer.path);
-      expect(
-        jsonDecode(jsonEncode(h.adapter.requests.single.data)),
-        {'terminalId': '0b4f7c52-8c7e-4d0e-9a55-3f7b1e2d9c10'},
-      );
+      expect(jsonDecode(jsonEncode(h.adapter.requests.single.data)), {
+        'terminalId': '0b4f7c52-8c7e-4d0e-9a55-3f7b1e2d9c10',
+      });
       expect(h.saved, 'lbt_x');
       h.issuer.dispose();
     });

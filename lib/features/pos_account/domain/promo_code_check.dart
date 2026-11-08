@@ -58,6 +58,7 @@ class CustomerPromoCode extends Equatable {
     required this.discount,
     required this.expiresAt,
     required this.codeLast4,
+    this.code,
   });
 
   final String codeId;
@@ -66,6 +67,11 @@ class CustomerPromoCode extends Equatable {
   final Discount discount;
   final DateTime expiresAt;
   final String codeLast4;
+
+  /// The whole code, when the server could read it back (codes issued after
+  /// it started keeping an encrypted copy); null for older ones — the tile
+  /// then shows [codeLast4].
+  final String? code;
 
   factory CustomerPromoCode.fromJson(Map<String, dynamic> json) =>
       CustomerPromoCode(
@@ -79,6 +85,7 @@ class CustomerPromoCode extends Equatable {
         }),
         expiresAt: DateTime.parse(json['expiresAt'] as String).toLocal(),
         codeLast4: json['codeLast4'] as String,
+        code: json['code'] as String?,
       );
 
   @override
@@ -89,6 +96,7 @@ class CustomerPromoCode extends Equatable {
     discount,
     expiresAt,
     codeLast4,
+    code,
   ];
 }
 

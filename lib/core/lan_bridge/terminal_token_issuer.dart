@@ -64,9 +64,7 @@ class TerminalTokenIssuer {
       final response = await _api.post<Object?>(
         path,
         data: {'terminalId': _terminalId()},
-        options: Options(
-          extra: {ConnectivityInterceptor.backgroundKey: true},
-        ),
+        options: Options(extra: {ConnectivityInterceptor.backgroundKey: true}),
       );
       final body = response.data;
       final token = body is Map ? body['terminalToken'] : null;

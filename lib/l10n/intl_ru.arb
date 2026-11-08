@@ -616,7 +616,7 @@
   "promoCodeCheck": "Проверить",
   "promoCodeActive": "Активные промокоды",
   "promoCodeActiveEmpty": "Нет активных промокодов",
-  "promoCodeActiveHint": "Сверьте последние символы с кодом из SMS клиента",
+  "promoCodeActiveHint": "Сверьте код с кодом из SMS клиента",
   "promoCodeValidUntil": "до {date}",
   "@promoCodeValidUntil": { "placeholders": { "date": { "type": "String" } } },
   "promoCodeLoadFailed": "Не удалось загрузить промокоды",

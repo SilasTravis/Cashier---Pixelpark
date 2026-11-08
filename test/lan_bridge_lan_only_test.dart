@@ -37,12 +37,14 @@ void main() {
   });
   test('allLan mixed LAN is true', () {
     expect(
-        allLan([InternetAddress('fe80::1'), InternetAddress('192.168.1.9')]),
-        isTrue);
+      allLan([InternetAddress('fe80::1'), InternetAddress('192.168.1.9')]),
+      isTrue,
+    );
   });
   test('allLan with one public is false', () {
     expect(
-        allLan([InternetAddress('192.168.1.9'), InternetAddress('8.8.8.8')]),
-        isFalse);
+      allLan([InternetAddress('192.168.1.9'), InternetAddress('8.8.8.8')]),
+      isFalse,
+    );
   });
 }

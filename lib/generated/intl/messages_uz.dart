@@ -658,7 +658,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Faol promokod yo‘q",
     ),
     "promoCodeActiveHint": MessageLookupByLibrary.simpleMessage(
-      "Kodning oxirgi belgilarini mijozning SMSidagi kod bilan solishtiring",
+      "Kodni mijozning SMSidagi kod bilan solishtiring",
     ),
     "promoCodeAlreadyUsedByCustomer": MessageLookupByLibrary.simpleMessage(
       "Bu mijoz ushbu promokoddan allaqachon foydalangan",

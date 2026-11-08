@@ -692,7 +692,7 @@
   "promoCodeCheck": "Tekshirish",
   "promoCodeActive": "Faol promokodlar",
   "promoCodeActiveEmpty": "Faol promokod yo‘q",
-  "promoCodeActiveHint": "Kodning oxirgi belgilarini mijozning SMSidagi kod bilan solishtiring",
+  "promoCodeActiveHint": "Kodni mijozning SMSidagi kod bilan solishtiring",
   "promoCodeValidUntil": "{date} gacha",
   "@promoCodeValidUntil": { "placeholders": { "date": { "type": "String" } } },
   "promoCodeLoadFailed": "Promokodlar yuklanmadi",

@@ -642,7 +642,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "No active promo codes",
     ),
     "promoCodeActiveHint": MessageLookupByLibrary.simpleMessage(
-      "Match the last characters with the code in the customer\'s SMS",
+      "Match the code with the one in the customer\'s SMS",
     ),
     "promoCodeAlreadyUsedByCustomer": MessageLookupByLibrary.simpleMessage(
       "This customer has already used this promo code",

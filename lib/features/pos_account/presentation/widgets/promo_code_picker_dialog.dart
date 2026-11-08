@@ -234,10 +234,12 @@ class _CodeTile extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  '···${code.codeLast4}',
+                  // The whole code to read against the SMS; older codes
+                  // (issued before it was kept) fall back to their tail.
+                  code.code ?? '···${code.codeLast4}',
                   key: ValueKey('promo-code-tail-${code.codeId}'),
                   style: p.body.copyWith(
-                    fontSize: 16,
+                    fontSize: code.code == null ? 16 : 18,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1.5,
                     color: p.accentStrong,

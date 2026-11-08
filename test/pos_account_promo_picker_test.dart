@@ -38,6 +38,7 @@ final _listed = CustomerPromoCode(
   discount: _discount,
   expiresAt: DateTime(2026, 12, 5, 23, 59),
   codeLast4: 'PT',
+  code: 'PFTENPT',
 );
 
 PromoCodeCheck _pickedCheck() => PromoCodeCheck(
@@ -234,6 +235,7 @@ void main() {
           },
           'expiresAt': '2026-12-05T18:59:59.999Z',
           'codeLast4': 'PT',
+          'code': 'PFTENPT',
         },
       ]);
       final dio = Dio(BaseOptions(baseUrl: 'http://x'))
@@ -248,6 +250,7 @@ void main() {
       expect(adapter.last.queryParameters, {'customerId': 7});
       expect(codes.single.codeId, _codeId);
       expect(codes.single.codeLast4, 'PT');
+      expect(codes.single.code, 'PFTENPT');
       expect(codes.single.discount.value, 30);
     });
 
@@ -571,10 +574,11 @@ void main() {
         await tester.tap(find.byKey(const ValueKey('promo-code-pick')));
         await tester.pumpAndSettle();
 
-        // The row: issuer · tier, value, expiry, and the code's tail to match
+        // The row: issuer · tier, value, expiry, and the WHOLE code to read
         // against the customer's SMS.
         expect(find.text('Fonus · Premium'), findsOneWidget);
-        expect(find.text('···PT'), findsOneWidget);
+        expect(find.text('PFTENPT'), findsOneWidget);
+        expect(find.text('···PT'), findsNothing);
         expect(find.textContaining('05.12.2026'), findsOneWidget);
 
         await tester.tap(
@@ -591,6 +595,28 @@ void main() {
         expect(remote.lastPromoCode, (code: _ref, childId: 'child-1'));
       },
     );
+
+    testWidgets('a code issued before the full code was kept shows its tail', (
+      tester,
+    ) async {
+      final remote = _FakeRemote()
+        ..listed = [
+          CustomerPromoCode(
+            codeId: _codeId,
+            partnerName: 'Fonus',
+            tierName: 'Premium',
+            discount: _discount,
+            expiresAt: DateTime(2026, 12, 5, 23, 59),
+            codeLast4: 'PT',
+          ),
+        ];
+      await pumpPanel(tester, remote);
+
+      await tester.tap(find.byKey(const ValueKey('promo-code-pick')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('···PT'), findsOneWidget);
+    });
 
     testWidgets('a customer with no active codes sees an explanation', (
       tester,
