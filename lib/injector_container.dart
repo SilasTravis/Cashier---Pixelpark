@@ -28,6 +28,7 @@ import 'features/offline/application/offline_sync_service.dart';
 import 'features/offline/data/offline_store.dart';
 import 'features/offline/data/offline_sync_remote_data_source.dart';
 import 'features/pos_account/data/pos_account_remote_data_source.dart';
+import 'features/birthday_parties/data/birthday_parties_repository.dart';
 import 'features/inside/data/inside_repository.dart';
 import 'features/inside/presentation/bloc/inside_cubit.dart';
 import 'features/pos_account/data/pos_account_repository_impl.dart';
@@ -103,6 +104,7 @@ Future<void> init() async {
   _salesHistoryFeature();
   _insideFeature();
   _visitHistoryFeature();
+  _birthdayPartiesFeature();
   _terminalFeature(packageInfo.version);
 }
 
@@ -127,6 +129,12 @@ void _terminalFeature(String appVersion) {
           unawaited(sl<LocalSource>().setPrintEntryQr(value)),
     ),
     dispose: (service) => service.dispose(),
+  );
+}
+
+void _birthdayPartiesFeature() {
+  sl.registerLazySingleton<BirthdayPartiesRepository>(
+    () => BirthdayPartiesRepository(sl()),
   );
 }
 

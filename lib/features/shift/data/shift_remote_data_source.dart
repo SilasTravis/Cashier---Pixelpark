@@ -61,6 +61,8 @@ class ShiftRemoteDataSourceImpl implements ShiftRemoteDataSource {
         cardUzs: totals['cardUzs'] as int,
         topupUzs: totals['topupUzs'] as int,
         balanceSalesUzs: (totals['balanceSalesUzs'] as int?) ?? 0,
+        birthdayUzs: (totals['birthdayUzs'] as int?) ?? 0,
+        birthdayRefundedUzs: (totals['birthdayRefundedUzs'] as int?) ?? 0,
         refundedUzs: (totals['refundedUzs'] as int?) ?? 0,
         discountUzs: (totals['discountUzs'] as int?) ?? 0,
         entries: totals['entries'] is Map

@@ -142,6 +142,19 @@ class _Summary extends StatelessWidget {
           label: l10n.balanceSalesNotIncome,
           value: _uzs(totals.balanceSalesUzs),
         ),
+        // Already inside cash/card above; shown so the drawer count can be
+        // matched to the birthday-party money taken this shift.
+        if (totals.birthdayUzs > 0)
+          _SummaryRow(
+            label: l10n.shiftBirthdayIncome,
+            value: _uzs(totals.birthdayUzs),
+          ),
+        // Handed back for birthday parties (already out of cash/card above).
+        if (totals.birthdayRefundedUzs > 0)
+          _SummaryRow(
+            label: l10n.shiftBirthdayRefunded,
+            value: '−${_uzs(totals.birthdayRefundedUzs)}',
+          ),
         // Cash/card above already reflect the discounted (net) amounts —
         // this is purely informational, "how much was given away".
         if (totals.discountUzs > 0)

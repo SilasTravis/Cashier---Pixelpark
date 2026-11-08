@@ -7,6 +7,7 @@ import 'package:phosphor_icons/phosphor_icons.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/local_source/local_source.dart';
+import '../../../../core/offline/app_mode_cubit.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/pos_palette.dart';
 import '../../../../core/utils/phone_number.dart';
@@ -14,6 +15,9 @@ import '../../../../core/utils/currency.dart';
 import '../../../../core/widgets/discount_picker.dart';
 import '../../../../core/widgets/payment_method_selector.dart';
 import '../../../../core/widgets/promo_code_field.dart';
+import '../../../birthday_parties/presentation/birthday_printing.dart';
+import '../../../birthday_parties/presentation/widgets/birthday_sell_dialog.dart';
+import '../../../birthday_parties/presentation/widgets/sell_birthday_button.dart';
 import '../../../pos_sale/presentation/widgets/product_grid.dart';
 import '../../../pos_sale/presentation/widgets/receipt_dialog.dart';
 import '../../../pos_sale/domain/discount.dart';
@@ -26,6 +30,7 @@ import '../../domain/playing_child.dart';
 import '../../domain/pos_entry.dart';
 import '../../domain/promo_code_check.dart';
 import 'account_ui.dart';
+import 'balance_switch.dart';
 import 'check_discount_sheet.dart';
 import 'birthday_age_dialog.dart';
 import 'group_count_dialog.dart';
@@ -1257,6 +1262,12 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
 
           final header = _SummaryStrip(
             customer: customer,
+            onSellBirthday: _isOffline || state.isBusy
+                ? null
+                : () => _sellBirthday(context, customer),
+            sellBirthdayDisabledReason: _isOffline
+                ? l10n.birthdayOffline
+                : null,
             isBusy: state.isBusy,
             insideCount: state.playing.length,
             onRename: (name) => context.read<PosAccountBloc>().add(
@@ -1396,6 +1407,24 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
         },
       ),
     );
+  }
+
+  /// Birthday parties are online-only (the till's money goes through the
+  /// server in one atomic call). False in widget tests that don't register
+  /// the mode cubit.
+  static bool get _isOffline =>
+      sl.isRegistered<AppModeCubit>() && sl<AppModeCubit>().state.isOffline;
+
+  /// "Tug'ilgan kun sotish" → sheet → on success print the booking receipt
+  /// (with the included items) and refresh the customer.
+  Future<void> _sellBirthday(BuildContext context, Customer customer) async {
+    final bloc = context.read<PosAccountBloc>();
+    final party = await showBirthdaySellDialog(context, customer: customer);
+    if (party == null) return;
+    if (context.mounted) {
+      await printBirthdayReceipt(context, party, withItems: true);
+    }
+    bloc.add(const PosAccountCustomerRefreshRequested());
   }
 
   /// What the plan-switch modal re-sends for a conflicted [last] checkout.
@@ -1661,6 +1690,8 @@ String _alreadyActiveNote(
 class _SummaryStrip extends StatelessWidget {
   const _SummaryStrip({
     required this.customer,
+    this.onSellBirthday,
+    this.sellBirthdayDisabledReason,
     required this.isBusy,
     required this.insideCount,
     required this.onParentQr,
@@ -1679,6 +1710,10 @@ class _SummaryStrip extends StatelessWidget {
   /// day sticker for the accompanying adult.
   /// Null hides the button (the branch prints no entry QR).
   final VoidCallback? onParentQr;
+
+  /// Opens "Tug'ilgan kun sotish" — null disables the button (offline / busy).
+  final VoidCallback? onSellBirthday;
+  final String? sellBirthdayDisabledReason;
   final ValueChanged<String> onRename;
   final VoidCallback onRefresh;
   final VoidCallback onBack;
@@ -1769,6 +1804,12 @@ class _SummaryStrip extends StatelessWidget {
                           size: 18,
                         ),
                 ),
+              ),
+              const SizedBox(width: 8),
+              SellBirthdayButton(
+                onPressed: onSellBirthday,
+                compact: narrow,
+                disabledReason: sellBirthdayDisabledReason,
               ),
               const SizedBox(width: 8),
               if (onParentQr == null)
@@ -3496,7 +3537,7 @@ class _CheckoutSection extends StatelessWidget {
         ],
         if (neededTotal > 0 && balance > 0) ...[
           const SizedBox(height: 10),
-          _BalanceSwitch(
+          BalanceSwitch(
             value: payFromBalance,
             onChanged: onPayFromBalanceChanged,
             balance: balance,
@@ -3875,63 +3916,6 @@ class _ReceiptRule extends StatelessWidget {
                 );
               },
             ),
-    );
-  }
-}
-
-/// "Balansdan yechish" as a tappable row: switch and the current balance —
-/// how much it pays is a line on the receipt below.
-class _BalanceSwitch extends StatelessWidget {
-  const _BalanceSwitch({
-    required this.value,
-    required this.onChanged,
-    required this.balance,
-  });
-
-  final bool value;
-  final ValueChanged<bool> onChanged;
-  final int balance;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalization.of(context);
-    final p = PosPalette.of(context);
-    final radius = BorderRadius.circular(12);
-    return Material(
-      color: value ? p.accentSoft : p.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: radius,
-        side: BorderSide(color: value ? p.accent : p.border, width: 1.5),
-      ),
-      child: InkWell(
-        onTap: () => onChanged(!value),
-        borderRadius: radius,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(6, 6, 12, 6),
-          child: Row(
-            children: [
-              Switch(value: value, onChanged: onChanged),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      l10n.payFromBalance,
-                      style: p.heading.copyWith(fontSize: 13.5),
-                    ),
-                    Text(
-                      l10n.currentBalanceValue(formatUzs(balance)),
-                      style: p.bodyMuted.copyWith(fontSize: 11.5),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

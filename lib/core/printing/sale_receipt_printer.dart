@@ -7,6 +7,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 import '../../features/pos_sale/domain/sale_receipt.dart';
+import 'birthday_receipt.dart';
 import '../utils/receipt_id.dart';
 import 'receipt_art.dart';
 
@@ -204,6 +205,104 @@ class SaleReceiptPrinter {
     return (bytes: bytes, heightMm: page.pageFormat.height / PdfPageFormat.mm);
   }
 
+  static Future<bool> printBirthdayDirect(
+    BirthdayReceipt receipt, {
+    String? branchName,
+    String? cashierName,
+    String? preferredPrinterName,
+  }) async {
+    final target = await findReceiptPrinter(preferredPrinterName);
+    if (target == null) {
+      debugPrint('SaleReceiptPrinter: SLK receipt printer not found');
+      return false;
+    }
+    final rendered = await renderBirthday(
+      receipt,
+      branchName: branchName ?? '',
+      cashierName: cashierName ?? '',
+    );
+    return Printing.directPrintPdf(
+      printer: target,
+      name: 'birthday-${receipt.createdAt.millisecondsSinceEpoch}',
+      format: _paperFormat(rendered.heightMm),
+      usePrinterSettings: true,
+      dynamicLayout: false,
+      onLayout: (_) async => rendered.bytes,
+    );
+  }
+
+  /// Birthday receipt on the same endless roll, cut to the measured height.
+  @visibleForTesting
+  static Future<({Uint8List bytes, double heightMm})> renderBirthday(
+    BirthdayReceipt receipt, {
+    required String branchName,
+    required String cashierName,
+  }) async {
+    final art = await ReceiptArt.load();
+    final ui = _Ui(art);
+    final page = pw.Page(
+      pageFormat: const PdfPageFormat(
+        _paperWidthMm * PdfPageFormat.mm,
+        double.infinity,
+        marginLeft: _leftPaddingMm * PdfPageFormat.mm,
+        marginRight: _rightPaddingMm * PdfPageFormat.mm,
+        marginTop: _topPaddingMm * PdfPageFormat.mm,
+        marginBottom: _bottomPaddingMm * PdfPageFormat.mm,
+      ),
+      build: (_) {
+        final summary = receipt.summary;
+        final details = receipt.details;
+        return pw.SizedBox(
+          width: _contentWidthMm * PdfPageFormat.mm,
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+            children: [
+              ui.header(branchName),
+              ui.wavy(),
+              pw.Text(
+                receipt.title,
+                textAlign: pw.TextAlign.center,
+                style: ui.text(art.display, 14),
+              ),
+              pw.SizedBox(height: 3),
+              ui.row(
+                'Sana',
+                DateFormat(
+                  'dd.MM.yyyy HH:mm',
+                ).format(receipt.createdAt.toLocal()),
+                size: 8.5,
+              ),
+              if (cashierName.isNotEmpty)
+                ui.row('Kassir', cashierName, size: 8.5),
+              ui.dotted(),
+              for (final r in details) ui.row(r.$1, r.$2),
+              if (receipt.items.isNotEmpty) ...[
+                ui.dotted(),
+                pw.Text('Tarifga kiradi', style: ui.text(art.semiBold, 9.5)),
+                pw.SizedBox(height: 2),
+                for (final item in receipt.items)
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.symmetric(vertical: 1),
+                    child: pw.Text('- $item', style: ui.text(art.regular, 9)),
+                  ),
+              ],
+              ui.wavy(),
+              for (final r in summary)
+                r.$1 == 'Qoldi'
+                    ? ui.total(r.$2, label: 'QOLDI')
+                    : ui.row(r.$1, r.$2),
+              ui.thanks(),
+              ui.footer(),
+            ],
+          ),
+        );
+      },
+    );
+    final document = pw.Document()..addPage(page);
+    final bytes = await document.save();
+    return (bytes: bytes, heightMm: page.pageFormat.height / PdfPageFormat.mm);
+  }
+
   /// "26.10.2026 gacha" — the last day the parent can claim, local time.
   static String cashbackExpiryText(SaleCashback cashback) =>
       '${DateFormat('dd.MM.yyyy').format(cashback.expiresAt.toLocal())} gacha';
@@ -308,7 +407,7 @@ class _Ui {
     ],
   );
 
-  pw.Widget total(String amount) => pw.Stack(
+  pw.Widget total(String amount, {String label = 'JAMI'}) => pw.Stack(
     overflow: pw.Overflow.visible,
     children: [
       pw.Container(
@@ -317,7 +416,7 @@ class _Ui {
           border: pw.Border.all(width: 1.6),
           borderRadius: pw.BorderRadius.circular(8),
         ),
-        child: row('JAMI', amount, font: art.bold, size: 13),
+        child: row(label, amount, font: art.bold, size: 13),
       ),
       pw.Positioned(
         right: -4,

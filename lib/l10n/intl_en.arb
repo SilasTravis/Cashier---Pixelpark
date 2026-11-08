@@ -575,19 +575,46 @@
   "offlinePromptDecline": "No",
   "onlinePromptTitle": "Internet is back",
   "onlinePromptBody": "Switch to online mode and sync {count} sales?",
-  "@onlinePromptBody": { "placeholders": { "count": { "type": "int" } } },
+  "@onlinePromptBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "onlinePromptAccept": "Yes, sync",
   "onlinePromptLater": "Later",
   "offlineBanner": "OFFLINE · {count} sales waiting",
-  "@offlineBanner": { "placeholders": { "count": { "type": "int" } } },
+  "@offlineBanner": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "offlineBannerSyncing": "Syncing…",
   "checkOnline": "Check connection",
   "stillOffline": "Still no internet",
   "syncResultTitle": "Sync result",
   "syncResultBody": "{synced} sales synced, {failed} failed.",
-  "@syncResultBody": { "placeholders": { "synced": { "type": "int" }, "failed": { "type": "int" } } },
+  "@syncResultBody": {
+    "placeholders": {
+      "synced": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
   "syncTransportFailed": "Could not sync: {reason}. Staying offline.",
-  "@syncTransportFailed": { "placeholders": { "reason": { "type": "String" } } },
+  "@syncTransportFailed": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "syncViewFailures": "View",
   "needsInternet": "Needs internet",
   "tabUnsynced": "Unsynced",
@@ -596,7 +623,13 @@
   "unsyncedPending": "Waiting",
   "unsyncedFailed": "Failed",
   "unsyncedSupportCode": "Code: {code}",
-  "@unsyncedSupportCode": { "placeholders": { "code": { "type": "String" } } },
+  "@unsyncedSupportCode": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
   "unsyncedCodeCopied": "Code copied",
   "unsyncedRetry": "Retry",
   "unsyncedRetryAll": "Resend all",
@@ -604,12 +637,30 @@
   "notSyncedBadge": "Not synced",
   "historyOfflineNotice": "Offline mode: only sales not yet synced are shown",
   "logoutBlockedUnsynced": "{count} sales are not synced. Sync them in online mode before signing out.",
-  "@logoutBlockedUnsynced": { "placeholders": { "count": { "type": "int" } } },
+  "@logoutBlockedUnsynced": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "closeShiftUnsyncedWarning": "{count} sales failed to sync. Contact support before closing the shift.",
-  "@closeShiftUnsyncedWarning": { "placeholders": { "count": { "type": "int" } } },
+  "@closeShiftUnsyncedWarning": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "closeShiftOffline": "A shift can't be closed in offline mode",
   "logoutFailedSalesConfirm": "{count} sales failed to sync. They stay saved on this till. Sign out anyway?",
-  "@logoutFailedSalesConfirm": { "placeholders": { "count": { "type": "int" } } },
+  "@logoutFailedSalesConfirm": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "logoutAnyway": "Sign out anyway",
   "promoCode": "Promo code",
   "promoCodeHint": "Scan or type",
@@ -622,10 +673,22 @@
   "promoCodeChildHasPass": "This child already has a pass today — the promo code only applies to a new entry or a VIP upgrade",
   "promoCodeRemove": "Remove promo code",
   "promoCodeReleased": "Promo code not applied, code returned: {reason}",
-  "@promoCodeReleased": { "placeholders": { "reason": { "type": "String" } } },
+  "@promoCodeReleased": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "promoCodeBlogger": "Blogger",
   "promoCodeBloggerPending": "Blogger promo code {code} accepted — select a customer",
-  "@promoCodeBloggerPending": { "placeholders": { "code": { "type": "String" } } },
+  "@promoCodeBloggerPending": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
   "promoCodeNotStarted": "This promo code is not active yet",
   "promoCodeLimitReached": "This promo code has reached its usage limit",
   "promoCodeAlreadyUsedByCustomer": "This customer has already used this promo code",
@@ -636,23 +699,62 @@
   "accountDueFull": "Customer pays",
   "accountFromBalance": "Taken from balance",
   "accountCoveredByBalance": "Fully covered by balance · {value} left",
-  "@accountCoveredByBalance": { "placeholders": { "value": { "type": "String" } } },
+  "@accountCoveredByBalance": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "accountInsideCount": "{count} inside",
-  "@accountInsideCount": { "placeholders": { "count": { "type": "int" } } },
+  "@accountInsideCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "accountAgeYears": "{count} y.o.",
-  "@accountAgeYears": { "placeholders": { "count": { "type": "int" } } },
+  "@accountAgeYears": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "accountInsideMinutes": "Inside · {minutes} min",
-  "@accountInsideMinutes": { "placeholders": { "minutes": { "type": "int" } } },
+  "@accountInsideMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "accountPayNow": "Paid now",
   "accountPayAtExit": "Billed at exit",
   "accountAtExit": "at exit",
   "accountPlanTimesKids": "{plan} × {count}",
-  "@accountPlanTimesKids": { "placeholders": { "plan": { "type": "String" }, "count": { "type": "int" } } },
+  "@accountPlanTimesKids": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "accountColChild": "Child",
   "accountColTime": "Time",
   "accountColSoFar": "So far",
   "accountExcessToBalance": "{value} goes to the balance",
-  "@accountExcessToBalance": { "placeholders": { "value": { "type": "String" } } },
+  "@accountExcessToBalance": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "accountToPay": "To pay",
   "accountFromBalanceLine": "From balance",
   "accountLeftOnBalance": "Left on balance",
@@ -662,18 +764,42 @@
   "accountTodayQrs": "Today's QR codes",
   "accountTodayQrsHint": "Reprint a lost or damaged sticker: nothing is charged and the old sticker keeps working.",
   "accountValidUntil": "until {time}",
-  "@accountValidUntil": { "placeholders": { "time": { "type": "String" } } },
+  "@accountValidUntil": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "reprintAll": "Reprint all",
   "themeNight": "Night mode",
   "themeDay": "Day mode",
   "themeNightHint": "A soft dark-blue background that is easy on the eyes. Remembered on this till.",
   "accountTxTitle": "Transaction history",
   "accountTxCount": "{count}",
-  "@accountTxCount": { "placeholders": { "count": { "type": "int" } } },
+  "@accountTxCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "accountTxEmpty": "No transactions for this customer yet",
   "accountTxFailed": "Couldn't load the transactions",
   "accountTxRange": "{from}–{to} / {total}",
-  "@accountTxRange": { "placeholders": { "from": { "type": "int" }, "to": { "type": "int" }, "total": { "type": "int" } } },
+  "@accountTxRange": {
+    "placeholders": {
+      "from": {
+        "type": "int"
+      },
+      "to": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "accountTxPrev": "Previous",
   "accountTxNext": "Next",
   "accountTxMore": "Other",
@@ -693,19 +819,55 @@
   "txStatusFailed": "Failed",
   "txStatusCancelled": "Cancelled",
   "planSwitchUpgradeQuestion": "Switch to «{plan}»? Only the surcharge ({price}) is debited from the balance. The old sticker is stopped and the new QR prints as an upgrade.",
-  "@planSwitchUpgradeQuestion": { "placeholders": { "plan": { "type": "String" }, "price": { "type": "String" } } },
+  "@planSwitchUpgradeQuestion": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
+  },
   "upgradeCredit": "{paid} already paid — surcharge: {due}.",
-  "@upgradeCredit": { "placeholders": { "paid": { "type": "String" }, "due": { "type": "String" } } },
+  "@upgradeCredit": {
+    "placeholders": {
+      "paid": {
+        "type": "String"
+      },
+      "due": {
+        "type": "String"
+      }
+    }
+  },
   "insideFilterAll": "All",
   "insideFilterHour": "Timed",
   "insideFilterOvertime": "Time is up",
   "hourOvertimeBanner": "{count} children are past their time — call the parents",
-  "@hourOvertimeBanner": { "placeholders": { "count": { "type": "int" } } },
+  "@hourOvertimeBanner": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "hourOvertimeShow": "Show",
   "hourOvertimeBy": "+{count} min over",
-  "@hourOvertimeBy": { "placeholders": { "count": { "type": "int" } } },
+  "@hourOvertimeBy": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "hourRemaining": "{count} min left",
-  "@hourRemaining": { "placeholders": { "count": { "type": "int" } } },
+  "@hourRemaining": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "hourEndsAtLabel": "Ends",
   "hourEndedAtLabel": "Ended",
   "insideHourEmpty": "No children on a timed tariff right now",
@@ -721,9 +883,24 @@
   "shiftEnteredChildren": "Went inside",
   "shiftPrintReport": "Print the shift check",
   "shiftCountUnit": "{count}",
-  "@shiftCountUnit": { "placeholders": { "count": { "type": "int" } } },
+  "@shiftCountUnit": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "planSwitchUpgradeCollectQuestion": "Switch to «{plan}»? Only the surcharge ({price}) is collected now, in cash or by card — nothing extra lands on the balance. The old sticker is stopped and the new QR prints as an upgrade.",
-  "@planSwitchUpgradeCollectQuestion": { "placeholders": { "plan": { "type": "String" }, "price": { "type": "String" } } },
+  "@planSwitchUpgradeCollectQuestion": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
+  },
   "planSwitchCollectNow": "Collect now",
   "planSwitchContinue": "Continue",
   "planSwitchPayInDialog": "A selected child already has another tariff today — the amount due (only the surcharge) is shown in the next window.",
@@ -740,21 +917,277 @@
   "currentTariff": "Current tariff",
   "paidLabel": "paid",
   "planSwitchBlocked": "«{name}»: can't switch {from} → {to}",
-  "@planSwitchBlocked": {"placeholders": {"name": {"type": "String"}, "from": {"type": "String"}, "to": {"type": "String"}}},
+  "@planSwitchBlocked": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
   "foreignPhone": "Foreign number",
   "foreignPhoneHint": "Type the number with its country code, e.g. 7 916 123 45 67. No SMS is sent to foreign numbers.",
   "foreignPhoneIsUzbek": "998… is an Uzbek number — turn off \"Foreign number\" and type it after +998.",
   "planUpgradeAndPrint": "Upgrade plan",
   "planUpgradeLine": "{child}: {from} → {to}. {paid} already paid — surcharge: {due}",
-  "@planUpgradeLine": {"placeholders": {"child": {"type": "String"}, "from": {"type": "String"}, "to": {"type": "String"}, "paid": {"type": "String"}, "due": {"type": "String"}}},
+  "@planUpgradeLine": {
+    "placeholders": {
+      "child": {
+        "type": "String"
+      },
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      },
+      "paid": {
+        "type": "String"
+      },
+      "due": {
+        "type": "String"
+      }
+    }
+  },
   "groupEntry": "Group (school)",
   "groupEntryHint": "Count only — no names",
   "moreActions": "More",
   "groupSelected": "Group: {count} kids",
-  "@groupSelected": {"placeholders": {"count": {"type": "int"}}},
+  "@groupSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "groupDialogTitle": "Group (school) — how many kids?",
   "groupDialogHint": "Kids enter without names: the receipt shows only the count, statistics count each one.",
   "groupCountLabel": "Number of kids",
   "groupApply": "Select",
-  "groupRemove": "Remove group"
+  "groupRemove": "Remove group",
+  "shiftBirthdayIncome": "of which birthday parties",
+  "birthdaySell": "Sell birthday party",
+  "birthdayPlan": "Package",
+  "birthdayChildCount": "Number of children",
+  "birthdayExtraChild": "Extra child",
+  "birthdayDate": "Party date",
+  "birthdayTotal": "Total",
+  "birthdayPayFull": "Full payment",
+  "birthdayDeposit": "Deposit",
+  "birthdayPaidBeforeParty": "Due before the party",
+  "birthdayBookAndReceipt": "Book and print receipt",
+  "birthdayIncludes": "Included",
+  "birthdayFromPrice": "from {price}",
+  "@birthdayFromPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayExtraPlusPrice": "+1 child {price}",
+  "@birthdayExtraPlusPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayChildrenUnit": "children",
+  "birthdayDepositAmount": "Deposit amount",
+  "birthdayResetExtra": "Reset to 0",
+  "birthdayExtraHint": "{plan} for {size} · each {price}",
+  "@birthdayExtraHint": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "plan": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayDiscountNote": "Price changed by hand — reported as a {amount} discount.",
+  "@birthdayDiscountNote": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayOffline": "Birthday sales need an internet connection",
+  "birthdayPickPlanFirst": "Pick a package first",
+  "birthdayNoPlans": "No birthday packages at this branch",
+  "birthdayErrGeneric": "Birthday action failed",
+  "birthdayErrPlanNotAvailable": "This package is not available here",
+  "birthdayErrSizeNotFound": "This child count is not in the package",
+  "birthdayErrPaymentEmpty": "No payment amount entered",
+  "birthdayErrPartyNotFound": "Party not found",
+  "birthdayErrNotBooked": "The party is already completed or cancelled",
+  "birthdayErrCompleteTooEarly": "Cannot complete before the party date",
+  "birthdayPayment": "Payment",
+  "tabEvents": "Events",
+  "eventsBooked": "Upcoming",
+  "eventsCompleted": "Completed",
+  "eventsCancelled": "Cancelled",
+  "eventsOverdue": "Overdue",
+  "eventsToday": "Today",
+  "eventsTomorrow": "Tomorrow",
+  "eventsThisWeek": "This week",
+  "eventsNextWeek": "Next week",
+  "eventsLater": "Later",
+  "eventsPaid": "Paid",
+  "eventsDebt": "Debt {amount}",
+  "@eventsDebt": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "eventsUnpaid": "Unpaid",
+  "eventsAddPayment": "+ Payment",
+  "eventsComplete": "Complete",
+  "eventsChildUnit": "children",
+  "eventsEmpty": "No events",
+  "eventsRetry": "Retry",
+  "eventsLoadError": "Unable to load events",
+  "bdAddPaymentFull": "+ Add payment",
+  "bdLeft": "Left",
+  "bdPaidNet": "Paid",
+  "bdPayments": "Payments",
+  "bdNoPayments": "No payments yet",
+  "bdRefundToBalance": "Refunded to balance",
+  "bdRefundToCash": "Refunded in cash",
+  "bdMoreChild": "+ child",
+  "bdChangeDate": "Change date",
+  "bdCancelParty": "Cancel party",
+  "bdCompleteFrom": "Can be completed on {date}",
+  "@bdCompleteFrom": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "bdCompleteDebt": "Debt left: {amount} UZS. Complete anyway?",
+  "@bdCompleteDebt": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bdCompleteAnyway": "Complete",
+  "bdComments": "Comments",
+  "bdNoComments": "No comments",
+  "bdCommentHint": "Write a comment",
+  "bdAddChildTitle": "Extra children",
+  "bdAddChildPrice": "+{amount} UZS",
+  "@bdAddChildPrice": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bdAddChildSubmit": "Add",
+  "bdPayTitle": "Add payment",
+  "bdPayAmount": "Payment amount",
+  "bdPayOverDebt": "Amount cannot exceed the debt",
+  "bdPaySubmit": "Take payment",
+  "bdCancelTitle": "Cancel the party",
+  "bdCancelReason": "Reason",
+  "bdCancelReasonShort": "At least 3 characters",
+  "bdRefund": "Refund",
+  "bdNoRefund": "Keep the money",
+  "bdToBalance": "To balance",
+  "bdToCash": "Cash",
+  "bdCashTooLarge": "Cash cannot exceed {max}",
+  "@bdCashTooLarge": {
+    "placeholders": {
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "bdTotalTooLarge": "Total cannot exceed {net}",
+  "@bdTotalTooLarge": {
+    "placeholders": {
+      "net": {
+        "type": "String"
+      }
+    }
+  },
+  "bdRefundEmpty": "Enter an amount",
+  "bdKept": "Kept: {amount}",
+  "@bdKept": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bdCancelConfirm": "Cancel party",
+  "bdBack": "Back",
+  "bdNetPaid": "Net paid: {amount}",
+  "@bdNetPaid": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bdCancelledReason": "Reason: {reason}",
+  "@bdCancelledReason": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "bdRequestConflict": "This action was already done — the event was refreshed",
+  "bdClose": "Close",
+  "bdUnclearHint": "No response received. Amounts are locked — try again or close.",
+  "bdOfflineHint": "No network — try again",
+  "bdTakeNow": "Collect now",
+  "bdFromBalanceLine": "From balance −{amount}",
+  "@bdFromBalanceLine": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bdSplitMethod": "Split {cash} + {card}",
+  "@bdSplitMethod": {
+    "placeholders": {
+      "cash": {
+        "type": "String"
+      },
+      "card": {
+        "type": "String"
+      }
+    }
+  },
+  "bdKeptChip": "Kept {amount}",
+  "@bdKeptChip": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bdCancelledChip": "Cancelled",
+  "shiftBirthdayRefunded": "Birthday refunded",
+  "bdBalanceUnknown": "Balance unknown",
+  "bdKeptLabel": "Kept"
 }
