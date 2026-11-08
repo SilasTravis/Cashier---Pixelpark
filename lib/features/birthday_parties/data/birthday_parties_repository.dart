@@ -12,7 +12,16 @@ class BirthdayPartiesRepository {
     try {
       return await call();
     } on DioException catch (error) {
-      throw ServerException.fromJson(error.response?.data);
+      final parsed = ServerException.fromJson(error.response?.data);
+      // The HTTP status decides refusal vs "unclear" (birthday_recovery), so
+      // a body without its own statusCode still carries the real one.
+      final status = error.response?.statusCode;
+      if (parsed.statusCode != null || status == null) throw parsed;
+      throw ServerException(
+        message: parsed.message,
+        code: parsed.code,
+        statusCode: status,
+      );
     }
   }
 
@@ -86,18 +95,24 @@ class BirthdayPartiesRepository {
         ),
       );
 
-  /// [expectedExtraChildren] is the count the cashier saw: the server answers
-  /// a repeat of the same tap with the party unchanged and a stale view with
-  /// 409 BIRTHDAY_REQUEST_CONFLICT. Absent, it always adds.
+  /// [requestId] is one tap's key (reused for that tap's retries): a repeat
+  /// is answered with the party unchanged. [expectedExtraChildren] is the
+  /// count the cashier saw: if another till changed it meanwhile the server
+  /// answers 409 BIRTHDAY_REQUEST_CONFLICT and adds nothing.
   Future<BirthdayParty> addExtraChildren(
     String id,
     int count, {
     int? expectedExtraChildren,
+    String? requestId,
   }) => _guard(
     () async => _party(
       await dio.post(
         '/v1/pos/birthday-parties/$id/extra-children',
-        data: {'count': count, 'expectedExtraChildren': ?expectedExtraChildren},
+        data: {
+          'count': count,
+          'expectedExtraChildren': ?expectedExtraChildren,
+          'requestId': ?requestId,
+        },
       ),
     ),
   );

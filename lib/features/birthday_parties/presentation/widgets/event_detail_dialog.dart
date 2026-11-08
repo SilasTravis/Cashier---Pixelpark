@@ -81,7 +81,12 @@ class _EventDetailDialogState extends State<EventDetailDialog> {
 
   /// Runs one repository call: locks the buttons, shows a refusal inline, and
   /// hands the updated party to the list. Resolves with it, null on failure.
-  Future<BirthdayParty?> _run(Future<BirthdayParty> Function() call) async {
+  /// [conflictCode] replaces BIRTHDAY_REQUEST_CONFLICT in the shown error when
+  /// the action has a more precise text for it.
+  Future<BirthdayParty?> _run(
+    Future<BirthdayParty> Function() call, {
+    String? conflictCode,
+  }) async {
     setState(() {
       _busy = true;
       _errorCode = null;
@@ -95,7 +100,10 @@ class _EventDetailDialogState extends State<EventDetailDialog> {
       if (mounted) {
         setState(() {
           _busy = false;
-          _errorCode = e.code ?? 'UNKNOWN';
+          _errorCode =
+              (e.code == birthdayRequestConflict ? conflictCode : null) ??
+              e.code ??
+              'UNKNOWN';
           _errorMessage = e.message;
         });
         // The party moved on (or is gone) under us: show the truth.
@@ -198,16 +206,37 @@ class _EventDetailDialogState extends State<EventDetailDialog> {
     if (done != null && mounted) Navigator.of(context).pop();
   }
 
+  /// One requestId per "+ bola" tap: retrying the same tap (the same count
+  /// over the same count seen) reuses it, so a lost response is replayed,
+  /// never added twice. Cleared once it lands.
+  String? _extraRequestId;
+  ({int seen, int count})? _extraTap;
+
   Future<void> _addChildren() async {
-    // The count the cashier saw: the server refuses a stale view (409) and
-    // answers a repeated tap with the party unchanged.
+    // The count the cashier saw: if another till changed it meanwhile the
+    // server refuses (409) and adds nothing.
     final seen = _party.extraChildren;
     final count = await showAddChildrenDialog(context, _party);
     if (count == null || !mounted) return;
-    await _run(
-      () =>
-          _repo.addExtraChildren(_party.id, count, expectedExtraChildren: seen),
+    final tap = (seen: seen, count: count);
+    if (_extraRequestId == null || _extraTap != tap) {
+      _extraTap = tap;
+      _extraRequestId = const Uuid().v4();
+    }
+    final requestId = _extraRequestId;
+    final added = await _run(
+      () => _repo.addExtraChildren(
+        _party.id,
+        count,
+        expectedExtraChildren: seen,
+        requestId: requestId,
+      ),
+      conflictCode: bdExtraChildrenConflict,
     );
+    if (added != null) {
+      _extraTap = null;
+      _extraRequestId = null;
+    }
   }
 
   Future<void> _changeDate() async {
@@ -254,59 +283,68 @@ class _EventDetailDialogState extends State<EventDetailDialog> {
     final l10n = AppLocalization.of(context);
     final p = PosPalette.of(context);
     final party = _party;
-    return Dialog(
-      insetPadding: const EdgeInsets.all(24),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 640, maxHeight: 900),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _header(p, l10n, party),
-              const SizedBox(height: 14),
-              Flexible(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      IncludesBlock(items: party.includedItems),
-                      const SizedBox(height: 16),
-                      PaymentTimeline(payments: party.payments),
-                      const SizedBox(height: 14),
-                      PartySummary(party: party),
-                      const SizedBox(height: 16),
-                      CommentsSection(
-                        comments: party.comments,
-                        onAdd: _addComment,
-                        enabled: !_busy,
-                      ),
-                      if (_errorCode != null) ...[
-                        const SizedBox(height: 12),
-                        Container(
-                          key: const ValueKey('bd-error'),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 9,
-                          ),
-                          decoration: BoxDecoration(
-                            color: p.dangerSoft,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            birthdayErrorText(l10n, _errorCode, _errorMessage),
-                            style: TextStyle(color: p.danger, fontSize: 13),
-                          ),
+    // While an action is in flight the detail stays open (barrier, Esc, back):
+    // its answer — a refusal included — must be seen.
+    return PopScope(
+      canPop: !_busy,
+      child: Dialog(
+        insetPadding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 640, maxHeight: 900),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _header(p, l10n, party),
+                const SizedBox(height: 14),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        IncludesBlock(items: party.includedItems),
+                        const SizedBox(height: 16),
+                        PaymentTimeline(payments: party.payments),
+                        const SizedBox(height: 14),
+                        PartySummary(party: party),
+                        const SizedBox(height: 16),
+                        CommentsSection(
+                          comments: party.comments,
+                          onAdd: _addComment,
+                          enabled: !_busy,
                         ),
+                        if (_errorCode != null) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            key: const ValueKey('bd-error'),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 9,
+                            ),
+                            decoration: BoxDecoration(
+                              color: p.dangerSoft,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              birthdayErrorText(
+                                l10n,
+                                _errorCode,
+                                _errorMessage,
+                              ),
+                              style: TextStyle(color: p.danger, fontSize: 13),
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              _footer(l10n, party),
-            ],
+                const SizedBox(height: 16),
+                _footer(l10n, party),
+              ],
+            ),
           ),
         ),
       ),
@@ -326,7 +364,7 @@ class _EventDetailDialogState extends State<EventDetailDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                party.customerName,
+                party.customerLabel,
                 style: p.title.copyWith(fontSize: 21),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -336,7 +374,9 @@ class _EventDetailDialogState extends State<EventDetailDialog> {
                 [
                   partyDateLabel(party.partyDate),
                   if (party.soldByUsername != null) party.soldByUsername!,
-                  party.customerPhone,
+                  // Already the title when the parent has no name.
+                  if (party.customerLabel != party.customerPhone)
+                    party.customerPhone,
                 ].join(' · '),
                 style: p.bodyMuted.copyWith(fontSize: 13),
               ),
@@ -378,7 +418,8 @@ class _EventDetailDialogState extends State<EventDetailDialog> {
             ],
           ),
         IconButton(
-          onPressed: () => Navigator.of(context).pop(),
+          key: const ValueKey('bd-detail-close'),
+          onPressed: _busy ? null : () => Navigator.of(context).pop(),
           icon: const Icon(Icons.close),
         ),
       ],
@@ -404,7 +445,9 @@ class _EventDetailDialogState extends State<EventDetailDialog> {
               child: _canComplete
                   ? complete
                   : Tooltip(
-                      message: l10n.bdCompleteFrom(party.partyDate),
+                      message: l10n.bdCompleteFrom(
+                        partyDateLabel(party.partyDate),
+                      ),
                       child: complete,
                     ),
             ),

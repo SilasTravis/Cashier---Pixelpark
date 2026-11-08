@@ -847,6 +847,7 @@
   "bdCancelledReason": "Reason: {reason}",
   "@bdCancelledReason": {"placeholders": {"reason": {"type": "String"}}},
   "bdRequestConflict": "This action was already done — the event was refreshed",
+  "bdExtraChildrenConflict": "Another till changed the number of children. Refreshed — check and add again if needed.",
   "bdClose": "Close",
   "bdUnclearHint": "No response received. Amounts are locked — try again or close.",
   "bdOfflineHint": "No network — try again",

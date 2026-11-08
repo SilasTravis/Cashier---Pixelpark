@@ -33,6 +33,8 @@ BirthdayParty fixtureParty({
   int debt = 2240000,
   int kept = 0,
   String partyDate = '2999-01-01',
+  int extraChildren = 2,
+  String fullName = 'Jasur Toshmatov',
   List<Map<String, dynamic>> payments = const [],
 }) => BirthdayParty.fromJson({
   'id': id,
@@ -40,11 +42,7 @@ BirthdayParty fixtureParty({
   'paymentState': debt == 0 ? 'paid' : (paid > 0 ? 'partial' : 'unpaid'),
   'branchId': 'b1',
   'branchName': 'Megaplanet',
-  'customer': {
-    'id': 42,
-    'fullName': 'Jasur Toshmatov',
-    'phoneNumber': '998901112233',
-  },
+  'customer': {'id': 42, 'fullName': fullName, 'phoneNumber': '998901112233'},
   'plan': {
     'id': 'vip',
     'name': 'VIP',
@@ -52,7 +50,7 @@ BirthdayParty fixtureParty({
     'includedItems': ['3 hours whole park'],
   },
   'childCount': 10,
-  'extraChildren': 2,
+  'extraChildren': extraChildren,
   'packagePriceUzs': 2000000,
   'extraChildUzs': 120000,
   'listPriceUzs': 2240000,

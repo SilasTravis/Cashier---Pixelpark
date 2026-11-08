@@ -332,6 +332,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "bdCompleteAnyway": MessageLookupByLibrary.simpleMessage("Complete"),
     "bdCompleteDebt": m15,
     "bdCompleteFrom": m16,
+    "bdExtraChildrenConflict": MessageLookupByLibrary.simpleMessage(
+      "Another till changed the number of children. Refreshed — check and add again if needed.",
+    ),
     "bdFromBalanceLine": m17,
     "bdKept": m18,
     "bdKeptChip": m19,

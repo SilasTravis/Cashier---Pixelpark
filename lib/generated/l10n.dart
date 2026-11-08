@@ -4545,6 +4545,16 @@ class AppLocalization {
     );
   }
 
+  /// `Another till changed the number of children. Refreshed — check and add again if needed.`
+  String get bdExtraChildrenConflict {
+    return Intl.message(
+      'Another till changed the number of children. Refreshed — check and add again if needed.',
+      name: 'bdExtraChildrenConflict',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Close`
   String get bdClose {
     return Intl.message('Close', name: 'bdClose', desc: '', args: []);

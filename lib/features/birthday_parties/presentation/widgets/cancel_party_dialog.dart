@@ -132,8 +132,13 @@ class _CancelPartyDialogState extends State<CancelPartyDialog> {
         });
         return;
       }
+      // A clean refusal — also of a retry: a cancellation already done under
+      // this requestId would have replayed as a success — so the dialog is
+      // editable again.
       setState(() {
         _busy = false;
+        _unclear = false;
+        _offline = false;
         _errorCode = code ?? 'UNKNOWN';
         _errorMessage = message;
       });
@@ -152,7 +157,7 @@ class _CancelPartyDialogState extends State<CancelPartyDialog> {
       _busy = true;
       _offline = false;
     });
-    final lookup = await lookupParty(
+    final lookup = await lookupPartySettled(
       sl<BirthdayPartiesRepository>(),
       widget.party.id,
     );
@@ -199,7 +204,7 @@ class _CancelPartyDialogState extends State<CancelPartyDialog> {
               children: [
                 Text(l10n.bdCancelTitle, style: p.title.copyWith(fontSize: 19)),
                 const SizedBox(height: 2),
-                Text(widget.party.customerName, style: p.bodyMuted),
+                Text(widget.party.customerLabel, style: p.bodyMuted),
                 const SizedBox(height: 14),
                 TextField(
                   key: const ValueKey('bd-cancel-reason'),
@@ -384,6 +389,8 @@ class _CancelPartyDialogState extends State<CancelPartyDialog> {
   Widget _field(String key, TextEditingController c, String label) => TextField(
     key: ValueKey(key),
     controller: c,
+    // Locked after an unclear failure: the retry is the very same refund.
+    enabled: !_unclear,
     keyboardType: TextInputType.number,
     inputFormatters: const [ThousandsInputFormatter()],
     decoration: InputDecoration(labelText: label, isDense: true),

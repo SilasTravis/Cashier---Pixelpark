@@ -111,11 +111,24 @@ void main() {
     await expectLater(
       repo.pay('p1', (fromBalanceUzs: 0, cashUzs: 500000, cardUzs: 0), 'r2'),
       throwsA(
-        isA<ServerException>().having(
-          (e) => e.code,
-          'code',
-          'BIRTHDAY_OVERPAYMENT',
-        ),
+        isA<ServerException>()
+            .having((e) => e.code, 'code', 'BIRTHDAY_OVERPAYMENT')
+            .having((e) => e.statusCode, 'statusCode', 400),
+      ),
+    );
+  });
+
+  test('a body without statusCode still carries the HTTP status', () async {
+    final (repo, _) = make({
+      'code': 'INTERNAL_ERROR',
+      'message': 'boom',
+    }, status: 500);
+    await expectLater(
+      repo.get('p1'),
+      throwsA(
+        isA<ServerException>()
+            .having((e) => e.code, 'code', 'INTERNAL_ERROR')
+            .having((e) => e.statusCode, 'statusCode', 500),
       ),
     );
   });
@@ -149,6 +162,17 @@ void main() {
     expect(a2.requests.last.data, {'count': 3});
     await r2.addExtraChildren('p1', 3, expectedExtraChildren: 2);
     expect(a2.requests.last.data, {'count': 3, 'expectedExtraChildren': 2});
+    await r2.addExtraChildren(
+      'p1',
+      3,
+      expectedExtraChildren: 2,
+      requestId: 'rx-1',
+    );
+    expect(a2.requests.last.data, {
+      'count': 3,
+      'expectedExtraChildren': 2,
+      'requestId': 'rx-1',
+    });
     await r2.changeDate('p1', '2026-12-01');
     expect(a2.requests.last.method, 'PATCH');
     expect(a2.requests.last.path, '/v1/pos/birthday-parties/p1/date');

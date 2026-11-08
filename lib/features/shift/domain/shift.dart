@@ -118,8 +118,9 @@ class ShiftTotals extends Equatable {
   /// [cashUzs]/[cardUzs]. 0 from a server without it.
   final int birthdayUzs;
 
-  /// Birthday-party money handed back this shift (cash refunds and deposits
-  /// returned to a balance). Informational. 0 from a server without it.
+  /// Birthday-party money handed back in cash this shift (refunds to a
+  /// balance are not counted). Informational, already deducted from
+  /// [cashUzs]. 0 from a server without it.
   final int birthdayRefundedUzs;
 
   /// Physical money handed back during the shift. Money credited to a stored

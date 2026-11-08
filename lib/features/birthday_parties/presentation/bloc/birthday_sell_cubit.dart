@@ -181,6 +181,7 @@ class BirthdaySellCubit extends Cubit<BirthdaySellState> {
     DateTime? today,
     int balanceUzs = 0,
     Future<int?> Function()? balanceLookup,
+    this.recheckDelay = birthdayRecheckDelay,
   }) : requestId = const Uuid().v4(),
        // ignore: prefer_initializing_formals
        _balanceLookup = balanceLookup,
@@ -194,6 +195,9 @@ class BirthdaySellCubit extends Cubit<BirthdaySellState> {
   final BirthdayPartiesRepository _repository;
   final Future<int?> Function()? _balanceLookup;
   final String requestId;
+
+  /// Pause between the close re-checks of a sale that came back "not found".
+  final Duration recheckDelay;
 
   /// Amounts are frozen once a submit ended unclearly.
   bool get _locked => state.unclear;
@@ -302,11 +306,17 @@ class BirthdaySellCubit extends Cubit<BirthdaySellState> {
   /// caller must learn about it (receipt, customer refresh).
   ///
   /// Null when nothing was unclear (just close). [PartyUnreachable] means the
-  /// server could not be asked: the sheet must stay locked, not close.
+  /// server could not be asked: the sheet must stay locked, not close. A
+  /// "not found" is re-checked first ([lookupPartySettled]): the lost request
+  /// may still be committing.
   Future<PartyLookup?> resolveOnClose() async {
     if (!state.unclear) return null;
     emit(state.copyWith(busy: true));
-    final lookup = await lookupParty(_repository, requestId);
+    final lookup = await lookupPartySettled(
+      _repository,
+      requestId,
+      delay: recheckDelay,
+    );
     if (!isClosed) emit(state.copyWith(busy: false));
     return lookup;
   }
@@ -349,9 +359,13 @@ class BirthdaySellCubit extends Cubit<BirthdaySellState> {
         );
         return;
       }
+      // A clean refusal — also of a retry: a sale already booked under this
+      // requestId would have replayed as a success — so nothing was booked
+      // and the sheet is editable again.
       emit(
         state.copyWith(
           busy: false,
+          unclear: false,
           errorCode: code ?? 'UNKNOWN',
           errorMessage: message,
         ),
@@ -364,6 +378,9 @@ class BirthdaySellCubit extends Cubit<BirthdaySellState> {
     final lookup = _balanceLookup;
     if (lookup == null) return;
     final balance = await lookup();
-    if (balance != null && !isClosed) emit(state.copyWith(balanceUzs: balance));
+    // A locked (unclear) split must not be recomputed behind the cashier.
+    if (balance != null && !isClosed && !_locked) {
+      emit(state.copyWith(balanceUzs: balance));
+    }
   }
 }

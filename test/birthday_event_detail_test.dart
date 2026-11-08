@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cashier_app/core/error/exceptions.dart';
 import 'package:cashier_app/core/theme/app_theme.dart';
 import 'package:cashier_app/core/utils/currency.dart';
@@ -11,6 +13,7 @@ import 'package:dartz/dartz.dart' show Either, Right;
 import 'package:cashier_app/generated/l10n.dart';
 import 'package:cashier_app/injector_container.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -93,6 +96,7 @@ class _FakeRepo implements BirthdayPartiesRepository {
   Object? getError;
   final commentRequestIds = <String?>[];
   final expectedExtra = <int?>[];
+  final extraRequestIds = <String?>[];
 
   @override
   Future<BirthdayParty> get(String id) async {
@@ -106,8 +110,10 @@ class _FakeRepo implements BirthdayPartiesRepository {
     String id,
     int count, {
     int? expectedExtraChildren,
+    String? requestId,
   }) async {
     expectedExtra.add(expectedExtraChildren);
+    extraRequestIds.add(requestId);
     calls['extra'] = {'count': count};
     if (extraError != null) throw extraError!;
     return after;
@@ -160,16 +166,21 @@ class _FakeRepo implements BirthdayPartiesRepository {
   @override
   Future<BirthdayParty> complete(String id) async {
     calls['complete'] = {};
+    if (completeGate != null) await completeGate!.future;
     if (failComplete) {
       throw ServerException(
         message: 'Hali erta',
         code: 'BIRTHDAY_COMPLETE_TOO_EARLY',
+        statusCode: 400,
       );
     }
     return after;
   }
 
   bool failComplete = false;
+
+  /// When set, `complete` waits for it (an action in flight).
+  Completer<void>? completeGate;
 
   @override
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -439,6 +450,7 @@ void main() {
       repo.payError = ServerException(
         message: 'c',
         code: 'BIRTHDAY_REQUEST_CONFLICT',
+        statusCode: 409,
       );
       repo.getAnswer = landed;
       await openPay(tester);
@@ -643,6 +655,7 @@ void main() {
       repo.getError = ServerException(
         message: 'x',
         code: 'BIRTHDAY_PARTY_NOT_FOUND',
+        statusCode: 404,
       );
       await tester.tap(find.byKey(const ValueKey('bd-pay-close')));
       await tester.pumpAndSettle();
@@ -685,6 +698,7 @@ void main() {
       repo.payError = ServerException(
         message: 'x',
         code: 'BIRTHDAY_BALANCE_INSUFFICIENT',
+        statusCode: 400,
       );
       await openPaySheet(tester);
       expect(account.lookups, 1);
@@ -713,6 +727,7 @@ void main() {
       repo.extraError = ServerException(
         message: 'c',
         code: 'BIRTHDAY_REQUEST_CONFLICT',
+        statusCode: 409,
       );
       await tester.tap(find.byKey(const ValueKey('bd-more')));
       await tester.pumpAndSettle();
@@ -729,6 +744,202 @@ void main() {
       expect(repo.gets, greaterThan(getsBefore));
       expect(find.byKey(const ValueKey('bd-left')), findsNothing);
       expect(find.byKey(const ValueKey('bd-error')), findsOneWidget);
+    });
+
+    Future<void> addOneChild(WidgetTester tester) async {
+      await tester.tap(find.byKey(const ValueKey('bd-more')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('+ bola'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('bd-child-submit')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('+ bola: one requestId per tap, reused by its retry', (
+      tester,
+    ) async {
+      final repo = await _open(tester, before);
+      repo.extraError = ServerException(message: 'timeout');
+      await addOneChild(tester);
+      // The cashier taps again after the timeout: the same tap, same id.
+      await addOneChild(tester);
+      expect(repo.extraRequestIds, hasLength(2));
+      expect(repo.extraRequestIds[0], isNotNull);
+      expect(repo.extraRequestIds[1], repo.extraRequestIds[0]);
+      expect(repo.expectedExtra, [2, 2]);
+      // It lands; the next "+ bola" is a new tap with a new id.
+      repo.extraError = null;
+      await addOneChild(tester);
+      expect(repo.extraRequestIds[2], repo.extraRequestIds[0]);
+      await addOneChild(tester);
+      expect(repo.extraRequestIds[3], isNot(repo.extraRequestIds[0]));
+    });
+
+    testWidgets('+ bola 409: another till changed it, the new count shows', (
+      tester,
+    ) async {
+      final repo = await _open(tester, before);
+      repo.extraError = ServerException(
+        message: 'c',
+        code: 'BIRTHDAY_REQUEST_CONFLICT',
+        statusCode: 409,
+      );
+      repo.getAnswer = fixtureParty(
+        paid: 1040000,
+        debt: 1440000,
+        extraChildren: 4,
+        payments: [paymentJson(id: 'pay1', cash: 1040000)],
+      );
+      await addOneChild(tester);
+      expect(
+        find.text(
+          'Bolalar sonini boshqa kassa o‘zgartirgan. Ma\'lumot yangilandi — '
+          'tekshirib, kerak bo‘lsa qayta qo‘shing.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Bu amal allaqachon bajarilgan — tadbir yangilandi'),
+        findsNothing,
+      );
+      expect(find.text('VIP · 10 + 4'), findsOneWidget);
+    });
+
+    testWidgets('pay 500 INTERNAL_ERROR is unclear: refetch finds it', (
+      tester,
+    ) async {
+      final repo = await _open(tester, before);
+      repo.payError = ServerException(
+        message: 'x',
+        code: 'INTERNAL_ERROR',
+        statusCode: 500,
+      );
+      await openPaySheet(tester);
+      final sent = <String>[];
+      repo.getAnswer = null;
+      await tester.tap(find.byKey(const ValueKey('bd-pay-submit')));
+      await tester.pumpAndSettle();
+      sent.addAll(repo.payRequestIds);
+      // Not landed: locked like a lost response, not a plain refusal.
+      expect(find.byKey(const ValueKey('bd-pay-unclear-hint')), findsOneWidget);
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const ValueKey('bd-pay-amount')))
+            .enabled,
+        isFalse,
+      );
+      // It had landed after all: closing finds it and prints its receipt.
+      repo.getAnswer = fixtureParty(
+        paid: 2240000,
+        debt: 0,
+        payments: [
+          paymentJson(id: 'pay1', cash: 1040000, requestId: 'old-rq'),
+          paymentJson(id: 'pay2', cash: 1200000, requestId: sent.single),
+        ],
+      );
+      await tester.tap(find.byKey(const ValueKey('bd-pay-close')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('bd-pay-submit')), findsNothing);
+      expect(find.byKey(const ValueKey('bd-left')), findsNothing);
+    });
+
+    testWidgets('a clean refusal of the unclear retry unlocks the pay sheet', (
+      tester,
+    ) async {
+      final repo = await _open(tester, before);
+      repo.payError = ServerException(message: 'timeout');
+      await openPaySheet(tester);
+      await submitPay(tester);
+      expect(find.byKey(const ValueKey('bd-pay-unclear-hint')), findsOneWidget);
+      repo.payError = ServerException(
+        message: 'Ortiqcha',
+        code: 'BIRTHDAY_OVERPAYMENT',
+        statusCode: 400,
+      );
+      await submitPay(tester);
+      expect(find.byKey(const ValueKey('bd-pay-unclear-hint')), findsNothing);
+      expect(find.byKey(const ValueKey('bd-pay-error')), findsOneWidget);
+      expect(find.text('Ortiqcha'), findsOneWidget);
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const ValueKey('bd-pay-amount')))
+            .enabled,
+        isTrue,
+      );
+      // Closing now is a plain close, no re-check.
+      final getsBefore = repo.gets;
+      await tester.tap(find.byKey(const ValueKey('bd-pay-close')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('bd-pay-submit')), findsNothing);
+      // Only the detail's own refresh after the sheet closed.
+      expect(repo.gets, getsBefore + 1);
+    });
+
+    testWidgets('the detail cannot be dismissed while an action runs', (
+      tester,
+    ) async {
+      final repo = await _open(tester, _party('2000-01-01', debt: 0));
+      repo.completeGate = Completer<void>();
+      await tester.tap(find.byKey(const ValueKey('bd-complete')));
+      await tester.pump();
+      expect(
+        tester
+            .widget<IconButton>(find.byKey(const ValueKey('bd-detail-close')))
+            .onPressed,
+        isNull,
+      );
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pump();
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pump();
+      expect(find.byKey(const ValueKey('bd-complete')), findsOneWidget);
+      // The answer comes back and is handled (here: done, the detail closes).
+      repo.completeGate!.complete();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('bd-complete')), findsNothing);
+    });
+
+    testWidgets('when idle the barrier still closes the detail', (
+      tester,
+    ) async {
+      await _open(tester, before);
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('bd-add-payment')), findsNothing);
+    });
+
+    testWidgets('a parent without a name shows the phone number', (
+      tester,
+    ) async {
+      await _open(
+        tester,
+        fixtureParty(
+          fullName: '',
+          paid: 1040000,
+          debt: 1200000,
+          payments: [paymentJson(id: 'pay1', cash: 1040000)],
+        ),
+      );
+      expect(find.text('998901112233'), findsOneWidget);
+      await openPaySheet(tester);
+      expect(find.text('998901112233'), findsNWidgets(2));
+    });
+
+    testWidgets('the Yakunlash tooltip shows the date as dd.MM.yyyy', (
+      tester,
+    ) async {
+      await _open(tester, _party('2999-01-01'));
+      expect(
+        tester
+            .widget<Tooltip>(
+              find.ancestor(
+                of: find.byKey(const ValueKey('bd-complete')),
+                matching: find.byType(Tooltip),
+              ),
+            )
+            .message,
+        'Yakunlash 01.01.2999 kuni mumkin',
+      );
     });
 
     testWidgets('a comment retry reuses its requestId, a new text gets one', (

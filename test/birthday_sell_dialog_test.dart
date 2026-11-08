@@ -68,7 +68,7 @@ BirthdayParty _party() => BirthdayParty.fromJson({
 
 class _FakeRepo implements BirthdayPartiesRepository {
   _FakeRepo({this.failWith, this.failPlain = false});
-  final ServerException? failWith;
+  ServerException? failWith;
   final bool failPlain;
 
   /// What `get(requestId)` answers (null = not found).
@@ -82,7 +82,11 @@ class _FakeRepo implements BirthdayPartiesRepository {
     gets.add(id);
     if (getError != null) throw getError!;
     return getResult ??
-        (throw ServerException(message: 'x', code: 'BIRTHDAY_PARTY_NOT_FOUND'));
+        (throw ServerException(
+          message: 'x',
+          code: 'BIRTHDAY_PARTY_NOT_FOUND',
+          statusCode: 404,
+        ));
   }
 
   @override
@@ -251,6 +255,7 @@ void main() {
         failWith: ServerException(
           message: 'Balans yetarli emas: 100 000',
           code: 'BIRTHDAY_BALANCE_INSUFFICIENT',
+          statusCode: 400,
         ),
       );
       await _openDialog(tester, repo);
@@ -461,8 +466,29 @@ void main() {
     expect(find.byKey(const ValueKey('birthday-submit')), findsNothing);
   });
 
+  testWidgets('a locked sheet takes the keyboard away from its fields', (
+    tester,
+  ) async {
+    final repo = _FakeRepo(failWith: ServerException(message: 'timeout'));
+    await _openDialog(tester, repo);
+    await _fillSale(tester);
+    final total = find.byKey(const ValueKey('birthday-total-field'));
+    FocusNode node() => tester
+        .widget<EditableText>(
+          find.descendant(of: total, matching: find.byType(EditableText)),
+        )
+        .focusNode;
+    await tester.tap(total);
+    await tester.pump();
+    expect(node().hasFocus, isTrue);
+    await _tap(tester, 'birthday-submit');
+    expect(find.byKey(const ValueKey('birthday-unclear-hint')), findsOneWidget);
+    expect(node().hasFocus, isFalse);
+    expect(node().canRequestFocus, isFalse);
+  });
+
   group('sell button on the account page', () {
-    Future<void> pumpPanel(WidgetTester tester) async {
+    Future<PosAccountBloc> pumpPanel(WidgetTester tester) async {
       tester.view.physicalSize = const Size(1600, 1200);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
@@ -480,7 +506,50 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      return bloc;
     }
+
+    testWidgets(
+      'a sale that resolves after the panel is gone still prints, no throw',
+      (tester) async {
+        final repo = _FakeRepo(failWith: ServerException(message: 'timeout'));
+        sl.registerSingleton<BirthdayPartiesRepository>(repo);
+        final bloc = await pumpPanel(tester);
+        await _tap(tester, 'sell-birthday-button');
+        await _fillSale(tester);
+        // A lost response: the sheet locks.
+        await _tap(tester, 'birthday-submit');
+        expect(
+          find.byKey(const ValueKey('birthday-unclear-hint')),
+          findsOneWidget,
+        );
+        // The shell swaps the tab (offline switch): the panel and its bloc
+        // are disposed; the sheet on the root navigator stays.
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: const [AppLocalization.delegate],
+            supportedLocales: AppLocalization.delegate.supportedLocales,
+            home: const Scaffold(body: SizedBox()),
+          ),
+        );
+        await tester.runAsync(bloc.close);
+        expect(bloc.isClosed, isTrue);
+        await tester.pumpAndSettle();
+        expect(find.byType(CustomerDetailPanel), findsNothing);
+        expect(find.byKey(const ValueKey('birthday-submit')), findsOneWidget);
+        // Back online, the retry replays the booked sale and the sheet pops.
+        repo.failWith = null;
+        await _tap(tester, 'birthday-submit');
+        expect(find.byKey(const ValueKey('birthday-submit')), findsNothing);
+        // The receipt was still attempted (no printer here: it reports the
+        // failure through the app's messenger) and nothing threw.
+        expect(
+          find.text('Receipt could not be printed. Check the printer.'),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), isNull);
+      },
+    );
 
     testWidgets('is enabled online', (tester) async {
       await pumpPanel(tester);

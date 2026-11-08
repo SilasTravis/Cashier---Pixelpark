@@ -846,6 +846,7 @@
   "bdCancelledReason": "Причина: {reason}",
   "@bdCancelledReason": {"placeholders": {"reason": {"type": "String"}}},
   "bdRequestConflict": "Это действие уже выполнено — событие обновлено",
+  "bdExtraChildrenConflict": "Количество детей изменили на другой кассе. Данные обновлены — проверьте и при необходимости добавьте снова.",
   "bdClose": "Закрыть",
   "bdUnclearHint": "Ответ не получен. Суммы заблокированы — повторите попытку или закройте.",
   "bdOfflineHint": "Нет сети — повторите попытку",

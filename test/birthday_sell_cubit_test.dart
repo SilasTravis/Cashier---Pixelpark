@@ -5,6 +5,8 @@ import 'package:cashier_app/features/birthday_parties/domain/birthday_party.dart
 import 'package:cashier_app/features/birthday_parties/domain/birthday_plan.dart';
 import 'package:cashier_app/features/birthday_parties/presentation/bloc/birthday_sell_cubit.dart';
 import 'package:cashier_app/features/birthday_parties/presentation/birthday_recovery.dart';
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/birthday_fixtures.dart';
@@ -54,12 +56,20 @@ class _Repo implements BirthdayPartiesRepository {
     throw next;
   }
 
+  /// When set, `get` answers with these in turn (then [getResult]).
+  final getQueue = <Object>[];
+
   @override
   Future<BirthdayParty> get(String id) async {
     gets.add(id);
-    final r = getResult;
+    final r = getQueue.isNotEmpty ? getQueue.removeAt(0) : getResult;
     if (r is BirthdayParty) return r;
-    throw r ?? ServerException(message: 'x', code: 'BIRTHDAY_PARTY_NOT_FOUND');
+    throw r ??
+        ServerException(
+          message: 'x',
+          code: 'BIRTHDAY_PARTY_NOT_FOUND',
+          statusCode: 404,
+        );
   }
 
   @override
@@ -67,6 +77,9 @@ class _Repo implements BirthdayPartiesRepository {
 }
 
 ServerException get _timeout => ServerException(message: 'timeout');
+
+ServerException _refusal(String code) =>
+    ServerException(message: 'x', code: code, statusCode: 400);
 
 Future<BirthdaySellCubit> _ready(
   _Repo repo, {
@@ -78,6 +91,7 @@ Future<BirthdaySellCubit> _ready(
     today: DateTime(2026, 11, 6),
     balanceUzs: balance,
     balanceLookup: lookup,
+    recheckDelay: Duration.zero,
   );
   await cubit.load();
   cubit
@@ -169,15 +183,107 @@ void main() {
     expect(cubit.state.unclear, isTrue);
     expect(cubit.state.busy, isFalse);
     repo.getResult = null; // the default: BIRTHDAY_PARTY_NOT_FOUND
+    final getsBefore = repo.gets.length;
     expect(await cubit.resolveOnClose(), isA<PartyMissing>());
+    // A 404 is re-checked twice before it is trusted.
+    expect(repo.gets.length - getsBefore, 3);
+  });
+
+  test('a sale that shows up on a close re-check is found', () async {
+    final repo = _Repo();
+    final cubit = await _ready(repo);
+    repo.sellResults.add(_timeout);
+    await cubit.submit(customerId: 42);
+    final getsBefore = repo.gets.length;
+    // Still committing on the first read, there on the second.
+    repo.getQueue.add(
+      ServerException(
+        message: 'x',
+        code: 'BIRTHDAY_PARTY_NOT_FOUND',
+        statusCode: 404,
+      ),
+    );
+    repo.getResult = fixtureParty();
+    expect(await cubit.resolveOnClose(), isA<PartyFound>());
+    expect(repo.gets.length - getsBefore, 2);
+  });
+
+  test('a 500 after the sell is unclear: refetch, then lock', () async {
+    final repo = _Repo();
+    final cubit = await _ready(repo);
+    repo.sellResults.add(
+      ServerException(message: 'x', code: 'INTERNAL_ERROR', statusCode: 500),
+    );
+    await cubit.submit(customerId: 42);
+    expect(repo.gets, [cubit.requestId]);
+    expect(cubit.state.unclear, isTrue);
+    expect(cubit.state.party, isNull);
+    // Closing must ask the server, not just close.
+    repo.getResult = fixtureParty();
+    expect(await cubit.resolveOnClose(), isA<PartyFound>());
+  });
+
+  test('a 500 whose sale was booked is a success', () async {
+    final repo = _Repo();
+    final cubit = await _ready(repo);
+    repo.sellResults.add(
+      ServerException(message: 'x', code: 'INTERNAL_ERROR', statusCode: 500),
+    );
+    repo.getResult = fixtureParty();
+    await cubit.submit(customerId: 42);
+    expect(repo.sells, hasLength(1));
+    expect(cubit.state.party, isNotNull);
+  });
+
+  test('a clean refusal of an unclear retry unlocks the sheet', () async {
+    final repo = _Repo();
+    final cubit = await _ready(repo);
+    repo.sellResults.addAll([
+      _timeout,
+      _refusal('BIRTHDAY_PLAN_NOT_AVAILABLE'),
+    ]);
+    await cubit.submit(customerId: 42);
+    expect(cubit.state.unclear, isTrue);
+    await cubit.submit(customerId: 42);
+    expect(cubit.state.unclear, isFalse);
+    expect(cubit.state.errorCode, 'BIRTHDAY_PLAN_NOT_AVAILABLE');
+    // Editable again.
+    cubit.addExtraChild();
+    expect(cubit.state.extraChildren, 1);
+    expect(await cubit.resolveOnClose(), isNull);
+  });
+
+  test('a balance re-read never recomputes a locked split', () async {
+    final repo = _Repo();
+    final balance = Completer<int?>();
+    final cubit = await _ready(
+      repo,
+      balance: 600000,
+      lookup: () => balance.future,
+    );
+    cubit.setPayFromBalance(true);
+    repo.sellResults.addAll([
+      _refusal('BIRTHDAY_BALANCE_INSUFFICIENT'),
+      _timeout,
+    ]);
+    // The refusal starts a balance re-read that is still on its way...
+    final refused = cubit.submit(customerId: 42);
+    await Future<void>.delayed(Duration.zero);
+    // ...when the next submit ends unclear and locks the sheet.
+    await cubit.submit(customerId: 42);
+    expect(cubit.state.unclear, isTrue);
+    final locked = cubit.state.payment;
+    balance.complete(100000);
+    await refused;
+    expect(cubit.state.balanceUzs, 600000);
+    expect(cubit.state.payment.fromBalanceUzs, locked.fromBalanceUzs);
+    expect(cubit.state.payment.collectUzs, locked.collectUzs);
   });
 
   test('a clear refusal is not unclear and does not refetch', () async {
     final repo = _Repo();
     final cubit = await _ready(repo);
-    repo.sellResults.add(
-      ServerException(message: 'no', code: 'BIRTHDAY_PLAN_NOT_AVAILABLE'),
-    );
+    repo.sellResults.add(_refusal('BIRTHDAY_PLAN_NOT_AVAILABLE'));
     await cubit.submit(customerId: 42);
     expect(cubit.state.unclear, isFalse);
     expect(repo.gets, isEmpty);
@@ -192,9 +298,7 @@ void main() {
       lookup: () async => 100000,
     );
     cubit.setPayFromBalance(true);
-    repo.sellResults.add(
-      ServerException(message: 'x', code: 'BIRTHDAY_BALANCE_INSUFFICIENT'),
-    );
+    repo.sellResults.add(_refusal('BIRTHDAY_BALANCE_INSUFFICIENT'));
     await cubit.submit(customerId: 42);
     expect(cubit.state.balanceUzs, 100000);
     expect(cubit.state.payment.fromBalanceUzs, 100000);

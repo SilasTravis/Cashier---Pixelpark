@@ -21,12 +21,34 @@ Future<void> printBirthdayReceipt(
   List<BirthdayPartyPayment> refunds = const [],
   bool withItems = false,
 }) async {
+  final printed = await printBirthdayReceiptDirect(
+    party,
+    payment: payment,
+    refunds: refunds,
+    withItems: withItems,
+  );
+  if (!printed && context.mounted) {
+    _fail(
+      ScaffoldMessenger.maybeOf(context),
+      AppLocalization.of(context).receiptPrintFailed,
+    );
+  }
+}
+
+/// [printBirthdayReceipt] without any widget: true when it printed. It needs
+/// no [BuildContext], so it still works after the caller's widget is gone.
+Future<bool> printBirthdayReceiptDirect(
+  BirthdayParty party, {
+  BirthdayPartyPayment? payment,
+  List<BirthdayPartyPayment> refunds = const [],
+  bool withItems = false,
+}) async {
   try {
     final local = sl<LocalSource>();
     final shown =
         payment ??
         (refunds.isNotEmpty ? refunds.last : _latest(party.payments));
-    final printed = await SaleReceiptPrinter.printBirthdayDirect(
+    return await SaleReceiptPrinter.printBirthdayDirect(
       BirthdayReceipt.fromParty(
         party,
         payment: shown,
@@ -37,10 +59,35 @@ Future<void> printBirthdayReceipt(
       cashierName: shown?.cashierUsername ?? local.getCashierFullName() ?? '',
       preferredPrinterName: local.getReceiptPrinterName(),
     );
-    if (!printed && context.mounted) _fail(context);
   } catch (_) {
-    if (context.mounted) _fail(context);
+    return false;
   }
+}
+
+/// A sale from the account panel: [openSheet] runs the sell sheet; once it
+/// resolves with a party the booking receipt (with the included items) is
+/// printed and [onSold] runs (the customer refresh).
+///
+/// The sheet lives on the root navigator, so the panel that opened it can be
+/// disposed meanwhile (offline switch, shift refresh). Everything needed
+/// afterwards — the messenger and the failure text — is captured up front, so
+/// the money taken always gets its receipt. [print] is for tests.
+Future<void> sellBirthdayAndPrint(
+  BuildContext context, {
+  required Future<BirthdayParty?> Function() openSheet,
+  required VoidCallback onSold,
+  Future<bool> Function(BirthdayParty party)? print,
+}) async {
+  final messenger = ScaffoldMessenger.maybeOf(context);
+  final failText = AppLocalization.of(context).receiptPrintFailed;
+  final party = await openSheet();
+  if (party == null) return;
+  final printed =
+      await (print ?? (p) => printBirthdayReceiptDirect(p, withItems: true))(
+        party,
+      );
+  if (!printed) _fail(messenger, failText);
+  onSold();
 }
 
 BirthdayPartyPayment? _latest(List<BirthdayPartyPayment> payments) {
@@ -48,8 +95,7 @@ BirthdayPartyPayment? _latest(List<BirthdayPartyPayment> payments) {
   return payments.reduce((a, b) => b.createdAt.isAfter(a.createdAt) ? b : a);
 }
 
-void _fail(BuildContext context) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text(AppLocalization.of(context).receiptPrintFailed)),
-  );
+void _fail(ScaffoldMessengerState? messenger, String text) {
+  if (messenger == null || !messenger.mounted) return;
+  messenger.showSnackBar(SnackBar(content: Text(text)));
 }

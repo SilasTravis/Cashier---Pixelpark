@@ -336,6 +336,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "bdCompleteAnyway": MessageLookupByLibrary.simpleMessage("Yakunlash"),
     "bdCompleteDebt": m15,
     "bdCompleteFrom": m16,
+    "bdExtraChildrenConflict": MessageLookupByLibrary.simpleMessage(
+      "Bolalar sonini boshqa kassa o‘zgartirgan. Ma\'lumot yangilandi — tekshirib, kerak bo‘lsa qayta qo‘shing.",
+    ),
     "bdFromBalanceLine": m17,
     "bdKept": m18,
     "bdKeptChip": m19,
