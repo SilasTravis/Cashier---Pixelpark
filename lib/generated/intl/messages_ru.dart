@@ -211,37 +211,39 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m80(reason) => "Промокод не применён, код возвращён: ${reason}";
 
-  static String m81(date, name) => "${date} · ${name}";
+  static String m81(date) => "до ${date}";
 
-  static String m82(amount, method) =>
+  static String m82(date, name) => "${date} · ${name}";
+
+  static String m83(amount, method) =>
       "${amount} будет возвращено способом «${method}». Действие навсегда сохранится в истории аудита.";
 
-  static String m83(balance) => "Баланс клиента: ${balance}";
+  static String m84(balance) => "Баланс клиента: ${balance}";
 
-  static String m84(count) =>
+  static String m85(count) =>
       "Также будет аннулировано пропусков: ${count} — они перестанут работать на входе.";
 
-  static String m85(amount) => "Успешно возвращено ${amount}";
+  static String m86(amount) => "Успешно возвращено ${amount}";
 
-  static String m86(count) => "выбрано: ${count}";
+  static String m87(count) => "выбрано: ${count}";
 
-  static String m87(count) => "${count} шт.";
+  static String m88(count) => "${count} шт.";
 
-  static String m88(time) => "Смена открыта в ${time}";
+  static String m89(time) => "Смена открыта в ${time}";
 
-  static String m89(synced, failed) =>
+  static String m90(synced, failed) =>
       "Синхронизировано: ${synced}, с ошибкой: ${failed}.";
 
-  static String m90(reason) =>
+  static String m91(reason) =>
       "Не удалось синхронизировать: ${reason}. Офлайн-режим продолжается.";
 
-  static String m91(code) => "Код: ${code}";
+  static String m92(code) => "Код: ${code}";
 
-  static String m92(version) => "Доступна новая версия: ${version}";
+  static String m93(version) => "Доступна новая версия: ${version}";
 
-  static String m93(paid, due) => "Уже оплачено ${paid} — доплата: ${due}.";
+  static String m94(paid, due) => "Уже оплачено ${paid} — доплата: ${due}.";
 
-  static String m94(name) =>
+  static String m95(name) =>
       "«${name}» уже на активном VIP-тарифе — повторная оплата не взимается.";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
@@ -763,6 +765,15 @@ class MessageLookup extends MessageLookupByLibrary {
     "keypadHint": MessageLookupByLibrary.simpleMessage(
       "Введите номер — результаты появятся справа. Нажмите на клиента, чтобы открыть детали.",
     ),
+    "lanBridgeActive": MessageLookupByLibrary.simpleMessage(
+      "Удалённая сессия активна",
+    ),
+    "lanBridgeConnected": MessageLookupByLibrary.simpleMessage("подключено"),
+    "lanBridgeConnecting": MessageLookupByLibrary.simpleMessage("подключение"),
+    "lanBridgeControl": MessageLookupByLibrary.simpleMessage(
+      "Удалённый доступ",
+    ),
+    "lanBridgeDisabled": MessageLookupByLibrary.simpleMessage("выключено"),
     "language": MessageLookupByLibrary.simpleMessage("Язык"),
     "languageRussian": MessageLookupByLibrary.simpleMessage("Русский"),
     "languageUzbek": MessageLookupByLibrary.simpleMessage("O‘zbekcha"),
@@ -890,6 +901,15 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "products": MessageLookupByLibrary.simpleMessage("Товары"),
     "promoCode": MessageLookupByLibrary.simpleMessage("Промокод"),
+    "promoCodeActive": MessageLookupByLibrary.simpleMessage(
+      "Активные промокоды",
+    ),
+    "promoCodeActiveEmpty": MessageLookupByLibrary.simpleMessage(
+      "Нет активных промокодов",
+    ),
+    "promoCodeActiveHint": MessageLookupByLibrary.simpleMessage(
+      "Сверьте код с кодом из SMS клиента",
+    ),
     "promoCodeAlreadyUsedByCustomer": MessageLookupByLibrary.simpleMessage(
       "Этот клиент уже использовал этот промокод",
     ),
@@ -909,6 +929,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "promoCodeLimitReached": MessageLookupByLibrary.simpleMessage(
       "Лимит использований промокода исчерпан",
     ),
+    "promoCodeLoadFailed": MessageLookupByLibrary.simpleMessage(
+      "Не удалось загрузить промокоды",
+    ),
     "promoCodeNoChild": MessageLookupByLibrary.simpleMessage(
       "Выберите ребёнка для промокода",
     ),
@@ -920,6 +943,8 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "promoCodeReleased": m80,
     "promoCodeRemove": MessageLookupByLibrary.simpleMessage("Убрать промокод"),
+    "promoCodeRetry": MessageLookupByLibrary.simpleMessage("Повторить"),
+    "promoCodeValidUntil": m81,
     "promoCodeWrongCustomer": MessageLookupByLibrary.simpleMessage(
       "Этот промокод принадлежит другому клиенту",
     ),
@@ -941,7 +966,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "refundAction": MessageLookupByLibrary.simpleMessage("Возврат"),
     "refundAlreadyAmount": MessageLookupByLibrary.simpleMessage("Возвращено"),
     "refundAmount": MessageLookupByLibrary.simpleMessage("Сумма возврата"),
-    "refundAuditBy": m81,
+    "refundAuditBy": m82,
     "refundBalanceLimitNote": MessageLookupByLibrary.simpleMessage(
       "Возврат пополнения списывается с баланса, поэтому вернуть больше, чем на нём осталось, нельзя.",
     ),
@@ -949,13 +974,13 @@ class MessageLookup extends MessageLookupByLibrary {
     "refundCardWarning": MessageLookupByLibrary.simpleMessage(
       "Возврат на карту также нужно отдельно выполнить на платёжном терминале. Это действие не отменяет транзакцию терминала автоматически.",
     ),
-    "refundConfirmMessage": m82,
+    "refundConfirmMessage": m83,
     "refundConfirmTitle": MessageLookupByLibrary.simpleMessage(
       "Подтвердите возврат",
     ),
-    "refundCustomerBalance": m83,
+    "refundCustomerBalance": m84,
     "refundFullBadge": MessageLookupByLibrary.simpleMessage("Полный возврат"),
-    "refundFundedConfirm": m84,
+    "refundFundedConfirm": m85,
     "refundFundedHint": MessageLookupByLibrary.simpleMessage(
       "Отметьте пропуска, которые клиент возвращает: их стоимость сначала вернётся на баланс, затем будет выдана наличными или картой. Отмеченные пропуска сразу аннулируются.",
     ),
@@ -993,7 +1018,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "refundSelectedPassesTotal": MessageLookupByLibrary.simpleMessage(
       "Сумма выбранных пропусков",
     ),
-    "refundSuccess": m85,
+    "refundSuccess": m86,
     "refundTitle": MessageLookupByLibrary.simpleMessage("Возврат платежа"),
     "refundedTotal": MessageLookupByLibrary.simpleMessage("Возвращено"),
     "reprint": MessageLookupByLibrary.simpleMessage("Повторная печать"),
@@ -1006,7 +1031,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "searchHistory": MessageLookupByLibrary.simpleMessage("История поиска"),
     "searchResult": MessageLookupByLibrary.simpleMessage("Результаты поиска"),
     "selectForQr": MessageLookupByLibrary.simpleMessage("Выберите для QR"),
-    "selectedCount": m86,
+    "selectedCount": m87,
     "servicesBirthdaySubtitle": MessageLookupByLibrary.simpleMessage(
       "Пакет, залог, оплата с баланса",
     ),
@@ -1019,12 +1044,12 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "shiftClose": MessageLookupByLibrary.simpleMessage("Закрыть смену"),
     "shiftClosed": MessageLookupByLibrary.simpleMessage("Смена закрыта"),
-    "shiftCountUnit": m87,
+    "shiftCountUnit": m88,
     "shiftEnteredChildren": MessageLookupByLibrary.simpleMessage(
       "Зашли внутрь",
     ),
     "shiftOpen": MessageLookupByLibrary.simpleMessage("Открыть смену"),
-    "shiftOpenedAt": m88,
+    "shiftOpenedAt": m89,
     "shiftOpeningCash": MessageLookupByLibrary.simpleMessage(
       "Начальные наличные (сум)",
     ),
@@ -1056,11 +1081,11 @@ class MessageLookup extends MessageLookupByLibrary {
     "switchAndPrint": MessageLookupByLibrary.simpleMessage(
       "Сменить и напечатать",
     ),
-    "syncResultBody": m89,
+    "syncResultBody": m90,
     "syncResultTitle": MessageLookupByLibrary.simpleMessage(
       "Результат синхронизации",
     ),
-    "syncTransportFailed": m90,
+    "syncTransportFailed": m91,
     "syncViewFailures": MessageLookupByLibrary.simpleMessage("Открыть"),
     "tabAccount": MessageLookupByLibrary.simpleMessage("Счёт и QR"),
     "tabEvents": MessageLookupByLibrary.simpleMessage("Мероприятия"),
@@ -1150,8 +1175,8 @@ class MessageLookup extends MessageLookupByLibrary {
     "unsyncedRetryNeedsOnline": MessageLookupByLibrary.simpleMessage(
       "Чтобы отправить заново, перейдите в онлайн-режим",
     ),
-    "unsyncedSupportCode": m91,
-    "updateAvailable": m92,
+    "unsyncedSupportCode": m92,
+    "updateAvailable": m93,
     "updateCancel": MessageLookupByLibrary.simpleMessage("Отмена"),
     "updateCheck": MessageLookupByLibrary.simpleMessage("Проверить обновления"),
     "updateConfirm": MessageLookupByLibrary.simpleMessage("Продолжить"),
@@ -1193,9 +1218,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "updateWindowsOnly": MessageLookupByLibrary.simpleMessage(
       "Автообновление работает только в Windows",
     ),
-    "upgradeCredit": m93,
+    "upgradeCredit": m94,
     "version": MessageLookupByLibrary.simpleMessage("Версия"),
-    "vipAlreadyActive": m94,
+    "vipAlreadyActive": m95,
     "vipChargedImmediately": MessageLookupByLibrary.simpleMessage(
       "Стоимость VIP-тарифа списывается с баланса сразу при печати.",
     ),

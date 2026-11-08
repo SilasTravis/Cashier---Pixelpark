@@ -20,6 +20,8 @@ class PromoCodeField extends StatefulWidget {
     this.busy = false,
     this.errorText,
     this.autofocus = false,
+    this.onPick,
+    this.pickCount,
   });
 
   /// Raw text as scanned/typed — normalisation and validation (shape, Luhn)
@@ -28,6 +30,15 @@ class PromoCodeField extends StatefulWidget {
   final bool busy;
   final String? errorText;
   final bool autofocus;
+
+  /// Opens the customer's "Faol promokodlar" list. While the field is empty
+  /// a button for it sits under the field; once text is typed that button
+  /// becomes "Tekshirish". Null hides the list button (no customer open).
+  final VoidCallback? onPick;
+
+  /// How many active codes the customer has (null = not loaded yet) — shown
+  /// on the list button so the cashier knows before opening it.
+  final int? pickCount;
 
   @override
   State<PromoCodeField> createState() => _PromoCodeFieldState();
@@ -143,16 +154,47 @@ class _PromoCodeFieldState extends State<PromoCodeField> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                   )
-                : IconButton(
-                    tooltip: l10n.promoCodeCheck,
-                    onPressed: _submit,
-                    icon: Icon(
-                      PhosphorIconsRegular.arrowRight,
-                      size: 20,
-                      color: p.accent,
-                    ),
-                  ),
+                : null,
           ),
+        ),
+        // Typed text → "Tekshirish"; empty → the customer's active codes, so
+        // a cashier who isn't quick on the keyboard can pick the code that
+        // matches the customer's SMS instead of typing it.
+        ValueListenableBuilder<TextEditingValue>(
+          valueListenable: _controller,
+          builder: (context, value, _) {
+            final hasText = value.text.trim().isNotEmpty;
+            if (!hasText && widget.onPick == null) {
+              return const SizedBox.shrink();
+            }
+            return Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: hasText
+                  ? FilledButton(
+                      key: const ValueKey('promo-code-check'),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(0, 44),
+                      ),
+                      onPressed: widget.busy ? null : _submit,
+                      child: Text(l10n.promoCodeCheck),
+                    )
+                  : OutlinedButton.icon(
+                      key: const ValueKey('promo-code-pick'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 44),
+                        foregroundColor: p.accent,
+                        side: BorderSide(color: p.accent),
+                      ),
+                      icon: const Icon(PhosphorIconsRegular.ticket, size: 18),
+                      label: Text(
+                        (widget.pickCount ?? 0) > 0
+                            ? '${l10n.promoCodeActive} (${widget.pickCount})'
+                            : l10n.promoCodeActive,
+                      ),
+                      onPressed: widget.busy ? null : widget.onPick,
+                    ),
+            );
+          },
         ),
       ],
     );

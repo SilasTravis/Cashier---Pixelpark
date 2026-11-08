@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dartz/dartz.dart' show Either, Left;
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -56,6 +57,8 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     on<PosAccountDiscountsRequested>(_onDiscountsRequested);
     on<PosAccountPromoCodeSubmitted>(_onPromoCodeSubmitted);
     on<_PosAccountPromoCodeRechecked>(_onPromoCodeRechecked);
+    on<PosAccountPromoCodesRequested>(_onPromoCodesRequested);
+    on<PosAccountPromoCodePicked>(_onPromoCodePicked);
     on<PosAccountPromoCodeCleared>(
       (event, emit) =>
           emit(state.copyWith(clearPromo: true, clearPromoError: true)),
@@ -265,11 +268,14 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
         activePasses: [],
         clearPromo: !keepPromo,
         clearPromoError: !keepPromo,
+        clearCustomerPromoCodes: true,
+        promoCodesFailed: false,
       ),
     );
     unawaited(_persistCustomerHistory(history));
     add(const PosAccountPlayingRequested());
     add(const PosAccountActivePassesRequested());
+    add(const PosAccountPromoCodesRequested());
     if (keepPromo && state.promo!.isBlogger) {
       add(const _PosAccountPromoCodeRechecked());
     }
@@ -480,6 +486,8 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
             results: [customer],
             clearPromo: !keepPromo,
             clearPromoError: !keepPromo,
+            clearCustomerPromoCodes: true,
+            promoCodesFailed: false,
           ),
         );
         if (keepPromo && state.promo!.isBlogger) {
@@ -1112,6 +1120,81 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
         );
       },
     );
+  }
+
+  /// Loads the open customer's redeemable codes — on opening the customer
+  /// (so the button can show how many there are) and again when the picker
+  /// opens. A reload keeps the list already on screen: no spinner flash, and
+  /// a failed refresh keeps showing what was loaded.
+  Future<void> _onPromoCodesRequested(
+    PosAccountPromoCodesRequested event,
+    Emitter<PosAccountState> emit,
+  ) async {
+    final customer = state.selectedCustomer;
+    if (customer == null || state.isLoadingPromoCodes) return;
+    emit(state.copyWith(isLoadingPromoCodes: true, promoCodesFailed: false));
+    // Best-effort like plans/products/config: whatever goes wrong here must
+    // never break the account page — the button just shows no count.
+    Either<Failure, List<CustomerPromoCode>> result;
+    try {
+      result = await _repository.fetchCustomerPromoCodes(customer.id);
+    } catch (error) {
+      result = Left(ServerFailure(message: error.toString()));
+    }
+    // Another customer was opened while it loaded: this list is not theirs.
+    if (state.selectedCustomer?.id != customer.id) {
+      emit(state.copyWith(isLoadingPromoCodes: false));
+      return;
+    }
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          isLoadingPromoCodes: false,
+          promoCodesFailed: state.customerPromoCodes == null,
+        ),
+      ),
+      (codes) => emit(
+        state.copyWith(isLoadingPromoCodes: false, customerPromoCodes: codes),
+      ),
+    );
+  }
+
+  /// A code picked from the list: verified by id for the open customer (the
+  /// server refuses anyone else's), then held in `promo` exactly like a typed
+  /// partner code — the checkout claims it later.
+  Future<void> _onPromoCodePicked(
+    PosAccountPromoCodePicked event,
+    Emitter<PosAccountState> emit,
+  ) async {
+    final customer = state.selectedCustomer;
+    if (customer == null || state.isCheckingPromo) return;
+    final ref = promoCodeRefOf(event.codeId);
+    if (state.promo?.code == ref) return;
+    final request = ++_promoRequest;
+    emit(state.copyWith(isCheckingPromo: true, clearPromoError: true));
+    final verified = await _repository.verifyPromoCode(
+      ref,
+      customerId: customer.id,
+    );
+    if (state.selectedCustomer?.id != customer.id) {
+      if (request == _promoRequest) {
+        emit(state.copyWith(isCheckingPromo: false));
+      }
+      return;
+    }
+    verified.fold(
+      (failure) => emit(
+        state.copyWith(
+          isCheckingPromo: false,
+          promoErrorCode: failure is ServerFailure ? failure.code : null,
+          promoErrorMessage: _messageOf(failure),
+        ),
+      ),
+      (check) => emit(state.copyWith(isCheckingPromo: false, promo: check)),
+    );
+    // A refused pick usually means the code just stopped being redeemable
+    // (used at another till, expired): refresh the list and its count.
+    if (state.promo == null) add(const PosAccountPromoCodesRequested());
   }
 
   /// Re-verifies a held blogger code for the customer it just rode into, so

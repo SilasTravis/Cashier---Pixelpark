@@ -211,38 +211,40 @@ class MessageLookup extends MessageLookupByLibrary {
   static String m80(reason) =>
       "Promokod qo‘llanmadi, kod qaytarildi: ${reason}";
 
-  static String m81(date, name) => "${date} · ${name}";
+  static String m81(date) => "${date} gacha";
 
-  static String m82(amount, method) =>
+  static String m82(date, name) => "${date} · ${name}";
+
+  static String m83(amount, method) =>
       "${amount} ${method} orqali qaytariladi. Bu amal audit tarixida saqlanadi va o‘chirib bo‘lmaydi.";
 
-  static String m83(balance) => "Mijoz balansi: ${balance}";
+  static String m84(balance) => "Mijoz balansi: ${balance}";
 
-  static String m84(count) =>
+  static String m85(count) =>
       "Shuningdek ${count} ta chipta bekor qilinadi va endi kirishda ishlamaydi.";
 
-  static String m85(amount) => "${amount} muvaffaqiyatli qaytarildi";
+  static String m86(amount) => "${amount} muvaffaqiyatli qaytarildi";
 
-  static String m86(count) => "tanlangan: ${count}";
+  static String m87(count) => "tanlangan: ${count}";
 
-  static String m87(count) => "${count} ta";
+  static String m88(count) => "${count} ta";
 
-  static String m88(time) => "Smena ${time} da ochildi";
+  static String m89(time) => "Smena ${time} da ochildi";
 
-  static String m89(synced, failed) =>
+  static String m90(synced, failed) =>
       "${synced} ta savdo sinxronlandi, ${failed} ta xato.";
 
-  static String m90(reason) =>
+  static String m91(reason) =>
       "Sinxronlab bo‘lmadi: ${reason}. Offline rejim davom etadi.";
 
-  static String m91(code) => "Kod: ${code}";
+  static String m92(code) => "Kod: ${code}";
 
-  static String m92(version) => "Yangi versiya mavjud: ${version}";
+  static String m93(version) => "Yangi versiya mavjud: ${version}";
 
-  static String m93(paid, due) =>
+  static String m94(paid, due) =>
       "${paid} allaqachon to‘langan — qo‘shimcha to‘lov: ${due}.";
 
-  static String m94(name) =>
+  static String m95(name) =>
       "«${name}» allaqachon faol VIP tarifda — qayta to‘lov olinmaydi.";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
@@ -750,6 +752,15 @@ class MessageLookup extends MessageLookupByLibrary {
     "keypadHint": MessageLookupByLibrary.simpleMessage(
       "Raqamni kiritganda o‘ngda natija chiqadi. Mijozni bosib, tafsilotlarni ochasiz.",
     ),
+    "lanBridgeActive": MessageLookupByLibrary.simpleMessage(
+      "Masofaviy sessiya faol",
+    ),
+    "lanBridgeConnected": MessageLookupByLibrary.simpleMessage("ulangan"),
+    "lanBridgeConnecting": MessageLookupByLibrary.simpleMessage("ulanmoqda"),
+    "lanBridgeControl": MessageLookupByLibrary.simpleMessage(
+      "Masofaviy kirish",
+    ),
+    "lanBridgeDisabled": MessageLookupByLibrary.simpleMessage("o‘chiq"),
     "language": MessageLookupByLibrary.simpleMessage("Til"),
     "languageRussian": MessageLookupByLibrary.simpleMessage("Русский"),
     "languageUzbek": MessageLookupByLibrary.simpleMessage("O‘zbekcha"),
@@ -875,6 +886,13 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "products": MessageLookupByLibrary.simpleMessage("Mahsulotlar"),
     "promoCode": MessageLookupByLibrary.simpleMessage("Promokod"),
+    "promoCodeActive": MessageLookupByLibrary.simpleMessage("Faol promokodlar"),
+    "promoCodeActiveEmpty": MessageLookupByLibrary.simpleMessage(
+      "Faol promokod yo‘q",
+    ),
+    "promoCodeActiveHint": MessageLookupByLibrary.simpleMessage(
+      "Kodni mijozning SMSidagi kod bilan solishtiring",
+    ),
     "promoCodeAlreadyUsedByCustomer": MessageLookupByLibrary.simpleMessage(
       "Bu mijoz ushbu promokoddan allaqachon foydalangan",
     ),
@@ -894,6 +912,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "promoCodeLimitReached": MessageLookupByLibrary.simpleMessage(
       "Promokoddan foydalanish limiti tugagan",
     ),
+    "promoCodeLoadFailed": MessageLookupByLibrary.simpleMessage(
+      "Promokodlar yuklanmadi",
+    ),
     "promoCodeNoChild": MessageLookupByLibrary.simpleMessage(
       "Promokod uchun bolani tanlang",
     ),
@@ -907,6 +928,8 @@ class MessageLookup extends MessageLookupByLibrary {
     "promoCodeRemove": MessageLookupByLibrary.simpleMessage(
       "Promokodni olib tashlash",
     ),
+    "promoCodeRetry": MessageLookupByLibrary.simpleMessage("Qayta urinish"),
+    "promoCodeValidUntil": m81,
     "promoCodeWrongCustomer": MessageLookupByLibrary.simpleMessage(
       "Bu promokod boshqa mijozga tegishli",
     ),
@@ -930,7 +953,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "refundAmount": MessageLookupByLibrary.simpleMessage(
       "Qaytariladigan summa",
     ),
-    "refundAuditBy": m81,
+    "refundAuditBy": m82,
     "refundBalanceLimitNote": MessageLookupByLibrary.simpleMessage(
       "To‘ldirishni qaytarish puli balansdan yechiladi, shuning uchun balansda qolgan summadan ortiq qaytarib bo‘lmaydi.",
     ),
@@ -938,15 +961,15 @@ class MessageLookup extends MessageLookupByLibrary {
     "refundCardWarning": MessageLookupByLibrary.simpleMessage(
       "Karta orqali qaytarish terminalda ham alohida bajarilishi kerak. Ilovadagi amal terminal tranzaksiyasini avtomatik bekor qilmaydi.",
     ),
-    "refundConfirmMessage": m82,
+    "refundConfirmMessage": m83,
     "refundConfirmTitle": MessageLookupByLibrary.simpleMessage(
       "Qaytarishni tasdiqlang",
     ),
-    "refundCustomerBalance": m83,
+    "refundCustomerBalance": m84,
     "refundFullBadge": MessageLookupByLibrary.simpleMessage(
       "To‘liq qaytarilgan",
     ),
-    "refundFundedConfirm": m84,
+    "refundFundedConfirm": m85,
     "refundFundedHint": MessageLookupByLibrary.simpleMessage(
       "Mijoz qaytarayotgan chiptalarni belgilang: ularning puli avval balansga qaytadi, keyin naqd yoki kartaga beriladi. Belgilangan chiptalar darhol bekor qilinadi.",
     ),
@@ -984,7 +1007,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "refundSelectedPassesTotal": MessageLookupByLibrary.simpleMessage(
       "Tanlangan chiptalar summasi",
     ),
-    "refundSuccess": m85,
+    "refundSuccess": m86,
     "refundTitle": MessageLookupByLibrary.simpleMessage("To‘lovdan qaytarish"),
     "refundedTotal": MessageLookupByLibrary.simpleMessage("Qaytarilgan"),
     "reprint": MessageLookupByLibrary.simpleMessage("Qayta chop etish"),
@@ -999,7 +1022,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "searchHistory": MessageLookupByLibrary.simpleMessage("Qidiruv tarixi"),
     "searchResult": MessageLookupByLibrary.simpleMessage("Qidiruv natijasi"),
     "selectForQr": MessageLookupByLibrary.simpleMessage("QR uchun tanlang"),
-    "selectedCount": m86,
+    "selectedCount": m87,
     "servicesBirthdaySubtitle": MessageLookupByLibrary.simpleMessage(
       "Paket, zaklad, balansdan to‘lov",
     ),
@@ -1012,12 +1035,12 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "shiftClose": MessageLookupByLibrary.simpleMessage("Smenani yopish"),
     "shiftClosed": MessageLookupByLibrary.simpleMessage("Smena yopildi"),
-    "shiftCountUnit": m87,
+    "shiftCountUnit": m88,
     "shiftEnteredChildren": MessageLookupByLibrary.simpleMessage(
       "Ichkariga kirgan",
     ),
     "shiftOpen": MessageLookupByLibrary.simpleMessage("Smenani ochish"),
-    "shiftOpenedAt": m88,
+    "shiftOpenedAt": m89,
     "shiftOpeningCash": MessageLookupByLibrary.simpleMessage(
       "Boshlang‘ich naqd (so‘m)",
     ),
@@ -1051,11 +1074,11 @@ class MessageLookup extends MessageLookupByLibrary {
     "switchAndPrint": MessageLookupByLibrary.simpleMessage(
       "Almashtirish va chop etish",
     ),
-    "syncResultBody": m89,
+    "syncResultBody": m90,
     "syncResultTitle": MessageLookupByLibrary.simpleMessage(
       "Sinxronlash natijasi",
     ),
-    "syncTransportFailed": m90,
+    "syncTransportFailed": m91,
     "syncViewFailures": MessageLookupByLibrary.simpleMessage("Ko‘rish"),
     "tabAccount": MessageLookupByLibrary.simpleMessage("Hisob va QR"),
     "tabEvents": MessageLookupByLibrary.simpleMessage("Tadbirlar"),
@@ -1145,8 +1168,8 @@ class MessageLookup extends MessageLookupByLibrary {
     "unsyncedRetryNeedsOnline": MessageLookupByLibrary.simpleMessage(
       "Qayta yuborish uchun avval onlayn rejimga o‘ting",
     ),
-    "unsyncedSupportCode": m91,
-    "updateAvailable": m92,
+    "unsyncedSupportCode": m92,
+    "updateAvailable": m93,
     "updateCancel": MessageLookupByLibrary.simpleMessage("Bekor qilish"),
     "updateCheck": MessageLookupByLibrary.simpleMessage(
       "Yangilanishni tekshirish",
@@ -1192,9 +1215,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "updateWindowsOnly": MessageLookupByLibrary.simpleMessage(
       "Avtomatik yangilash faqat Windows’da ishlaydi",
     ),
-    "upgradeCredit": m93,
+    "upgradeCredit": m94,
     "version": MessageLookupByLibrary.simpleMessage("Versiya"),
-    "vipAlreadyActive": m94,
+    "vipAlreadyActive": m95,
     "vipChargedImmediately": MessageLookupByLibrary.simpleMessage(
       "VIP tarif puli chop etilganda balansdan darhol yechiladi.",
     ),

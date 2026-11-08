@@ -38,6 +38,7 @@ import 'entry_discount_dialog.dart';
 import 'confirm_topup_dialog.dart';
 import '../bloc/pos_account_bloc.dart';
 import 'plan_conflict_dialog.dart';
+import 'promo_code_picker_dialog.dart';
 import 'plan_entry_printing.dart';
 import 'today_passes_card.dart';
 import 'transactions_accordion.dart';
@@ -1045,6 +1046,8 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
                     onSubmit: (raw) => context.read<PosAccountBloc>().add(
                       PosAccountPromoCodeSubmitted(raw),
                     ),
+                    onPick: () => showPromoCodePicker(context),
+                    activeCount: state.customerPromoCodes?.length,
                     onChildPicked: (id) => setState(() => _promoChildId = id),
                     onClear: () => context.read<PosAccountBloc>().add(
                       const PosAccountPromoCodeCleared(),
@@ -3939,6 +3942,8 @@ class _PromoSection extends StatelessWidget {
     required this.passChildIds,
     required this.promoChildId,
     required this.onSubmit,
+    required this.onPick,
+    required this.activeCount,
     required this.onChildPicked,
     required this.onClear,
   });
@@ -3955,6 +3960,12 @@ class _PromoSection extends StatelessWidget {
   final Set<String> passChildIds;
   final String? promoChildId;
   final ValueChanged<String> onSubmit;
+
+  /// Opens "Faol promokodlar" — the open customer's redeemable codes.
+  final VoidCallback onPick;
+
+  /// Active codes the customer holds (null until loaded).
+  final int? activeCount;
   final ValueChanged<String> onChildPicked;
   final VoidCallback onClear;
 
@@ -3967,6 +3978,8 @@ class _PromoSection extends StatelessWidget {
         busy: isChecking,
         errorText: errorText,
         onSubmit: onSubmit,
+        onPick: onPick,
+        pickCount: activeCount,
       );
     }
     final promoChild = selectedChildren

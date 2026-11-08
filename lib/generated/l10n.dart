@@ -2864,6 +2864,61 @@ class AppLocalization {
     return Intl.message('Check', name: 'promoCodeCheck', desc: '', args: []);
   }
 
+  /// `Active promo codes`
+  String get promoCodeActive {
+    return Intl.message(
+      'Active promo codes',
+      name: 'promoCodeActive',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No active promo codes`
+  String get promoCodeActiveEmpty {
+    return Intl.message(
+      'No active promo codes',
+      name: 'promoCodeActiveEmpty',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Match the code with the one in the customer's SMS`
+  String get promoCodeActiveHint {
+    return Intl.message(
+      'Match the code with the one in the customer\'s SMS',
+      name: 'promoCodeActiveHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `until {date}`
+  String promoCodeValidUntil(String date) {
+    return Intl.message(
+      'until $date',
+      name: 'promoCodeValidUntil',
+      desc: '',
+      args: [date],
+    );
+  }
+
+  /// `Couldn't load promo codes`
+  String get promoCodeLoadFailed {
+    return Intl.message(
+      'Couldn\'t load promo codes',
+      name: 'promoCodeLoadFailed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Retry`
+  String get promoCodeRetry {
+    return Intl.message('Retry', name: 'promoCodeRetry', desc: '', args: []);
+  }
+
   /// `Invalid promo code — check the code`
   String get promoCodeInvalid {
     return Intl.message(
@@ -3787,6 +3842,51 @@ class AppLocalization {
       desc: '',
       args: [],
     );
+  }
+
+  /// `Remote session active`
+  String get lanBridgeActive {
+    return Intl.message(
+      'Remote session active',
+      name: 'lanBridgeActive',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Remote access`
+  String get lanBridgeControl {
+    return Intl.message(
+      'Remote access',
+      name: 'lanBridgeControl',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `connected`
+  String get lanBridgeConnected {
+    return Intl.message(
+      'connected',
+      name: 'lanBridgeConnected',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `connecting`
+  String get lanBridgeConnecting {
+    return Intl.message(
+      'connecting',
+      name: 'lanBridgeConnecting',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `off`
+  String get lanBridgeDisabled {
+    return Intl.message('off', name: 'lanBridgeDisabled', desc: '', args: []);
   }
 
   /// `Upgrade plan`

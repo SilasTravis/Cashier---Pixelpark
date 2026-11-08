@@ -49,6 +49,9 @@ class PosAccountState extends Equatable {
     this.errorCode,
     this.promo,
     this.isCheckingPromo = false,
+    this.customerPromoCodes,
+    this.isLoadingPromoCodes = false,
+    this.promoCodesFailed = false,
     this.promoErrorCode,
     this.promoErrorMessage,
   });
@@ -158,6 +161,14 @@ class PosAccountState extends Equatable {
   final PromoCodeCheck? promo;
   final bool isCheckingPromo;
 
+  /// The open customer's redeemable codes ("Faol promokodlar"); null until
+  /// the list is first requested for this customer.
+  final List<CustomerPromoCode>? customerPromoCodes;
+  final bool isLoadingPromoCodes;
+
+  /// The last list request failed (offline, server) — the picker offers a retry.
+  final bool promoCodesFailed;
+
   /// The last promo-code failure — sticky until the next promo action (it
   /// is shown under the field, not as a one-off snackbar). A local
   /// `PROMO_CODE_INVALID_FORMAT` never reaches the server.
@@ -202,6 +213,10 @@ class PosAccountState extends Equatable {
     PromoCodeCheck? promo,
     bool clearPromo = false,
     bool? isCheckingPromo,
+    List<CustomerPromoCode>? customerPromoCodes,
+    bool clearCustomerPromoCodes = false,
+    bool? isLoadingPromoCodes,
+    bool? promoCodesFailed,
     String? promoErrorCode,
     String? promoErrorMessage,
     bool clearPromoError = false,
@@ -248,6 +263,11 @@ class PosAccountState extends Equatable {
       errorCode: errorCode,
       promo: clearPromo ? null : (promo ?? this.promo),
       isCheckingPromo: isCheckingPromo ?? this.isCheckingPromo,
+      customerPromoCodes: clearCustomerPromoCodes
+          ? null
+          : (customerPromoCodes ?? this.customerPromoCodes),
+      isLoadingPromoCodes: isLoadingPromoCodes ?? this.isLoadingPromoCodes,
+      promoCodesFailed: promoCodesFailed ?? this.promoCodesFailed,
       // `clearPromoError` drops the OLD error; a new one passed alongside
       // still lands.
       promoErrorCode:
@@ -293,6 +313,9 @@ class PosAccountState extends Equatable {
     errorCode,
     promo,
     isCheckingPromo,
+    customerPromoCodes,
+    isLoadingPromoCodes,
+    promoCodesFailed,
     promoErrorCode,
     promoErrorMessage,
   ];

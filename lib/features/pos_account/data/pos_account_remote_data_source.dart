@@ -140,6 +140,10 @@ abstract class PosAccountRemoteDataSource {
   /// (`PROMO_CODE_ALREADY_USED_BY_CUSTOMER`).
   Future<PromoCodeCheck> verifyPromoCode(String code, {int? customerId});
 
+  /// `GET /v1/pos/promo-codes?customerId=` — the customer's redeemable
+  /// partner codes, so the cashier picks one instead of typing it.
+  Future<List<CustomerPromoCode>> fetchCustomerPromoCodes(int customerId);
+
   /// Server-owned terminal pricing (currently the HAMROH companion price) —
   /// so a price change never needs an app re-release.
   Future<int> fetchCompanionPriceUzs();
@@ -497,7 +501,15 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
           if (companions > 0) 'companions': companions,
           'discountId': ?discountId,
           if (promoCode != null)
-            'promoCode': {'code': promoCode.code, 'childId': promoCode.childId},
+            'promoCode': {
+              // A code picked from the list is a reference (see
+              // promoCodeRefOf): the server wants its id, not text.
+              if (promoCodeIdOf(promoCode.code) case final id?)
+                'codeId': id
+              else
+                'code': promoCode.code,
+              'childId': promoCode.childId,
+            },
           'checkDiscountId': ?checkDiscountId,
           if (replacePlan) 'replacePlan': true,
         },
@@ -534,10 +546,31 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
     final response = await _request(
       () => dio.post(
         '/v1/pos/promo-codes/verify',
-        data: {'code': code, 'customerId': ?customerId},
+        data: {
+          if (promoCodeIdOf(code) case final id?)
+            'codeId': id
+          else
+            'code': code,
+          'customerId': ?customerId,
+        },
       ),
     );
     return PromoCodeCheck.fromJson(code, response as Map<String, dynamic>);
+  }
+
+  @override
+  Future<List<CustomerPromoCode>> fetchCustomerPromoCodes(
+    int customerId,
+  ) async {
+    final response = await _request(
+      () => dio.get(
+        '/v1/pos/promo-codes',
+        queryParameters: {'customerId': customerId},
+      ),
+    );
+    return (response as List)
+        .map((json) => CustomerPromoCode.fromJson(json as Map<String, dynamic>))
+        .toList();
   }
 
   @override
