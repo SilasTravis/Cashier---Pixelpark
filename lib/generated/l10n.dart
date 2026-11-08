@@ -2864,6 +2864,61 @@ class AppLocalization {
     return Intl.message('Check', name: 'promoCodeCheck', desc: '', args: []);
   }
 
+  /// `Active promo codes`
+  String get promoCodeActive {
+    return Intl.message(
+      'Active promo codes',
+      name: 'promoCodeActive',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No active promo codes`
+  String get promoCodeActiveEmpty {
+    return Intl.message(
+      'No active promo codes',
+      name: 'promoCodeActiveEmpty',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Match the last characters with the code in the customer's SMS`
+  String get promoCodeActiveHint {
+    return Intl.message(
+      'Match the last characters with the code in the customer\'s SMS',
+      name: 'promoCodeActiveHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `until {date}`
+  String promoCodeValidUntil(String date) {
+    return Intl.message(
+      'until $date',
+      name: 'promoCodeValidUntil',
+      desc: '',
+      args: [date],
+    );
+  }
+
+  /// `Couldn't load promo codes`
+  String get promoCodeLoadFailed {
+    return Intl.message(
+      'Couldn\'t load promo codes',
+      name: 'promoCodeLoadFailed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Retry`
+  String get promoCodeRetry {
+    return Intl.message('Retry', name: 'promoCodeRetry', desc: '', args: []);
+  }
+
   /// `Invalid promo code — check the code`
   String get promoCodeInvalid {
     return Intl.message(

@@ -347,6 +347,23 @@ class PosAccountPromoCodeSubmitted extends PosAccountEvent {
   List<Object?> get props => [rawCode];
 }
 
+/// "Faol promokodlar" was opened: load the open customer's redeemable codes
+/// into [PosAccountState.customerPromoCodes].
+class PosAccountPromoCodesRequested extends PosAccountEvent {
+  const PosAccountPromoCodesRequested();
+}
+
+/// The cashier picked a code from that list — verify it by id for the open
+/// customer; on success it sits in [PosAccountState.promo] like a typed one.
+class PosAccountPromoCodePicked extends PosAccountEvent {
+  const PosAccountPromoCodePicked(this.codeId);
+
+  final String codeId;
+
+  @override
+  List<Object?> get props => [codeId];
+}
+
 class PosAccountPromoCodeCleared extends PosAccountEvent {
   const PosAccountPromoCodeCleared();
 }
