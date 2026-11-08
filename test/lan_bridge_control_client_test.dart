@@ -429,7 +429,7 @@ void main() {
     });
 
     test(
-      '3 upgrade refusals without a status code forget the token; a new token resumes',
+      'upgrade refusals without a status code back off and keep the token',
       () {
         fakeAsync((async) {
           var refuse = true;
@@ -442,23 +442,52 @@ void main() {
                 : null,
           )..start();
           async.flushMicrotasks();
-          async.elapse(const Duration(seconds: 1));
-          async.elapse(const Duration(seconds: 2));
-          expect(dialTimes.length, 3);
-          expect(token.forgotten, 1);
-          expect(c.state.control, ControlStatus.disabled);
-          async.elapse(const Duration(minutes: 10));
-          expect(dialTimes.length, 3, reason: 'no reconnect while disabled');
+          async.elapse(const Duration(seconds: 1 + 2 + 4));
+          expect(dialTimes.length, 4);
+          expect(gaps(), [1, 2, 4]);
+          expect(token.forgotten, 0);
+          expect(token.value, 'term-tok-1');
+          expect(c.state.control, ControlStatus.connecting);
 
           refuse = false;
-          token.set('term-tok-2');
-          async.flushMicrotasks();
-          expect(dialTimes.length, 4);
+          async.elapse(const Duration(seconds: 8));
+          expect(dialTimes.length, 5);
           expect(c.state.control, ControlStatus.connected);
           c.dispose();
         });
       },
     );
+
+    test('a control dial that lands after connectTimeout is closed', () {
+      fakeAsync((async) {
+        final pending = Completer<WebSocket>();
+        final c = LanBridgeControlClient(
+          apiBaseUrl: () => 'https://test.api.pixelpark.uz/api',
+          terminalToken: () => token.value,
+          tokenChanges: token.changes.stream,
+          forgetToken: token.forget,
+          terminalId: () => 'term-1',
+          appVersion: '1.0.30',
+          hostname: () => 'till-pc',
+          isOnline: () => net.online,
+          onlineChanges: net.changes.stream,
+          connect: (u, h) {
+            dialTimes.add(async.elapsed);
+            return dialTimes.length == 1
+                ? pending.future
+                : Completer<WebSocket>().future;
+          },
+        )..start();
+        async.elapse(const Duration(seconds: 21)); // past the 20 s timeout
+        expect(c.state.control, ControlStatus.connecting);
+        final late = _FakeWs();
+        pending.complete(late);
+        async.flushMicrotasks();
+        expect(late.closed, isTrue);
+        c.dispose();
+        async.flushMicrotasks();
+      });
+    });
 
     test('network errors back off without counting as refusals', () {
       fakeAsync((async) {

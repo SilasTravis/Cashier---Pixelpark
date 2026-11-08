@@ -28,10 +28,11 @@ const String lanBridgeControlPath = '/api/v1/pos/lan-bridge/control';
 ///   reset to [minBackoff] once a connection stayed open longer than
 ///   [stableAfter] (60 s).
 /// * Upgrade refused with HTTP 401/403 → [forgetToken], `disabled`.
-///   Refused with no status code ([WebSocketException.httpStatusCode] null):
-///   after 3 such refusals in a row (no successful upgrade in between) the
-///   token is assumed invalid → [forgetToken], `disabled` ("3 strikes").
-///   Other statuses (503 kill switch …) and network errors only back off.
+///   Any other status (503 kill switch …), a refusal with no status code
+///   ([WebSocketException.httpStatusCode] null: a middlebox oddity, not a
+///   verdict on the token) and network errors only back off; the token is
+///   kept. A dial past [connectTimeout] is retried, and its socket closed if
+///   the upgrade lands later.
 /// * `terminal.revoked` → agent closed, [forgetToken], `disabled`.
 ///   While disabled nothing is dialled until [tokenChanges] brings a token
 ///   other than the rejected one.
@@ -76,8 +77,6 @@ class LanBridgeControlClient {
   final Duration stableAfter;
   final Duration connectTimeout;
 
-  static const int _maxRefusals = 3;
-
   static Future<WebSocket> _defaultConnect(Uri u, Map<String, String> h) =>
       WebSocket.connect(u.toString(), headers: h);
   static LanBridgeAgent _defaultAgent(WebSocket s, Map<String, Object?> i) =>
@@ -102,7 +101,6 @@ class LanBridgeControlClient {
   Timer? _stable;
   bool _wasStable = false;
   Duration _backoff;
-  int _refusals = 0;
 
   String? _lastToken;
   bool _lastOnline = false;
@@ -166,9 +164,8 @@ class LanBridgeControlClient {
     if (t == _lastToken) return; // repeated event for the same token
     _lastToken = t;
     if (t != null && t != _rejectedToken) {
-      // A fresh token: forget earlier refusals and dial without waiting.
+      // A fresh token: forget an earlier rejection and dial without waiting.
       _rejectedToken = null;
-      _refusals = 0;
       _backoff = minBackoff;
       _retry?.cancel();
       _retry = null;
@@ -220,11 +217,18 @@ class LanBridgeControlClient {
     final gen = ++_gen;
     _dialling = true;
     WebSocket ws;
+    final dial = _connect(_wsUri(lanBridgeControlPath), {
+      HttpHeaders.authorizationHeader: 'Bearer $token',
+    });
     try {
-      ws = await _connect(_wsUri(lanBridgeControlPath), {
-        HttpHeaders.authorizationHeader: 'Bearer $token',
-      }).timeout(connectTimeout);
+      ws = await dial.timeout(connectTimeout);
     } catch (e) {
+      if (e is TimeoutException) {
+        // The upgrade may still succeed later: close that socket then.
+        unawaited(
+          dial.then<void>((ws) => ws.close(1000), onError: (Object _) {}),
+        );
+      }
       if (gen != _gen || _disposed) return;
       _dialling = false;
       _onDialError(e, token);
@@ -235,7 +239,6 @@ class LanBridgeControlClient {
       return;
     }
     _dialling = false;
-    _refusals = 0;
     _control = ws;
     _controlToken = token;
     ws.pingInterval = const Duration(seconds: 30);
@@ -270,14 +273,8 @@ class LanBridgeControlClient {
         _rejectToken(token);
         return;
       }
-      if (code == null && ++_refusals >= _maxRefusals) {
-        _log(
-          'lan-bridge: control upgrade refused $_refusals times, '
-          'token dropped',
-        );
-        _rejectToken(token);
-        return;
-      }
+      // Any other status, or none (a middlebox answering oddly), is not a
+      // verdict on the token: back off and keep it.
       _log('lan-bridge: control upgrade refused (${code ?? 'no status'})');
     } else {
       _log('lan-bridge: control connect failed (${e.runtimeType})');
@@ -325,7 +322,7 @@ class LanBridgeControlClient {
     if (ws != null) unawaited(ws.close(1000).catchError((Object _) {}));
   }
 
-  void _rejectToken(String token) {
+  void _rejectToken(String? token) {
     _rejectedToken = token;
     _dropControl();
     _setControl(ControlStatus.disabled);
@@ -361,11 +358,7 @@ class LanBridgeControlClient {
       case 'terminal.revoked':
         _log('lan-bridge: terminal revoked');
         _endAgent();
-        final t = _controlToken ?? _terminalToken();
-        _rejectedToken = t;
-        _dropControl();
-        _setControl(ControlStatus.disabled);
-        unawaited(_forgetToken().catchError((Object _) {}));
+        _rejectToken(_controlToken ?? _terminalToken());
     }
   }
 

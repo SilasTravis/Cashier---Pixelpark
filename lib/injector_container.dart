@@ -155,7 +155,8 @@ void _lanBridgeFeature(String appVersion) {
       terminalId: sl<LocalSource>().getTerminalId,
       appVersion: appVersion,
       hostname: () => Platform.localHostname,
-      isOnline: () => !sl<AppModeCubit>().state.isOffline,
+      // `syncing` is online (the queue is draining): keep the control socket.
+      isOnline: () => sl<AppModeCubit>().state.mode != AppMode.offline,
       onlineChanges: sl<AppModeCubit>().stream,
     ),
     dispose: (client) => client.dispose(),
