@@ -5,11 +5,8 @@ import 'package:cashier_app/core/theme/app_theme.dart';
 import 'package:cashier_app/core/utils/currency.dart';
 import 'package:cashier_app/features/birthday_parties/data/birthday_parties_repository.dart';
 import 'package:cashier_app/features/birthday_parties/domain/birthday_party.dart';
+import 'package:cashier_app/features/birthday_parties/domain/birthday_wallet.dart';
 import 'package:cashier_app/features/birthday_parties/presentation/widgets/event_detail_dialog.dart';
-import 'package:cashier_app/features/pos_account/data/pos_account_repository_impl.dart';
-import 'package:cashier_app/features/pos_account/domain/customer.dart';
-import 'package:cashier_app/core/error/failure.dart';
-import 'package:dartz/dartz.dart' show Either, Right;
 import 'package:cashier_app/generated/l10n.dart';
 import 'package:cashier_app/injector_container.dart';
 import 'package:flutter/material.dart';
@@ -89,6 +86,17 @@ class _FakeRepo implements BirthdayPartiesRepository {
   int gets = 0;
   final payRequestIds = <String>[];
   Object? payError;
+
+  /// The birthday wallet; null = the read fails.
+  BirthdayWallet? walletResult;
+  int walletReads = 0;
+
+  @override
+  Future<BirthdayWallet> wallet(int customerId) async {
+    walletReads++;
+    return walletResult ?? (throw ServerException(message: 'down'));
+  }
+
   Object? cancelError;
   Object? extraError;
 
@@ -689,23 +697,36 @@ void main() {
       expect(find.byKey(const ValueKey('bd-cancel-confirm')), findsOneWidget);
     });
 
-    testWidgets('BIRTHDAY_BALANCE_INSUFFICIENT re-reads the balance', (
+    testWidgets('BIRTHDAY_BALANCE_INSUFFICIENT re-reads the wallet', (
       tester,
     ) async {
-      final account = _FakeAccountRepo(600000);
-      sl.registerSingleton<PosAccountRepository>(account);
       final repo = await _open(tester, before);
+      repo.walletResult = const BirthdayWallet(
+        balanceUzs: 900000,
+        usableUzs: 600000,
+        bonusUzs: 300000,
+      );
       repo.payError = ServerException(
         message: 'x',
         code: 'BIRTHDAY_BALANCE_INSUFFICIENT',
         statusCode: 400,
       );
       await openPaySheet(tester);
-      expect(account.lookups, 1);
-      account.balance = 100000;
+      expect(repo.walletReads, 1);
+      repo.walletResult = const BirthdayWallet(
+        balanceUzs: 400000,
+        usableUzs: 100000,
+        bonusUzs: 300000,
+      );
       await submitPay(tester);
-      expect(account.lookups, 2);
+      expect(repo.walletReads, 2);
       expect(find.byKey(const ValueKey('bd-pay-error')), findsOneWidget);
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('bd-balance-usable')))
+            .data,
+        "Balans: 100 000 so'm ishlatsa bo‘ladi",
+      );
     });
 
     testWidgets('+ bola sends the count the cashier saw', (tester) async {
@@ -1047,40 +1068,56 @@ void main() {
     },
   );
 
-  testWidgets('a failed balance lookup says Balans noma‘lum, switch disabled', (
+  testWidgets('a failed wallet lookup says Balans noma‘lum, switch disabled', (
     tester,
   ) async {
     await _open(tester, _party('2999-01-01'));
     await tester.tap(find.byKey(const ValueKey('bd-add-payment')));
     await tester.pumpAndSettle();
-    expect(find.text('Balans noma‘lum'), findsOneWidget);
+    expect(
+      find.text('Balans noma‘lum — naqd yoki karta bilan oling'),
+      findsOneWidget,
+    );
     expect(tester.widget<Switch>(find.byType(Switch)).onChanged, isNull);
   });
-}
 
-class _FakeAccountRepo implements PosAccountRepository {
-  _FakeAccountRepo(this.balance);
-  int balance;
-  int lookups = 0;
+  testWidgets('+ To‘lov pays only real money; the bonus is shown, unused', (
+    tester,
+  ) async {
+    final repo = await _open(tester, _party('2999-01-01'));
+    repo.walletResult = const BirthdayWallet(
+      balanceUzs: 900000,
+      usableUzs: 600000,
+      bonusUzs: 300000,
+    );
+    await tester.tap(find.byKey(const ValueKey('bd-add-payment')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('bd-balance-bonus')), findsOneWidget);
+    // Off by default (like a deposit); switching it on takes at most the
+    // usable 600 000 of the 1 200 000 debt.
+    await tester.tap(find.byType(Switch));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('bd-pay-submit')));
+    await tester.pumpAndSettle();
+    expect(repo.calls['pay']!['money'], (
+      fromBalanceUzs: 600000,
+      cashUzs: 600000,
+      cardUzs: 0,
+    ));
+  });
 
-  @override
-  Future<Either<Failure, List<Customer>>> searchCustomers(
-    String query, {
-    int page = 1,
-  }) async {
-    lookups++;
-    return Right([
-      Customer(
-        id: 42,
-        phoneNumber: '998901112233',
-        firstName: 'Jasur',
-        lastName: null,
-        balance: balance,
-        children: const [],
-      ),
-    ]);
-  }
-
-  @override
-  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+  testWidgets('+ To‘lov with only bonus money keeps the switch disabled', (
+    tester,
+  ) async {
+    final repo = await _open(tester, _party('2999-01-01'));
+    repo.walletResult = const BirthdayWallet(
+      balanceUzs: 300000,
+      usableUzs: 0,
+      bonusUzs: 300000,
+    );
+    await tester.tap(find.byKey(const ValueKey('bd-add-payment')));
+    await tester.pumpAndSettle();
+    expect(tester.widget<Switch>(find.byType(Switch)).onChanged, isNull);
+    expect(find.byKey(const ValueKey('bd-balance-none')), findsOneWidget);
+  });
 }

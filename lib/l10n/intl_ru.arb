@@ -977,7 +977,7 @@
       }
     }
   },
-  "birthdayExtraPlusPrice": "+1 ребёнок {price}",
+  "birthdayExtraPlusPrice": "+1 ребёнок: {price}",
   "@birthdayExtraPlusPrice": {
     "placeholders": {
       "price": {
@@ -1177,5 +1177,54 @@
   "bdCancelledChip": "Отменено",
   "shiftBirthdayRefunded": "Возврат по дню рождения",
   "bdBalanceUnknown": "Баланс неизвестен",
-  "bdKeptLabel": "Удержано"
+  "bdKeptLabel": "Удержано",
+  "servicesTitle": "Услуги",
+  "servicesBirthdaySubtitle": "Пакет, залог, оплата с баланса",
+  "birthdayStepPlanHint": "Выберите по цвету",
+  "birthdayStepSizeHint": "Детей в пакете",
+  "birthdayStepExtraHint": "Дети сверх пакета",
+  "birthdayStepDateHint": "День праздника",
+  "birthdayIncludesTier": "В тариф {plan} входит",
+  "@birthdayIncludesTier": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayExtraEach": "каждый {price}",
+  "@birthdayExtraEach": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayExtraRemove": "Убрать одного",
+  "birthdayExtraAdd": "Добавить одного",
+  "birthdayInAWeek": "+7 дней",
+  "birthdayOtherDate": "Другая дата",
+  "birthdaySummary": "Расчёт",
+  "birthdayDiscountLine": "Скидка",
+  "birthdayTotalEditHint": "Цену можно изменить вручную",
+  "birthdaySummaryEmpty": "Выберите тариф и количество детей — расчёт появится здесь",
+  "bdWalletUsable": "Баланс: {amount} можно списать",
+  "@bdWalletUsable": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bdWalletBonus": "Бонус {amount} — списать нельзя",
+  "@bdWalletBonus": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bdWalletNoUsable": "На балансе нет реальных денег — примите наличными или картой",
+  "bdWalletFailed": "Баланс неизвестен — примите наличными или картой",
+  "bdLeftBeforeParty": "Осталось · до праздника"
 }

@@ -1,25 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_icons/phosphor_icons.dart';
 
 import '../../../../core/theme/pos_palette.dart';
 import '../../../../core/utils/currency.dart';
 import '../../../../core/widgets/payment_method_selector.dart';
-import '../../../pos_account/presentation/widgets/balance_switch.dart';
 import '../../../../generated/l10n.dart';
 import '../../domain/birthday_payment.dart';
+import '../../domain/birthday_wallet.dart';
+import 'birthday_balance_row.dart';
+import 'birthday_ui.dart';
 
 /// "Balansdan yechish" + Naqd / Karta / Aralash for one birthday payment —
-/// shared by the sale sheet and (C6) the party's "+ To'lov" sheet.
+/// shared by the sale screen and the party's "+ To'lov" sheet.
 ///
 /// Stateless: the owner keeps [payFromBalance], [method] and the two
-/// controllers, and recomputes [payment] ([BirthdayPayment.compute]) on every
-/// change reported through [onChanged] / [onMethod] / [onPayFromBalance].
-/// The cash / card pills and split fields only show while something is left to
-/// collect after the balance.
+/// controllers, and recomputes [payment] ([BirthdayPayment.compute], with the
+/// wallet's usable money as the balance) on every change reported through
+/// [onChanged] / [onMethod] / [onPayFromBalance]. The cash / card pills and
+/// split fields only show while something is left to collect after the
+/// balance.
 class BirthdayPaymentBlock extends StatelessWidget {
   const BirthdayPaymentBlock({
     super.key,
     required this.payment,
-    required this.balanceUzs,
+    required this.wallet,
+    required this.walletLoading,
     required this.payFromBalance,
     required this.onPayFromBalance,
     required this.method,
@@ -27,11 +32,14 @@ class BirthdayPaymentBlock extends StatelessWidget {
     required this.cashController,
     required this.cardController,
     required this.onChanged,
-    this.balanceUnknown = false,
+    this.showTakeNow = true,
   });
 
   final BirthdayPayment payment;
-  final int balanceUzs;
+
+  /// Null while [walletLoading] or when the lookup failed.
+  final BirthdayWallet? wallet;
+  final bool walletLoading;
   final bool payFromBalance;
   final ValueChanged<bool> onPayFromBalance;
   final PaymentMethod method;
@@ -42,8 +50,8 @@ class BirthdayPaymentBlock extends StatelessWidget {
   /// The split fields changed (typed text).
   final VoidCallback onChanged;
 
-  /// The balance lookup failed: the switch is disabled, not a silent 0.
-  final bool balanceUnknown;
+  /// False when the owner pins its own "Hozir olinadi" (the sale screen).
+  final bool showTakeNow;
 
   @override
   Widget build(BuildContext context) {
@@ -53,25 +61,33 @@ class BirthdayPaymentBlock extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        BalanceSwitch(
+        BirthdayBalanceRow(
+          wallet: wallet,
+          loading: walletLoading,
           value: payFromBalance,
           onChanged: onPayFromBalance,
-          balance: balanceUzs,
-          unknown: balanceUnknown,
         ),
         if (payment.fromBalanceUzs > 0) ...[
-          const SizedBox(height: 6),
-          _line(
-            p,
-            l10n.bdFromBalanceLine(formatUzs(payment.fromBalanceUzs)),
-            '',
+          const SizedBox(height: 8),
+          Padding(
             key: const ValueKey('bd-from-balance'),
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child: Row(
+              children: [
+                Icon(PhosphorIconsRegular.wallet, size: 15, color: p.accent),
+                const SizedBox(width: 6),
+                Text(
+                  l10n.bdFromBalanceLine(formatUzs(payment.fromBalanceUzs)),
+                  style: tabular(
+                    p.body.copyWith(fontSize: 13.5, color: p.accent),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
-        const SizedBox(height: 10),
-        _takeNow(p, l10n, collect),
         if (collect > 0) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           PaymentMethodPills(selected: method, onChanged: onMethod),
           if (method == PaymentMethod.split) ...[
             const SizedBox(height: 10),
@@ -90,21 +106,13 @@ class BirthdayPaymentBlock extends StatelessWidget {
             ),
           ],
         ],
+        if (showTakeNow) ...[
+          const SizedBox(height: 14),
+          _takeNow(p, l10n, collect),
+        ],
       ],
     );
   }
-
-  Widget _line(PosPalette p, String label, String value, {Key? key}) => Padding(
-    key: key,
-    padding: const EdgeInsets.symmetric(horizontal: 4),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: p.bodyMuted),
-        if (value.isNotEmpty) Text(value, style: p.body),
-      ],
-    ),
-  );
 
   /// What the cashier physically takes right now, and how.
   Widget _takeNow(PosPalette p, AppLocalization l10n, int collect) {
@@ -123,25 +131,32 @@ class BirthdayPaymentBlock extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: p.accentSoft,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Flexible(
+          Expanded(
             child: Text(
               how == null ? l10n.bdTakeNow : '${l10n.bdTakeNow} · $how',
-              style: p.heading.copyWith(color: p.accent),
+              style: p.heading.copyWith(fontSize: 14.5, color: p.accent),
             ),
           ),
           const SizedBox(width: 12),
-          Flexible(
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 260),
             child: FittedBox(
               fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
               child: Text(
                 formatUzs(collect),
                 key: const ValueKey('bd-take-now-amount'),
-                style: p.title.copyWith(fontSize: 26, color: p.accent),
+                style: tabular(
+                  p.title.copyWith(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: p.accentStrong,
+                  ),
+                ),
               ),
             ),
           ),

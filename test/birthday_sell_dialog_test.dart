@@ -4,6 +4,7 @@ import 'package:cashier_app/core/offline/app_mode_cubit.dart';
 import 'package:cashier_app/features/birthday_parties/data/birthday_parties_repository.dart';
 import 'package:cashier_app/features/birthday_parties/domain/birthday_party.dart';
 import 'package:cashier_app/features/birthday_parties/domain/birthday_plan.dart';
+import 'package:cashier_app/features/birthday_parties/domain/birthday_wallet.dart';
 import 'package:cashier_app/features/birthday_parties/presentation/widgets/birthday_sell_dialog.dart';
 import 'package:cashier_app/features/pos_account/domain/active_pass.dart';
 import 'package:cashier_app/features/pos_account/domain/customer.dart';
@@ -13,6 +14,8 @@ import 'package:cashier_app/features/pos_account/presentation/bloc/pos_account_b
 import 'package:cashier_app/features/pos_account/data/pos_account_remote_data_source.dart';
 import 'package:cashier_app/features/pos_account/data/pos_account_repository_impl.dart';
 import 'package:cashier_app/features/pos_account/presentation/widgets/customer_detail_panel.dart';
+import 'package:cashier_app/features/pos_account/presentation/widgets/services_section.dart';
+import 'dart:async';
 import 'package:cashier_app/generated/l10n.dart';
 import 'package:cashier_app/injector_container.dart';
 import 'package:flutter/material.dart';
@@ -77,6 +80,25 @@ class _FakeRepo implements BirthdayPartiesRepository {
   Object? getError;
   final calls = <Map<String, Object?>>[];
 
+  /// What the birthday wallet answers: 600 000 real money of a 900 000
+  /// balance (300 000 bonus) unless a test says otherwise.
+  BirthdayWallet walletResult = const BirthdayWallet(
+    balanceUzs: 900000,
+    usableUzs: 600000,
+    bonusUzs: 300000,
+  );
+  Object? walletError;
+  Completer<void>? walletGate;
+  final walletCalls = <int>[];
+
+  @override
+  Future<BirthdayWallet> wallet(int customerId) async {
+    walletCalls.add(customerId);
+    await walletGate?.future;
+    if (walletError != null) throw walletError!;
+    return walletResult;
+  }
+
   @override
   Future<BirthdayParty> get(String id) async {
     gets.add(id);
@@ -134,11 +156,15 @@ const _customer = Customer(
   phoneNumber: '998901112233',
   firstName: 'Ali',
   lastName: null,
-  balance: 600000,
+  balance: 900000,
   children: [],
 );
 
-Future<void> _openDialog(WidgetTester tester, _FakeRepo repo) async {
+Future<void> _openDialog(
+  WidgetTester tester,
+  _FakeRepo repo, {
+  bool settle = true,
+}) async {
   tester.view.physicalSize = const Size(1600, 1200);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
@@ -166,7 +192,12 @@ Future<void> _openDialog(WidgetTester tester, _FakeRepo repo) async {
     ),
   );
   await tester.tap(find.byKey(const ValueKey('open')));
-  await tester.pumpAndSettle();
+  if (settle) {
+    await tester.pumpAndSettle();
+  } else {
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+  }
 }
 
 Future<void> _tap(WidgetTester tester, String key) async {
@@ -332,18 +363,51 @@ void main() {
     expect(repo.calls[0]['requestId'], repo.calls[1]['requestId']);
   });
 
-  testWidgets('0 ga qaytarish resets the extra children', (tester) async {
+  testWidgets('the minus takes one extra child off and stops at 0', (
+    tester,
+  ) async {
     await _openDialog(tester, _FakeRepo());
     await _fillSale(tester);
     expect(find.text('+2'), findsOneWidget);
-    await _tap(tester, 'birthday-extra-count');
-    await tester.tap(find.byKey(const ValueKey('birthday-extra-reset')));
-    await tester.pumpAndSettle();
-    expect(find.text('+2'), findsNothing);
-    final field = tester.widget<TextField>(
-      find.byKey(const ValueKey('birthday-total-field')),
+    String total() => tester
+        .widget<TextField>(find.byKey(const ValueKey('birthday-total-field')))
+        .controller!
+        .text;
+    IconButton minus() => tester.widget<IconButton>(
+      find.byKey(const ValueKey('birthday-extra-minus')),
     );
-    expect(field.controller!.text, '2 000 000');
+    expect(total(), '2 240 000');
+    await _tap(tester, 'birthday-extra-minus');
+    expect(find.text('+1'), findsOneWidget);
+    expect(total(), '2 120 000');
+    expect(minus().onPressed, isNotNull);
+    await _tap(tester, 'birthday-extra-minus');
+    expect(total(), '2 000 000');
+    // At 0 the minus is disabled: never below the package size.
+    expect(minus().onPressed, isNull);
+    expect(
+      tester
+          .widget<Text>(find.byKey(const ValueKey('birthday-extra-count')))
+          .data,
+      '0',
+    );
+    await _tap(tester, 'birthday-extra-plus');
+    expect(total(), '2 120 000');
+    expect(minus().onPressed, isNotNull);
+  });
+
+  testWidgets('a fresh size starts with the minus disabled', (tester) async {
+    await _openDialog(tester, _FakeRepo());
+    await _tap(tester, 'birthday-tier-vip');
+    await _tap(tester, 'birthday-size-10');
+    expect(
+      tester
+          .widget<IconButton>(
+            find.byKey(const ValueKey('birthday-extra-minus')),
+          )
+          .onPressed,
+      isNull,
+    );
   });
 
   testWidgets('the plus stops at 50 extra children', (tester) async {
@@ -487,7 +551,182 @@ void main() {
     expect(node().canRequestFocus, isFalse);
   });
 
-  group('sell button on the account page', () {
+  group('balance = real money only', () {
+    testWidgets('only the usable part pays; the bonus is named, not used', (
+      tester,
+    ) async {
+      final repo = _FakeRepo();
+      await _openDialog(tester, repo);
+      await _fillSale(tester);
+      expect(repo.walletCalls, [42]);
+      String text(String key) =>
+          tester.widget<Text>(find.byKey(ValueKey(key))).data!;
+      expect(
+        text('bd-balance-usable'),
+        "Balans: 600 000 so'm ishlatsa bo‘ladi",
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('bd-balance-bonus')),
+          matching: find.text('Bonus 300 000 — ishlatib bo‘lmaydi'),
+        ),
+        findsOneWidget,
+      );
+      // Jami 2 240 000 − usable 600 000 (not the whole 900 000 balance).
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('bd-take-now-amount')))
+            .data,
+        "1 640 000 so'm",
+      );
+      await _tap(tester, 'birthday-submit');
+      expect(repo.calls.single['money'], (
+        fromBalanceUzs: 600000,
+        cashUzs: 1640000,
+        cardUzs: 0,
+      ));
+    });
+
+    testWidgets('no real money disables the balance switch', (tester) async {
+      final repo = _FakeRepo()
+        ..walletResult = const BirthdayWallet(
+          balanceUzs: 300000,
+          usableUzs: 0,
+          bonusUzs: 300000,
+        );
+      await _openDialog(tester, repo);
+      await _fillSale(tester);
+      final row = find.byKey(const ValueKey('bd-balance-row'));
+      final sw = tester.widget<Switch>(
+        find.descendant(of: row, matching: find.byType(Switch)),
+      );
+      expect(sw.onChanged, isNull);
+      expect(sw.value, isFalse);
+      expect(find.byKey(const ValueKey('bd-balance-none')), findsOneWidget);
+      expect(find.byKey(const ValueKey('bd-balance-bonus')), findsOneWidget);
+      expect(find.byKey(const ValueKey('bd-from-balance')), findsNothing);
+      await _tap(tester, 'birthday-submit');
+      expect(repo.calls.single['money'], (
+        fromBalanceUzs: 0,
+        cashUzs: 2240000,
+        cardUzs: 0,
+      ));
+    });
+
+    testWidgets('a failed wallet read disables the switch, cash still sells', (
+      tester,
+    ) async {
+      final repo = _FakeRepo()..walletError = ServerException(message: 'x');
+      await _openDialog(tester, repo);
+      await _fillSale(tester);
+      expect(find.byKey(const ValueKey('bd-balance-failed')), findsOneWidget);
+      final sw = tester.widget<Switch>(
+        find.descendant(
+          of: find.byKey(const ValueKey('bd-balance-row')),
+          matching: find.byType(Switch),
+        ),
+      );
+      expect(sw.onChanged, isNull);
+      await _tap(tester, 'birthday-submit');
+      expect(repo.calls.single['money'], (
+        fromBalanceUzs: 0,
+        cashUzs: 2240000,
+        cardUzs: 0,
+      ));
+    });
+
+    testWidgets('a skeleton shows and submit waits while the wallet loads', (
+      tester,
+    ) async {
+      final repo = _FakeRepo()..walletGate = Completer<void>();
+      await _openDialog(tester, repo, settle: false);
+      await _fillSale(tester);
+      expect(find.byKey(const ValueKey('bd-balance-skeleton')), findsOneWidget);
+      expect(
+        tester
+            .widget<FilledButton>(find.byKey(const ValueKey('birthday-submit')))
+            .onPressed,
+        isNull,
+      );
+      repo.walletGate!.complete();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('bd-balance-skeleton')), findsNothing);
+      expect(
+        tester
+            .widget<FilledButton>(find.byKey(const ValueKey('birthday-submit')))
+            .onPressed,
+        isNotNull,
+      );
+    });
+
+    testWidgets('BIRTHDAY_BALANCE_INSUFFICIENT re-reads the wallet', (
+      tester,
+    ) async {
+      final repo = _FakeRepo(
+        failWith: ServerException(
+          message: 'x',
+          code: 'BIRTHDAY_BALANCE_INSUFFICIENT',
+          statusCode: 400,
+        ),
+      );
+      await _openDialog(tester, repo);
+      await _fillSale(tester);
+      repo.walletResult = const BirthdayWallet(
+        balanceUzs: 400000,
+        usableUzs: 100000,
+        bonusUzs: 300000,
+      );
+      await _tap(tester, 'birthday-submit');
+      expect(repo.walletCalls, hasLength(2));
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('bd-balance-usable')))
+            .data,
+        "Balans: 100 000 so'm ishlatsa bo‘ladi",
+      );
+    });
+  });
+
+  testWidgets('a narrow window stacks one column with the buttons pinned', (
+    tester,
+  ) async {
+    await _openDialog(tester, _FakeRepo());
+    tester.view.physicalSize = const Size(1000, 760);
+    await tester.pumpAndSettle();
+    await _fillSale(tester);
+    await _tap(tester, 'birthday-mode-deposit');
+    await _tap(tester, 'birthday-deposit-chip-200000');
+    expect(tester.takeException(), isNull);
+    // The summary sits under the choices, not beside them.
+    expect(
+      tester.getTopLeft(find.byKey(const ValueKey('birthday-total-field'))).dy,
+      greaterThan(
+        tester.getTopLeft(find.byKey(const ValueKey('birthday-size-10'))).dy,
+      ),
+    );
+    // The submit button stays on screen.
+    final submit = tester.getRect(
+      find.byKey(const ValueKey('birthday-submit')),
+    );
+    expect(submit.bottom, lessThanOrEqualTo(760));
+  });
+
+  testWidgets('opens full-window with the parent in the top bar', (
+    tester,
+  ) async {
+    await _openDialog(tester, _FakeRepo());
+    final screen = tester.getSize(find.byType(BirthdaySellDialog));
+    expect(screen, const Size(1600, 1200));
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('birthday-customer'))).data,
+      contains('Ali'),
+    );
+    // The X closes it like Bekor qilish.
+    await _tap(tester, 'birthday-close-x');
+    expect(find.byType(BirthdaySellDialog), findsNothing);
+  });
+
+  group('Xizmatlar on the account page', () {
     Future<PosAccountBloc> pumpPanel(WidgetTester tester) async {
       tester.view.physicalSize = const Size(1600, 1200);
       tester.view.devicePixelRatio = 1.0;
@@ -515,7 +754,7 @@ void main() {
         final repo = _FakeRepo(failWith: ServerException(message: 'timeout'));
         sl.registerSingleton<BirthdayPartiesRepository>(repo);
         final bloc = await pumpPanel(tester);
-        await _tap(tester, 'sell-birthday-button');
+        await _tap(tester, 'service-birthday-card');
         await _fillSale(tester);
         // A lost response: the sheet locks.
         await _tap(tester, 'birthday-submit');
@@ -551,21 +790,45 @@ void main() {
       },
     );
 
-    testWidgets('is enabled online', (tester) async {
+    testWidgets('the birthday card sits under Amallar tarixi and opens the '
+        'full-window sale', (tester) async {
+      sl.registerSingleton<BirthdayPartiesRepository>(_FakeRepo());
       await pumpPanel(tester);
-      final button = tester.widget<OutlinedButton>(
-        find.byKey(const ValueKey('sell-birthday-button')),
+      expect(find.text('Services'), findsOneWidget);
+      final card = find.byKey(const ValueKey('service-birthday-card'));
+      expect(tester.widget<ServiceCard>(card).onTap, isNotNull);
+      // Below the history accordion.
+      expect(
+        tester.getTopLeft(card).dy,
+        greaterThan(tester.getTopLeft(find.text('Transaction history')).dy),
       );
-      expect(button.onPressed, isNotNull);
+      // The old header button is gone.
+      expect(find.byKey(const ValueKey('sell-birthday-button')), findsNothing);
+      await _tap(tester, 'service-birthday-card');
+      expect(find.byType(BirthdaySellDialog), findsOneWidget);
+      expect(
+        tester.getSize(find.byType(BirthdaySellDialog)),
+        const Size(1600, 1200),
+      );
     });
 
-    testWidgets('is disabled while the till is offline', (tester) async {
+    testWidgets('the birthday card is disabled while the till is offline', (
+      tester,
+    ) async {
       sl.registerSingleton<AppModeCubit>(_OfflineMode());
       await pumpPanel(tester);
-      final button = tester.widget<OutlinedButton>(
-        find.byKey(const ValueKey('sell-birthday-button')),
+      final card = find.byKey(const ValueKey('service-birthday-card'));
+      expect(tester.widget<ServiceCard>(card).onTap, isNull);
+      expect(
+        find.descendant(
+          of: card,
+          matching: find.text('Birthday sales need an internet connection'),
+        ),
+        findsOneWidget,
       );
-      expect(button.onPressed, isNull);
+      await tester.tap(card, warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(find.byType(BirthdaySellDialog), findsNothing);
     });
   });
 }

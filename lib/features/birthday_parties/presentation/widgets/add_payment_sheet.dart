@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_icons/phosphor_icons.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/error/exceptions.dart';
@@ -10,9 +11,12 @@ import '../../../../injector_container.dart';
 import '../../data/birthday_parties_repository.dart';
 import '../../domain/birthday_party.dart';
 import '../../domain/birthday_payment.dart';
+import '../../domain/birthday_plan.dart';
+import '../../domain/birthday_wallet.dart';
 import '../birthday_error_text.dart';
 import '../birthday_recovery.dart';
 import 'birthday_payment_block.dart';
+import 'birthday_ui.dart';
 
 /// "+ To'lov qo'shish": takes (part of) the remaining debt. Resolves with the
 /// updated party, null when closed. The amount starts at the whole debt and
@@ -50,11 +54,14 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
   );
   final _cash = TextEditingController();
   final _card = TextEditingController();
-  int _balance = 0;
+
+  /// What of the balance may pay (real money only); null while loading or
+  /// when the lookup failed.
+  BirthdayWallet? _wallet;
+  bool _walletLoading = true;
   bool _payFromBalance = false;
   PaymentMethod _method = PaymentMethod.cash;
   bool _busy = false;
-  bool _balanceFailed = false;
 
   /// The close re-check could not reach the server: the sheet stays locked.
   bool _offline = false;
@@ -70,7 +77,7 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
   @override
   void initState() {
     super.initState();
-    _loadBalance();
+    _loadWallet();
   }
 
   @override
@@ -81,19 +88,27 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
     super.dispose();
   }
 
-  Future<void> _loadBalance({bool refresh = false}) async {
-    final balance = await lookupCustomerBalance(
-      widget.party.customerId,
-      widget.party.customerPhone,
-    );
+  /// Reads the birthday wallet. A failed first read leaves the switch off
+  /// and disabled; a failed re-read (after a balance refusal) keeps the last
+  /// known wallet.
+  Future<void> _loadWallet({bool refresh = false}) async {
+    BirthdayWallet? wallet;
+    try {
+      wallet = await sl<BirthdayPartiesRepository>().wallet(
+        widget.party.customerId,
+      );
+    } catch (_) {
+      wallet = null;
+    }
     if (!mounted) return;
     setState(() {
-      if (balance != null) {
-        _balance = balance;
+      _walletLoading = false;
+      if (wallet != null) {
+        _wallet = wallet;
       } else if (!refresh) {
-        _balanceFailed = true;
-        _payFromBalance = false;
+        _wallet = null;
       }
+      if ((_wallet?.usableUzs ?? 0) <= 0) _payFromBalance = false;
     });
   }
 
@@ -101,7 +116,7 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
 
   BirthdayPayment get _payment => BirthdayPayment.compute(
     dueUzs: widget.party.debtUzs,
-    balanceUzs: _balance,
+    balanceUzs: _wallet?.usableUzs ?? 0,
     deposit: true,
     depositUzs: _amountUzs,
     payFromBalance: _payFromBalance,
@@ -113,7 +128,11 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
   bool get _overDebt => _amountUzs > widget.party.debtUzs;
 
   bool get _canSubmit =>
-      !_busy && _amountUzs > 0 && !_overDebt && _payment.isValid;
+      !_busy &&
+      !_walletLoading &&
+      _amountUzs > 0 &&
+      !_overDebt &&
+      _payment.isValid;
 
   Future<void> _submit() async {
     if (!_canSubmit) return;
@@ -168,7 +187,7 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
       });
       // The balance shown was stale: show the real one.
       if (code == 'BIRTHDAY_BALANCE_INSUFFICIENT') {
-        await _loadBalance(refresh: true);
+        await _loadWallet(refresh: true);
       }
     }
   }
@@ -216,36 +235,100 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
     final l10n = AppLocalization.of(context);
     final p = PosPalette.of(context);
     final party = widget.party;
+    final tier = colorOf(party.planColor, p.accent);
     return Dialog(
       insetPadding: const EdgeInsets.all(24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520),
+        constraints: const BoxConstraints(maxWidth: 540),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+          padding: const EdgeInsets.fromLTRB(26, 22, 26, 22),
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(l10n.bdPayTitle, style: p.title.copyWith(fontSize: 19)),
-                const SizedBox(height: 2),
-                Text(party.customerLabel, style: p.bodyMuted),
-                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: p.accentSoft,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(
+                        PhosphorIconsRegular.handCoins,
+                        size: 22,
+                        color: p.accent,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.bdPayTitle,
+                            style: p.title.copyWith(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          Text(
+                            party.customerLabel,
+                            overflow: TextOverflow.ellipsis,
+                            style: tabular(p.bodyMuted.copyWith(fontSize: 13)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: tierTint(context, tier, strength: 1.4),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        '${party.planName} · ${partyDateLabel(party.partyDate)}',
+                        style: tabular(
+                          p.body.copyWith(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            color: tierInk(context, tier),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
                 _remaining(p, l10n, party.debtUzs),
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
                 TextField(
                   key: const ValueKey('bd-pay-amount'),
                   controller: _amount,
                   enabled: !_unclear,
                   keyboardType: TextInputType.number,
                   inputFormatters: const [ThousandsInputFormatter()],
+                  style: tabular(
+                    p.heading.copyWith(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                   decoration: InputDecoration(
                     labelText: l10n.bdPayAmount,
+                    suffixText: "so'm",
                     errorText: _overDebt ? l10n.bdPayOverDebt : null,
                   ),
                   onChanged: (_) => setState(() {}),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 // Locked after an unclear failure: no clicks and no keyboard
                 // (a split field may still have had focus).
                 ExcludeFocus(
@@ -256,11 +339,13 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
                       opacity: _unclear ? 0.55 : 1,
                       child: BirthdayPaymentBlock(
                         payment: _payment,
-                        balanceUnknown: _balanceFailed,
-                        balanceUzs: _balance,
+                        wallet: _wallet,
+                        walletLoading: _walletLoading,
                         payFromBalance: _payFromBalance,
-                        onPayFromBalance: (v) =>
-                            setState(() => _payFromBalance = v),
+                        onPayFromBalance: (v) => setState(
+                          () => _payFromBalance =
+                              v && (_wallet?.usableUzs ?? 0) > 0,
+                        ),
                         method: _method,
                         onMethod: (m) => setState(() => _method = m),
                         cashController: _cash,
@@ -275,16 +360,16 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
                   Container(
                     key: const ValueKey('bd-pay-error'),
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 9,
+                      horizontal: 14,
+                      vertical: 11,
                     ),
                     decoration: BoxDecoration(
                       color: p.dangerSoft,
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     child: Text(
                       birthdayErrorText(l10n, _errorCode, _errorMessage),
-                      style: TextStyle(color: p.danger, fontSize: 13),
+                      style: TextStyle(color: p.danger, fontSize: 13.5),
                     ),
                   ),
                   if (_unclear) ...[
@@ -304,16 +389,21 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
                     style: TextStyle(color: p.danger, fontSize: 12.5),
                   ),
                 ],
-                const SizedBox(height: 16),
+                const SizedBox(height: 18),
                 Row(
                   children: [
                     Expanded(
                       flex: 2,
                       child: SizedBox(
-                        height: 52,
+                        height: 54,
                         child: OutlinedButton(
                           key: const ValueKey('bd-pay-close'),
                           onPressed: _busy ? null : _close,
+                          style: OutlinedButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
                           child: Text(_unclear ? l10n.bdClose : l10n.cancel),
                         ),
                       ),
@@ -322,16 +412,22 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
                     Expanded(
                       flex: 4,
                       child: SizedBox(
-                        height: 52,
+                        height: 54,
                         child: FilledButton(
                           key: const ValueKey('bd-pay-submit'),
                           onPressed: _canSubmit ? _submit : null,
+                          style: FilledButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
                           child: _busy
                               ? const SizedBox(
                                   width: 18,
                                   height: 18,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
+                                    color: Colors.white,
                                   ),
                                 )
                               : FittedBox(
@@ -356,18 +452,30 @@ class _AddPaymentSheetState extends State<AddPaymentSheet> {
   }
 
   Widget _remaining(PosPalette p, AppLocalization l10n, int debt) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     decoration: BoxDecoration(
       color: p.warningSoft,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(16),
     ),
     child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(l10n.bdLeft, style: p.heading.copyWith(color: p.warning)),
+        Icon(PhosphorIconsRegular.hourglassMedium, size: 20, color: p.warning),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            l10n.bdLeft,
+            style: p.heading.copyWith(fontSize: 15, color: p.warning),
+          ),
+        ),
         Text(
           formatUzs(debt),
-          style: p.title.copyWith(fontSize: 22, color: p.warning),
+          style: tabular(
+            p.title.copyWith(
+              fontSize: 26,
+              fontWeight: FontWeight.w800,
+              color: p.warning,
+            ),
+          ),
         ),
       ],
     ),

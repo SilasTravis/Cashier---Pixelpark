@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../../../core/error/exceptions.dart';
 import '../domain/birthday_party.dart';
 import '../domain/birthday_plan.dart';
+import '../domain/birthday_wallet.dart';
 
 class BirthdayPartiesRepository {
   BirthdayPartiesRepository(this.dio);
@@ -33,6 +34,17 @@ class BirthdayPartiesRepository {
     return (response.data as List)
         .map((e) => BirthdayPlan.fromJson(Map<String, dynamic>.from(e as Map)))
         .toList();
+  });
+
+  /// The customer's balance split into what may pay for a party (real
+  /// money) and the bonus that can't.
+  Future<BirthdayWallet> wallet(int customerId) => _guard(() async {
+    final response = await dio.get(
+      '/v1/pos/customers/$customerId/birthday-wallet',
+    );
+    return BirthdayWallet.fromJson(
+      Map<String, dynamic>.from(response.data as Map),
+    );
   });
 
   Future<BirthdayParty> sell({

@@ -3,6 +3,7 @@ import 'package:cashier_app/core/widgets/payment_method_selector.dart';
 import 'package:cashier_app/features/birthday_parties/data/birthday_parties_repository.dart';
 import 'package:cashier_app/features/birthday_parties/domain/birthday_party.dart';
 import 'package:cashier_app/features/birthday_parties/domain/birthday_plan.dart';
+import 'package:cashier_app/features/birthday_parties/domain/birthday_wallet.dart';
 import 'package:cashier_app/features/birthday_parties/presentation/bloc/birthday_sell_cubit.dart';
 import 'package:cashier_app/features/birthday_parties/presentation/birthday_recovery.dart';
 import 'dart:async';
@@ -32,6 +33,26 @@ class _Repo implements BirthdayPartiesRepository {
   final sells = <String>[];
   final gets = <String>[];
   Object? plansError;
+
+  /// Each wallet read answers with the next entry (a wallet, an Object to
+  /// throw, or a Future), then [walletResult].
+  final walletQueue = <Object>[];
+  BirthdayWallet walletResult = const BirthdayWallet(
+    balanceUzs: 0,
+    usableUzs: 0,
+    bonusUzs: 0,
+  );
+  int walletReads = 0;
+
+  @override
+  Future<BirthdayWallet> wallet(int customerId) async {
+    walletReads++;
+    final next = walletQueue.isNotEmpty ? walletQueue.removeAt(0) : null;
+    if (next == null) return walletResult;
+    if (next is Future<BirthdayWallet>) return next;
+    if (next is BirthdayWallet) return next;
+    throw next;
+  }
 
   @override
   Future<List<BirthdayPlan>> plans() async {
@@ -81,16 +102,18 @@ ServerException get _timeout => ServerException(message: 'timeout');
 ServerException _refusal(String code) =>
     ServerException(message: 'x', code: code, statusCode: 400);
 
-Future<BirthdaySellCubit> _ready(
-  _Repo repo, {
-  int balance = 0,
-  Future<int?> Function()? lookup,
-}) async {
+BirthdayWallet _wallet(int usable, {int bonus = 0}) => BirthdayWallet(
+  balanceUzs: usable + bonus,
+  usableUzs: usable,
+  bonusUzs: bonus,
+);
+
+Future<BirthdaySellCubit> _ready(_Repo repo, {BirthdayWallet? wallet}) async {
+  if (wallet != null) repo.walletResult = wallet;
   final cubit = BirthdaySellCubit(
     repo,
+    customerId: 42,
     today: DateTime(2026, 11, 6),
-    balanceUzs: balance,
-    balanceLookup: lookup,
     recheckDelay: Duration.zero,
   );
   await cubit.load();
@@ -253,14 +276,11 @@ void main() {
     expect(await cubit.resolveOnClose(), isNull);
   });
 
-  test('a balance re-read never recomputes a locked split', () async {
+  test('a wallet re-read never recomputes a locked split', () async {
     final repo = _Repo();
-    final balance = Completer<int?>();
-    final cubit = await _ready(
-      repo,
-      balance: 600000,
-      lookup: () => balance.future,
-    );
+    final balance = Completer<BirthdayWallet>();
+    final cubit = await _ready(repo, wallet: _wallet(600000));
+    repo.walletQueue.add(balance.future);
     cubit.setPayFromBalance(true);
     repo.sellResults.addAll([
       _refusal('BIRTHDAY_BALANCE_INSUFFICIENT'),
@@ -273,9 +293,9 @@ void main() {
     await cubit.submit(customerId: 42);
     expect(cubit.state.unclear, isTrue);
     final locked = cubit.state.payment;
-    balance.complete(100000);
+    balance.complete(_wallet(100000));
     await refused;
-    expect(cubit.state.balanceUzs, 600000);
+    expect(cubit.state.usableUzs, 600000);
     expect(cubit.state.payment.fromBalanceUzs, locked.fromBalanceUzs);
     expect(cubit.state.payment.collectUzs, locked.collectUzs);
   });
@@ -290,23 +310,59 @@ void main() {
     expect(cubit.state.errorCode, 'BIRTHDAY_PLAN_NOT_AVAILABLE');
   });
 
-  test('BIRTHDAY_BALANCE_INSUFFICIENT re-reads the customer balance', () async {
+  test('BIRTHDAY_BALANCE_INSUFFICIENT re-reads the birthday wallet', () async {
     final repo = _Repo();
-    final cubit = await _ready(
-      repo,
-      balance: 600000,
-      lookup: () async => 100000,
-    );
+    final cubit = await _ready(repo, wallet: _wallet(600000));
     cubit.setPayFromBalance(true);
+    repo.walletQueue.add(_wallet(100000, bonus: 500000));
     repo.sellResults.add(_refusal('BIRTHDAY_BALANCE_INSUFFICIENT'));
     await cubit.submit(customerId: 42);
-    expect(cubit.state.balanceUzs, 100000);
+    expect(repo.walletReads, 2);
+    expect(cubit.state.usableUzs, 100000);
     expect(cubit.state.payment.fromBalanceUzs, 100000);
+  });
+
+  test('only usable money pays; bonus never does', () async {
+    final repo = _Repo();
+    final cubit = await _ready(repo, wallet: _wallet(600000, bonus: 300000));
+    cubit.setPayFromBalance(true);
+    // Jami 2 000 000: 600 000 from the balance (not 900 000).
+    expect(cubit.state.payment.fromBalanceUzs, 600000);
+    expect(cubit.state.payment.collectUzs, 1400000);
+  });
+
+  test('a wallet with only bonus keeps the balance switch off', () async {
+    final repo = _Repo();
+    final cubit = await _ready(repo, wallet: _wallet(0, bonus: 300000));
+    cubit.setPayFromBalance(true);
+    expect(cubit.state.payFromBalance, isFalse);
+    expect(cubit.state.payment.fromBalanceUzs, 0);
+  });
+
+  test('a failed wallet read is not a silent 0 and cash still sells', () async {
+    final repo = _Repo()..walletQueue.add(StateError('down'));
+    final cubit = await _ready(repo);
+    expect(cubit.state.walletFailed, isTrue);
+    expect(cubit.state.payFromBalance, isFalse);
+    expect(cubit.state.canSubmit, isTrue);
+  });
+
+  test('the minus stops at 0 and re-prices', () async {
+    final cubit = await _ready(_Repo());
+    cubit.removeExtraChild();
+    expect(cubit.state.extraChildren, 0);
+    cubit
+      ..addExtraChild()
+      ..addExtraChild();
+    expect(cubit.state.listPriceUzs, 2240000);
+    cubit.removeExtraChild();
+    expect(cubit.state.extraChildren, 1);
+    expect(cubit.state.listPriceUzs, 2120000);
   });
 
   test('load never hangs on an unexpected failure', () async {
     final repo = _Repo()..plansError = StateError('boom');
-    final cubit = BirthdaySellCubit(repo);
+    final cubit = BirthdaySellCubit(repo, customerId: 42);
     await cubit.load();
     expect(cubit.state.loading, isFalse);
     expect(cubit.state.errorCode, 'UNKNOWN');

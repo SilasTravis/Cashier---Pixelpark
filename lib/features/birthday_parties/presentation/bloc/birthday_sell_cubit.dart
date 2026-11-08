@@ -9,6 +9,7 @@ import '../birthday_recovery.dart';
 import '../../domain/birthday_party.dart';
 import '../../domain/birthday_payment.dart';
 import '../../domain/birthday_plan.dart';
+import '../../domain/birthday_wallet.dart';
 
 /// The backend DTO caps extra children per party at 50.
 const maxExtraChildren = 50;
@@ -34,7 +35,8 @@ class BirthdaySellState extends Equatable {
     this.cashInput = '',
     this.cardInput = '',
     this.busy = false,
-    this.balanceUzs = 0,
+    this.wallet,
+    this.walletLoading = true,
     this.unclear = false,
     this.errorCode,
     this.errorMessage,
@@ -60,8 +62,18 @@ class BirthdaySellState extends Equatable {
   final String cardInput;
   final bool busy;
 
-  /// The customer's balance, re-read after a balance refusal.
-  final int balanceUzs;
+  /// What of the balance may pay (real money) and the bonus that can't —
+  /// read when the sheet opens and again after a balance refusal. Null while
+  /// loading or when the lookup failed.
+  final BirthdayWallet? wallet;
+  final bool walletLoading;
+
+  /// The wallet could not be read: "Balansdan yechish" is off, cash / card
+  /// still work.
+  bool get walletFailed => !walletLoading && wallet == null;
+
+  /// The only part of the balance a birthday payment may spend.
+  int get usableUzs => wallet?.usableUzs ?? 0;
 
   /// The last submit ended without a clear answer (timeout, dropped
   /// connection): the sale may or may not exist. The amounts are locked and
@@ -90,7 +102,7 @@ class BirthdaySellState extends Equatable {
 
   BirthdayPayment get payment => BirthdayPayment.compute(
     dueUzs: agreedUzs,
-    balanceUzs: balanceUzs,
+    balanceUzs: usableUzs,
     deposit: deposit,
     depositUzs: depositUzs,
     payFromBalance: payFromBalance,
@@ -100,7 +112,11 @@ class BirthdaySellState extends Equatable {
   );
 
   bool get canSubmit =>
-      !busy && size != null && agreedUzs > 0 && payment.isValid;
+      !busy &&
+      !walletLoading &&
+      size != null &&
+      agreedUzs > 0 &&
+      payment.isValid;
 
   BirthdaySellState copyWith({
     bool? loading,
@@ -118,7 +134,8 @@ class BirthdaySellState extends Equatable {
     String? cashInput,
     String? cardInput,
     bool? busy,
-    int? balanceUzs,
+    BirthdayWallet? wallet,
+    bool? walletLoading,
     bool? unclear,
     String? errorCode,
     String? errorMessage,
@@ -141,7 +158,8 @@ class BirthdaySellState extends Equatable {
     cashInput: cashInput ?? this.cashInput,
     cardInput: cardInput ?? this.cardInput,
     busy: busy ?? this.busy,
-    balanceUzs: balanceUzs ?? this.balanceUzs,
+    wallet: wallet ?? this.wallet,
+    walletLoading: walletLoading ?? this.walletLoading,
     unclear: unclear ?? this.unclear,
     errorCode: clearError ? null : (errorCode ?? this.errorCode),
     errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
@@ -164,7 +182,8 @@ class BirthdaySellState extends Equatable {
     cashInput,
     cardInput,
     busy,
-    balanceUzs,
+    wallet,
+    walletLoading,
     unclear,
     errorCode,
     errorMessage,
@@ -178,22 +197,16 @@ class BirthdaySellState extends Equatable {
 class BirthdaySellCubit extends Cubit<BirthdaySellState> {
   BirthdaySellCubit(
     this._repository, {
+    required this.customerId,
     DateTime? today,
-    int balanceUzs = 0,
-    Future<int?> Function()? balanceLookup,
     this.recheckDelay = birthdayRecheckDelay,
   }) : requestId = const Uuid().v4(),
-       // ignore: prefer_initializing_formals
-       _balanceLookup = balanceLookup,
-       super(
-         BirthdaySellState(
-           partyDate: today ?? DateTime.now(),
-           balanceUzs: balanceUzs,
-         ),
-       );
+       super(BirthdaySellState(partyDate: today ?? DateTime.now()));
 
   final BirthdayPartiesRepository _repository;
-  final Future<int?> Function()? _balanceLookup;
+
+  /// Whose balance pays (its birthday wallet is read on [load]).
+  final int customerId;
   final String requestId;
 
   /// Pause between the close re-checks of a sale that came back "not found".
@@ -203,10 +216,40 @@ class BirthdaySellCubit extends Cubit<BirthdaySellState> {
   bool get _locked => state.unclear;
 
   Future<void> load() async {
+    await Future.wait([_loadPlans(), _loadWallet()]);
+  }
+
+  /// The wallet, or null when it can't be read (never a silent 0).
+  Future<BirthdayWallet?> _readWallet() async {
+    try {
+      return await _repository.wallet(customerId);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _loadWallet() async {
+    final wallet = await _readWallet();
+    if (isClosed) return;
+    emit(
+      state.copyWith(
+        wallet: wallet,
+        walletLoading: false,
+        // Nothing to take from (or unknown): the switch shows off.
+        payFromBalance: wallet != null && wallet.usableUzs > 0
+            ? state.payFromBalance
+            : false,
+      ),
+    );
+  }
+
+  Future<void> _loadPlans() async {
     try {
       final plans = await _repository.plans();
+      if (isClosed) return;
       emit(state.copyWith(loading: false, plans: plans, clearError: true));
     } on ServerException catch (e) {
+      if (isClosed) return;
       emit(
         state.copyWith(
           loading: false,
@@ -216,6 +259,7 @@ class BirthdaySellCubit extends Cubit<BirthdaySellState> {
       );
     } catch (_) {
       // Never leave the spinner hanging on an unexpected failure.
+      if (isClosed) return;
       emit(state.copyWith(loading: false, errorCode: 'UNKNOWN'));
     }
   }
@@ -258,6 +302,18 @@ class BirthdaySellCubit extends Cubit<BirthdaySellState> {
           ),
         );
 
+  /// The sale-time minus: never below 0 (the package size already counts the
+  /// booked children).
+  void removeExtraChild() => _locked || state.extraChildren <= 0
+      ? null
+      : emit(
+          state.copyWith(
+            extraChildren: state.extraChildren - 1,
+            clearOverride: true,
+            clearError: true,
+          ),
+        );
+
   void resetExtraChildren() => _locked || state.extraChildren == 0
       ? null
       : emit(
@@ -281,16 +337,24 @@ class BirthdaySellCubit extends Cubit<BirthdaySellState> {
         : emit(state.copyWith(agreedOverrideUzs: uzs ?? 0));
   }
 
-  /// Zaklad takes no balance by default; the cashier can switch it on.
-  void setDeposit(bool deposit) => _locked
+  /// Zaklad takes no balance by default; the cashier can switch it on. Full
+  /// payment starts from the balance when there is real money to take.
+  void setDeposit(bool deposit) => _locked || deposit == state.deposit
       ? null
-      : emit(state.copyWith(deposit: deposit, payFromBalance: !deposit));
+      : emit(
+          state.copyWith(
+            deposit: deposit,
+            payFromBalance: !deposit && state.usableUzs > 0,
+          ),
+        );
 
   void setDepositUzs(int uzs) =>
       _locked ? null : emit(state.copyWith(depositUzs: uzs));
 
-  void setPayFromBalance(bool value) =>
-      _locked ? null : emit(state.copyWith(payFromBalance: value));
+  /// Only real money can be switched on: no usable balance keeps it off.
+  void setPayFromBalance(bool value) => _locked
+      ? null
+      : emit(state.copyWith(payFromBalance: value && state.usableUzs > 0));
 
   void setMethod(PaymentMethod method) =>
       _locked ? null : emit(state.copyWith(method: method));
@@ -370,17 +434,21 @@ class BirthdaySellCubit extends Cubit<BirthdaySellState> {
           errorMessage: message,
         ),
       );
-      if (code == 'BIRTHDAY_BALANCE_INSUFFICIENT') await _refreshBalance();
+      if (code == 'BIRTHDAY_BALANCE_INSUFFICIENT') await _refreshWallet();
     }
   }
 
-  Future<void> _refreshBalance() async {
-    final lookup = _balanceLookup;
-    if (lookup == null) return;
-    final balance = await lookup();
+  /// After a balance refusal the usable amount shown was stale: re-read it.
+  /// A failed re-read keeps the last known wallet.
+  Future<void> _refreshWallet() async {
+    final wallet = await _readWallet();
     // A locked (unclear) split must not be recomputed behind the cashier.
-    if (balance != null && !isClosed && !_locked) {
-      emit(state.copyWith(balanceUzs: balance));
-    }
+    if (wallet == null || isClosed || _locked) return;
+    emit(
+      state.copyWith(
+        wallet: wallet,
+        payFromBalance: state.payFromBalance && wallet.usableUzs > 0,
+      ),
+    );
   }
 }

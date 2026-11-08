@@ -990,7 +990,7 @@
       }
     }
   },
-  "birthdayExtraPlusPrice": "+1 child {price}",
+  "birthdayExtraPlusPrice": "+1 child: {price}",
   "@birthdayExtraPlusPrice": {
     "placeholders": {
       "price": {
@@ -1190,5 +1190,54 @@
   "bdCancelledChip": "Cancelled",
   "shiftBirthdayRefunded": "Birthday refunded",
   "bdBalanceUnknown": "Balance unknown",
-  "bdKeptLabel": "Kept"
+  "bdKeptLabel": "Kept",
+  "servicesTitle": "Services",
+  "servicesBirthdaySubtitle": "Package, deposit, pay from balance",
+  "birthdayStepPlanHint": "Pick by colour",
+  "birthdayStepSizeHint": "Children in the package",
+  "birthdayStepExtraHint": "Children on top of the package",
+  "birthdayStepDateHint": "The day of the party",
+  "birthdayIncludesTier": "{plan} includes",
+  "@birthdayIncludesTier": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayExtraEach": "each {price}",
+  "@birthdayExtraEach": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayExtraRemove": "Remove one",
+  "birthdayExtraAdd": "Add one",
+  "birthdayInAWeek": "+7 days",
+  "birthdayOtherDate": "Other date",
+  "birthdaySummary": "Summary",
+  "birthdayDiscountLine": "Discount",
+  "birthdayTotalEditHint": "The price can be edited",
+  "birthdaySummaryEmpty": "Pick a plan and the child count — the summary shows here",
+  "bdWalletUsable": "Balance: {amount} usable",
+  "@bdWalletUsable": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bdWalletBonus": "Bonus {amount} — can’t be used",
+  "@bdWalletBonus": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bdWalletNoUsable": "No real money on the balance — take cash or card",
+  "bdWalletFailed": "Balance unknown — take cash or card",
+  "bdLeftBeforeParty": "Left · before the party"
 }

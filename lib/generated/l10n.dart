@@ -4005,10 +4005,10 @@ class AppLocalization {
     );
   }
 
-  /// `+1 child {price}`
+  /// `+1 child: {price}`
   String birthdayExtraPlusPrice(String price) {
     return Intl.message(
-      '+1 child $price',
+      '+1 child: $price',
       name: 'birthdayExtraPlusPrice',
       desc: '',
       args: [price],
@@ -4738,6 +4738,201 @@ class AppLocalization {
   /// `Kept`
   String get bdKeptLabel {
     return Intl.message('Kept', name: 'bdKeptLabel', desc: '', args: []);
+  }
+
+  /// `Services`
+  String get servicesTitle {
+    return Intl.message('Services', name: 'servicesTitle', desc: '', args: []);
+  }
+
+  /// `Package, deposit, pay from balance`
+  String get servicesBirthdaySubtitle {
+    return Intl.message(
+      'Package, deposit, pay from balance',
+      name: 'servicesBirthdaySubtitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Pick by colour`
+  String get birthdayStepPlanHint {
+    return Intl.message(
+      'Pick by colour',
+      name: 'birthdayStepPlanHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Children in the package`
+  String get birthdayStepSizeHint {
+    return Intl.message(
+      'Children in the package',
+      name: 'birthdayStepSizeHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Children on top of the package`
+  String get birthdayStepExtraHint {
+    return Intl.message(
+      'Children on top of the package',
+      name: 'birthdayStepExtraHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The day of the party`
+  String get birthdayStepDateHint {
+    return Intl.message(
+      'The day of the party',
+      name: 'birthdayStepDateHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{plan} includes`
+  String birthdayIncludesTier(String plan) {
+    return Intl.message(
+      '$plan includes',
+      name: 'birthdayIncludesTier',
+      desc: '',
+      args: [plan],
+    );
+  }
+
+  /// `each {price}`
+  String birthdayExtraEach(String price) {
+    return Intl.message(
+      'each $price',
+      name: 'birthdayExtraEach',
+      desc: '',
+      args: [price],
+    );
+  }
+
+  /// `Remove one`
+  String get birthdayExtraRemove {
+    return Intl.message(
+      'Remove one',
+      name: 'birthdayExtraRemove',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Add one`
+  String get birthdayExtraAdd {
+    return Intl.message(
+      'Add one',
+      name: 'birthdayExtraAdd',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `+7 days`
+  String get birthdayInAWeek {
+    return Intl.message('+7 days', name: 'birthdayInAWeek', desc: '', args: []);
+  }
+
+  /// `Other date`
+  String get birthdayOtherDate {
+    return Intl.message(
+      'Other date',
+      name: 'birthdayOtherDate',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Summary`
+  String get birthdaySummary {
+    return Intl.message('Summary', name: 'birthdaySummary', desc: '', args: []);
+  }
+
+  /// `Discount`
+  String get birthdayDiscountLine {
+    return Intl.message(
+      'Discount',
+      name: 'birthdayDiscountLine',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The price can be edited`
+  String get birthdayTotalEditHint {
+    return Intl.message(
+      'The price can be edited',
+      name: 'birthdayTotalEditHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Pick a plan and the child count — the summary shows here`
+  String get birthdaySummaryEmpty {
+    return Intl.message(
+      'Pick a plan and the child count — the summary shows here',
+      name: 'birthdaySummaryEmpty',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Balance: {amount} usable`
+  String bdWalletUsable(String amount) {
+    return Intl.message(
+      'Balance: $amount usable',
+      name: 'bdWalletUsable',
+      desc: '',
+      args: [amount],
+    );
+  }
+
+  /// `Bonus {amount} — can’t be used`
+  String bdWalletBonus(String amount) {
+    return Intl.message(
+      'Bonus $amount — can’t be used',
+      name: 'bdWalletBonus',
+      desc: '',
+      args: [amount],
+    );
+  }
+
+  /// `No real money on the balance — take cash or card`
+  String get bdWalletNoUsable {
+    return Intl.message(
+      'No real money on the balance — take cash or card',
+      name: 'bdWalletNoUsable',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Balance unknown — take cash or card`
+  String get bdWalletFailed {
+    return Intl.message(
+      'Balance unknown — take cash or card',
+      name: 'bdWalletFailed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Left · before the party`
+  String get bdLeftBeforeParty {
+    return Intl.message(
+      'Left · before the party',
+      name: 'bdLeftBeforeParty',
+      desc: '',
+      args: [],
+    );
   }
 }
 

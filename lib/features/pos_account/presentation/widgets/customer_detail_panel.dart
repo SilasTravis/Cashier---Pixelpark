@@ -17,7 +17,6 @@ import '../../../../core/widgets/payment_method_selector.dart';
 import '../../../../core/widgets/promo_code_field.dart';
 import '../../../birthday_parties/presentation/birthday_printing.dart';
 import '../../../birthday_parties/presentation/widgets/birthday_sell_dialog.dart';
-import '../../../birthday_parties/presentation/widgets/sell_birthday_button.dart';
 import '../../../pos_sale/presentation/widgets/product_grid.dart';
 import '../../../pos_sale/presentation/widgets/receipt_dialog.dart';
 import '../../../pos_sale/domain/discount.dart';
@@ -33,6 +32,7 @@ import 'account_ui.dart';
 import 'balance_switch.dart';
 import 'check_discount_sheet.dart';
 import 'birthday_age_dialog.dart';
+import 'services_section.dart';
 import 'group_count_dialog.dart';
 import 'entry_discount_dialog.dart';
 import 'confirm_topup_dialog.dart';
@@ -1262,12 +1262,6 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
 
           final header = _SummaryStrip(
             customer: customer,
-            onSellBirthday: _isOffline || state.isBusy
-                ? null
-                : () => _sellBirthday(context, customer),
-            sellBirthdayDisabledReason: _isOffline
-                ? l10n.birthdayOffline
-                : null,
             isBusy: state.isBusy,
             insideCount: state.playing.length,
             onRename: (name) => context.read<PosAccountBloc>().add(
@@ -1330,6 +1324,22 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
             ),
             if (state.activePasses.isNotEmpty) const SizedBox(height: 14),
             TransactionsAccordion(key: ValueKey(customer.id)),
+            // Services sold outside the entry checkout, under the history.
+            const SizedBox(height: 14),
+            ServicesSection(
+              cards: [
+                ServiceCard(
+                  key: const ValueKey('service-birthday-card'),
+                  icon: PhosphorIconsRegular.cake,
+                  title: l10n.birthdaySell,
+                  subtitle: l10n.servicesBirthdaySubtitle,
+                  onTap: _isOffline || state.isBusy
+                      ? null
+                      : () => _sellBirthday(context, customer),
+                  disabledReason: _isOffline ? l10n.birthdayOffline : null,
+                ),
+              ],
+            ),
             if (state.errorMessage != null) ...[
               const SizedBox(height: 12),
               Container(
@@ -1695,8 +1705,6 @@ String _alreadyActiveNote(
 class _SummaryStrip extends StatelessWidget {
   const _SummaryStrip({
     required this.customer,
-    this.onSellBirthday,
-    this.sellBirthdayDisabledReason,
     required this.isBusy,
     required this.insideCount,
     required this.onParentQr,
@@ -1716,9 +1724,6 @@ class _SummaryStrip extends StatelessWidget {
   /// Null hides the button (the branch prints no entry QR).
   final VoidCallback? onParentQr;
 
-  /// Opens "Tug'ilgan kun sotish" — null disables the button (offline / busy).
-  final VoidCallback? onSellBirthday;
-  final String? sellBirthdayDisabledReason;
   final ValueChanged<String> onRename;
   final VoidCallback onRefresh;
   final VoidCallback onBack;
@@ -1809,12 +1814,6 @@ class _SummaryStrip extends StatelessWidget {
                           size: 18,
                         ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              SellBirthdayButton(
-                onPressed: onSellBirthday,
-                compact: narrow,
-                disabledReason: sellBirthdayDisabledReason,
               ),
               const SizedBox(width: 8),
               if (onParentQr == null)

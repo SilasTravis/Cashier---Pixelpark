@@ -1,6 +1,4 @@
 import '../../../core/error/exceptions.dart';
-import '../../../injector_container.dart';
-import '../../pos_account/data/pos_account_repository_impl.dart';
 import '../data/birthday_parties_repository.dart';
 import '../domain/birthday_party.dart';
 
@@ -113,17 +111,4 @@ bool paymentReflected(
         p.cashUzs == money.cashUzs &&
         p.cardUzs == money.cardUzs;
   });
-}
-
-/// The customer's current balance, null when it cannot be looked up.
-Future<int?> lookupCustomerBalance(int customerId, String phone) async {
-  try {
-    final result = await sl<PosAccountRepository>().searchCustomers(phone);
-    return result.fold<int?>(
-      (_) => null,
-      (list) => list.where((c) => c.id == customerId).firstOrNull?.balance,
-    );
-  } catch (_) {
-    return null;
-  }
 }

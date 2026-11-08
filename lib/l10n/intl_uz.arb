@@ -1053,7 +1053,7 @@
       }
     }
   },
-  "birthdayExtraPlusPrice": "+1 bola {price}",
+  "birthdayExtraPlusPrice": "+1 bola: {price}",
   "@birthdayExtraPlusPrice": {
     "placeholders": {
       "price": {
@@ -1253,5 +1253,54 @@
   "bdCancelledChip": "Bekor qilingan",
   "shiftBirthdayRefunded": "Tug‘ilgan kun qaytarildi",
   "bdBalanceUnknown": "Balans noma‘lum",
-  "bdKeptLabel": "Ushlab qolingan"
+  "bdKeptLabel": "Ushlab qolingan",
+  "servicesTitle": "Xizmatlar",
+  "servicesBirthdaySubtitle": "Paket, zaklad, balansdan to‘lov",
+  "birthdayStepPlanHint": "Rangi bo‘yicha tanlang",
+  "birthdayStepSizeHint": "Paketga kiradigan bolalar",
+  "birthdayStepExtraHint": "Paketdan tashqari bolalar",
+  "birthdayStepDateHint": "Bayram o‘tadigan kun",
+  "birthdayIncludesTier": "{plan} tarifiga kiradi",
+  "@birthdayIncludesTier": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayExtraEach": "har biri {price}",
+  "@birthdayExtraEach": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayExtraRemove": "Bitta kamaytirish",
+  "birthdayExtraAdd": "Bitta qo‘shish",
+  "birthdayInAWeek": "+7 kun",
+  "birthdayOtherDate": "Boshqa sana",
+  "birthdaySummary": "Hisob",
+  "birthdayDiscountLine": "Chegirma",
+  "birthdayTotalEditHint": "Narxni qo‘lda o‘zgartirsa bo‘ladi",
+  "birthdaySummaryEmpty": "Tarif va bolalar sonini tanlang — hisob shu yerda chiqadi",
+  "bdWalletUsable": "Balans: {amount} ishlatsa bo‘ladi",
+  "@bdWalletUsable": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bdWalletBonus": "Bonus {amount} — ishlatib bo‘lmaydi",
+  "@bdWalletBonus": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bdWalletNoUsable": "Balansda haqiqiy pul yo‘q — naqd yoki karta bilan oling",
+  "bdWalletFailed": "Balans noma‘lum — naqd yoki karta bilan oling",
+  "bdLeftBeforeParty": "Qoldi · bayramgacha"
 }
