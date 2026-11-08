@@ -499,6 +499,15 @@ class MessageLookup extends MessageLookupByLibrary {
     "keypadHint": MessageLookupByLibrary.simpleMessage(
       "Введите номер — результаты появятся справа. Нажмите на клиента, чтобы открыть детали.",
     ),
+    "lanBridgeActive": MessageLookupByLibrary.simpleMessage(
+      "Удалённая сессия активна",
+    ),
+    "lanBridgeConnected": MessageLookupByLibrary.simpleMessage("подключено"),
+    "lanBridgeConnecting": MessageLookupByLibrary.simpleMessage("подключение"),
+    "lanBridgeControl": MessageLookupByLibrary.simpleMessage(
+      "Удалённый доступ",
+    ),
+    "lanBridgeDisabled": MessageLookupByLibrary.simpleMessage("выключено"),
     "language": MessageLookupByLibrary.simpleMessage("Язык"),
     "languageRussian": MessageLookupByLibrary.simpleMessage("Русский"),
     "languageUzbek": MessageLookupByLibrary.simpleMessage("O‘zbekcha"),

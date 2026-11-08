@@ -739,5 +739,10 @@
   "@planSwitchBlocked": {"placeholders": {"name": {"type": "String"}, "from": {"type": "String"}, "to": {"type": "String"}}},
   "foreignPhone": "Foreign number",
   "foreignPhoneHint": "Type the number with its country code, e.g. 7 916 123 45 67. No SMS is sent to foreign numbers.",
-  "foreignPhoneIsUzbek": "998… is an Uzbek number — turn off \"Foreign number\" and type it after +998."
+  "foreignPhoneIsUzbek": "998… is an Uzbek number — turn off \"Foreign number\" and type it after +998.",
+  "lanBridgeActive": "Remote session active",
+  "lanBridgeControl": "Remote access",
+  "lanBridgeConnected": "connected",
+  "lanBridgeConnecting": "connecting",
+  "lanBridgeDisabled": "off"
 }

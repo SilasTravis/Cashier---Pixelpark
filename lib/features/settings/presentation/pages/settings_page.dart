@@ -7,6 +7,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:phosphor_icons/phosphor_icons.dart';
 import 'package:printing/printing.dart';
 
+import '../../../../core/lan_bridge/lan_bridge_control_client.dart';
 import '../../../../core/local_source/local_source.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/theme/nocturne_colors.dart';
@@ -93,6 +94,8 @@ class SettingsPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
                     _AppVersionRow(label: l10n.version),
+                    const SizedBox(height: 10),
+                    const _LanBridgeRow(),
                   ],
                 ),
               ),
@@ -339,6 +342,29 @@ class _AppVersionRow extends StatelessWidget {
       builder: (context, snapshot) {
         final version = snapshot.data?.version ?? '—';
         return _InfoRow(label: label, value: version);
+      },
+    );
+  }
+}
+
+/// Control-socket status of the LAN bridge (remote access) on this till.
+class _LanBridgeRow extends StatelessWidget {
+  const _LanBridgeRow();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
+    final client = sl<LanBridgeControlClient>();
+    return StreamBuilder<LanBridgeState>(
+      initialData: client.state,
+      stream: client.states,
+      builder: (context, snapshot) {
+        final value = switch (snapshot.data?.control) {
+          ControlStatus.connected => l10n.lanBridgeConnected,
+          ControlStatus.connecting => l10n.lanBridgeConnecting,
+          ControlStatus.disabled || null => l10n.lanBridgeDisabled,
+        };
+        return _InfoRow(label: l10n.lanBridgeControl, value: value);
       },
     );
   }

@@ -3748,6 +3748,51 @@ class AppLocalization {
       args: [],
     );
   }
+
+  /// `Remote session active`
+  String get lanBridgeActive {
+    return Intl.message(
+      'Remote session active',
+      name: 'lanBridgeActive',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Remote access`
+  String get lanBridgeControl {
+    return Intl.message(
+      'Remote access',
+      name: 'lanBridgeControl',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `connected`
+  String get lanBridgeConnected {
+    return Intl.message(
+      'connected',
+      name: 'lanBridgeConnected',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `connecting`
+  String get lanBridgeConnecting {
+    return Intl.message(
+      'connecting',
+      name: 'lanBridgeConnecting',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `off`
+  String get lanBridgeDisabled {
+    return Intl.message('off', name: 'lanBridgeDisabled', desc: '', args: []);
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalization> {

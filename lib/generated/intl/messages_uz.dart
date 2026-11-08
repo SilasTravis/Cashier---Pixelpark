@@ -486,6 +486,15 @@ class MessageLookup extends MessageLookupByLibrary {
     "keypadHint": MessageLookupByLibrary.simpleMessage(
       "Raqamni kiritganda o‘ngda natija chiqadi. Mijozni bosib, tafsilotlarni ochasiz.",
     ),
+    "lanBridgeActive": MessageLookupByLibrary.simpleMessage(
+      "Masofaviy sessiya faol",
+    ),
+    "lanBridgeConnected": MessageLookupByLibrary.simpleMessage("ulangan"),
+    "lanBridgeConnecting": MessageLookupByLibrary.simpleMessage("ulanmoqda"),
+    "lanBridgeControl": MessageLookupByLibrary.simpleMessage(
+      "Masofaviy kirish",
+    ),
+    "lanBridgeDisabled": MessageLookupByLibrary.simpleMessage("o‘chiq"),
     "language": MessageLookupByLibrary.simpleMessage("Til"),
     "languageRussian": MessageLookupByLibrary.simpleMessage("Русский"),
     "languageUzbek": MessageLookupByLibrary.simpleMessage("O‘zbekcha"),
