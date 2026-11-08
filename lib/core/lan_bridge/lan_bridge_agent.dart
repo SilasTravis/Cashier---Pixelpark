@@ -259,7 +259,11 @@ class LanBridgeAgent {
     _drop(id, entry, destroy: error);
     if (!error && socket != null) {
       // Peer ended: close our side after pending writes (no half-open).
-      socket.close().then<void>((_) {}, onError: (Object _) {});
+      try {
+        socket.close().then<void>((_) {}, onError: (Object _) {});
+      } on StateError {
+        socket.destroy(); // a flush is still in flight: cannot close
+      }
     }
     _send(CloseFrame(id, error));
   }

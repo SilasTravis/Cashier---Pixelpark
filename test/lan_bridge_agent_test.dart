@@ -208,9 +208,12 @@ class _FakeSocket extends Stream<Uint8List> implements Socket {
   }
 
   @override
-  Future<void> close() async {
+  Future<void> close() {
+    // Like IOSink: a sink bound by flush() throws synchronously.
+    if (pendingFlush != null) throw StateError('close during flush');
     closed = true;
     if (!_done.isCompleted) _done.complete();
+    return _done.future;
   }
 
   @override
@@ -515,6 +518,31 @@ void main() {
     await h!.agent.done.timeout(const Duration(seconds: 2));
     await _until(() => echo.ended == 1, what: 'socket destroyed');
   });
+
+  test(
+    'peer ends while a flush is pending → socket destroyed, CLOSE(false), ws resumed',
+    () async {
+      final s = _FakeSocket(holdFlush: true);
+      final ws = _FakeWs();
+      final agent = LanBridgeAgent(
+        socket: ws,
+        info: const {},
+        connect: (a, p, {timeout = const Duration(seconds: 5)}) async => s,
+      )..start();
+      ws.push(const OpenFrame(1, '192.168.1.10', 22));
+      await _until(() => ws.sent.whereType<OpenOkFrame>().isNotEmpty);
+      ws.push(DataFrame(1, _bytes(1 << 20)));
+      await _until(() => s.pendingFlush != null, what: 'flush');
+      expect(ws.incoming.isPaused, isTrue);
+      await s.incoming.close();
+      await _until(() => ws.sent.whereType<CloseFrame>().isNotEmpty);
+      expect(ws.sent.whereType<CloseFrame>().single.error, isFalse);
+      expect(s.destroyed, isTrue);
+      expect(ws.incoming.isPaused, isFalse);
+      expect(agent.openStreams, 0);
+      await agent.close();
+    },
+  );
 
   test('close() is idempotent and closes the ws with 1000', () async {
     final ws = _FakeWs();
