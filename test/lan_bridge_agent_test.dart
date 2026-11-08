@@ -24,10 +24,14 @@ Future<List<InternetAddress>> _fakeLookup(String host) async {
   return r;
 }
 
-Future<void> _until(bool Function() cond, {String what = 'condition'}) async {
+Future<void> _until(
+  bool Function() cond, {
+  String what = 'condition',
+  Duration timeout = const Duration(seconds: 2),
+}) async {
   final sw = Stopwatch()..start();
   while (!cond()) {
-    if (sw.elapsed > const Duration(seconds: 2)) {
+    if (sw.elapsed > timeout) {
       fail('timed out waiting for $what');
     }
     await Future<void>.delayed(const Duration(milliseconds: 5));
@@ -344,7 +348,14 @@ void main() {
     await s.close();
     h = await _Harness.start();
     h!.send(OpenFrame(1, '127.0.0.1', port));
-    await _until(() => h!.of<OpenFailFrame>().isNotEmpty, what: 'OPEN_FAIL');
+    // Windows re-sends the SYN after the RST and only then reports
+    // ECONNREFUSED (~1 s, longer on a slow CI runner), so allow more than the
+    // default 2 s here. The agent's own 5 s connect deadline is the upper bound.
+    await _until(
+      () => h!.of<OpenFailFrame>().isNotEmpty,
+      what: 'OPEN_FAIL',
+      timeout: const Duration(seconds: 10),
+    );
     expect(h!.of<OpenFailFrame>().single.reason, OpenFailReason.refused);
     expect(h!.agent.openStreams, 0);
   });

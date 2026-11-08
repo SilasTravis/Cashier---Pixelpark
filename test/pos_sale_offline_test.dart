@@ -352,7 +352,11 @@ void main() {
     bloc
       ..add(const PosSaleProductAdded(_vip))
       ..add(const PosSaleCheckoutRequested(cashUzs: 75000, cardUzs: 0));
-    await settle();
+    // A fixed 20 ms is not enough on a slow Windows CI runner: wait for the
+    // checkout to actually finish.
+    await settleUntil(
+      () => store.sales().isNotEmpty && !bloc.state.isCheckingOut,
+    );
 
     expect(store.sales(), hasLength(1));
     expect(bloc.state.isCheckingOut, isFalse);
