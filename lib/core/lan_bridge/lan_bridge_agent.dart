@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'frame.dart';
 import 'lan_only.dart';
+import 'mdns_lookup.dart';
 
 /// Dials [address]:[port]; must fail with [SocketException] (or
 /// [TimeoutException]) when the connection cannot be made within [timeout].
@@ -97,7 +98,7 @@ class LanBridgeAgent {
     this.connectTimeout = const Duration(seconds: 5),
   }) : _ws = socket,
        _connect = connect ?? _defaultConnect,
-       _lookup = lookup ?? InternetAddress.lookup;
+       _lookup = lookup ?? lanBridgeLookup;
 
   final WebSocket _ws;
   final Map<String, Object?> _info;
