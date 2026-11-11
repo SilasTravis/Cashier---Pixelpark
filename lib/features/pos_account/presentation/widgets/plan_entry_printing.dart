@@ -51,6 +51,7 @@ int? reprintTicketPriceUzs(PosEntry entry, {required bool prepaidPlan}) {
       prepaidPlan || (entry.priceUzs ?? 0) > 0 || entry.durationMinutes != null;
   return prepaid ? entry.priceUzs : null;
 }
+
 /// The plan line of a subscription pass's paper ticket: "OBUNA 2/5 qoldi"
 /// (ASCII, like every ticket line).
 String subscriptionTicketPlanName(PassSubscription subscription) =>

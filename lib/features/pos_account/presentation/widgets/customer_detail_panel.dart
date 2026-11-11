@@ -29,7 +29,6 @@ import '../../domain/kids_plan.dart';
 import '../../domain/playing_child.dart';
 import '../../domain/pos_entry.dart';
 import '../../domain/promo_code_check.dart';
-import '../../../../core/offline/app_mode_cubit.dart';
 import '../../domain/subscription.dart';
 import 'account_ui.dart';
 import 'balance_switch.dart';
@@ -3588,6 +3587,7 @@ class _CheckoutSection extends StatelessWidget {
   /// The subscription children's 0 so'm lines + "Obunadan yechiladi" box —
   /// null when no selected child enters on a subscription.
   final Widget? subscriptionBlock;
+
   /// One line per child whose live pass this press upgrades ("80 000
   /// oldin to'langan — qo'shimcha to'lov: 10 000"); non-empty turns the
   /// button into "Tarifni yangilash".

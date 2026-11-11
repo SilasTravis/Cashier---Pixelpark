@@ -13,14 +13,6 @@ import '../utils/receipt_id.dart';
 import 'receipt_art.dart';
 
 class SaleReceiptPrinter {
-  // PREVIEW STUB (local screenshot build only, never committed).
-  static Future<bool> printSubscriptionDirect(
-    dynamic receipt, {
-    String? branchName,
-    String? cashierName,
-    String? preferredPrinterName,
-  }) async => false;
-
   static const double _paperWidthMm = 79;
   static const double _leftPaddingMm = 3;
   static const double _rightPaddingMm = 13;
@@ -325,6 +317,180 @@ class SaleReceiptPrinter {
             ui.row('Bayram kuni', receipt.partyDate, font: art.semiBold),
             if (receipt.parent.isNotEmpty) ui.row('Ota-ona', receipt.parent),
             ui.thanks(),
+            ui.footer(),
+          ],
+        ),
+      ),
+    );
+    final document = pw.Document()..addPage(page);
+    final bytes = await document.save();
+    return (bytes: bytes, heightMm: page.pageFormat.height / PdfPageFormat.mm);
+  }
+
+  // ---- Subscription ("Obuna") receipt ------------------------------------
+
+  /// Prints the receipt of a subscription sale on the till's receipt
+  /// printer — always printed (unlike goods receipts there is no "nothing
+  /// to print" case).
+  static Future<bool> printSubscriptionDirect(
+    SubscriptionReceipt receipt, {
+    required String branchName,
+    required String cashierName,
+    String? preferredPrinterName,
+  }) async {
+    final target = await findReceiptPrinter(preferredPrinterName);
+    if (target == null) {
+      debugPrint('SaleReceiptPrinter: SLK receipt printer not found');
+      return false;
+    }
+    final rendered = await renderSubscription(
+      receipt,
+      branchName: branchName,
+      cashierName: cashierName,
+    );
+    return Printing.directPrintPdf(
+      printer: target,
+      name: 'obuna-${formatReceiptId(receipt.id)}',
+      format: _paperFormat(rendered.heightMm),
+      usePrinterSettings: true,
+      dynamicLayout: false,
+      onLayout: (_) async => rendered.bytes,
+    );
+  }
+
+  /// "Kirishlar": the bought entries, plus today's when it was taken with
+  /// the sale.
+  static String subscriptionEntriesText(SubscriptionReceipt receipt) =>
+      receipt.usedToday
+      ? '${receipt.entriesTotal} ta (bugun 1)'
+      : '${receipt.entriesTotal} ta';
+
+  /// "Amal qiladi": the real dates once activated (the end is exclusive on
+  /// the server, so the last valid day is printed), else "from the first
+  /// entry".
+  static String subscriptionValidityText(SubscriptionReceipt receipt) {
+    final start = receipt.activatedAt;
+    final end = receipt.expiresAt;
+    if (start != null && end != null) {
+      final last = end.toLocal().subtract(const Duration(minutes: 1));
+      return '${DateFormat('dd.MM').format(start.toLocal())} - '
+          '${DateFormat('dd.MM.yyyy').format(last)}';
+    }
+    final days = receipt.validityDays;
+    return days == null || days <= 0
+        ? '1-kirishdan boshlanadi'
+        : '1-kirishdan $days kun';
+  }
+
+  static String subscriptionLimitText(SubscriptionReceipt receipt) =>
+      switch (receipt.limitKind) {
+        SubscriptionLimitKind.perDay => 'kuniga 1',
+        SubscriptionLimitKind.perWeek => 'haftasiga ${receipt.limitCount ?? 1}',
+        SubscriptionLimitKind.none => "yo'q",
+      };
+
+  static String subscriptionRulesText(SubscriptionReceipt receipt) {
+    final who = receipt.childName.trim().isEmpty
+        ? 'Faqat shu bola uchun'
+        : 'Faqat ${receipt.childName.trim()} uchun';
+    return "$who, boshqa bolaga o'tkazilmaydi. "
+        'Muddat tugasa qolgan kirishlar kuyadi. Pul qaytarilmaydi.';
+  }
+
+  /// Subscription receipt on the same endless roll, cut to the measured
+  /// height: plan line, the boxed child / entries / validity facts, JAMI and
+  /// the payment split, the rules, then the cashback block when earned.
+  @visibleForTesting
+  static Future<({Uint8List bytes, double heightMm})> renderSubscription(
+    SubscriptionReceipt receipt, {
+    required String branchName,
+    required String cashierName,
+  }) async {
+    final art = await ReceiptArt.load();
+    final ui = _Ui(art);
+    final page = pw.Page(
+      pageFormat: const PdfPageFormat(
+        _paperWidthMm * PdfPageFormat.mm,
+        double.infinity,
+        marginLeft: _leftPaddingMm * PdfPageFormat.mm,
+        marginRight: _rightPaddingMm * PdfPageFormat.mm,
+        marginTop: _topPaddingMm * PdfPageFormat.mm,
+        marginBottom: _bottomPaddingMm * PdfPageFormat.mm,
+      ),
+      build: (_) => pw.SizedBox(
+        width: _contentWidthMm * PdfPageFormat.mm,
+        child: pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+          children: [
+            ui.header(branchName),
+            ui.wavy(),
+            ui.row('Chek', formatReceiptId(receipt.id), size: 8.5),
+            ui.row(
+              'Sana',
+              DateFormat(
+                'dd.MM.yyyy HH:mm',
+              ).format(receipt.createdAt.toLocal()),
+              size: 8.5,
+            ),
+            if (cashierName.isNotEmpty)
+              ui.row('Kassir', cashierName, size: 8.5),
+            ui.dotted(),
+            pw.Text(
+              'OBUNA: ${receipt.planName}',
+              maxLines: 2,
+              style: ui.text(art.semiBold, 9.5),
+            ),
+            ui.row('1 x ${_money(receipt.priceUzs)}', _money(receipt.priceUzs)),
+            pw.SizedBox(height: 4),
+            pw.Container(
+              padding: const pw.EdgeInsets.symmetric(
+                horizontal: 6,
+                vertical: 4,
+              ),
+              decoration: pw.BoxDecoration(border: pw.Border.all(width: 0.8)),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+                children: [
+                  ui.row(
+                    'Bola',
+                    receipt.childName,
+                    font: art.semiBold,
+                    size: 8.5,
+                  ),
+                  ui.row(
+                    'Kirishlar',
+                    subscriptionEntriesText(receipt),
+                    size: 8.5,
+                  ),
+                  ui.row(
+                    'Qoldi',
+                    '${receipt.entriesLeft} / ${receipt.entriesTotal}',
+                    font: art.semiBold,
+                    size: 8.5,
+                  ),
+                  ui.row(
+                    'Amal qiladi',
+                    subscriptionValidityText(receipt),
+                    size: 8.5,
+                  ),
+                  ui.row('Cheklov', subscriptionLimitText(receipt), size: 8.5),
+                ],
+              ),
+            ),
+            ui.wavy(),
+            ui.total(_money(receipt.priceUzs)),
+            pw.SizedBox(height: 2),
+            if (receipt.balanceUzs > 0)
+              ui.row('Balans', _money(receipt.balanceUzs)),
+            if (receipt.cashUzs > 0) ui.row('Naqd', _money(receipt.cashUzs)),
+            if (receipt.cardUzs > 0) ui.row('Karta', _money(receipt.cardUzs)),
+            pw.SizedBox(height: 6),
+            pw.Text(
+              subscriptionRulesText(receipt),
+              style: ui.text(art.regular, 7.5),
+            ),
+            ui.thanks(),
+            if (receipt.cashback case final cashback?) ui.cashback(cashback),
             ui.footer(),
           ],
         ),
