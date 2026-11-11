@@ -6,6 +6,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
+import '../../features/pos_account/domain/subscription.dart';
 import '../../features/pos_sale/domain/sale_receipt.dart';
 import '../utils/receipt_id.dart';
 import 'receipt_art.dart';

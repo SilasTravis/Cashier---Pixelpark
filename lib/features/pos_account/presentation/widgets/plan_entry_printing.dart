@@ -6,6 +6,7 @@ import '../../../../core/printing/gate_pass_label_printer.dart';
 import '../../../../core/local_source/local_source.dart';
 import '../../../../core/theme/nocturne_colors.dart';
 import '../../domain/pos_entry.dart';
+import '../../domain/subscription.dart';
 import '../../../pos_sale/domain/discount.dart';
 import '../../../pos_sale/domain/sale_receipt.dart';
 import '../../../../injector_container.dart';
@@ -39,6 +40,7 @@ String upgradeTicketPlanName(String? planName) {
   return name.isEmpty ? 'UPGRADE' : 'UPGRADE - $name';
 }
 
+<<<<<<< HEAD
 /// The price a RE-PRINTED ticket shows: the pass's own register price
 /// ([PosEntry.priceUzs], already net of its discount — 0 prints "BEPUL"),
 /// never the panel's current pick. Null — "DAQIQABAY" — only for a
@@ -50,6 +52,12 @@ int? reprintTicketPriceUzs(PosEntry entry, {required bool prepaidPlan}) {
       prepaidPlan || (entry.priceUzs ?? 0) > 0 || entry.durationMinutes != null;
   return prepaid ? entry.priceUzs : null;
 }
+=======
+/// The plan line of a subscription pass's paper ticket: "OBUNA 2/5 qoldi"
+/// (ASCII, like every ticket line).
+String subscriptionTicketPlanName(PassSubscription subscription) =>
+    'OBUNA ${subscription.entriesLeft}/${subscription.entriesTotal} qoldi';
+>>>>>>> parent of f66019b (revert(subscriptions): pull Obuna from the till — release v1.0.24 (cashback QR only))
 
 /// Fires gate-pass label printing the instant entry is confirmed — no
 /// preview step, no dialog. Any child who couldn't enter (e.g. already
@@ -108,6 +116,18 @@ void printPlanEntryLabels(
               childName: childNamesById[entry.childId] ?? '',
               planName: upgradeTicketPlanName(planName),
               priceUzs: entry.priceUzs ?? 0,
+              discountUzs: 0,
+              discountName: null,
+              ticketId: _ticketId(entry.childId),
+            )
+          else if (entry.subscription case final subscription?)
+            // A subscription entry costs nothing at the till — never the
+            // plan's list price picked for the other children.
+            (
+              qrData: entry.token,
+              childName: childNamesById[entry.childId] ?? '',
+              planName: subscriptionTicketPlanName(subscription),
+              priceUzs: 0,
               discountUzs: 0,
               discountName: null,
               ticketId: _ticketId(entry.childId),
