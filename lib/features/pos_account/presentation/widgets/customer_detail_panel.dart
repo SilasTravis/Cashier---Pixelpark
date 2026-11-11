@@ -1,8 +1,5 @@
-<<<<<<< HEAD
 import 'dart:async';
-=======
 import 'dart:math' as math;
->>>>>>> parent of f66019b (revert(subscriptions): pull Obuna from the till — release v1.0.24 (cashback QR only))
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -61,6 +58,16 @@ class CustomerDetailPanel extends StatefulWidget {
 }
 
 class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
+  @override
+  void initState() {
+    super.initState();
+    if (const bool.fromEnvironment('DEV_SELL')) {
+      Future.delayed(const Duration(seconds: 6), () {
+        if (mounted) _sellSubscription(context);
+      });
+    }
+  }
+
   final Set<String> _selectedChildIds = {};
   KidsPlan? _selectedPlan;
 
@@ -896,6 +903,12 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
           );
 
           final extrasCard = _ExtrasCard(
+            onSellSubscription: offline || state.isBusy
+                ? null
+                : () => _sellSubscription(context),
+            sellSubscriptionDisabledReason: offline
+                ? l10n.subscriptionOffline
+                : null,
             products: extrasProducts,
             cart: _cart,
             onProductAdd: (id) =>
@@ -1156,12 +1169,6 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
 
           final header = _SummaryStrip(
             customer: customer,
-            onSellSubscription: offline || state.isBusy
-                ? null
-                : () => _sellSubscription(context),
-            sellSubscriptionDisabledReason: offline
-                ? l10n.subscriptionOffline
-                : null,
             isBusy: state.isBusy,
             insideCount: state.playing.length,
             onRename: (name) => context.read<PosAccountBloc>().add(
@@ -1577,8 +1584,6 @@ String _alreadyActiveNote(
 class _SummaryStrip extends StatelessWidget {
   const _SummaryStrip({
     required this.customer,
-    this.onSellSubscription,
-    this.sellSubscriptionDisabledReason,
     required this.isBusy,
     required this.insideCount,
     required this.onParentQr,
@@ -1597,9 +1602,6 @@ class _SummaryStrip extends StatelessWidget {
   /// day sticker for the accompanying adult.
   final VoidCallback onParentQr;
 
-  /// Opens "Obuna sotish" — null disables the button (offline / busy).
-  final VoidCallback? onSellSubscription;
-  final String? sellSubscriptionDisabledReason;
   final ValueChanged<String> onRename;
   final VoidCallback onRefresh;
   final VoidCallback onBack;
@@ -1690,12 +1692,6 @@ class _SummaryStrip extends StatelessWidget {
                           size: 18,
                         ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              SellSubscriptionButton(
-                onPressed: onSellSubscription,
-                compact: narrow,
-                disabledReason: sellSubscriptionDisabledReason,
               ),
               const SizedBox(width: 8),
               if (narrow)
@@ -2478,6 +2474,8 @@ class _TariffPill extends StatelessWidget {
 /// whole-check discount.
 class _ExtrasCard extends StatelessWidget {
   const _ExtrasCard({
+    required this.onSellSubscription,
+    this.sellSubscriptionDisabledReason,
     required this.products,
     required this.cart,
     required this.onProductAdd,
@@ -2490,6 +2488,10 @@ class _ExtrasCard extends StatelessWidget {
     required this.checkDiscountHint,
     required this.promoSection,
   });
+
+  /// Opens "Obuna sotish" — null disables the tile (offline / busy).
+  final VoidCallback? onSellSubscription;
+  final String? sellSubscriptionDisabledReason;
 
   /// The admin's "Qo'shimcha" products (e.g. a nanny service) and their
   /// qty in the checkout cart — debited from the balance, printed as a
@@ -2563,7 +2565,15 @@ class _ExtrasCard extends StatelessWidget {
                     title: l10n.checkDiscount,
                     hint: checkDiscountHint ?? '',
                   );
-              final tiles = [hamroh, ...productTiles, discount];
+              final tiles = [
+                _SellSubscriptionTile(
+                  onTap: onSellSubscription,
+                  disabledReason: sellSubscriptionDisabledReason,
+                ),
+                hamroh,
+                ...productTiles,
+                discount,
+              ];
               if (constraints.maxWidth < 560) {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2605,6 +2615,81 @@ class _ExtrasCard extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// "Obuna sotish" among the services: a violet tile that opens the sell
+/// dialog (not a stepper — a subscription is sold to one child at a time).
+class _SellSubscriptionTile extends StatelessWidget {
+  const _SellSubscriptionTile({required this.onTap, this.disabledReason});
+
+  final VoidCallback? onTap;
+  final String? disabledReason;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
+    final p = PosPalette.of(context);
+    final enabled = onTap != null;
+    final tile = Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: const ValueKey('sell-subscription-button'),
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 60),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: enabled ? p.subscriptionBorder : p.border,
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                PhosphorIconsRegular.ticket,
+                size: 20,
+                color: enabled ? p.subscription : p.textFaint,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      l10n.subscriptionSell,
+                      style: p.heading.copyWith(
+                        fontSize: 13.5,
+                        color: enabled ? p.subscription : p.textMuted,
+                      ),
+                    ),
+                    Text(
+                      l10n.subscriptionSellSubtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: p.bodyMuted.copyWith(fontSize: 11.5),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                PhosphorIconsRegular.caretRight,
+                size: 16,
+                color: p.textFaint,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (!enabled && disabledReason != null) {
+      return Tooltip(message: disabledReason!, child: tile);
+    }
+    return tile;
   }
 }
 

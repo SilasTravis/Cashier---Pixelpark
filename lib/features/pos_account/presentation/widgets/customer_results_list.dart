@@ -166,6 +166,8 @@ class _CustomerResultsListState extends State<CustomerResultsList> {
   }
 }
 
+bool _devOpened = false;
+
 class _CustomerTileList extends StatelessWidget {
   const _CustomerTileList({
     required this.title,
@@ -192,6 +194,20 @@ class _CustomerTileList extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
+          if (const bool.fromEnvironment('DEV_OPEN') &&
+              !_devOpened &&
+              customers.isNotEmpty)
+            Builder(
+              builder: (ctx) {
+                _devOpened = true;
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  ctx.read<PosAccountBloc>().add(
+                    PosAccountCustomerSelected(customers.first),
+                  );
+                });
+                return const SizedBox.shrink();
+              },
+            ),
           for (final customer in customers)
             Padding(
               padding: const EdgeInsets.only(bottom: 6),

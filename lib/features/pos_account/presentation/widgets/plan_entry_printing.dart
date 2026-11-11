@@ -40,7 +40,6 @@ String upgradeTicketPlanName(String? planName) {
   return name.isEmpty ? 'UPGRADE' : 'UPGRADE - $name';
 }
 
-<<<<<<< HEAD
 /// The price a RE-PRINTED ticket shows: the pass's own register price
 /// ([PosEntry.priceUzs], already net of its discount — 0 prints "BEPUL"),
 /// never the panel's current pick. Null — "DAQIQABAY" — only for a
@@ -52,12 +51,10 @@ int? reprintTicketPriceUzs(PosEntry entry, {required bool prepaidPlan}) {
       prepaidPlan || (entry.priceUzs ?? 0) > 0 || entry.durationMinutes != null;
   return prepaid ? entry.priceUzs : null;
 }
-=======
 /// The plan line of a subscription pass's paper ticket: "OBUNA 2/5 qoldi"
 /// (ASCII, like every ticket line).
 String subscriptionTicketPlanName(PassSubscription subscription) =>
     'OBUNA ${subscription.entriesLeft}/${subscription.entriesTotal} qoldi';
->>>>>>> parent of f66019b (revert(subscriptions): pull Obuna from the till — release v1.0.24 (cashback QR only))
 
 /// Fires gate-pass label printing the instant entry is confirmed — no
 /// preview step, no dialog. Any child who couldn't enter (e.g. already

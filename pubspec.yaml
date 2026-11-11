@@ -2,11 +2,7 @@ name: cashier_app
 description: "Bolajon kassa terminali — Flutter Windows desktop POS."
 publish_to: 'none'
 
-<<<<<<< HEAD
 version: 1.0.28+29
-=======
-version: 1.0.23+24
->>>>>>> parent of f66019b (revert(subscriptions): pull Obuna from the till — release v1.0.24 (cashback QR only))
 
 environment:
   sdk: ^3.12.2

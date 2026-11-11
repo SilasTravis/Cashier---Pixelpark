@@ -131,7 +131,6 @@ class SubscriptionSellDialog extends StatefulWidget {
 class _SubscriptionSellDialogState extends State<SubscriptionSellDialog> {
   String? _childId;
   String? _planId;
-  bool _useToday = true;
   bool _payFromBalance = true;
   PaymentMethod _method = PaymentMethod.cash;
   final _cashController = TextEditingController();
@@ -244,8 +243,6 @@ class _SubscriptionSellDialogState extends State<SubscriptionSellDialog> {
                           const SizedBox(height: 14),
                           _label(p, l10n.subscriptionType),
                           _plans(p, l10n, state, plan),
-                          const SizedBox(height: 10),
-                          _useTodayRow(p, l10n),
                           if (plan != null && child != null) ...[
                             const SizedBox(height: 12),
                             Divider(color: p.border, height: 1),
@@ -347,7 +344,7 @@ class _SubscriptionSellDialogState extends State<SubscriptionSellDialog> {
         subscriptionPlanId: planId,
         topupCashUzs: payment.topupCashUzs,
         topupCardUzs: payment.topupCardUzs,
-        useToday: _useToday,
+        useToday: false,
       ),
     );
   }
@@ -511,45 +508,6 @@ class _SubscriptionSellDialogState extends State<SubscriptionSellDialog> {
       ],
     );
   }
-
-  Widget _useTodayRow(PosPalette p, AppLocalization l10n) => Material(
-    color: p.subscriptionSoft,
-    borderRadius: BorderRadius.circular(10),
-    child: InkWell(
-      borderRadius: BorderRadius.circular(10),
-      onTap: () => setState(() => _useToday = !_useToday),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        child: Row(
-          children: [
-            Checkbox(
-              key: const ValueKey('subscription-use-today'),
-              value: _useToday,
-              activeColor: p.subscription,
-              onChanged: (v) => setState(() => _useToday = v ?? false),
-            ),
-            Expanded(
-              child: Text.rich(
-                TextSpan(
-                  style: AppTextStyles.body.copyWith(
-                    fontSize: 12.5,
-                    color: p.subscription,
-                  ),
-                  children: [
-                    TextSpan(
-                      text: l10n.subscriptionUseToday,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    TextSpan(text: ' — ${l10n.subscriptionUseTodayHint}'),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
 
   Widget _payment(
     PosPalette p,

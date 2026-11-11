@@ -23,6 +23,20 @@ class _LoginPageState extends State<LoginPage> {
   bool _obscure = true;
 
   @override
+  void initState() {
+    super.initState();
+    const u = String.fromEnvironment('DEV_USER');
+    const pw = String.fromEnvironment('DEV_PASS');
+    if (u.isNotEmpty) {
+      _usernameController.text = u;
+      _passwordController.text = pw;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _submit(context);
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();

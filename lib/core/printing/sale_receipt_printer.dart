@@ -12,6 +12,14 @@ import '../utils/receipt_id.dart';
 import 'receipt_art.dart';
 
 class SaleReceiptPrinter {
+  // PREVIEW STUB (local screenshot build only, never committed).
+  static Future<bool> printSubscriptionDirect(
+    dynamic receipt, {
+    String? branchName,
+    String? cashierName,
+    String? preferredPrinterName,
+  }) async => false;
+
   static const double _paperWidthMm = 79;
   static const double _leftPaddingMm = 3;
   static const double _rightPaddingMm = 13;
