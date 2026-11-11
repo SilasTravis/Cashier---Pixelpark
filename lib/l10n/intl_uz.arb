@@ -32,6 +32,9 @@
   "cartEmpty": "Chek bo‘sh",
   "discount": "Chegirma",
   "noDiscount": "Chegirmasiz",
+  "birthdayAgeTitle": "Necha yoshga to'ldi?",
+  "birthdayAgeHint": "Bugun {name}ning tug'ilgan kuni. Yoshini tanlang — sana bolaga saqlanadi.",
+  "birthdayAgeChip": "{age} yosh",
   "discountGroupFree": "Bepul (100%)",
   "discountGroupPercent": "Foizli",
   "discountGroupFixed": "Summali",
@@ -150,6 +153,7 @@
   "allCustomers": "Barcha mijozlar",
   "customerDirectorySearchHint": "Ism yoki telefonning oxirgi raqamlari bo‘yicha qidiring",
   "searchResult": "Qidiruv natijasi",
+  "similarNumbers": "O‘xshash raqamlar — boshqa mijozlar",
   "customerCount": "{count} ta mijoz",
   "@customerCount": {
     "placeholders": {
@@ -647,19 +651,46 @@
   "offlinePromptDecline": "Yo‘q",
   "onlinePromptTitle": "Internet qaytdi",
   "onlinePromptBody": "Onlayn rejimga o‘tib, {count} ta savdoni sinxronlaymizmi?",
-  "@onlinePromptBody": { "placeholders": { "count": { "type": "int" } } },
+  "@onlinePromptBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "onlinePromptAccept": "Ha, sinxronlash",
   "onlinePromptLater": "Keyinroq",
   "offlineBanner": "OFFLINE · {count} ta savdo kutmoqda",
-  "@offlineBanner": { "placeholders": { "count": { "type": "int" } } },
+  "@offlineBanner": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "offlineBannerSyncing": "Sinxronlanmoqda…",
   "checkOnline": "Onlaynni tekshirish",
   "stillOffline": "Hali ham internet yo‘q",
   "syncResultTitle": "Sinxronlash natijasi",
   "syncResultBody": "{synced} ta savdo sinxronlandi, {failed} ta xato.",
-  "@syncResultBody": { "placeholders": { "synced": { "type": "int" }, "failed": { "type": "int" } } },
+  "@syncResultBody": {
+    "placeholders": {
+      "synced": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
   "syncTransportFailed": "Sinxronlab bo‘lmadi: {reason}. Offline rejim davom etadi.",
-  "@syncTransportFailed": { "placeholders": { "reason": { "type": "String" } } },
+  "@syncTransportFailed": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "syncViewFailures": "Ko‘rish",
   "needsInternet": "Internet kerak",
   "tabUnsynced": "Sinxronlanmagan",
@@ -668,7 +699,13 @@
   "unsyncedPending": "Kutmoqda",
   "unsyncedFailed": "Xato",
   "unsyncedSupportCode": "Kod: {code}",
-  "@unsyncedSupportCode": { "placeholders": { "code": { "type": "String" } } },
+  "@unsyncedSupportCode": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
   "unsyncedCodeCopied": "Kod nusxalandi",
   "unsyncedRetry": "Qayta urinish",
   "unsyncedRetryAll": "Hammasini qayta yuborish",
@@ -676,16 +713,41 @@
   "notSyncedBadge": "Sinxronlanmagan",
   "historyOfflineNotice": "Offline rejim: faqat hali sinxronlanmagan savdolar ko‘rsatiladi",
   "logoutBlockedUnsynced": "{count} ta savdo sinxronlanmagan. Chiqishdan oldin onlayn rejimda sinxronlang.",
-  "@logoutBlockedUnsynced": { "placeholders": { "count": { "type": "int" } } },
+  "@logoutBlockedUnsynced": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "closeShiftUnsyncedWarning": "{count} ta savdo serverga o‘tmadi (xato). Smenani yopishdan oldin qo‘llab-quvvatlashga murojaat qiling.",
-  "@closeShiftUnsyncedWarning": { "placeholders": { "count": { "type": "int" } } },
+  "@closeShiftUnsyncedWarning": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "closeShiftOffline": "Offline rejimda smenani yopib bo‘lmaydi",
   "logoutFailedSalesConfirm": "{count} ta savdo serverga o‘tmadi (xato). Ular kassada saqlanadi. Baribir chiqasizmi?",
-  "@logoutFailedSalesConfirm": { "placeholders": { "count": { "type": "int" } } },
+  "@logoutFailedSalesConfirm": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "logoutAnyway": "Baribir chiqish",
   "promoCode": "Promokod",
   "promoCodeHint": "Skanerlang yoki yozing",
   "promoCodeCheck": "Tekshirish",
+  "promoCodeActive": "Faol promokodlar",
+  "promoCodeActiveEmpty": "Faol promokod yo‘q",
+  "promoCodeActiveHint": "Kodni mijozning SMSidagi kod bilan solishtiring",
+  "promoCodeValidUntil": "{date} gacha",
+  "@promoCodeValidUntil": { "placeholders": { "date": { "type": "String" } } },
+  "promoCodeLoadFailed": "Promokodlar yuklanmadi",
+  "promoCodeRetry": "Qayta urinish",
   "promoCodeInvalid": "Promokod noto‘g‘ri — kodni tekshiring",
   "promoCodeOwnerNotFound": "Promokod egasi topilmadi",
   "promoCodeWrongCustomer": "Bu promokod boshqa mijozga tegishli",
@@ -694,10 +756,22 @@
   "promoCodeChildHasPass": "Bu bolada bugun faol propusk bor — promokod faqat yangi kirishga yoki VIP’ga o‘tishga qo‘llanadi",
   "promoCodeRemove": "Promokodni olib tashlash",
   "promoCodeReleased": "Promokod qo‘llanmadi, kod qaytarildi: {reason}",
-  "@promoCodeReleased": { "placeholders": { "reason": { "type": "String" } } },
+  "@promoCodeReleased": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "promoCodeBlogger": "Blogger",
   "promoCodeBloggerPending": "Blogger promokodi {code} qabul qilindi — mijozni tanlang",
-  "@promoCodeBloggerPending": { "placeholders": { "code": { "type": "String" } } },
+  "@promoCodeBloggerPending": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
   "promoCodeNotStarted": "Promokod hali amal qilmaydi",
   "promoCodeLimitReached": "Promokoddan foydalanish limiti tugagan",
   "promoCodeAlreadyUsedByCustomer": "Bu mijoz ushbu promokoddan allaqachon foydalangan",
@@ -708,23 +782,62 @@
   "accountDueFull": "Mijoz to‘laydi",
   "accountFromBalance": "Balansdan yechiladi",
   "accountCoveredByBalance": "To‘liq balansdan yopiladi · qoladi {value}",
-  "@accountCoveredByBalance": { "placeholders": { "value": { "type": "String" } } },
+  "@accountCoveredByBalance": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "accountInsideCount": "{count} bola ichkarida",
-  "@accountInsideCount": { "placeholders": { "count": { "type": "int" } } },
+  "@accountInsideCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "accountAgeYears": "{count} yosh",
-  "@accountAgeYears": { "placeholders": { "count": { "type": "int" } } },
+  "@accountAgeYears": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "accountInsideMinutes": "Ichkarida · {minutes} daq",
-  "@accountInsideMinutes": { "placeholders": { "minutes": { "type": "int" } } },
+  "@accountInsideMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "accountPayNow": "Hozir to‘lanadi",
   "accountPayAtExit": "Chiqishda hisoblanadi",
   "accountAtExit": "chiqishda",
   "accountPlanTimesKids": "{plan} × {count} bola",
-  "@accountPlanTimesKids": { "placeholders": { "plan": { "type": "String" }, "count": { "type": "int" } } },
+  "@accountPlanTimesKids": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "accountColChild": "Bola",
   "accountColTime": "Vaqt",
   "accountColSoFar": "Hozirgacha",
   "accountExcessToBalance": "{value} balansga tushadi",
-  "@accountExcessToBalance": { "placeholders": { "value": { "type": "String" } } },
+  "@accountExcessToBalance": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "accountToPay": "To‘lanadi",
   "accountFromBalanceLine": "Balansdan",
   "accountLeftOnBalance": "Balansda qoladi",
@@ -734,18 +847,42 @@
   "accountTodayQrs": "Bugungi QR’lar",
   "accountTodayQrsHint": "Yo‘qolgan yoki buzilgan stikerni qayta chiqaring: pul olinmaydi, eski stiker ham ishlayveradi.",
   "accountValidUntil": "{time} gacha",
-  "@accountValidUntil": { "placeholders": { "time": { "type": "String" } } },
+  "@accountValidUntil": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "reprintAll": "Hammasini qayta chop etish",
   "themeNight": "Tungi rejim",
   "themeDay": "Kunduzgi rejim",
   "themeNightHint": "Ko‘zni charchatmaydigan yumshoq ko‘k-to‘q fon. Shu kassada eslab qolinadi.",
   "accountTxTitle": "Amallar tarixi",
   "accountTxCount": "{count} ta",
-  "@accountTxCount": { "placeholders": { "count": { "type": "int" } } },
+  "@accountTxCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "accountTxEmpty": "Bu mijozda hali amallar yo‘q",
   "accountTxFailed": "Amallarni yuklab bo‘lmadi",
   "accountTxRange": "{from}–{to} / {total}",
-  "@accountTxRange": { "placeholders": { "from": { "type": "int" }, "to": { "type": "int" }, "total": { "type": "int" } } },
+  "@accountTxRange": {
+    "placeholders": {
+      "from": {
+        "type": "int"
+      },
+      "to": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "accountTxPrev": "Oldingi",
   "accountTxNext": "Keyingi",
   "accountTxMore": "Boshqa",
@@ -765,19 +902,55 @@
   "txStatusFailed": "Bajarilmadi",
   "txStatusCancelled": "Bekor qilindi",
   "planSwitchUpgradeQuestion": "«{plan}» rejasiga o‘tkazilsinmi? Faqat qo‘shimcha to‘lov ({price}) balansdan yechiladi. Eski stiker to‘xtatiladi va yangi QR «upgrade» bo‘lib chop etiladi.",
-  "@planSwitchUpgradeQuestion": { "placeholders": { "plan": { "type": "String" }, "price": { "type": "String" } } },
+  "@planSwitchUpgradeQuestion": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
+  },
   "upgradeCredit": "{paid} allaqachon to‘langan — qo‘shimcha to‘lov: {due}.",
-  "@upgradeCredit": { "placeholders": { "paid": { "type": "String" }, "due": { "type": "String" } } },
+  "@upgradeCredit": {
+    "placeholders": {
+      "paid": {
+        "type": "String"
+      },
+      "due": {
+        "type": "String"
+      }
+    }
+  },
   "insideFilterAll": "Hammasi",
   "insideFilterHour": "Vaqtli",
   "insideFilterOvertime": "Vaqti tugagan",
   "hourOvertimeBanner": "{count} ta bolaning vaqti tugagan — ota-onasini chaqiring",
-  "@hourOvertimeBanner": { "placeholders": { "count": { "type": "int" } } },
+  "@hourOvertimeBanner": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "hourOvertimeShow": "Ko‘rsatish",
   "hourOvertimeBy": "{count} daq oshdi",
-  "@hourOvertimeBy": { "placeholders": { "count": { "type": "int" } } },
+  "@hourOvertimeBy": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "hourRemaining": "{count} daq qoldi",
-  "@hourRemaining": { "placeholders": { "count": { "type": "int" } } },
+  "@hourRemaining": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "hourEndsAtLabel": "Tugaydi",
   "hourEndedAtLabel": "Tugadi",
   "insideHourEmpty": "Hozir vaqtli tarifdagi bolalar yo‘q",
@@ -793,9 +966,24 @@
   "shiftEnteredChildren": "Ichkariga kirgan",
   "shiftPrintReport": "Smena chekini chiqarish",
   "shiftCountUnit": "{count} ta",
-  "@shiftCountUnit": { "placeholders": { "count": { "type": "int" } } },
+  "@shiftCountUnit": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "planSwitchUpgradeCollectQuestion": "«{plan}» rejasiga o‘tkazilsinmi? Faqat qo‘shimcha to‘lov ({price}) hozir naqd yoki karta bilan olinadi — balansga ortiqcha pul tushmaydi. Eski stiker to‘xtatiladi va yangi QR «upgrade» bo‘lib chop etiladi.",
-  "@planSwitchUpgradeCollectQuestion": { "placeholders": { "plan": { "type": "String" }, "price": { "type": "String" } } },
+  "@planSwitchUpgradeCollectQuestion": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
+  },
   "planSwitchCollectNow": "Hozir olinadi",
   "planSwitchContinue": "Davom etish",
   "planSwitchPayInDialog": "Tanlangan bolada bugun boshqa tarif bor — to‘lov keyingi oynada, faqat qo‘shimcha to‘lov bilan hisoblanadi.",
@@ -867,5 +1055,317 @@
   "planSwitchBlocked": "«{name}»: {from} → {to} ga o'tib bo'lmaydi",
   "foreignPhone": "Chet el raqami",
   "foreignPhoneHint": "Raqamni davlat kodi bilan yozing, masalan 7 916 123 45 67. Chet el raqamiga SMS yuborilmaydi.",
-  "foreignPhoneIsUzbek": "998… — bu o‘zbek raqami. \"Chet el raqami\"ni o‘chirib, +998 dan keyin yozing."
+  "foreignPhoneIsUzbek": "998… — bu o‘zbek raqami. \"Chet el raqami\"ni o‘chirib, +998 dan keyin yozing.",
+  "lanBridgeActive": "Masofaviy sessiya faol",
+  "lanBridgeControl": "Masofaviy kirish",
+  "lanBridgeConnected": "ulangan",
+  "lanBridgeConnecting": "ulanmoqda",
+  "lanBridgeDisabled": "o‘chiq",
+  "planUpgradeAndPrint": "Tarifni yangilash",
+  "planUpgradeLine": "{child}: {from} → {to}. {paid} oldin to‘langan — qo‘shimcha to‘lov: {due}",
+  "@planUpgradeLine": {
+    "placeholders": {
+      "child": {
+        "type": "String"
+      },
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      },
+      "paid": {
+        "type": "String"
+      },
+      "due": {
+        "type": "String"
+      }
+    }
+  },
+  "groupEntry": "Guruh (maktab)",
+  "groupEntryHint": "Faqat soni — ismlarsiz",
+  "moreActions": "Ko'proq",
+  "groupSelected": "Guruh: {count} bola",
+  "@groupSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "groupDialogTitle": "Guruh (maktab) — nechta bola?",
+  "groupDialogHint": "Bolalar ismsiz kiradi: chekda faqat soni chiqadi, statistikada har biri alohida sanaladi.",
+  "groupCountLabel": "Bolalar soni",
+  "groupApply": "Tanlash",
+  "groupRemove": "Guruhni olib tashlash",
+  "shiftBirthdayIncome": "Shundan tug‘ilgan kun",
+  "birthdaySell": "Tug‘ilgan kun sotish",
+  "birthdayPlan": "Tarif",
+  "birthdayChildCount": "Bolalar soni",
+  "birthdayExtraChild": "Qo‘shimcha bola",
+  "birthdayDate": "Bayram kuni",
+  "birthdayTotal": "Jami",
+  "birthdayPayFull": "To‘liq to‘lov",
+  "birthdayDeposit": "Zaklad",
+  "birthdayPaidBeforeParty": "Bayramgacha to‘lanadi",
+  "birthdayBookAndReceipt": "Band qilish va chek",
+  "birthdayIncludes": "Tarifga kiradi",
+  "birthdayFromPrice": "{price} dan",
+  "@birthdayFromPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayExtraPlusPrice": "+1 bola: {price}",
+  "@birthdayExtraPlusPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayChildrenUnit": "bola",
+  "birthdayDepositAmount": "Zaklad summasi",
+  "birthdayResetExtra": "0 ga qaytarish",
+  "birthdayExtraHint": "{size} talik {plan} · har biri {price}",
+  "@birthdayExtraHint": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "plan": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayDiscountNote": "Narx qo‘lda o‘zgartirildi — hisobotda {amount} chegirma.",
+  "@birthdayDiscountNote": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayOffline": "Tug‘ilgan kun sotish internet bilan ishlaydi",
+  "birthdayPickPlanFirst": "Avval tarifni tanlang",
+  "birthdayNoPlans": "Bu filialda tug‘ilgan kun tarifi yo‘q",
+  "birthdayErrGeneric": "Tug‘ilgan kun amali bajarilmadi",
+  "birthdayErrPlanNotAvailable": "Bu tarif bu filialda mavjud emas",
+  "birthdayErrSizeNotFound": "Bu bola soni tarifda yo‘q",
+  "birthdayErrPaymentEmpty": "To‘lov summasi kiritilmagan",
+  "birthdayErrPartyNotFound": "Tadbir topilmadi",
+  "birthdayErrNotBooked": "Tadbir allaqachon yakunlangan yoki bekor qilingan",
+  "birthdayErrCompleteTooEarly": "Tadbirni bayram kunidan oldin yakunlab bo‘lmaydi",
+  "birthdayPayment": "To‘lov",
+  "tabEvents": "Tadbirlar",
+  "eventsBooked": "Kutilmoqda",
+  "eventsCompleted": "Yakunlangan",
+  "eventsCancelled": "Bekor qilingan",
+  "eventsOverdue": "O‘tib ketgan",
+  "eventsToday": "Bugun",
+  "eventsTomorrow": "Ertaga",
+  "eventsThisWeek": "Shu hafta",
+  "eventsNextWeek": "Keyingi hafta",
+  "eventsLater": "Keyinroq",
+  "eventsPaid": "To‘langan",
+  "eventsDebt": "Qarz {amount}",
+  "@eventsDebt": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "eventsUnpaid": "To‘lanmagan",
+  "eventsAddPayment": "+ To‘lov",
+  "eventsComplete": "Yakunlash",
+  "eventsChildUnit": "bola",
+  "eventsEmpty": "Tadbirlar yo‘q",
+  "eventsRetry": "Qayta urinish",
+  "eventsLoadError": "Tadbirlarni yuklab bo‘lmadi",
+  "bdAddPaymentFull": "+ To‘lov qo‘shish",
+  "bdLeft": "Qoldi",
+  "bdPaidNet": "To‘langan",
+  "bdPayments": "To‘lovlar",
+  "bdNoPayments": "To‘lov hali yo‘q",
+  "bdRefundToBalance": "Balansga qaytarildi",
+  "bdRefundToCash": "Naqd qaytarildi",
+  "bdMoreChild": "+ bola",
+  "bdChangeDate": "Sanani o‘zgartirish",
+  "bdCancelParty": "Bekor qilish",
+  "bdCompleteFrom": "Yakunlash {date} kuni mumkin",
+  "@bdCompleteFrom": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "bdCompleteDebt": "Qarz qoldi: {amount} so‘m. Baribir yakunlansinmi?",
+  "@bdCompleteDebt": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bdCompleteAnyway": "Yakunlash",
+  "bdComments": "Izohlar",
+  "bdNoComments": "Izoh yo‘q",
+  "bdCommentHint": "Izoh yozing",
+  "bdAddChildTitle": "Qo‘shimcha bola",
+  "bdAddChildPrice": "+{amount} so‘m",
+  "@bdAddChildPrice": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bdAddChildSubmit": "Qo‘shish",
+  "bdPayTitle": "To‘lov qo‘shish",
+  "bdPayAmount": "To‘lov summasi",
+  "bdPayOverDebt": "Summa qarzdan oshmasin",
+  "bdPaySubmit": "To‘lovni qabul qilish",
+  "bdCancelTitle": "Tadbirni bekor qilish",
+  "bdCancelReason": "Sabab",
+  "bdCancelReasonShort": "Kamida 3 belgi",
+  "bdRefund": "Qaytarish",
+  "bdNoRefund": "Qaytarmaslik",
+  "bdToBalance": "Balansga",
+  "bdToCash": "Naqd",
+  "bdCashTooLarge": "Naqd {max} dan oshmasin",
+  "@bdCashTooLarge": {
+    "placeholders": {
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "bdTotalTooLarge": "Jami {net} dan oshmasin",
+  "@bdTotalTooLarge": {
+    "placeholders": {
+      "net": {
+        "type": "String"
+      }
+    }
+  },
+  "bdRefundEmpty": "Summani kiriting",
+  "bdKept": "Ushlab qolinadi: {amount}",
+  "@bdKept": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bdCancelConfirm": "Bekor qilish",
+  "bdBack": "Orqaga",
+  "bdNetPaid": "Sof to‘langan: {amount}",
+  "@bdNetPaid": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bdCancelledReason": "Sabab: {reason}",
+  "@bdCancelledReason": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "bdRequestConflict": "Bu amal allaqachon bajarilgan — tadbir yangilandi",
+  "bdExtraChildrenConflict": "Bolalar sonini boshqa kassa o‘zgartirgan. Ma'lumot yangilandi — tekshirib, kerak bo‘lsa qayta qo‘shing.",
+  "bdClose": "Yopish",
+  "bdUnclearHint": "Javob kelmadi. Summalar qulflandi — qayta urinib ko‘ring yoki yoping.",
+  "bdOfflineHint": "Tarmoq yo‘q — qayta urinib ko‘ring",
+  "bdTakeNow": "Hozir olinadi",
+  "bdFromBalanceLine": "Balansdan −{amount}",
+  "@bdFromBalanceLine": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bdSplitMethod": "Aralash {cash} + {card}",
+  "@bdSplitMethod": {
+    "placeholders": {
+      "cash": {
+        "type": "String"
+      },
+      "card": {
+        "type": "String"
+      }
+    }
+  },
+  "bdKeptChip": "Ushlab qolingan {amount}",
+  "@bdKeptChip": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bdCancelledChip": "Bekor qilingan",
+  "shiftBirthdayRefunded": "Tug‘ilgan kun qaytarildi",
+  "bdBalanceUnknown": "Balans noma‘lum",
+  "bdKeptLabel": "Ushlab qolingan",
+  "servicesTitle": "Xizmatlar",
+  "servicesBirthdaySubtitle": "Paket, zaklad, balansdan to‘lov",
+  "birthdayStepPlanHint": "Rangi bo‘yicha tanlang",
+  "birthdayStepSizeHint": "Paketga kiradigan bolalar",
+  "birthdayStepExtraHint": "Paketdan tashqari bolalar",
+  "birthdayStepDateHint": "Bayram o‘tadigan kun",
+  "birthdayIncludesTier": "{plan} tarifiga kiradi",
+  "@birthdayIncludesTier": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayExtraEach": "har biri {price}",
+  "@birthdayExtraEach": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayExtraRemove": "Bitta kamaytirish",
+  "birthdayExtraAdd": "Bitta qo‘shish",
+  "birthdayInAWeek": "+7 kun",
+  "birthdayOtherDate": "Boshqa sana",
+  "birthdaySummary": "Hisob",
+  "birthdayDiscountLine": "Chegirma",
+  "birthdayTotalEditHint": "Narxni qo‘lda o‘zgartirsa bo‘ladi",
+  "birthdaySummaryEmpty": "Tarif va bolalar sonini tanlang — hisob shu yerda chiqadi",
+  "bdWalletUsable": "Balans: {amount} ishlatsa bo‘ladi",
+  "@bdWalletUsable": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bdWalletBonus": "Bonus {amount} — ishlatib bo‘lmaydi",
+  "@bdWalletBonus": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bdWalletNoUsable": "Balansda haqiqiy pul yo‘q — naqd yoki karta bilan oling",
+  "bdWalletFailed": "Balans noma‘lum — naqd yoki karta bilan oling",
+  "bdLeftBeforeParty": "Qoldi · bayramgacha"
 }

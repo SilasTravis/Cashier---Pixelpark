@@ -32,6 +32,9 @@
   "cartEmpty": "Корзина пуста",
   "discount": "Скидка",
   "noDiscount": "Без скидки",
+  "birthdayAgeTitle": "Сколько исполнилось?",
+  "birthdayAgeHint": "Сегодня день рождения: {name}. Выберите возраст — дата сохранится у ребёнка.",
+  "birthdayAgeChip": "Возраст: {age}",
   "discountGroupFree": "Бесплатно (100%)",
   "discountGroupPercent": "В процентах",
   "discountGroupFixed": "Фиксированная сумма",
@@ -150,6 +153,7 @@
   "allCustomers": "Все клиенты",
   "customerDirectorySearchHint": "Поиск по имени или последним цифрам телефона",
   "searchResult": "Результаты поиска",
+  "similarNumbers": "Похожие номера — другие клиенты",
   "customerCount": "Клиентов: {count}",
   "@customerCount": {
     "placeholders": {
@@ -571,19 +575,46 @@
   "offlinePromptDecline": "Нет",
   "onlinePromptTitle": "Интернет вернулся",
   "onlinePromptBody": "Перейти в онлайн-режим и синхронизировать продажи ({count})?",
-  "@onlinePromptBody": { "placeholders": { "count": { "type": "int" } } },
+  "@onlinePromptBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "onlinePromptAccept": "Да, синхронизировать",
   "onlinePromptLater": "Позже",
   "offlineBanner": "OFFLINE · ожидают продаж: {count}",
-  "@offlineBanner": { "placeholders": { "count": { "type": "int" } } },
+  "@offlineBanner": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "offlineBannerSyncing": "Синхронизация…",
   "checkOnline": "Проверить связь",
   "stillOffline": "Интернета всё ещё нет",
   "syncResultTitle": "Результат синхронизации",
   "syncResultBody": "Синхронизировано: {synced}, с ошибкой: {failed}.",
-  "@syncResultBody": { "placeholders": { "synced": { "type": "int" }, "failed": { "type": "int" } } },
+  "@syncResultBody": {
+    "placeholders": {
+      "synced": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
   "syncTransportFailed": "Не удалось синхронизировать: {reason}. Офлайн-режим продолжается.",
-  "@syncTransportFailed": { "placeholders": { "reason": { "type": "String" } } },
+  "@syncTransportFailed": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "syncViewFailures": "Открыть",
   "needsInternet": "Нужен интернет",
   "tabUnsynced": "Не синхронизировано",
@@ -592,7 +623,13 @@
   "unsyncedPending": "Ожидает",
   "unsyncedFailed": "Ошибка",
   "unsyncedSupportCode": "Код: {code}",
-  "@unsyncedSupportCode": { "placeholders": { "code": { "type": "String" } } },
+  "@unsyncedSupportCode": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
   "unsyncedCodeCopied": "Код скопирован",
   "unsyncedRetry": "Повторить",
   "unsyncedRetryAll": "Отправить все заново",
@@ -600,16 +637,41 @@
   "notSyncedBadge": "Не синхронизировано",
   "historyOfflineNotice": "Офлайн-режим: показаны только несинхронизированные продажи",
   "logoutBlockedUnsynced": "Несинхронизированных продаж: {count}. Перед выходом синхронизируйте их в онлайн-режиме.",
-  "@logoutBlockedUnsynced": { "placeholders": { "count": { "type": "int" } } },
+  "@logoutBlockedUnsynced": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "closeShiftUnsyncedWarning": "Продаж с ошибкой синхронизации: {count}. Перед закрытием смены обратитесь в поддержку.",
-  "@closeShiftUnsyncedWarning": { "placeholders": { "count": { "type": "int" } } },
+  "@closeShiftUnsyncedWarning": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "closeShiftOffline": "В офлайн-режиме смену закрыть нельзя",
   "logoutFailedSalesConfirm": "{count} продаж не синхронизированы (ошибка). Они сохранятся на кассе. Всё равно выйти?",
-  "@logoutFailedSalesConfirm": { "placeholders": { "count": { "type": "int" } } },
+  "@logoutFailedSalesConfirm": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "logoutAnyway": "Всё равно выйти",
   "promoCode": "Промокод",
   "promoCodeHint": "Сканируйте или введите",
   "promoCodeCheck": "Проверить",
+  "promoCodeActive": "Активные промокоды",
+  "promoCodeActiveEmpty": "Нет активных промокодов",
+  "promoCodeActiveHint": "Сверьте код с кодом из SMS клиента",
+  "promoCodeValidUntil": "до {date}",
+  "@promoCodeValidUntil": { "placeholders": { "date": { "type": "String" } } },
+  "promoCodeLoadFailed": "Не удалось загрузить промокоды",
+  "promoCodeRetry": "Повторить",
   "promoCodeInvalid": "Неверный промокод — проверьте код",
   "promoCodeOwnerNotFound": "Владелец промокода не найден",
   "promoCodeWrongCustomer": "Этот промокод принадлежит другому клиенту",
@@ -618,10 +680,22 @@
   "promoCodeChildHasPass": "У ребёнка уже есть пропуск на сегодня — промокод действует только на новый вход или переход на VIP",
   "promoCodeRemove": "Убрать промокод",
   "promoCodeReleased": "Промокод не применён, код возвращён: {reason}",
-  "@promoCodeReleased": { "placeholders": { "reason": { "type": "String" } } },
+  "@promoCodeReleased": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "promoCodeBlogger": "Блогер",
   "promoCodeBloggerPending": "Промокод блогера {code} принят — выберите клиента",
-  "@promoCodeBloggerPending": { "placeholders": { "code": { "type": "String" } } },
+  "@promoCodeBloggerPending": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
   "promoCodeNotStarted": "Промокод ещё не действует",
   "promoCodeLimitReached": "Лимит использований промокода исчерпан",
   "promoCodeAlreadyUsedByCustomer": "Этот клиент уже использовал этот промокод",
@@ -632,23 +706,62 @@
   "accountDueFull": "Клиент платит",
   "accountFromBalance": "Списывается с баланса",
   "accountCoveredByBalance": "Полностью с баланса · останется {value}",
-  "@accountCoveredByBalance": { "placeholders": { "value": { "type": "String" } } },
+  "@accountCoveredByBalance": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "accountInsideCount": "{count} внутри",
-  "@accountInsideCount": { "placeholders": { "count": { "type": "int" } } },
+  "@accountInsideCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "accountAgeYears": "{count} лет",
-  "@accountAgeYears": { "placeholders": { "count": { "type": "int" } } },
+  "@accountAgeYears": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "accountInsideMinutes": "Внутри · {minutes} мин",
-  "@accountInsideMinutes": { "placeholders": { "minutes": { "type": "int" } } },
+  "@accountInsideMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "accountPayNow": "Оплата сейчас",
   "accountPayAtExit": "Считается на выходе",
   "accountAtExit": "на выходе",
   "accountPlanTimesKids": "{plan} × {count} дет.",
-  "@accountPlanTimesKids": { "placeholders": { "plan": { "type": "String" }, "count": { "type": "int" } } },
+  "@accountPlanTimesKids": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "accountColChild": "Ребёнок",
   "accountColTime": "Время",
   "accountColSoFar": "Сейчас",
   "accountExcessToBalance": "{value} зачислится на баланс",
-  "@accountExcessToBalance": { "placeholders": { "value": { "type": "String" } } },
+  "@accountExcessToBalance": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "accountToPay": "К оплате",
   "accountFromBalanceLine": "С баланса",
   "accountLeftOnBalance": "Останется на балансе",
@@ -658,18 +771,42 @@
   "accountTodayQrs": "QR-коды на сегодня",
   "accountTodayQrsHint": "Перепечатайте потерянный или испорченный стикер: оплата не списывается, старый стикер тоже работает.",
   "accountValidUntil": "до {time}",
-  "@accountValidUntil": { "placeholders": { "time": { "type": "String" } } },
+  "@accountValidUntil": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "reprintAll": "Перепечатать все",
   "themeNight": "Ночной режим",
   "themeDay": "Дневной режим",
   "themeNightHint": "Мягкий тёмно-синий фон, не утомляющий глаза. Запоминается на этой кассе.",
   "accountTxTitle": "История операций",
   "accountTxCount": "{count}",
-  "@accountTxCount": { "placeholders": { "count": { "type": "int" } } },
+  "@accountTxCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "accountTxEmpty": "У клиента пока нет операций",
   "accountTxFailed": "Не удалось загрузить операции",
   "accountTxRange": "{from}–{to} / {total}",
-  "@accountTxRange": { "placeholders": { "from": { "type": "int" }, "to": { "type": "int" }, "total": { "type": "int" } } },
+  "@accountTxRange": {
+    "placeholders": {
+      "from": {
+        "type": "int"
+      },
+      "to": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "accountTxPrev": "Назад",
   "accountTxNext": "Далее",
   "accountTxMore": "Другое",
@@ -689,19 +826,55 @@
   "txStatusFailed": "Не выполнено",
   "txStatusCancelled": "Отменено",
   "planSwitchUpgradeQuestion": "Перевести на тариф «{plan}»? С баланса спишется только доплата ({price}). Старый стикер будет остановлен, новый QR напечатается как «апгрейд».",
-  "@planSwitchUpgradeQuestion": { "placeholders": { "plan": { "type": "String" }, "price": { "type": "String" } } },
+  "@planSwitchUpgradeQuestion": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
+  },
   "upgradeCredit": "Уже оплачено {paid} — доплата: {due}.",
-  "@upgradeCredit": { "placeholders": { "paid": { "type": "String" }, "due": { "type": "String" } } },
+  "@upgradeCredit": {
+    "placeholders": {
+      "paid": {
+        "type": "String"
+      },
+      "due": {
+        "type": "String"
+      }
+    }
+  },
   "insideFilterAll": "Все",
   "insideFilterHour": "По времени",
   "insideFilterOvertime": "Время вышло",
   "hourOvertimeBanner": "У {count} детей закончилось время — позовите родителей",
-  "@hourOvertimeBanner": { "placeholders": { "count": { "type": "int" } } },
+  "@hourOvertimeBanner": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "hourOvertimeShow": "Показать",
   "hourOvertimeBy": "+{count} мин",
-  "@hourOvertimeBy": { "placeholders": { "count": { "type": "int" } } },
+  "@hourOvertimeBy": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "hourRemaining": "осталось {count} мин",
-  "@hourRemaining": { "placeholders": { "count": { "type": "int" } } },
+  "@hourRemaining": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "hourEndsAtLabel": "Заканчивается",
   "hourEndedAtLabel": "Закончился",
   "insideHourEmpty": "Сейчас нет детей на тарифах по времени",
@@ -717,9 +890,24 @@
   "shiftEnteredChildren": "Зашли внутрь",
   "shiftPrintReport": "Распечатать чек смены",
   "shiftCountUnit": "{count} шт.",
-  "@shiftCountUnit": { "placeholders": { "count": { "type": "int" } } },
+  "@shiftCountUnit": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "planSwitchUpgradeCollectQuestion": "Перевести на тариф «{plan}»? Сейчас берётся только доплата ({price}) — наличными или картой, на баланс ничего лишнего не попадёт. Старый стикер будет остановлен, новый QR напечатается как «апгрейд».",
-  "@planSwitchUpgradeCollectQuestion": { "placeholders": { "plan": { "type": "String" }, "price": { "type": "String" } } },
+  "@planSwitchUpgradeCollectQuestion": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
+  },
   "planSwitchCollectNow": "К оплате сейчас",
   "planSwitchContinue": "Продолжить",
   "planSwitchPayInDialog": "У выбранного ребёнка сегодня другой тариф — сумма к оплате (только доплата) будет в следующем окне.",
@@ -791,5 +979,317 @@
   "planSwitchBlocked": "«{name}»: нельзя перейти {from} → {to}",
   "foreignPhone": "Иностранный номер",
   "foreignPhoneHint": "Введите номер с кодом страны, например 7 916 123 45 67. На иностранные номера SMS не отправляются.",
-  "foreignPhoneIsUzbek": "998… — это узбекский номер. Выключите «Иностранный номер» и введите его после +998."
+  "foreignPhoneIsUzbek": "998… — это узбекский номер. Выключите «Иностранный номер» и введите его после +998.",
+  "lanBridgeActive": "Удалённая сессия активна",
+  "lanBridgeControl": "Удалённый доступ",
+  "lanBridgeConnected": "подключено",
+  "lanBridgeConnecting": "подключение",
+  "lanBridgeDisabled": "выключено",
+  "planUpgradeAndPrint": "Обновить тариф",
+  "planUpgradeLine": "{child}: {from} → {to}. {paid} уже оплачено — доплата: {due}",
+  "@planUpgradeLine": {
+    "placeholders": {
+      "child": {
+        "type": "String"
+      },
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      },
+      "paid": {
+        "type": "String"
+      },
+      "due": {
+        "type": "String"
+      }
+    }
+  },
+  "groupEntry": "Группа (школа)",
+  "groupEntryHint": "Только количество — без имён",
+  "moreActions": "Ещё",
+  "groupSelected": "Группа: {count} детей",
+  "@groupSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "groupDialogTitle": "Группа (школа) — сколько детей?",
+  "groupDialogHint": "Дети входят без имён: в чеке только количество, в статистике каждый считается отдельно.",
+  "groupCountLabel": "Количество детей",
+  "groupApply": "Выбрать",
+  "groupRemove": "Убрать группу",
+  "shiftBirthdayIncome": "Из них дни рождения",
+  "birthdaySell": "Продажа дня рождения",
+  "birthdayPlan": "Тариф",
+  "birthdayChildCount": "Количество детей",
+  "birthdayExtraChild": "Дополнительный ребёнок",
+  "birthdayDate": "Дата праздника",
+  "birthdayTotal": "Итого",
+  "birthdayPayFull": "Полная оплата",
+  "birthdayDeposit": "Залог",
+  "birthdayPaidBeforeParty": "Доплатить до праздника",
+  "birthdayBookAndReceipt": "Забронировать и чек",
+  "birthdayIncludes": "Входит в тариф",
+  "birthdayFromPrice": "от {price}",
+  "@birthdayFromPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayExtraPlusPrice": "+1 ребёнок: {price}",
+  "@birthdayExtraPlusPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayChildrenUnit": "детей",
+  "birthdayDepositAmount": "Сумма залога",
+  "birthdayResetExtra": "Сбросить до 0",
+  "birthdayExtraHint": "{plan} на {size} · каждый {price}",
+  "@birthdayExtraHint": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "plan": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayDiscountNote": "Цена изменена вручную — в отчёте скидка {amount}.",
+  "@birthdayDiscountNote": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayOffline": "Продажа дня рождения работает только онлайн",
+  "birthdayPickPlanFirst": "Сначала выберите тариф",
+  "birthdayNoPlans": "В этом филиале нет тарифов дня рождения",
+  "birthdayErrGeneric": "Операция не выполнена",
+  "birthdayErrPlanNotAvailable": "Тариф недоступен в этом филиале",
+  "birthdayErrSizeNotFound": "Такого количества детей нет в тарифе",
+  "birthdayErrPaymentEmpty": "Сумма оплаты не указана",
+  "birthdayErrPartyNotFound": "Праздник не найден",
+  "birthdayErrNotBooked": "Праздник уже завершён или отменён",
+  "birthdayErrCompleteTooEarly": "Нельзя завершить до даты праздника",
+  "birthdayPayment": "Оплата",
+  "tabEvents": "Мероприятия",
+  "eventsBooked": "Ожидаются",
+  "eventsCompleted": "Завершённые",
+  "eventsCancelled": "Отменённые",
+  "eventsOverdue": "Просроченные",
+  "eventsToday": "Сегодня",
+  "eventsTomorrow": "Завтра",
+  "eventsThisWeek": "На этой неделе",
+  "eventsNextWeek": "На следующей неделе",
+  "eventsLater": "Позже",
+  "eventsPaid": "Оплачено",
+  "eventsDebt": "Долг {amount}",
+  "@eventsDebt": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "eventsUnpaid": "Не оплачено",
+  "eventsAddPayment": "+ Оплата",
+  "eventsComplete": "Завершить",
+  "eventsChildUnit": "дет.",
+  "eventsEmpty": "Мероприятий нет",
+  "eventsRetry": "Повторить",
+  "eventsLoadError": "Не удалось загрузить события",
+  "bdAddPaymentFull": "+ Добавить оплату",
+  "bdLeft": "Осталось",
+  "bdPaidNet": "Оплачено",
+  "bdPayments": "Оплаты",
+  "bdNoPayments": "Оплат ещё нет",
+  "bdRefundToBalance": "Возврат на баланс",
+  "bdRefundToCash": "Возврат наличными",
+  "bdMoreChild": "+ ребёнок",
+  "bdChangeDate": "Изменить дату",
+  "bdCancelParty": "Отменить",
+  "bdCompleteFrom": "Завершить можно {date}",
+  "@bdCompleteFrom": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "bdCompleteDebt": "Остался долг: {amount} сум. Всё равно завершить?",
+  "@bdCompleteDebt": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bdCompleteAnyway": "Завершить",
+  "bdComments": "Заметки",
+  "bdNoComments": "Заметок нет",
+  "bdCommentHint": "Напишите заметку",
+  "bdAddChildTitle": "Дополнительные дети",
+  "bdAddChildPrice": "+{amount} сум",
+  "@bdAddChildPrice": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bdAddChildSubmit": "Добавить",
+  "bdPayTitle": "Добавить оплату",
+  "bdPayAmount": "Сумма оплаты",
+  "bdPayOverDebt": "Сумма не должна превышать долг",
+  "bdPaySubmit": "Принять оплату",
+  "bdCancelTitle": "Отмена события",
+  "bdCancelReason": "Причина",
+  "bdCancelReasonShort": "Минимум 3 символа",
+  "bdRefund": "Вернуть",
+  "bdNoRefund": "Не возвращать",
+  "bdToBalance": "На баланс",
+  "bdToCash": "Наличными",
+  "bdCashTooLarge": "Наличными не больше {max}",
+  "@bdCashTooLarge": {
+    "placeholders": {
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "bdTotalTooLarge": "Всего не больше {net}",
+  "@bdTotalTooLarge": {
+    "placeholders": {
+      "net": {
+        "type": "String"
+      }
+    }
+  },
+  "bdRefundEmpty": "Введите сумму",
+  "bdKept": "Остаётся: {amount}",
+  "@bdKept": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bdCancelConfirm": "Отменить",
+  "bdBack": "Назад",
+  "bdNetPaid": "Оплачено (нетто): {amount}",
+  "@bdNetPaid": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bdCancelledReason": "Причина: {reason}",
+  "@bdCancelledReason": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "bdRequestConflict": "Это действие уже выполнено — событие обновлено",
+  "bdExtraChildrenConflict": "Количество детей изменили на другой кассе. Данные обновлены — проверьте и при необходимости добавьте снова.",
+  "bdClose": "Закрыть",
+  "bdUnclearHint": "Ответ не получен. Суммы заблокированы — повторите попытку или закройте.",
+  "bdOfflineHint": "Нет сети — повторите попытку",
+  "bdTakeNow": "Берётся сейчас",
+  "bdFromBalanceLine": "С баланса −{amount}",
+  "@bdFromBalanceLine": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bdSplitMethod": "Смешанно {cash} + {card}",
+  "@bdSplitMethod": {
+    "placeholders": {
+      "cash": {
+        "type": "String"
+      },
+      "card": {
+        "type": "String"
+      }
+    }
+  },
+  "bdKeptChip": "Удержано {amount}",
+  "@bdKeptChip": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bdCancelledChip": "Отменено",
+  "shiftBirthdayRefunded": "Возврат по дню рождения",
+  "bdBalanceUnknown": "Баланс неизвестен",
+  "bdKeptLabel": "Удержано",
+  "servicesTitle": "Услуги",
+  "servicesBirthdaySubtitle": "Пакет, залог, оплата с баланса",
+  "birthdayStepPlanHint": "Выберите по цвету",
+  "birthdayStepSizeHint": "Детей в пакете",
+  "birthdayStepExtraHint": "Дети сверх пакета",
+  "birthdayStepDateHint": "День праздника",
+  "birthdayIncludesTier": "В тариф {plan} входит",
+  "@birthdayIncludesTier": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayExtraEach": "каждый {price}",
+  "@birthdayExtraEach": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayExtraRemove": "Убрать одного",
+  "birthdayExtraAdd": "Добавить одного",
+  "birthdayInAWeek": "+7 дней",
+  "birthdayOtherDate": "Другая дата",
+  "birthdaySummary": "Расчёт",
+  "birthdayDiscountLine": "Скидка",
+  "birthdayTotalEditHint": "Цену можно изменить вручную",
+  "birthdaySummaryEmpty": "Выберите тариф и количество детей — расчёт появится здесь",
+  "bdWalletUsable": "Баланс: {amount} можно списать",
+  "@bdWalletUsable": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bdWalletBonus": "Бонус {amount} — списать нельзя",
+  "@bdWalletBonus": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bdWalletNoUsable": "На балансе нет реальных денег — примите наличными или картой",
+  "bdWalletFailed": "Баланс неизвестен — примите наличными или картой",
+  "bdLeftBeforeParty": "Осталось · до праздника"
 }

@@ -83,10 +83,8 @@ class _RefundSaleDialogState extends State<_RefundSaleDialog> {
     super.dispose();
   }
 
-  int get _limit => widget.sale.refundCeilingFor(
-    _method,
-    handedBackUzs: _handedBackUzs,
-  );
+  int get _limit =>
+      widget.sale.refundCeilingFor(_method, handedBackUzs: _handedBackUzs);
   int? get _amount =>
       _picksPasses ? _selectedPassTotal : parseUzs(_amountController.text);
 

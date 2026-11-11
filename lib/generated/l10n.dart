@@ -279,6 +279,36 @@ class AppLocalization {
     return Intl.message('No discount', name: 'noDiscount', desc: '', args: []);
   }
 
+  /// `How old today?`
+  String get birthdayAgeTitle {
+    return Intl.message(
+      'How old today?',
+      name: 'birthdayAgeTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `It's {name}'s birthday. Pick the age — the date is saved on the child.`
+  String birthdayAgeHint(Object name) {
+    return Intl.message(
+      'It\'s $name\'s birthday. Pick the age — the date is saved on the child.',
+      name: 'birthdayAgeHint',
+      desc: '',
+      args: [name],
+    );
+  }
+
+  /// `{age} y.o.`
+  String birthdayAgeChip(Object age) {
+    return Intl.message(
+      '$age y.o.',
+      name: 'birthdayAgeChip',
+      desc: '',
+      args: [age],
+    );
+  }
+
   /// `Free (100%)`
   String get discountGroupFree {
     return Intl.message(
@@ -879,6 +909,16 @@ class AppLocalization {
     return Intl.message(
       'Search results',
       name: 'searchResult',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Similar numbers — other customers`
+  String get similarNumbers {
+    return Intl.message(
+      'Similar numbers — other customers',
+      name: 'similarNumbers',
       desc: '',
       args: [],
     );
@@ -2824,6 +2864,61 @@ class AppLocalization {
     return Intl.message('Check', name: 'promoCodeCheck', desc: '', args: []);
   }
 
+  /// `Active promo codes`
+  String get promoCodeActive {
+    return Intl.message(
+      'Active promo codes',
+      name: 'promoCodeActive',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No active promo codes`
+  String get promoCodeActiveEmpty {
+    return Intl.message(
+      'No active promo codes',
+      name: 'promoCodeActiveEmpty',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Match the code with the one in the customer's SMS`
+  String get promoCodeActiveHint {
+    return Intl.message(
+      'Match the code with the one in the customer\'s SMS',
+      name: 'promoCodeActiveHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `until {date}`
+  String promoCodeValidUntil(String date) {
+    return Intl.message(
+      'until $date',
+      name: 'promoCodeValidUntil',
+      desc: '',
+      args: [date],
+    );
+  }
+
+  /// `Couldn't load promo codes`
+  String get promoCodeLoadFailed {
+    return Intl.message(
+      'Couldn\'t load promo codes',
+      name: 'promoCodeLoadFailed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Retry`
+  String get promoCodeRetry {
+    return Intl.message('Retry', name: 'promoCodeRetry', desc: '', args: []);
+  }
+
   /// `Invalid promo code — check the code`
   String get promoCodeInvalid {
     return Intl.message(
@@ -4134,6 +4229,1197 @@ class AppLocalization {
     return Intl.message(
       '998… is an Uzbek number — turn off "Foreign number" and type it after +998.',
       name: 'foreignPhoneIsUzbek',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Remote session active`
+  String get lanBridgeActive {
+    return Intl.message(
+      'Remote session active',
+      name: 'lanBridgeActive',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Remote access`
+  String get lanBridgeControl {
+    return Intl.message(
+      'Remote access',
+      name: 'lanBridgeControl',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `connected`
+  String get lanBridgeConnected {
+    return Intl.message(
+      'connected',
+      name: 'lanBridgeConnected',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `connecting`
+  String get lanBridgeConnecting {
+    return Intl.message(
+      'connecting',
+      name: 'lanBridgeConnecting',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `off`
+  String get lanBridgeDisabled {
+    return Intl.message('off', name: 'lanBridgeDisabled', desc: '', args: []);
+  }
+
+  /// `Upgrade plan`
+  String get planUpgradeAndPrint {
+    return Intl.message(
+      'Upgrade plan',
+      name: 'planUpgradeAndPrint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{child}: {from} → {to}. {paid} already paid — surcharge: {due}`
+  String planUpgradeLine(
+    String child,
+    String from,
+    String to,
+    String paid,
+    String due,
+  ) {
+    return Intl.message(
+      '$child: $from → $to. $paid already paid — surcharge: $due',
+      name: 'planUpgradeLine',
+      desc: '',
+      args: [child, from, to, paid, due],
+    );
+  }
+
+  /// `Group (school)`
+  String get groupEntry {
+    return Intl.message(
+      'Group (school)',
+      name: 'groupEntry',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Count only — no names`
+  String get groupEntryHint {
+    return Intl.message(
+      'Count only — no names',
+      name: 'groupEntryHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `More`
+  String get moreActions {
+    return Intl.message('More', name: 'moreActions', desc: '', args: []);
+  }
+
+  /// `Group: {count} kids`
+  String groupSelected(int count) {
+    return Intl.message(
+      'Group: $count kids',
+      name: 'groupSelected',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `Group (school) — how many kids?`
+  String get groupDialogTitle {
+    return Intl.message(
+      'Group (school) — how many kids?',
+      name: 'groupDialogTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Kids enter without names: the receipt shows only the count, statistics count each one.`
+  String get groupDialogHint {
+    return Intl.message(
+      'Kids enter without names: the receipt shows only the count, statistics count each one.',
+      name: 'groupDialogHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Number of kids`
+  String get groupCountLabel {
+    return Intl.message(
+      'Number of kids',
+      name: 'groupCountLabel',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Select`
+  String get groupApply {
+    return Intl.message('Select', name: 'groupApply', desc: '', args: []);
+  }
+
+  /// `Remove group`
+  String get groupRemove {
+    return Intl.message(
+      'Remove group',
+      name: 'groupRemove',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `of which birthday parties`
+  String get shiftBirthdayIncome {
+    return Intl.message(
+      'of which birthday parties',
+      name: 'shiftBirthdayIncome',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Sell birthday party`
+  String get birthdaySell {
+    return Intl.message(
+      'Sell birthday party',
+      name: 'birthdaySell',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Package`
+  String get birthdayPlan {
+    return Intl.message('Package', name: 'birthdayPlan', desc: '', args: []);
+  }
+
+  /// `Number of children`
+  String get birthdayChildCount {
+    return Intl.message(
+      'Number of children',
+      name: 'birthdayChildCount',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Extra child`
+  String get birthdayExtraChild {
+    return Intl.message(
+      'Extra child',
+      name: 'birthdayExtraChild',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Party date`
+  String get birthdayDate {
+    return Intl.message('Party date', name: 'birthdayDate', desc: '', args: []);
+  }
+
+  /// `Total`
+  String get birthdayTotal {
+    return Intl.message('Total', name: 'birthdayTotal', desc: '', args: []);
+  }
+
+  /// `Full payment`
+  String get birthdayPayFull {
+    return Intl.message(
+      'Full payment',
+      name: 'birthdayPayFull',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Deposit`
+  String get birthdayDeposit {
+    return Intl.message('Deposit', name: 'birthdayDeposit', desc: '', args: []);
+  }
+
+  /// `Due before the party`
+  String get birthdayPaidBeforeParty {
+    return Intl.message(
+      'Due before the party',
+      name: 'birthdayPaidBeforeParty',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Book and print receipt`
+  String get birthdayBookAndReceipt {
+    return Intl.message(
+      'Book and print receipt',
+      name: 'birthdayBookAndReceipt',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Included`
+  String get birthdayIncludes {
+    return Intl.message(
+      'Included',
+      name: 'birthdayIncludes',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `from {price}`
+  String birthdayFromPrice(String price) {
+    return Intl.message(
+      'from $price',
+      name: 'birthdayFromPrice',
+      desc: '',
+      args: [price],
+    );
+  }
+
+  /// `+1 child: {price}`
+  String birthdayExtraPlusPrice(String price) {
+    return Intl.message(
+      '+1 child: $price',
+      name: 'birthdayExtraPlusPrice',
+      desc: '',
+      args: [price],
+    );
+  }
+
+  /// `children`
+  String get birthdayChildrenUnit {
+    return Intl.message(
+      'children',
+      name: 'birthdayChildrenUnit',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Deposit amount`
+  String get birthdayDepositAmount {
+    return Intl.message(
+      'Deposit amount',
+      name: 'birthdayDepositAmount',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Reset to 0`
+  String get birthdayResetExtra {
+    return Intl.message(
+      'Reset to 0',
+      name: 'birthdayResetExtra',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{plan} for {size} · each {price}`
+  String birthdayExtraHint(String size, String plan, String price) {
+    return Intl.message(
+      '$plan for $size · each $price',
+      name: 'birthdayExtraHint',
+      desc: '',
+      args: [size, plan, price],
+    );
+  }
+
+  /// `Price changed by hand — reported as a {amount} discount.`
+  String birthdayDiscountNote(String amount) {
+    return Intl.message(
+      'Price changed by hand — reported as a $amount discount.',
+      name: 'birthdayDiscountNote',
+      desc: '',
+      args: [amount],
+    );
+  }
+
+  /// `Birthday sales need an internet connection`
+  String get birthdayOffline {
+    return Intl.message(
+      'Birthday sales need an internet connection',
+      name: 'birthdayOffline',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Pick a package first`
+  String get birthdayPickPlanFirst {
+    return Intl.message(
+      'Pick a package first',
+      name: 'birthdayPickPlanFirst',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No birthday packages at this branch`
+  String get birthdayNoPlans {
+    return Intl.message(
+      'No birthday packages at this branch',
+      name: 'birthdayNoPlans',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Birthday action failed`
+  String get birthdayErrGeneric {
+    return Intl.message(
+      'Birthday action failed',
+      name: 'birthdayErrGeneric',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `This package is not available here`
+  String get birthdayErrPlanNotAvailable {
+    return Intl.message(
+      'This package is not available here',
+      name: 'birthdayErrPlanNotAvailable',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `This child count is not in the package`
+  String get birthdayErrSizeNotFound {
+    return Intl.message(
+      'This child count is not in the package',
+      name: 'birthdayErrSizeNotFound',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No payment amount entered`
+  String get birthdayErrPaymentEmpty {
+    return Intl.message(
+      'No payment amount entered',
+      name: 'birthdayErrPaymentEmpty',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Party not found`
+  String get birthdayErrPartyNotFound {
+    return Intl.message(
+      'Party not found',
+      name: 'birthdayErrPartyNotFound',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The party is already completed or cancelled`
+  String get birthdayErrNotBooked {
+    return Intl.message(
+      'The party is already completed or cancelled',
+      name: 'birthdayErrNotBooked',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Cannot complete before the party date`
+  String get birthdayErrCompleteTooEarly {
+    return Intl.message(
+      'Cannot complete before the party date',
+      name: 'birthdayErrCompleteTooEarly',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Payment`
+  String get birthdayPayment {
+    return Intl.message('Payment', name: 'birthdayPayment', desc: '', args: []);
+  }
+
+  /// `Events`
+  String get tabEvents {
+    return Intl.message('Events', name: 'tabEvents', desc: '', args: []);
+  }
+
+  /// `Upcoming`
+  String get eventsBooked {
+    return Intl.message('Upcoming', name: 'eventsBooked', desc: '', args: []);
+  }
+
+  /// `Completed`
+  String get eventsCompleted {
+    return Intl.message(
+      'Completed',
+      name: 'eventsCompleted',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Cancelled`
+  String get eventsCancelled {
+    return Intl.message(
+      'Cancelled',
+      name: 'eventsCancelled',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Overdue`
+  String get eventsOverdue {
+    return Intl.message('Overdue', name: 'eventsOverdue', desc: '', args: []);
+  }
+
+  /// `Today`
+  String get eventsToday {
+    return Intl.message('Today', name: 'eventsToday', desc: '', args: []);
+  }
+
+  /// `Tomorrow`
+  String get eventsTomorrow {
+    return Intl.message('Tomorrow', name: 'eventsTomorrow', desc: '', args: []);
+  }
+
+  /// `This week`
+  String get eventsThisWeek {
+    return Intl.message(
+      'This week',
+      name: 'eventsThisWeek',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Next week`
+  String get eventsNextWeek {
+    return Intl.message(
+      'Next week',
+      name: 'eventsNextWeek',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Later`
+  String get eventsLater {
+    return Intl.message('Later', name: 'eventsLater', desc: '', args: []);
+  }
+
+  /// `Paid`
+  String get eventsPaid {
+    return Intl.message('Paid', name: 'eventsPaid', desc: '', args: []);
+  }
+
+  /// `Debt {amount}`
+  String eventsDebt(String amount) {
+    return Intl.message(
+      'Debt $amount',
+      name: 'eventsDebt',
+      desc: '',
+      args: [amount],
+    );
+  }
+
+  /// `Unpaid`
+  String get eventsUnpaid {
+    return Intl.message('Unpaid', name: 'eventsUnpaid', desc: '', args: []);
+  }
+
+  /// `+ Payment`
+  String get eventsAddPayment {
+    return Intl.message(
+      '+ Payment',
+      name: 'eventsAddPayment',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Complete`
+  String get eventsComplete {
+    return Intl.message('Complete', name: 'eventsComplete', desc: '', args: []);
+  }
+
+  /// `children`
+  String get eventsChildUnit {
+    return Intl.message(
+      'children',
+      name: 'eventsChildUnit',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No events`
+  String get eventsEmpty {
+    return Intl.message('No events', name: 'eventsEmpty', desc: '', args: []);
+  }
+
+  /// `Retry`
+  String get eventsRetry {
+    return Intl.message('Retry', name: 'eventsRetry', desc: '', args: []);
+  }
+
+  /// `Unable to load events`
+  String get eventsLoadError {
+    return Intl.message(
+      'Unable to load events',
+      name: 'eventsLoadError',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `+ Add payment`
+  String get bdAddPaymentFull {
+    return Intl.message(
+      '+ Add payment',
+      name: 'bdAddPaymentFull',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Left`
+  String get bdLeft {
+    return Intl.message('Left', name: 'bdLeft', desc: '', args: []);
+  }
+
+  /// `Paid`
+  String get bdPaidNet {
+    return Intl.message('Paid', name: 'bdPaidNet', desc: '', args: []);
+  }
+
+  /// `Payments`
+  String get bdPayments {
+    return Intl.message('Payments', name: 'bdPayments', desc: '', args: []);
+  }
+
+  /// `No payments yet`
+  String get bdNoPayments {
+    return Intl.message(
+      'No payments yet',
+      name: 'bdNoPayments',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Refunded to balance`
+  String get bdRefundToBalance {
+    return Intl.message(
+      'Refunded to balance',
+      name: 'bdRefundToBalance',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Refunded in cash`
+  String get bdRefundToCash {
+    return Intl.message(
+      'Refunded in cash',
+      name: 'bdRefundToCash',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `+ child`
+  String get bdMoreChild {
+    return Intl.message('+ child', name: 'bdMoreChild', desc: '', args: []);
+  }
+
+  /// `Change date`
+  String get bdChangeDate {
+    return Intl.message(
+      'Change date',
+      name: 'bdChangeDate',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Cancel party`
+  String get bdCancelParty {
+    return Intl.message(
+      'Cancel party',
+      name: 'bdCancelParty',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Can be completed on {date}`
+  String bdCompleteFrom(String date) {
+    return Intl.message(
+      'Can be completed on $date',
+      name: 'bdCompleteFrom',
+      desc: '',
+      args: [date],
+    );
+  }
+
+  /// `Debt left: {amount} UZS. Complete anyway?`
+  String bdCompleteDebt(String amount) {
+    return Intl.message(
+      'Debt left: $amount UZS. Complete anyway?',
+      name: 'bdCompleteDebt',
+      desc: '',
+      args: [amount],
+    );
+  }
+
+  /// `Complete`
+  String get bdCompleteAnyway {
+    return Intl.message(
+      'Complete',
+      name: 'bdCompleteAnyway',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Comments`
+  String get bdComments {
+    return Intl.message('Comments', name: 'bdComments', desc: '', args: []);
+  }
+
+  /// `No comments`
+  String get bdNoComments {
+    return Intl.message(
+      'No comments',
+      name: 'bdNoComments',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Write a comment`
+  String get bdCommentHint {
+    return Intl.message(
+      'Write a comment',
+      name: 'bdCommentHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Extra children`
+  String get bdAddChildTitle {
+    return Intl.message(
+      'Extra children',
+      name: 'bdAddChildTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `+{amount} UZS`
+  String bdAddChildPrice(String amount) {
+    return Intl.message(
+      '+$amount UZS',
+      name: 'bdAddChildPrice',
+      desc: '',
+      args: [amount],
+    );
+  }
+
+  /// `Add`
+  String get bdAddChildSubmit {
+    return Intl.message('Add', name: 'bdAddChildSubmit', desc: '', args: []);
+  }
+
+  /// `Add payment`
+  String get bdPayTitle {
+    return Intl.message('Add payment', name: 'bdPayTitle', desc: '', args: []);
+  }
+
+  /// `Payment amount`
+  String get bdPayAmount {
+    return Intl.message(
+      'Payment amount',
+      name: 'bdPayAmount',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Amount cannot exceed the debt`
+  String get bdPayOverDebt {
+    return Intl.message(
+      'Amount cannot exceed the debt',
+      name: 'bdPayOverDebt',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Take payment`
+  String get bdPaySubmit {
+    return Intl.message(
+      'Take payment',
+      name: 'bdPaySubmit',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Cancel the party`
+  String get bdCancelTitle {
+    return Intl.message(
+      'Cancel the party',
+      name: 'bdCancelTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Reason`
+  String get bdCancelReason {
+    return Intl.message('Reason', name: 'bdCancelReason', desc: '', args: []);
+  }
+
+  /// `At least 3 characters`
+  String get bdCancelReasonShort {
+    return Intl.message(
+      'At least 3 characters',
+      name: 'bdCancelReasonShort',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Refund`
+  String get bdRefund {
+    return Intl.message('Refund', name: 'bdRefund', desc: '', args: []);
+  }
+
+  /// `Keep the money`
+  String get bdNoRefund {
+    return Intl.message(
+      'Keep the money',
+      name: 'bdNoRefund',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `To balance`
+  String get bdToBalance {
+    return Intl.message('To balance', name: 'bdToBalance', desc: '', args: []);
+  }
+
+  /// `Cash`
+  String get bdToCash {
+    return Intl.message('Cash', name: 'bdToCash', desc: '', args: []);
+  }
+
+  /// `Cash cannot exceed {max}`
+  String bdCashTooLarge(String max) {
+    return Intl.message(
+      'Cash cannot exceed $max',
+      name: 'bdCashTooLarge',
+      desc: '',
+      args: [max],
+    );
+  }
+
+  /// `Total cannot exceed {net}`
+  String bdTotalTooLarge(String net) {
+    return Intl.message(
+      'Total cannot exceed $net',
+      name: 'bdTotalTooLarge',
+      desc: '',
+      args: [net],
+    );
+  }
+
+  /// `Enter an amount`
+  String get bdRefundEmpty {
+    return Intl.message(
+      'Enter an amount',
+      name: 'bdRefundEmpty',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Kept: {amount}`
+  String bdKept(String amount) {
+    return Intl.message(
+      'Kept: $amount',
+      name: 'bdKept',
+      desc: '',
+      args: [amount],
+    );
+  }
+
+  /// `Cancel party`
+  String get bdCancelConfirm {
+    return Intl.message(
+      'Cancel party',
+      name: 'bdCancelConfirm',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Back`
+  String get bdBack {
+    return Intl.message('Back', name: 'bdBack', desc: '', args: []);
+  }
+
+  /// `Net paid: {amount}`
+  String bdNetPaid(String amount) {
+    return Intl.message(
+      'Net paid: $amount',
+      name: 'bdNetPaid',
+      desc: '',
+      args: [amount],
+    );
+  }
+
+  /// `Reason: {reason}`
+  String bdCancelledReason(String reason) {
+    return Intl.message(
+      'Reason: $reason',
+      name: 'bdCancelledReason',
+      desc: '',
+      args: [reason],
+    );
+  }
+
+  /// `This action was already done — the event was refreshed`
+  String get bdRequestConflict {
+    return Intl.message(
+      'This action was already done — the event was refreshed',
+      name: 'bdRequestConflict',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Another till changed the number of children. Refreshed — check and add again if needed.`
+  String get bdExtraChildrenConflict {
+    return Intl.message(
+      'Another till changed the number of children. Refreshed — check and add again if needed.',
+      name: 'bdExtraChildrenConflict',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Close`
+  String get bdClose {
+    return Intl.message('Close', name: 'bdClose', desc: '', args: []);
+  }
+
+  /// `No response received. Amounts are locked — try again or close.`
+  String get bdUnclearHint {
+    return Intl.message(
+      'No response received. Amounts are locked — try again or close.',
+      name: 'bdUnclearHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `No network — try again`
+  String get bdOfflineHint {
+    return Intl.message(
+      'No network — try again',
+      name: 'bdOfflineHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Collect now`
+  String get bdTakeNow {
+    return Intl.message('Collect now', name: 'bdTakeNow', desc: '', args: []);
+  }
+
+  /// `From balance −{amount}`
+  String bdFromBalanceLine(String amount) {
+    return Intl.message(
+      'From balance −$amount',
+      name: 'bdFromBalanceLine',
+      desc: '',
+      args: [amount],
+    );
+  }
+
+  /// `Split {cash} + {card}`
+  String bdSplitMethod(String cash, String card) {
+    return Intl.message(
+      'Split $cash + $card',
+      name: 'bdSplitMethod',
+      desc: '',
+      args: [cash, card],
+    );
+  }
+
+  /// `Kept {amount}`
+  String bdKeptChip(String amount) {
+    return Intl.message(
+      'Kept $amount',
+      name: 'bdKeptChip',
+      desc: '',
+      args: [amount],
+    );
+  }
+
+  /// `Cancelled`
+  String get bdCancelledChip {
+    return Intl.message(
+      'Cancelled',
+      name: 'bdCancelledChip',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Birthday refunded`
+  String get shiftBirthdayRefunded {
+    return Intl.message(
+      'Birthday refunded',
+      name: 'shiftBirthdayRefunded',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Balance unknown`
+  String get bdBalanceUnknown {
+    return Intl.message(
+      'Balance unknown',
+      name: 'bdBalanceUnknown',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Kept`
+  String get bdKeptLabel {
+    return Intl.message('Kept', name: 'bdKeptLabel', desc: '', args: []);
+  }
+
+  /// `Services`
+  String get servicesTitle {
+    return Intl.message('Services', name: 'servicesTitle', desc: '', args: []);
+  }
+
+  /// `Package, deposit, pay from balance`
+  String get servicesBirthdaySubtitle {
+    return Intl.message(
+      'Package, deposit, pay from balance',
+      name: 'servicesBirthdaySubtitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Pick by colour`
+  String get birthdayStepPlanHint {
+    return Intl.message(
+      'Pick by colour',
+      name: 'birthdayStepPlanHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Children in the package`
+  String get birthdayStepSizeHint {
+    return Intl.message(
+      'Children in the package',
+      name: 'birthdayStepSizeHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Children on top of the package`
+  String get birthdayStepExtraHint {
+    return Intl.message(
+      'Children on top of the package',
+      name: 'birthdayStepExtraHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The day of the party`
+  String get birthdayStepDateHint {
+    return Intl.message(
+      'The day of the party',
+      name: 'birthdayStepDateHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{plan} includes`
+  String birthdayIncludesTier(String plan) {
+    return Intl.message(
+      '$plan includes',
+      name: 'birthdayIncludesTier',
+      desc: '',
+      args: [plan],
+    );
+  }
+
+  /// `each {price}`
+  String birthdayExtraEach(String price) {
+    return Intl.message(
+      'each $price',
+      name: 'birthdayExtraEach',
+      desc: '',
+      args: [price],
+    );
+  }
+
+  /// `Remove one`
+  String get birthdayExtraRemove {
+    return Intl.message(
+      'Remove one',
+      name: 'birthdayExtraRemove',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Add one`
+  String get birthdayExtraAdd {
+    return Intl.message(
+      'Add one',
+      name: 'birthdayExtraAdd',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `+7 days`
+  String get birthdayInAWeek {
+    return Intl.message('+7 days', name: 'birthdayInAWeek', desc: '', args: []);
+  }
+
+  /// `Other date`
+  String get birthdayOtherDate {
+    return Intl.message(
+      'Other date',
+      name: 'birthdayOtherDate',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Summary`
+  String get birthdaySummary {
+    return Intl.message('Summary', name: 'birthdaySummary', desc: '', args: []);
+  }
+
+  /// `Discount`
+  String get birthdayDiscountLine {
+    return Intl.message(
+      'Discount',
+      name: 'birthdayDiscountLine',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The price can be edited`
+  String get birthdayTotalEditHint {
+    return Intl.message(
+      'The price can be edited',
+      name: 'birthdayTotalEditHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Pick a plan and the child count — the summary shows here`
+  String get birthdaySummaryEmpty {
+    return Intl.message(
+      'Pick a plan and the child count — the summary shows here',
+      name: 'birthdaySummaryEmpty',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Balance: {amount} usable`
+  String bdWalletUsable(String amount) {
+    return Intl.message(
+      'Balance: $amount usable',
+      name: 'bdWalletUsable',
+      desc: '',
+      args: [amount],
+    );
+  }
+
+  /// `Bonus {amount} — can’t be used`
+  String bdWalletBonus(String amount) {
+    return Intl.message(
+      'Bonus $amount — can’t be used',
+      name: 'bdWalletBonus',
+      desc: '',
+      args: [amount],
+    );
+  }
+
+  /// `No real money on the balance — take cash or card`
+  String get bdWalletNoUsable {
+    return Intl.message(
+      'No real money on the balance — take cash or card',
+      name: 'bdWalletNoUsable',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Balance unknown — take cash or card`
+  String get bdWalletFailed {
+    return Intl.message(
+      'Balance unknown — take cash or card',
+      name: 'bdWalletFailed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Left · before the party`
+  String get bdLeftBeforeParty {
+    return Intl.message(
+      'Left · before the party',
+      name: 'bdLeftBeforeParty',
       desc: '',
       args: [],
     );

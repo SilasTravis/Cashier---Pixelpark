@@ -33,6 +33,73 @@ enum PromoCodeSource {
       raw == 'blogger' ? PromoCodeSource.blogger : PromoCodeSource.partner;
 }
 
+/// A code picked from the customer's "Faol promokodlar" list has no text the
+/// app could send (the server keeps only a hash), so it travels through the
+/// same `String code` plumbing as a reference: `id:<codeId>`. No typed or
+/// scanned code can contain ':' (the normaliser keeps letters and digits), so
+/// the two never collide. The data layer turns a reference into `codeId`.
+const promoCodeRefPrefix = 'id:';
+
+String promoCodeRefOf(String codeId) => '$promoCodeRefPrefix$codeId';
+
+/// The code id inside a reference, or null for an ordinary typed/scanned code.
+String? promoCodeIdOf(String code) => code.startsWith(promoCodeRefPrefix)
+    ? code.substring(promoCodeRefPrefix.length)
+    : null;
+
+/// One redeemable code of the open customer — a row of the "Faol
+/// promokodlar" list. Only the tail of the code is known: the cashier matches
+/// it against the code in the customer's SMS.
+class CustomerPromoCode extends Equatable {
+  const CustomerPromoCode({
+    required this.codeId,
+    required this.partnerName,
+    required this.tierName,
+    required this.discount,
+    required this.expiresAt,
+    required this.codeLast4,
+    this.code,
+  });
+
+  final String codeId;
+  final String partnerName;
+  final String tierName;
+  final Discount discount;
+  final DateTime expiresAt;
+  final String codeLast4;
+
+  /// The whole code, when the server could read it back (codes issued after
+  /// it started keeping an encrypted copy); null for older ones — the tile
+  /// then shows [codeLast4].
+  final String? code;
+
+  factory CustomerPromoCode.fromJson(Map<String, dynamic> json) =>
+      CustomerPromoCode(
+        codeId: json['codeId'] as String,
+        partnerName:
+            (json['partner'] as Map<String, dynamic>)['name'] as String,
+        tierName: (json['tier'] as Map<String, dynamic>)['name'] as String,
+        discount: Discount.fromJson({
+          ...json['discount'] as Map<String, dynamic>,
+          'scope': 'entry',
+        }),
+        expiresAt: DateTime.parse(json['expiresAt'] as String).toLocal(),
+        codeLast4: json['codeLast4'] as String,
+        code: json['code'] as String?,
+      );
+
+  @override
+  List<Object?> get props => [
+    codeId,
+    partnerName,
+    tierName,
+    discount,
+    expiresAt,
+    codeLast4,
+    code,
+  ];
+}
+
 /// `POST /v1/pos/promo-codes/verify` — what a scanned/typed promo code is
 /// worth. Nothing is used yet: the redemption happens inside the
 /// plan-entry checkout (`promoCode`).
@@ -74,9 +141,12 @@ class PromoCodeCheck extends Equatable {
     final tier = json['tier'] as Map<String, dynamic>;
     final owner = json['customer'] as Map<String, dynamic>?;
     final expiresAt = json['expiresAt'] as String?;
+    final serverCode = json['code'] as String?;
     return PromoCodeCheck(
       source: PromoCodeSource.parse(json['source']),
-      code: json['code'] as String? ?? code,
+      // Empty for a code looked up by id (no plaintext exists): keep the
+      // reference we asked with — it is what the checkout sends back.
+      code: serverCode == null || serverCode.isEmpty ? code : serverCode,
       partnerName: partner['name'] as String,
       tierName: tier['name'] as String,
       discount: Discount.fromJson({

@@ -11,6 +11,12 @@ abstract final class AppKeys {
   static const String branchId = 'branchId';
   static const String branchName = 'branchName';
 
+  /// The signed-in branch's dashboard switch "Kassada QR stiker chiqarilsin": on,
+  /// the till prints each child's entry QR; off, only the payment receipt.
+  /// Session: refreshed on login and by every terminal heartbeat, cleared
+  /// on logout (absent = on).
+  static const String printEntryQr = 'printEntryQr';
+
   static const String apiBaseUrl = 'apiBaseUrl';
   static const String languageCode = 'languageCode';
   static const String qrPrinterName = 'qrPrinterName';
@@ -28,6 +34,11 @@ abstract final class AppKeys {
   /// This installation's identity for the backend's terminal monitoring.
   /// Device config, not session: never cleared on logout.
   static const String terminalId = 'terminalId';
+
+  /// The LAN-bridge terminal token minted by the backend after a cashier
+  /// login (`lbt_…`). Device config, not session: never cleared on logout,
+  /// so the bridge stays connected with no cashier signed in.
+  static const String terminalToken = 'terminalToken';
 
   /// The most recent failed self-update attempt (a JSON-compatible map, see
   /// `UpdateFailureLog`). Device config, not session: never cleared on

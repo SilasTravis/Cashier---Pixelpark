@@ -5,7 +5,10 @@ import 'package:phosphor_icons/phosphor_icons.dart';
 import '../../../../generated/l10n.dart';
 import 'package:window_manager/window_manager.dart';
 
+import '../../../../core/lan_bridge/lan_bridge_control_client.dart';
+import '../../../../core/lan_bridge/widgets/lan_bridge_indicator.dart';
 import '../../../../core/theme/nocturne_colors.dart';
+import '../../../../injector_container.dart';
 
 /// Custom frameless title bar — `window_manager` hides the OS chrome
 /// (`TitleBarStyle.hidden`), so drag/minimize/maximize/close are reimplemented
@@ -78,6 +81,10 @@ class _TitleBarState extends State<TitleBar> with WindowListener {
                         fontSize: 12,
                         color: NocturneColors.text.withValues(alpha: 0.6),
                       ),
+                    ),
+                    LanBridgeIndicator(
+                      states: sl<LanBridgeControlClient>().states,
+                      current: () => sl<LanBridgeControlClient>().state,
                     ),
                   ],
                 ),

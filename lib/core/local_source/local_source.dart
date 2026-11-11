@@ -21,6 +21,7 @@ class LocalSource {
       AppKeys.cashierUsername,
       AppKeys.branchId,
       AppKeys.branchName,
+      AppKeys.printEntryQr,
     ]);
   }
 
@@ -64,6 +65,16 @@ class LocalSource {
   String? getBranchId() => box.get(AppKeys.branchId) as String?;
   String? getBranchName() => box.get(AppKeys.branchName) as String?;
 
+  Future<void> setPrintEntryQr(bool value) async {
+    await box.put(AppKeys.printEntryQr, value);
+  }
+
+  /// The branch's "Kassada QR stiker chiqarilsin" — only then does
+  /// checkout print each child's entry QR (sticker / ticket), the parent QR
+  /// and re-prints. True when never set.
+  bool getPrintEntryQr() =>
+      box.get(AppKeys.printEntryQr, defaultValue: true) as bool;
+
   Future<void> setApiBaseUrl(String value) async {
     await box.put(AppKeys.apiBaseUrl, value);
   }
@@ -76,6 +87,16 @@ class LocalSource {
 
   String getLanguageCode() =>
       box.get(AppKeys.languageCode, defaultValue: 'uz') as String;
+
+  String? getTerminalToken() => box.get(AppKeys.terminalToken) as String?;
+
+  Future<void> setTerminalToken(String? value) async {
+    if (value == null) return box.delete(AppKeys.terminalToken);
+    await box.put(AppKeys.terminalToken, value);
+  }
+
+  /// Fires on every write or delete of the terminal token.
+  Stream<void> watchTerminalToken() => box.watch(key: AppKeys.terminalToken);
 
   Future<void> setQrPrinterName(String? value) async {
     if (value == null) return box.delete(AppKeys.qrPrinterName);

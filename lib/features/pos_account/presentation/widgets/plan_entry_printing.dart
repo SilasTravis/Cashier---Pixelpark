@@ -56,6 +56,14 @@ int? reprintTicketPriceUzs(PosEntry entry, {required bool prepaidPlan}) {
 String subscriptionTicketPlanName(PassSubscription subscription) =>
     'OBUNA ${subscription.entriesLeft}/${subscription.entriesTotal} qoldi';
 
+/// A checkout of this many children or more is a school group: its paper
+/// carries no child names (one "plan × N" line on the receipt, nameless
+/// stickers/tickets) and always gets an entry receipt.
+const int schoolGroupSize = 15;
+
+bool isSchoolGroup(PosEntryResult result) =>
+    result.entries.length >= schoolGroupSize;
+
 /// Fires gate-pass label printing the instant entry is confirmed — no
 /// preview step, no dialog. Any child who couldn't enter (e.g. already
 /// inside) still isn't dropped silently: it surfaces as a SnackBar instead
@@ -69,6 +77,9 @@ String subscriptionTicketPlanName(PassSubscription subscription) =>
 /// [entryDiscountsByChild] is the entry discount (birthday, partner promo…)
 /// each child checked out with, so the ticket shows the discounted price
 /// and why — not the plan's list price.
+///
+/// [printQr] false (the branch's "Kassada QR stiker chiqarilsin" is off —
+/// receipt only) prints no passes at all; failures still surface.
 void printPlanEntryLabels(
   BuildContext context,
   PosEntryResult result,
@@ -78,14 +89,20 @@ void printPlanEntryLabels(
   Map<String, Discount> entryDiscountsByChild = const {},
   int companionPriceUzs = 0,
   bool? reprintPrepaidPlan,
+  bool printQr = true,
 }) {
   final l10n = AppLocalization.of(context);
+  // A school group's passes carry no child names.
+  final names = isSchoolGroup(result)
+      ? const <String, String>{}
+      : childNamesById;
   // A re-print ([reprintPrepaidPlan] set): each ticket shows what ITS pass
   // cost — nothing is charged again, so no discount line either.
   int? ticketPriceUzs(PosEntry entry) => reprintPrepaidPlan == null
       ? planPriceUzs
       : reprintTicketPriceUzs(entry, prepaidPlan: reprintPrepaidPlan);
-  if (result.entries.isNotEmpty || result.companionPasses.isNotEmpty) {
+  if (printQr &&
+      (result.entries.isNotEmpty || result.companionPasses.isNotEmpty)) {
     printPassesWithTicketFallback(
       ScaffoldMessenger.of(context),
       l10n,
@@ -94,7 +111,7 @@ void printPlanEntryLabels(
           (
             qrData: entry.token,
             name: stickerNameFor(
-              childNamesById[entry.childId] ?? '',
+              names[entry.childId] ?? '',
               entry.durationMinutes,
               upgrade: entry.upgrade,
             ),
@@ -110,7 +127,7 @@ void printPlanEntryLabels(
             // not the plan's list price.
             (
               qrData: entry.token,
-              childName: childNamesById[entry.childId] ?? '',
+              childName: names[entry.childId] ?? '',
               planName: upgradeTicketPlanName(planName),
               priceUzs: entry.priceUzs ?? 0,
               discountUzs: 0,
@@ -132,7 +149,7 @@ void printPlanEntryLabels(
           else
             (
               qrData: entry.token,
-              childName: childNamesById[entry.childId] ?? '',
+              childName: names[entry.childId] ?? '',
               planName: planName ?? '',
               priceUzs: ticketPriceUzs(entry),
               discountUzs: planPriceUzs == null || reprintPrepaidPlan != null
@@ -184,24 +201,33 @@ void printPlanEntryLabels(
 }
 
 /// The SLK entry receipt that carries a plan-entry checkout's cashback QR —
-/// cashback is earned on entries only, so it is printed only when the
-/// server issued one. One line per child pass (+ HAMROH) when every charged
-/// price is known and they add up to the money collected; otherwise a single
-/// "Kirish" line for the collected total, so the paper never shows a JAMI
-/// that differs from what the parent paid. Null = nothing to print.
+/// cashback is earned on entries only, so by default it is printed only when
+/// the server issued one. [evenWithoutCashback] prints it anyway: a school
+/// group, or a till whose entry QR is off (no pass paper shows the price).
+/// One line per child pass (+ HAMROH) when every charged price is known and
+/// they add up to the money collected; otherwise a single "Kirish" line for
+/// the collected total, so the paper never shows a JAMI that differs from
+/// what the parent paid. A school group's lines carry no child names, equal
+/// ones merged into "plan × N". Null = nothing to print.
 SaleReceipt? entryCashbackReceipt(
   PosEntryResult result,
   Map<String, String> childNamesById, {
   String? planName,
   int companionPriceUzs = 0,
+  bool evenWithoutCashback = false,
   DateTime? now,
 }) {
   final cashback = result.cashback;
   final sale = result.entrySale;
-  if (cashback == null || sale == null || sale.totalUzs <= 0) return null;
+  if ((cashback == null && !evenWithoutCashback) ||
+      sale == null ||
+      sale.totalUzs <= 0) {
+    return null;
+  }
+  final school = isSchoolGroup(result);
 
   String passLine(PosEntry entry) {
-    final child = childNamesById[entry.childId]?.trim() ?? '';
+    final child = school ? '' : childNamesById[entry.childId]?.trim() ?? '';
     final plan = entry.upgrade
         ? upgradeTicketPlanName(planName)
         : (planName?.trim().isNotEmpty ?? false)
@@ -210,15 +236,41 @@ SaleReceipt? entryCashbackReceipt(
     return child.isEmpty ? plan : '$plan - $child';
   }
 
+  final passLines = <SaleReceiptItem>[];
+  for (final entry in result.entries) {
+    final name = passLine(entry);
+    final price = entry.priceUzs ?? 0;
+    // Nameless passes (a school group, group seats) merge into "plan × N".
+    final nameless = school || (childNamesById[entry.childId] ?? '').isEmpty;
+    final same = nameless
+        ? passLines.indexWhere(
+            (line) =>
+                line.nameSnapshot == name && line.priceSnapshotUzs == price,
+          )
+        : -1;
+    if (same < 0) {
+      passLines.add(
+        SaleReceiptItem(
+          productId: entry.childId,
+          nameSnapshot: name,
+          priceSnapshotUzs: price,
+          qty: 1,
+          lineTotalUzs: price,
+        ),
+      );
+    } else {
+      final line = passLines[same];
+      passLines[same] = SaleReceiptItem(
+        productId: line.productId,
+        nameSnapshot: name,
+        priceSnapshotUzs: price,
+        qty: line.qty + 1,
+        lineTotalUzs: line.lineTotalUzs + price,
+      );
+    }
+  }
   final lines = <SaleReceiptItem>[
-    for (final entry in result.entries)
-      SaleReceiptItem(
-        productId: entry.childId,
-        nameSnapshot: passLine(entry),
-        priceSnapshotUzs: entry.priceUzs ?? 0,
-        qty: 1,
-        lineTotalUzs: entry.priceUzs ?? 0,
-      ),
+    ...passLines,
     if (result.companionPasses.isNotEmpty)
       SaleReceiptItem(
         productId: 'hamroh',

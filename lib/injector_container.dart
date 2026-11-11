@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -8,6 +9,8 @@ import 'package:path_provider/path_provider.dart';
 
 import 'constants/app_constants.dart';
 import 'core/connectivity/connectivity_monitor.dart';
+import 'core/lan_bridge/lan_bridge_control_client.dart';
+import 'core/lan_bridge/terminal_token_issuer.dart';
 import 'core/local_source/local_source.dart';
 import 'core/localization/locale_cubit.dart';
 import 'core/network/api_client.dart';
@@ -27,6 +30,7 @@ import 'features/offline/application/offline_sync_service.dart';
 import 'features/offline/data/offline_store.dart';
 import 'features/offline/data/offline_sync_remote_data_source.dart';
 import 'features/pos_account/data/pos_account_remote_data_source.dart';
+import 'features/birthday_parties/data/birthday_parties_repository.dart';
 import 'features/inside/data/inside_repository.dart';
 import 'features/inside/presentation/bloc/inside_cubit.dart';
 import 'features/pos_account/data/pos_account_repository_impl.dart';
@@ -102,7 +106,9 @@ Future<void> init() async {
   _salesHistoryFeature();
   _insideFeature();
   _visitHistoryFeature();
+  _birthdayPartiesFeature();
   _terminalFeature(packageInfo.version);
+  _lanBridgeFeature(packageInfo.version);
 }
 
 /// Lazy and not started here: `main()` starts it, so `init()` in tests
@@ -122,8 +128,49 @@ void _terminalFeature(String appVersion) {
       lastUpdateFailure: sl<UpdateFailureLog>().current,
       hostname: () => Platform.localHostname,
       osVersion: () => Platform.operatingSystemVersion,
+      onPrintEntryQr: (value) =>
+          unawaited(sl<LocalSource>().setPrintEntryQr(value)),
     ),
     dispose: (service) => service.dispose(),
+  );
+}
+
+void _birthdayPartiesFeature() {
+  sl.registerLazySingleton<BirthdayPartiesRepository>(
+    () => BirthdayPartiesRepository(sl()),
+  );
+}
+
+/// LAN bridge: the token issuer (needs a cashier session to mint the
+/// terminal token) and the control client (needs only that token, so it
+/// stays connected after a logout). Lazy and started by `main()`, like the
+/// heartbeat; `sl.reset()` disposes both.
+void _lanBridgeFeature(String appVersion) {
+  sl.registerLazySingleton<TerminalTokenIssuer>(
+    () => TerminalTokenIssuer(
+      api: sl<Dio>(),
+      hasSession: () => sl<LocalSource>().getAccessToken() != null,
+      sessionChanges: sl<LocalSource>().watchAccessToken(),
+      terminalId: sl<LocalSource>().getTerminalId,
+      saveToken: sl<LocalSource>().setTerminalToken,
+    ),
+    dispose: (issuer) => issuer.dispose(),
+  );
+  sl.registerLazySingleton<LanBridgeControlClient>(
+    () => LanBridgeControlClient(
+      apiBaseUrl: () =>
+          sl<LocalSource>().getApiBaseUrl() ?? AppConstants.defaultApiBaseUrl,
+      terminalToken: sl<LocalSource>().getTerminalToken,
+      tokenChanges: sl<LocalSource>().watchTerminalToken(),
+      forgetToken: () => sl<LocalSource>().setTerminalToken(null),
+      terminalId: sl<LocalSource>().getTerminalId,
+      appVersion: appVersion,
+      hostname: () => Platform.localHostname,
+      // `syncing` is online (the queue is draining): keep the control socket.
+      isOnline: () => sl<AppModeCubit>().state.mode != AppMode.offline,
+      onlineChanges: sl<AppModeCubit>().stream,
+    ),
+    dispose: (client) => client.dispose(),
   );
 }
 

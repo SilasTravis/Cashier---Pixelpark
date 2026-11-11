@@ -92,6 +92,22 @@ class PosAccountChildAddRequested extends PosAccountEvent {
   List<Object?> get props => [firstName, lastName, birthDate];
 }
 
+/// A school class by count: the bloc makes sure the customer has [count]
+/// anonymous group seats, puts them into the customer's children and hands
+/// their ids to [onSeats] so the panel can select exactly those.
+class PosAccountGroupSeatsRequested extends PosAccountEvent {
+  const PosAccountGroupSeatsRequested({
+    required this.count,
+    required this.onSeats,
+  });
+
+  final int count;
+  final void Function(List<String> seatIds) onSeats;
+
+  @override
+  List<Object?> get props => [count];
+}
+
 class PosAccountCustomerNameUpdateRequested extends PosAccountEvent {
   const PosAccountCustomerNameUpdateRequested(this.fullName);
   final String fullName;
@@ -189,6 +205,23 @@ class PosAccountActivePassesRequested extends PosAccountEvent {
   const PosAccountActivePassesRequested();
 }
 
+/// Prices the plan switch of [childIds] onto [planKey] (see
+/// [PlanSwitchQuote]); [key] identifies the panel selection it answers.
+class PosAccountSwitchQuoteRequested extends PosAccountEvent {
+  const PosAccountSwitchQuoteRequested({
+    required this.key,
+    required this.planKey,
+    required this.childIds,
+  });
+
+  final String key;
+  final String planKey;
+  final List<String> childIds;
+
+  @override
+  List<Object?> get props => [key, planKey, childIds];
+}
+
 /// The one-stop "to'lov + chop etish": optional collected cash/card (topped
 /// onto the balance first), optional products (debited FROM the balance),
 /// and the Standard/VIP day passes. The plan itself is billed at exit.
@@ -201,6 +234,7 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
     required this.cardUzs,
     this.withParentQr = false,
     this.entryDiscounts = const {},
+    this.birthdayAges = const {},
     this.companions = 0,
     this.discountId,
     this.promoCode,
@@ -224,6 +258,10 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
   /// discounted (100% reproduces the old free-pass behavior) and the
   /// catalog name is recorded for statistics.
   final Map<String, String> entryDiscounts;
+
+  /// childId → the age the child turns today, picked with a birthday
+  /// discount from [entryDiscounts].
+  final Map<String, int> birthdayAges;
 
   /// Paid HAMROH stickers to buy (companion price each, from the balance).
   final int companions;
@@ -259,6 +297,7 @@ class PosAccountCheckoutRequested extends PosAccountEvent {
     cardUzs,
     withParentQr,
     entryDiscounts,
+    birthdayAges,
     companions,
     discountId,
     promoCode,
@@ -313,6 +352,23 @@ class PosAccountPromoCodeSubmitted extends PosAccountEvent {
 
   @override
   List<Object?> get props => [rawCode];
+}
+
+/// "Faol promokodlar" was opened: load the open customer's redeemable codes
+/// into [PosAccountState.customerPromoCodes].
+class PosAccountPromoCodesRequested extends PosAccountEvent {
+  const PosAccountPromoCodesRequested();
+}
+
+/// The cashier picked a code from that list — verify it by id for the open
+/// customer; on success it sits in [PosAccountState.promo] like a typed one.
+class PosAccountPromoCodePicked extends PosAccountEvent {
+  const PosAccountPromoCodePicked(this.codeId);
+
+  final String codeId;
+
+  @override
+  List<Object?> get props => [codeId];
 }
 
 class PosAccountPromoCodeCleared extends PosAccountEvent {

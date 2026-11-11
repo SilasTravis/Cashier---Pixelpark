@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dartz/dartz.dart' show Either, Left;
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -38,6 +39,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     on<PosAccountCustomerRefreshRequested>(_onCustomerRefreshRequested);
     on<PosAccountNewCustomerRequested>(_onNewCustomerRequested);
     on<PosAccountChildAddRequested>(_onChildAddRequested);
+    on<PosAccountGroupSeatsRequested>(_onGroupSeatsRequested);
     on<PosAccountCustomerNameUpdateRequested>(_onCustomerNameUpdateRequested);
     on<PosAccountChildNameUpdateRequested>(_onChildNameUpdateRequested);
     on<PosAccountTopupRequested>(_onTopupRequested);
@@ -50,6 +52,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     on<PosAccountPlayingRequested>(_onPlayingRequested);
     on<PosAccountTransactionsRequested>(_onTransactionsRequested);
     on<PosAccountActivePassesRequested>(_onActivePassesRequested);
+    on<PosAccountSwitchQuoteRequested>(_onSwitchQuoteRequested);
     on<PosAccountCheckoutRequested>(_onCheckoutRequested);
     on<PosAccountConfigRequested>(_onConfigRequested);
     on<PosAccountDiscountsRequested>(_onDiscountsRequested);
@@ -63,6 +66,8 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     on<PosAccountSubscriptionSaleAcknowledged>(
       (event, emit) => emit(state.copyWith(clearLastSubscriptionSale: true)),
     );
+    on<PosAccountPromoCodesRequested>(_onPromoCodesRequested);
+    on<PosAccountPromoCodePicked>(_onPromoCodePicked);
     on<PosAccountPromoCodeCleared>(
       (event, emit) =>
           emit(state.copyWith(clearPromo: true, clearPromoError: true)),
@@ -274,12 +279,15 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
         clearLastSubscriptionSale: true,
         clearPromo: !keepPromo,
         clearPromoError: !keepPromo,
+        clearCustomerPromoCodes: true,
+        promoCodesFailed: false,
       ),
     );
     unawaited(_persistCustomerHistory(history));
     add(const PosAccountPlayingRequested());
     add(const PosAccountActivePassesRequested());
     add(const PosAccountSubscriptionsRequested());
+    add(const PosAccountPromoCodesRequested());
     if (keepPromo && state.promo!.isBlogger) {
       add(const _PosAccountPromoCodeRechecked());
     }
@@ -492,6 +500,8 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
             results: [customer],
             clearPromo: !keepPromo,
             clearPromoError: !keepPromo,
+            clearCustomerPromoCodes: true,
+            promoCodesFailed: false,
           ),
         );
         if (keepPromo && state.promo!.isBlogger) {
@@ -527,6 +537,41 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _onGroupSeatsRequested(
+    PosAccountGroupSeatsRequested event,
+    Emitter<PosAccountState> emit,
+  ) async {
+    if (state.isBusy) return;
+    final customer = state.selectedCustomer;
+    if (customer == null) return;
+    emit(state.copyWith(isBusy: true, errorMessage: null));
+    final result = await _repository.ensureGroupSeats(
+      customerId: customer.id,
+      count: event.count,
+    );
+    result.fold(
+      (failure) => emit(
+        state.copyWith(isBusy: false, errorMessage: _messageOf(failure)),
+      ),
+      (seats) {
+        final fresh = {for (final seat in seats) seat.id};
+        emit(
+          state.copyWith(
+            isBusy: false,
+            selectedCustomer: customer.copyWith(
+              children: [
+                for (final child in customer.children)
+                  if (!fresh.contains(child.id)) child,
+                ...seats,
+              ],
+            ),
+          ),
+        );
+        event.onSeats([for (final seat in seats) seat.id]);
+      },
     );
   }
 
@@ -780,6 +825,32 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     });
   }
 
+  Future<void> _onSwitchQuoteRequested(
+    PosAccountSwitchQuoteRequested event,
+    Emitter<PosAccountState> emit,
+  ) async {
+    final customer = state.selectedCustomer;
+    if (customer == null) return;
+    List<PosEntryConflict>? conflicts;
+    try {
+      final result = await _repository.planSwitchQuote(
+        customerId: customer.id,
+        planKey: event.planKey,
+        childIds: event.childIds,
+      );
+      conflicts = result.fold((failure) => null, (quoted) => quoted);
+    } catch (_) {
+      // Best-effort: no quote = the switch modal prices it, as before.
+      conflicts = null;
+    }
+    if (state.selectedCustomer?.id != customer.id) return;
+    emit(
+      state.copyWith(
+        switchQuote: PlanSwitchQuote(key: event.key, conflicts: conflicts),
+      ),
+    );
+  }
+
   Future<void> _onProductsRequested(
     PosAccountProductsRequested event,
     Emitter<PosAccountState> emit,
@@ -816,6 +887,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
       cashUzs: event.cashUzs,
       cardUzs: event.cardUzs,
       entryDiscounts: event.entryDiscounts,
+      birthdayAges: event.birthdayAges,
       companions: event.companions,
       discountId: event.discountId,
       promoCode: event.promoCode,
@@ -893,9 +965,13 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
                 : null,
             promoErrorMessage: releaseReason,
             lastEntryResult: entryResult,
-            selectedCustomer: entryResult.balance == null
-                ? customer
-                : customer.copyWith(balance: entryResult.balance!),
+            selectedCustomer: _withBirthdays(
+              entryResult.balance == null
+                  ? customer
+                  : customer.copyWith(balance: entryResult.balance!),
+              event.birthdayAges,
+              {for (final e in entryResult.entries) e.childId},
+            ),
           ),
         );
         // A child's entry discount was unavailable/mismatched (per-child
@@ -1066,6 +1142,81 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
     );
   }
 
+  /// Loads the open customer's redeemable codes — on opening the customer
+  /// (so the button can show how many there are) and again when the picker
+  /// opens. A reload keeps the list already on screen: no spinner flash, and
+  /// a failed refresh keeps showing what was loaded.
+  Future<void> _onPromoCodesRequested(
+    PosAccountPromoCodesRequested event,
+    Emitter<PosAccountState> emit,
+  ) async {
+    final customer = state.selectedCustomer;
+    if (customer == null || state.isLoadingPromoCodes) return;
+    emit(state.copyWith(isLoadingPromoCodes: true, promoCodesFailed: false));
+    // Best-effort like plans/products/config: whatever goes wrong here must
+    // never break the account page — the button just shows no count.
+    Either<Failure, List<CustomerPromoCode>> result;
+    try {
+      result = await _repository.fetchCustomerPromoCodes(customer.id);
+    } catch (error) {
+      result = Left(ServerFailure(message: error.toString()));
+    }
+    // Another customer was opened while it loaded: this list is not theirs.
+    if (state.selectedCustomer?.id != customer.id) {
+      emit(state.copyWith(isLoadingPromoCodes: false));
+      return;
+    }
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          isLoadingPromoCodes: false,
+          promoCodesFailed: state.customerPromoCodes == null,
+        ),
+      ),
+      (codes) => emit(
+        state.copyWith(isLoadingPromoCodes: false, customerPromoCodes: codes),
+      ),
+    );
+  }
+
+  /// A code picked from the list: verified by id for the open customer (the
+  /// server refuses anyone else's), then held in `promo` exactly like a typed
+  /// partner code — the checkout claims it later.
+  Future<void> _onPromoCodePicked(
+    PosAccountPromoCodePicked event,
+    Emitter<PosAccountState> emit,
+  ) async {
+    final customer = state.selectedCustomer;
+    if (customer == null || state.isCheckingPromo) return;
+    final ref = promoCodeRefOf(event.codeId);
+    if (state.promo?.code == ref) return;
+    final request = ++_promoRequest;
+    emit(state.copyWith(isCheckingPromo: true, clearPromoError: true));
+    final verified = await _repository.verifyPromoCode(
+      ref,
+      customerId: customer.id,
+    );
+    if (state.selectedCustomer?.id != customer.id) {
+      if (request == _promoRequest) {
+        emit(state.copyWith(isCheckingPromo: false));
+      }
+      return;
+    }
+    verified.fold(
+      (failure) => emit(
+        state.copyWith(
+          isCheckingPromo: false,
+          promoErrorCode: failure is ServerFailure ? failure.code : null,
+          promoErrorMessage: _messageOf(failure),
+        ),
+      ),
+      (check) => emit(state.copyWith(isCheckingPromo: false, promo: check)),
+    );
+    // A refused pick usually means the code just stopped being redeemable
+    // (used at another till, expired): refresh the list and its count.
+    if (state.promo == null) add(const PosAccountPromoCodesRequested());
+  }
+
   /// Re-verifies a held blogger code for the customer it just rode into, so
   /// a code they already redeemed (`PROMO_CODE_ALREADY_USED_BY_CUSTOMER`) is
   /// refused right away rather than at the checkout.
@@ -1220,4 +1371,37 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
       _ => 'Xatolik yuz berdi',
     };
   }
+}
+
+/// Mirrors the backend's birthday confirm on the open customer, so the
+/// child's tile shows the new age without a refetch: a child who got a
+/// pass with a picked age and whose stored birth date is a placeholder
+/// (under a year old — the till's quick-add stores the registration day)
+/// now turns that age today. A real birth date is left alone, as on the
+/// server.
+Customer _withBirthdays(
+  Customer customer,
+  Map<String, int> ages,
+  Set<String> issued,
+) {
+  if (ages.isEmpty) return customer;
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  return customer.copyWith(
+    children: [
+      for (final child in customer.children)
+        switch (ages[child.id]) {
+          final age?
+              when issued.contains(child.id) &&
+                  today.difference(child.birthDate).inDays < 366 =>
+            Child(
+              id: child.id,
+              firstName: child.firstName,
+              lastName: child.lastName,
+              birthDate: DateTime(now.year - age, now.month, now.day),
+            ),
+          _ => child,
+        },
+    ],
+  );
 }

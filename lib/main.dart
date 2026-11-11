@@ -5,6 +5,8 @@ import 'package:window_manager/window_manager.dart';
 import 'app.dart';
 import 'constants/app_constants.dart';
 import 'core/connectivity/connectivity_monitor.dart';
+import 'core/lan_bridge/lan_bridge_control_client.dart';
+import 'core/lan_bridge/terminal_token_issuer.dart';
 import 'core/terminal/terminal_heartbeat_service.dart';
 import 'core/local_source/local_source.dart';
 import 'core/theme/app_theme_mode.dart';
@@ -20,6 +22,8 @@ void main() async {
   di.sl<UpdateService>().startBackgroundChecks();
   di.sl<ConnectivityMonitor>().start();
   di.sl<TerminalHeartbeatService>().start();
+  di.sl<TerminalTokenIssuer>().start();
+  di.sl<LanBridgeControlClient>().start();
 
   await windowManager.ensureInitialized();
   final windowOptions = WindowOptions(

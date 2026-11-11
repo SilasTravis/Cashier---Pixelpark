@@ -1,0 +1,399 @@
+import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
+
+import '../../../../core/error/exceptions.dart';
+import '../../../../core/theme/pos_palette.dart';
+import '../../../../core/utils/currency.dart';
+import '../../../../generated/l10n.dart';
+import '../../../../injector_container.dart';
+import '../../data/birthday_parties_repository.dart';
+import '../../domain/birthday_party.dart';
+import '../birthday_error_text.dart';
+import '../birthday_recovery.dart';
+import '../model/cancel_refund_form.dart';
+
+/// "Bekor qilish": a reason and what happens to the money already paid.
+/// Resolves with the cancelled party, null when the cashier went back.
+Future<BirthdayParty?> showCancelPartyDialog(
+  BuildContext context,
+  BirthdayParty party,
+) {
+  final theme = Theme.of(context);
+  return showDialog<BirthdayParty>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => Theme(
+      data: theme,
+      child: CancelPartyDialog(party: party),
+    ),
+  );
+}
+
+class CancelPartyDialog extends StatefulWidget {
+  const CancelPartyDialog({super.key, required this.party});
+  final BirthdayParty party;
+
+  @override
+  State<CancelPartyDialog> createState() => _CancelPartyDialogState();
+}
+
+class _CancelPartyDialogState extends State<CancelPartyDialog> {
+  /// Fixed for the life of the dialog: a retry is the same cancellation.
+  final _requestId = const Uuid().v4();
+  final _reason = TextEditingController();
+  final _balance = TextEditingController();
+  final _cash = TextEditingController();
+
+  /// null = the cashier has not decided yet (only asked when money was paid).
+  bool? _refund;
+  bool _busy = false;
+
+  /// The close re-check could not reach the server: the dialog stays locked.
+  bool _offline = false;
+
+  /// The last submit ended without a clear answer: the party may be cancelled.
+  /// Reason and refund stay locked and only the same requestId is retried.
+  bool _unclear = false;
+  String? _errorCode;
+  String? _errorMessage;
+
+  int get _net => widget.party.paidUzs - widget.party.refundedUzs;
+  bool get _hasMoney => _net > 0;
+  bool get _decided => !_hasMoney || _refund != null;
+  bool get _doRefund => _hasMoney && _refund == true;
+  int get _balanceUzs => parseUzs(_balance.text) ?? 0;
+  int get _cashUzs => parseUzs(_cash.text) ?? 0;
+
+  String? get _formError => CancelRefundForm.validate(
+    netUzs: _net,
+    maxCashRefundUzs: widget.party.maxCashRefundUzs,
+    refund: _doRefund,
+    balanceUzs: _balanceUzs,
+    cashUzs: _cashUzs,
+  );
+
+  bool get _canSubmit =>
+      !_busy &&
+      _reason.text.trim().length >= 3 &&
+      _decided &&
+      _formError == null;
+
+  @override
+  void dispose() {
+    _reason.dispose();
+    _balance.dispose();
+    _cash.dispose();
+    super.dispose();
+  }
+
+  void _choose(bool refund) => setState(() {
+    _refund = refund;
+    if (refund && _balance.text.isEmpty && _cash.text.isEmpty) {
+      _balance.text = groupDigits(_net);
+    }
+  });
+
+  Future<void> _submit() async {
+    if (!_canSubmit) return;
+    final refundBalance = _doRefund ? _balanceUzs : 0;
+    final refundCash = _doRefund ? _cashUzs : 0;
+    setState(() {
+      _busy = true;
+      _errorCode = null;
+      _errorMessage = null;
+    });
+    final repo = sl<BirthdayPartiesRepository>();
+    try {
+      final party = await repo.cancel(
+        widget.party.id,
+        reason: _reason.text.trim(),
+        refundBalanceUzs: refundBalance,
+        refundCashUzs: refundCash,
+        requestId: _requestId,
+      );
+      if (mounted) Navigator.of(context).pop(party);
+    } catch (error) {
+      if (!mounted) return;
+      final code = error is ServerException ? error.code : null;
+      final message = error is ServerException ? error.message : null;
+      if (isUnclearFailure(error)) {
+        // The response may have been lost after the server cancelled it.
+        final fresh = await refetchParty(repo, widget.party.id);
+        if (!mounted) return;
+        if (fresh != null && fresh.status == BirthdayPartyStatus.cancelled) {
+          Navigator.of(context).pop(fresh);
+          return;
+        }
+        setState(() {
+          _busy = false;
+          _unclear = true;
+          _errorCode = code ?? 'UNKNOWN';
+          _errorMessage = message;
+        });
+        return;
+      }
+      // A clean refusal — also of a retry: a cancellation already done under
+      // this requestId would have replayed as a success — so the dialog is
+      // editable again.
+      setState(() {
+        _busy = false;
+        _unclear = false;
+        _offline = false;
+        _errorCode = code ?? 'UNKNOWN';
+        _errorMessage = message;
+      });
+    }
+  }
+
+  /// Closing after an unclear failure first re-reads the party: it may be
+  /// cancelled after all (then the refund receipt prints).
+  Future<void> _close() async {
+    final navigator = Navigator.of(context);
+    if (!_unclear) {
+      navigator.pop();
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _offline = false;
+    });
+    final lookup = await lookupPartySettled(
+      sl<BirthdayPartiesRepository>(),
+      widget.party.id,
+    );
+    if (!mounted) return;
+    if (lookup is PartyUnreachable) {
+      // Cannot tell whether it was cancelled: keep the dialog locked.
+      setState(() {
+        _busy = false;
+        _offline = true;
+      });
+      return;
+    }
+    final fresh = lookup is PartyFound ? lookup.party : null;
+    final cancelled =
+        fresh != null && fresh.status == BirthdayPartyStatus.cancelled;
+    navigator.pop(cancelled ? fresh : null);
+  }
+
+  String? _errorText(AppLocalization l10n) => switch (_formError) {
+    CancelRefundForm.cashTooLarge => l10n.bdCashTooLarge(
+      groupDigits(widget.party.maxCashRefundUzs),
+    ),
+    CancelRefundForm.totalTooLarge => l10n.bdTotalTooLarge(groupDigits(_net)),
+    CancelRefundForm.empty => l10n.bdRefundEmpty,
+    _ => null,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
+    final p = PosPalette.of(context);
+    final reason = _reason.text.trim();
+    final formError = _errorText(l10n);
+    return Dialog(
+      insetPadding: const EdgeInsets.all(24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(l10n.bdCancelTitle, style: p.title.copyWith(fontSize: 19)),
+                const SizedBox(height: 2),
+                Text(widget.party.customerLabel, style: p.bodyMuted),
+                const SizedBox(height: 14),
+                TextField(
+                  key: const ValueKey('bd-cancel-reason'),
+                  controller: _reason,
+                  enabled: !_unclear,
+                  maxLength: 500,
+                  maxLines: 2,
+                  decoration: InputDecoration(
+                    labelText: l10n.bdCancelReason,
+                    errorText: reason.isNotEmpty && reason.length < 3
+                        ? l10n.bdCancelReasonShort
+                        : null,
+                    counterText: '',
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+                if (_hasMoney) ...[
+                  const SizedBox(height: 14),
+                  Text(l10n.bdNetPaid(formatUzs(_net)), style: p.heading),
+                  const SizedBox(height: 8),
+                  IgnorePointer(
+                    ignoring: _unclear,
+                    child: Opacity(
+                      opacity: _unclear ? 0.55 : 1,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          SegmentedButton<bool>(
+                            showSelectedIcon: false,
+                            emptySelectionAllowed: true,
+                            segments: [
+                              ButtonSegment(
+                                value: true,
+                                label: Text(
+                                  l10n.bdRefund,
+                                  key: const ValueKey('bd-cancel-refund'),
+                                ),
+                              ),
+                              ButtonSegment(
+                                value: false,
+                                label: Text(
+                                  l10n.bdNoRefund,
+                                  key: const ValueKey('bd-cancel-norefund'),
+                                ),
+                              ),
+                            ],
+                            selected: {?_refund},
+                            onSelectionChanged: (s) {
+                              if (s.isNotEmpty) _choose(s.first);
+                            },
+                          ),
+                          if (_doRefund) ...[
+                            const SizedBox(height: 12),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: _field(
+                                    'bd-cancel-balance',
+                                    _balance,
+                                    l10n.bdToBalance,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _field(
+                                    'bd-cancel-cash',
+                                    _cash,
+                                    l10n.bdToCash,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            if (formError != null)
+                              Text(
+                                formError,
+                                key: const ValueKey('bd-cancel-form-error'),
+                                style: TextStyle(
+                                  color: p.danger,
+                                  fontSize: 12.5,
+                                ),
+                              )
+                            else
+                              Text(
+                                l10n.bdKept(
+                                  formatUzs(_net - _balanceUzs - _cashUzs),
+                                ),
+                                style: p.bodyMuted,
+                              ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+                if (_errorCode != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    key: const ValueKey('bd-cancel-error'),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 9,
+                    ),
+                    decoration: BoxDecoration(
+                      color: p.dangerSoft,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      birthdayErrorText(l10n, _errorCode, _errorMessage),
+                      style: TextStyle(color: p.danger, fontSize: 13),
+                    ),
+                  ),
+                  if (_unclear) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      l10n.bdUnclearHint,
+                      key: const ValueKey('bd-cancel-unclear-hint'),
+                      style: p.bodyMuted.copyWith(fontSize: 12.5),
+                    ),
+                  ],
+                ],
+                if (_offline) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    l10n.bdOfflineHint,
+                    key: const ValueKey('bd-cancel-offline-hint'),
+                    style: TextStyle(color: p.danger, fontSize: 12.5),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: SizedBox(
+                        height: 52,
+                        child: OutlinedButton(
+                          key: const ValueKey('bd-cancel-close'),
+                          onPressed: _busy ? null : _close,
+                          child: Text(_unclear ? l10n.bdClose : l10n.bdBack),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 3,
+                      child: SizedBox(
+                        height: 52,
+                        child: FilledButton(
+                          key: const ValueKey('bd-cancel-confirm'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: p.danger,
+                          ),
+                          onPressed: _canSubmit ? _submit : null,
+                          child: _busy
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text(
+                                  _unclear
+                                      ? l10n.eventsRetry
+                                      : l10n.bdCancelConfirm,
+                                ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _field(String key, TextEditingController c, String label) => TextField(
+    key: ValueKey(key),
+    controller: c,
+    // Locked after an unclear failure: the retry is the very same refund.
+    enabled: !_unclear,
+    keyboardType: TextInputType.number,
+    inputFormatters: const [ThousandsInputFormatter()],
+    decoration: InputDecoration(labelText: label, isDense: true),
+    onChanged: (_) => setState(() {}),
+  );
+}

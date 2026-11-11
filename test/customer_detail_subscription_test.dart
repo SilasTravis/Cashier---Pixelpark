@@ -185,6 +185,7 @@ class _FakeRemote implements PosAccountRemoteDataSource {
     required int cashUzs,
     required int cardUzs,
     Map<String, String> entryDiscounts = const {},
+    Map<String, int> birthdayAges = const {},
     int companions = 0,
     String? discountId,
     ({String code, String childId})? promoCode,
@@ -488,7 +489,7 @@ void main() {
         planId: 'plan-vip5',
         cash: 100000,
         card: 65000,
-        useToday: true,
+        useToday: false,
       ));
       // Closed; the receipt print was attempted (no printer in tests).
       expect(find.byType(Dialog), findsNothing);
@@ -507,8 +508,6 @@ void main() {
         ),
       );
       await tester.tap(find.text('Sell subscription'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('subscription-use-today')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('subscription-sell-submit')));
       await tester.pumpAndSettle();

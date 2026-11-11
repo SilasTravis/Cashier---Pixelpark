@@ -106,6 +106,7 @@ class PlanSwitchCheckout {
     cardUzs: cardUzs,
     withParentQr: request.withParentQr,
     entryDiscounts: request.entryDiscounts,
+    birthdayAges: request.birthdayAges,
     companions: request.companions,
     discountId: request.discountId,
     promoCode: request.promoCode,
