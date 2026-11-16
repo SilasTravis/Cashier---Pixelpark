@@ -1,14 +1,14 @@
 import 'package:equatable/equatable.dart';
 
-enum BirthdayPartyStatus { requested, booked, completed, cancelled }
+enum BirthdayPartyStatus { requested, booked, completed, cancelled, unknown }
 
-/// Tolerant: a status this build does not know is treated as `booked` so a
-/// newer server never breaks the list.
-BirthdayPartyStatus parseBirthdayPartyStatus(String raw) {
+/// Tolerant: a status this build does not know (or a missing one) becomes
+/// `unknown`, which offers no actions, so a newer server never breaks the list.
+BirthdayPartyStatus parseBirthdayPartyStatus(String? raw) {
   for (final s in BirthdayPartyStatus.values) {
-    if (s.name == raw) return s;
+    if (s != BirthdayPartyStatus.unknown && s.name == raw) return s;
   }
-  return BirthdayPartyStatus.booked;
+  return BirthdayPartyStatus.unknown;
 }
 
 enum BirthdayPaymentState { unpaid, partial, paid }
@@ -44,6 +44,7 @@ class BirthdayPartyPayment extends Equatable {
     this.requestId,
     this.onlineUzs = 0,
     this.onlineProvider,
+    this.onlineReversedAt,
   });
 
   final String id;
@@ -68,6 +69,9 @@ class BirthdayPartyPayment extends Equatable {
   /// `card` | `click` | `payme`, null when not paid online.
   final String? onlineProvider;
 
+  /// When the online part was refunded to the parent's card, null if not.
+  final DateTime? onlineReversedAt;
+
   factory BirthdayPartyPayment.fromJson(Map<String, dynamic> json) =>
       BirthdayPartyPayment(
         id: json['id'] as String,
@@ -84,6 +88,7 @@ class BirthdayPartyPayment extends Equatable {
         requestId: json['requestId'] as String?,
         onlineUzs: (json['onlineUzs'] as int?) ?? 0,
         onlineProvider: json['onlineProvider'] as String?,
+        onlineReversedAt: _date(json['onlineReversedAt']),
       );
 
   @override
@@ -100,6 +105,7 @@ class BirthdayPartyPayment extends Equatable {
     requestId,
     onlineUzs,
     onlineProvider,
+    onlineReversedAt,
   ];
 }
 
@@ -166,6 +172,8 @@ class BirthdayParty extends Equatable {
     this.partyTime,
     this.childName,
     this.rejectReason,
+    this.decidedByName,
+    this.decidedByKind,
   });
 
   final String id;
@@ -218,15 +226,19 @@ class BirthdayParty extends Equatable {
   /// Why a cashier rejected the request, null otherwise.
   final String? rejectReason;
 
+  /// Who confirmed/rejected a request: display name and kind.
+  final String? decidedByName;
+  final String? decidedByKind;
+
   factory BirthdayParty.fromJson(Map<String, dynamic> json) {
     final customer = Map<String, dynamic>.from(json['customer'] as Map);
     final plan = Map<String, dynamic>.from(json['plan'] as Map);
     return BirthdayParty(
       id: json['id'] as String,
-      status: parseBirthdayPartyStatus(json['status'] as String),
-      paymentState: BirthdayPaymentState.values.byName(
-        json['paymentState'] as String,
-      ),
+      status: parseBirthdayPartyStatus(json['status'] as String?),
+      paymentState:
+          BirthdayPaymentState.values.asNameMap()[json['paymentState']] ??
+          BirthdayPaymentState.unpaid,
       branchId: json['branchId'] as String,
       branchName: json['branchName'] as String,
       customerId: customer['id'] as int,
@@ -274,6 +286,12 @@ class BirthdayParty extends Equatable {
           ? null
           : (json['child'] as Map)['name'] as String?,
       rejectReason: json['rejectReason'] as String?,
+      decidedByName: json['decidedBy'] == null
+          ? null
+          : (json['decidedBy'] as Map)['name'] as String?,
+      decidedByKind: json['decidedBy'] == null
+          ? null
+          : (json['decidedBy'] as Map)['kind'] as String?,
     );
   }
 
@@ -315,5 +333,7 @@ class BirthdayParty extends Equatable {
     partyTime,
     childName,
     rejectReason,
+    decidedByName,
+    decidedByKind,
   ];
 }

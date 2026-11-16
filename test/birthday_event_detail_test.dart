@@ -251,6 +251,14 @@ void main() {
     expect(find.byKey(const ValueKey('bd-left')), findsOneWidget);
   });
 
+  testWidgets('an unknown-status party offers no actions', (tester) async {
+    final json = _json('2999-01-01', debt: 1200000)..['status'] = 'archived';
+    await _open(tester, BirthdayParty.fromJson(json));
+    expect(find.byKey(const ValueKey('bd-complete')), findsNothing);
+    expect(find.byKey(const ValueKey('bd-add-payment')), findsNothing);
+    expect(find.byKey(const ValueKey('bd-more')), findsNothing);
+  });
+
   testWidgets('Yakunlash is disabled before the party day', (tester) async {
     await _open(tester, _party('2999-01-01'));
     expect(_enabled(tester, 'bd-complete'), isFalse);
