@@ -89,6 +89,33 @@ class BirthdayPartiesRepository {
             .toList();
       });
 
+  /// Parties parents requested in the app, waiting for this branch.
+  Future<List<BirthdayParty>> requests() => list(BirthdayPartyStatus.requested);
+
+  /// Accepts a request for [time] (`HH:MM`).
+  Future<BirthdayParty> confirm(String id, {required String time}) => _guard(
+    () async => _party(
+      await dio.post(
+        '/v1/pos/birthday-parties/$id/confirm',
+        data: {'time': time},
+      ),
+    ),
+  );
+
+  /// Declines a request; [requestId] makes a retry harmless.
+  Future<BirthdayParty> reject(
+    String id, {
+    required String reason,
+    required String requestId,
+  }) => _guard(
+    () async => _party(
+      await dio.post(
+        '/v1/pos/birthday-parties/$id/reject',
+        data: {'reason': reason, 'requestId': requestId},
+      ),
+    ),
+  );
+
   Future<BirthdayParty> get(String id) =>
       _guard(() async => _party(await dio.get('/v1/pos/birthday-parties/$id')));
 
