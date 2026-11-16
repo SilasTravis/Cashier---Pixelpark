@@ -3,6 +3,8 @@ import 'package:cashier_app/features/birthday_parties/domain/birthday_plan.dart'
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/birthday_fixtures.dart';
+
 Map<String, dynamic> sampleParty() => {
   'id': 'p1',
   'status': 'booked',
@@ -163,5 +165,43 @@ void main() {
     expect(colorOf('#7C3AED', fb), const Color(0xFF7C3AED));
     expect(colorOf('oops', fb), fb);
     expect(colorOf('#12', fb), fb);
+  });
+
+  test('requested and unknown statuses parse, new fields map', () {
+    final r = BirthdayParty.fromJson({
+      ...sampleParty(),
+      'status': 'requested',
+      'source': 'app',
+      'partyTime': '15:30',
+      'child': {'id': 'c9', 'name': 'Madina'},
+      'decidedBy': null,
+      'rejectReason': 'Band',
+    });
+    expect(r.status, BirthdayPartyStatus.requested);
+    expect(r.source, 'app');
+    expect(r.partyTime, '15:30');
+    expect(r.childName, 'Madina');
+    expect(r.rejectReason, 'Band');
+    final u = BirthdayParty.fromJson({...sampleParty(), 'status': 'archived'});
+    expect(u.status, BirthdayPartyStatus.booked);
+    expect(parseBirthdayPartyStatus('archived'), BirthdayPartyStatus.booked);
+    // Older servers: no new fields at all.
+    expect(u.source, 'till');
+    expect(u.partyTime, isNull);
+    expect(u.childName, isNull);
+    expect(u.rejectReason, isNull);
+  });
+
+  test('payment online fields map and default', () {
+    final p = BirthdayPartyPayment.fromJson({
+      ...paymentJson(),
+      'onlineUzs': 500000,
+      'onlineProvider': 'click',
+    });
+    expect(p.onlineUzs, 500000);
+    expect(p.onlineProvider, 'click');
+    final d = BirthdayPartyPayment.fromJson(paymentJson());
+    expect(d.onlineUzs, 0);
+    expect(d.onlineProvider, isNull);
   });
 }

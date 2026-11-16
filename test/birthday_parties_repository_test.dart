@@ -199,4 +199,27 @@ void main() {
       'requestId': 'rc',
     });
   });
+
+  test('requests lists status=requested', () async {
+    final (repo, adapter) = make([partyJson()]);
+    await repo.requests();
+    expect(adapter.requests.single.queryParameters, {'status': 'requested'});
+  });
+
+  test('confirm posts the time', () async {
+    final (repo, adapter) = make(partyJson());
+    await repo.confirm('p1', time: '15:00');
+    final req = adapter.requests.single;
+    expect(req.method, 'POST');
+    expect(req.path, '/v1/pos/birthday-parties/p1/confirm');
+    expect(req.data, {'time': '15:00'});
+  });
+
+  test('reject posts reason and requestId', () async {
+    final (repo, adapter) = make(partyJson());
+    await repo.reject('p1', reason: 'Band', requestId: 'rq1');
+    final req = adapter.requests.single;
+    expect(req.path, '/v1/pos/birthday-parties/p1/reject');
+    expect(req.data, {'reason': 'Band', 'requestId': 'rq1'});
+  });
 }
