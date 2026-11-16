@@ -40,6 +40,7 @@ class BirthdayRequestsCubit extends Cubit<BirthdayRequestsState> {
   int _request = 0;
 
   Future<void> load() async {
+    if (isClosed) return;
     final request = ++_request;
     emit(BirthdayRequestsState(requests: state.requests, loading: true));
     try {
@@ -78,10 +79,12 @@ class BirthdayRequestsCubit extends Cubit<BirthdayRequestsState> {
   /// Drops a card (decided here, or by another till).
   void remove(String id) {
     if (isClosed) return;
+    // A poll still in flight started before this decision: its list may still
+    // hold the card, so it must not land (the next poll will be fresh).
+    _request++;
     emit(
       BirthdayRequestsState(
         requests: state.requests.where((p) => p.id != id).toList(),
-        loading: state.loading,
         error: state.error,
       ),
     );

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cashier_app/core/error/exceptions.dart';
 import 'package:cashier_app/core/theme/app_theme.dart';
 import 'package:cashier_app/features/birthday_parties/data/birthday_parties_repository.dart';
@@ -76,6 +78,7 @@ class _Repo implements BirthdayPartiesRepository {
   final listCalls = <BirthdayPartyStatus>[];
   int requestsCalls = 0;
   bool failNext = false;
+  Completer<List<BirthdayParty>>? gate;
   final confirmed = <(String, String)>[];
   final rejected = <(String, String, String)>[];
   Object? confirmError;
@@ -86,6 +89,7 @@ class _Repo implements BirthdayPartiesRepository {
   Future<List<BirthdayParty>> requests() async {
     requestsCalls++;
     if (failNext) throw Exception('offline');
+    if (gate != null) return gate!.future;
     return List.of(requestList);
   }
 
@@ -298,6 +302,27 @@ void main() {
       cubit.close();
       async.elapse(const Duration(minutes: 5));
       expect(repo.requestsCalls, 4);
+    });
+  });
+
+  test('a poll in flight does not resurrect a card removed meanwhile', () {
+    fakeAsync((async) {
+      final repo = _Repo([_request(), _request(id: 'r2')]);
+      final cubit = BirthdayRequestsCubit(repo);
+      cubit.load();
+      async.flushMicrotasks();
+      expect(cubit.state.requests, hasLength(2));
+      // A poll starts, then r1 is decided before it answers.
+      final stale = [_request(), _request(id: 'r2')];
+      repo.gate = Completer();
+      cubit.load();
+      async.flushMicrotasks();
+      cubit.remove('r1');
+      repo.gate!.complete(stale);
+      async.flushMicrotasks();
+      expect(cubit.state.requests.map((p) => p.id), ['r2']);
+      expect(cubit.state.loading, isFalse);
+      cubit.close();
     });
   });
 
