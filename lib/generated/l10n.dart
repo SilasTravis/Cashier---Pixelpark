@@ -5424,6 +5424,116 @@ class AppLocalization {
       args: [],
     );
   }
+
+  /// `Requests`
+  String get bdRequestsTitle {
+    return Intl.message(
+      'Requests',
+      name: 'bdRequestsTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Paid in the app`
+  String get bdRequestPaidInApp {
+    return Intl.message(
+      'Paid in the app',
+      name: 'bdRequestPaidInApp',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Cash remaining`
+  String get bdRequestCashLeft {
+    return Intl.message(
+      'Cash remaining',
+      name: 'bdRequestCashLeft',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Confirm`
+  String get bdRequestConfirm {
+    return Intl.message(
+      'Confirm',
+      name: 'bdRequestConfirm',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Reject`
+  String get bdRequestReject {
+    return Intl.message('Reject', name: 'bdRequestReject', desc: '', args: []);
+  }
+
+  /// `Confirm the request`
+  String get bdRequestConfirmTitle {
+    return Intl.message(
+      'Confirm the request',
+      name: 'bdRequestConfirmTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Pick a time`
+  String get bdRequestPickTime {
+    return Intl.message(
+      'Pick a time',
+      name: 'bdRequestPickTime',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Reject the request`
+  String get bdRequestRejectTitle {
+    return Intl.message(
+      'Reject the request',
+      name: 'bdRequestRejectTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Reason for rejection`
+  String get bdRequestRejectReason {
+    return Intl.message(
+      'Reason for rejection',
+      name: 'bdRequestRejectReason',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{amount} will be returned to the customer’s balance`
+  String bdRequestRefundNote(String amount) {
+    return Intl.message(
+      '$amount will be returned to the customer’s balance',
+      name: 'bdRequestRefundNote',
+      desc: '',
+      args: [amount],
+    );
+  }
+
+  /// `This request has already been decided`
+  String get bdRequestAlreadyDecided {
+    return Intl.message(
+      'This request has already been decided',
+      name: 'bdRequestAlreadyDecided',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `App`
+  String get bdSourceApp {
+    return Intl.message('App', name: 'bdSourceApp', desc: '', args: []);
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalization> {

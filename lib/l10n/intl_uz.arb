@@ -1367,5 +1367,24 @@
   },
   "bdWalletNoUsable": "Balansda haqiqiy pul yo‘q — naqd yoki karta bilan oling",
   "bdWalletFailed": "Balans noma‘lum — naqd yoki karta bilan oling",
-  "bdLeftBeforeParty": "Qoldi · bayramgacha"
+  "bdLeftBeforeParty": "Qoldi · bayramgacha",
+  "bdRequestsTitle": "So‘rovlar",
+  "bdRequestPaidInApp": "Ilovada to‘langan",
+  "bdRequestCashLeft": "Naqd qoladi",
+  "bdRequestConfirm": "Tasdiqlash",
+  "bdRequestReject": "Rad etish",
+  "bdRequestConfirmTitle": "So‘rovni tasdiqlash",
+  "bdRequestPickTime": "Vaqtni tanlang",
+  "bdRequestRejectTitle": "So‘rovni rad etish",
+  "bdRequestRejectReason": "Rad etish sababi",
+  "bdRequestRefundNote": "{amount} mijoz balansiga qaytariladi",
+  "@bdRequestRefundNote": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bdRequestAlreadyDecided": "Bu so‘rov allaqachon ko‘rib chiqilgan",
+  "bdSourceApp": "Ilova"
 }

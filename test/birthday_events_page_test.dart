@@ -1,11 +1,13 @@
 import 'package:cashier_app/core/utils/currency.dart';
 import 'package:cashier_app/features/birthday_parties/data/birthday_parties_repository.dart';
 import 'package:cashier_app/features/birthday_parties/domain/birthday_party.dart';
+import 'package:cashier_app/features/birthday_parties/presentation/bloc/birthday_requests_cubit.dart';
 import 'package:cashier_app/features/birthday_parties/presentation/pages/birthday_events_page.dart';
 import 'package:cashier_app/generated/l10n.dart';
 import 'package:cashier_app/injector_container.dart';
 import 'package:cashier_app/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -90,6 +92,9 @@ class _FakeRepo implements BirthdayPartiesRepository {
   }
 
   @override
+  Future<List<BirthdayParty>> requests() async => const [];
+
+  @override
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
@@ -114,7 +119,12 @@ Future<_FakeRepo> _pump(
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: AppLocalization.delegate.supportedLocales,
-      home: Scaffold(body: BirthdayEventsPage(onOpen: onOpen ?? (_) {})),
+      home: Scaffold(
+        body: BlocProvider(
+          create: (_) => BirthdayRequestsCubit(repo)..load(),
+          child: BirthdayEventsPage(onOpen: onOpen ?? (_) {}),
+        ),
+      ),
     ),
   );
   await tester.pumpAndSettle();

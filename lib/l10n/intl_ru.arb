@@ -1291,5 +1291,24 @@
   },
   "bdWalletNoUsable": "На балансе нет реальных денег — примите наличными или картой",
   "bdWalletFailed": "Баланс неизвестен — примите наличными или картой",
-  "bdLeftBeforeParty": "Осталось · до праздника"
+  "bdLeftBeforeParty": "Осталось · до праздника",
+  "bdRequestsTitle": "Заявки",
+  "bdRequestPaidInApp": "Оплачено в приложении",
+  "bdRequestCashLeft": "Остаётся наличными",
+  "bdRequestConfirm": "Подтвердить",
+  "bdRequestReject": "Отклонить",
+  "bdRequestConfirmTitle": "Подтверждение заявки",
+  "bdRequestPickTime": "Выберите время",
+  "bdRequestRejectTitle": "Отклонение заявки",
+  "bdRequestRejectReason": "Причина отказа",
+  "bdRequestRefundNote": "{amount} вернётся на баланс клиента",
+  "@bdRequestRefundNote": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bdRequestAlreadyDecided": "Эта заявка уже обработана",
+  "bdSourceApp": "Приложение"
 }
