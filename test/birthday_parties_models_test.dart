@@ -183,8 +183,11 @@ void main() {
     expect(r.childName, 'Madina');
     expect(r.rejectReason, 'Band');
     final u = BirthdayParty.fromJson({...sampleParty(), 'status': 'archived'});
-    expect(u.status, BirthdayPartyStatus.booked);
-    expect(parseBirthdayPartyStatus('archived'), BirthdayPartyStatus.booked);
+    expect(u.status, BirthdayPartyStatus.unknown);
+    expect(parseBirthdayPartyStatus('archived'), BirthdayPartyStatus.unknown);
+    expect(parseBirthdayPartyStatus(null), BirthdayPartyStatus.unknown);
+    final n = BirthdayParty.fromJson({...sampleParty()}..remove('status'));
+    expect(n.status, BirthdayPartyStatus.unknown);
     // Older servers: no new fields at all.
     expect(u.source, 'till');
     expect(u.partyTime, isNull);
@@ -203,5 +206,26 @@ void main() {
     final d = BirthdayPartyPayment.fromJson(paymentJson());
     expect(d.onlineUzs, 0);
     expect(d.onlineProvider, isNull);
+  });
+
+  test('online reversal, decidedBy and tolerant paymentState', () {
+    final p = BirthdayPartyPayment.fromJson({
+      ...paymentJson(),
+      'onlineReversedAt': '2026-11-07T08:00:00.000Z',
+    });
+    expect(p.onlineReversedAt, DateTime.parse('2026-11-07T08:00:00.000Z'));
+    expect(
+      BirthdayPartyPayment.fromJson(paymentJson()).onlineReversedAt,
+      isNull,
+    );
+    final d = BirthdayParty.fromJson({
+      ...sampleParty(),
+      'paymentState': 'weird',
+      'decidedBy': {'kind': 'cashier', 'name': 'dilnoza'},
+    });
+    expect(d.paymentState, BirthdayPaymentState.unpaid);
+    expect(d.decidedByName, 'dilnoza');
+    expect(d.decidedByKind, 'cashier');
+    expect(BirthdayParty.fromJson(sampleParty()).decidedByName, isNull);
   });
 }
