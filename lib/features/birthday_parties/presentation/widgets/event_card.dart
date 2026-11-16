@@ -108,6 +108,7 @@ class EventCard extends StatelessWidget {
                         const SizedBox(height: 3),
                         Text(
                           '$kids ${l10n.eventsChildUnit}'
+                          '${party.partyTime == null ? '' : ' · ${party.partyTime}'}'
                           '${party.comments.isEmpty ? '' : ' · 💬 ${party.comments.length}'}',
                           style: TextStyle(fontSize: 13, color: p.textMuted),
                         ),
@@ -131,6 +132,14 @@ class EventCard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
+                      if (party.source == 'app') ...[
+                        StatusChip(
+                          key: const ValueKey('event-source-app'),
+                          label: l10n.bdSourceApp,
+                          tone: ChipTone.accent,
+                        ),
+                        const SizedBox(height: 4),
+                      ],
                       StatusChip(label: chipLabel, tone: chipTone),
                       if (badge.keptUzs > 0) ...[
                         const SizedBox(height: 4),

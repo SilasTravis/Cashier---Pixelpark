@@ -8,8 +8,12 @@ import '../../../pos_account/domain/customer.dart';
 import '../../data/birthday_parties_repository.dart';
 import '../../domain/birthday_party.dart';
 import '../bloc/birthday_events_cubit.dart';
+import '../bloc/birthday_requests_cubit.dart';
 import '../model/event_groups.dart';
+import '../widgets/confirm_request_dialog.dart';
 import '../widgets/event_card.dart';
+import '../widgets/reject_request_dialog.dart';
+import '../widgets/request_card.dart';
 import '../widgets/event_detail_dialog.dart';
 
 /// Tadbirlar tab: the branch's birthday parties by segment, grouped by date.
@@ -93,6 +97,7 @@ class _View extends StatelessWidget {
                 ],
               ),
             ),
+            const _RequestsSection(),
             if (state.loading) const LinearProgressIndicator(minHeight: 2),
             Expanded(
               child: state.failed && state.parties.isEmpty
@@ -160,6 +165,70 @@ class _View extends StatelessWidget {
                     ),
             ),
           ],
+        );
+      },
+    );
+  }
+}
+
+/// Parent requests waiting for a decision, above the segmented list. Hidden
+/// when there are none.
+class _RequestsSection extends StatelessWidget {
+  const _RequestsSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalization.of(context);
+    final p = PosPalette.of(context);
+    final requests = context.read<BirthdayRequestsCubit>();
+    return BlocBuilder<BirthdayRequestsCubit, BirthdayRequestsState>(
+      builder: (context, state) {
+        if (state.requests.isEmpty) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(24, 4, 24, 8),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 280),
+            child: ListView(
+              shrinkWrap: true,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    '${l10n.bdRequestsTitle.toUpperCase()} · '
+                    '${state.requests.length}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.6,
+                      color: p.warning,
+                    ),
+                  ),
+                ),
+                for (final party in state.requests)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: RequestCard(
+                      party: party,
+                      onConfirm: () async {
+                        final events = context.read<BirthdayEventsCubit>();
+                        final booked = await showConfirmRequestDialog(
+                          context,
+                          party,
+                          requests,
+                        );
+                        // The confirmed party now belongs to the booked list.
+                        if (booked != null &&
+                            events.state.status == BirthdayPartyStatus.booked) {
+                          events.refresh();
+                        }
+                      },
+                      onReject: () =>
+                          showRejectRequestDialog(context, party, requests),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         );
       },
     );

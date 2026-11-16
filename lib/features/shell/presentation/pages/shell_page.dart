@@ -12,6 +12,8 @@ import '../../../offline/data/offline_store.dart';
 import '../../../offline/presentation/pages/unsynced_sales_page.dart';
 import '../../../pos_account/presentation/pages/pos_account_page.dart';
 import '../../../inside/presentation/pages/inside_page.dart';
+import '../../../birthday_parties/data/birthday_parties_repository.dart';
+import '../../../birthday_parties/presentation/bloc/birthday_requests_cubit.dart';
 import '../../../birthday_parties/presentation/pages/birthday_events_page.dart';
 import '../../../pos_sale/presentation/pages/pos_sale_page.dart';
 import '../../../sales_history/presentation/pages/sales_history_page.dart';
@@ -41,8 +43,15 @@ class ShellPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => sl<ShiftBloc>()..add(const ShiftStarted()),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => sl<ShiftBloc>()..add(const ShiftStarted())),
+        // Shell-wide: the Tadbirlar badge and the Requests section share it.
+        BlocProvider(
+          create: (_) =>
+              BirthdayRequestsCubit(sl<BirthdayPartiesRepository>())..load(),
+        ),
+      ],
       child: const _ShellView(),
     );
   }
@@ -69,6 +78,9 @@ class _ShellViewState extends State<_ShellView> {
   @override
   Widget build(BuildContext context) {
     final mode = context.watch<AppModeCubit>().state;
+    final requestCount = context.select(
+      (BirthdayRequestsCubit c) => c.state.requests.length,
+    );
     final tabs = [
       ...ShellTab.primary,
       if (mode.queuedCount > 0 || _tab == ShellTab.unsynced) ShellTab.unsynced,
@@ -115,7 +127,10 @@ class _ShellViewState extends State<_ShellView> {
                           selected: tab,
                           tabs: tabs,
                           disabledTabs: disabled,
-                          counts: {ShellTab.unsynced: mode.queuedCount},
+                          counts: {
+                            ShellTab.unsynced: mode.queuedCount,
+                            ShellTab.events: requestCount,
+                          },
                           onSelect: (picked) => setState(() {
                             _tab = picked;
                             if (picked == ShellTab.posAccount) {

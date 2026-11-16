@@ -1304,5 +1304,24 @@
   },
   "bdWalletNoUsable": "No real money on the balance — take cash or card",
   "bdWalletFailed": "Balance unknown — take cash or card",
-  "bdLeftBeforeParty": "Left · before the party"
+  "bdLeftBeforeParty": "Left · before the party",
+  "bdRequestsTitle": "Requests",
+  "bdRequestPaidInApp": "Paid in the app",
+  "bdRequestCashLeft": "Cash remaining",
+  "bdRequestConfirm": "Confirm",
+  "bdRequestReject": "Reject",
+  "bdRequestConfirmTitle": "Confirm the request",
+  "bdRequestPickTime": "Pick a time",
+  "bdRequestRejectTitle": "Reject the request",
+  "bdRequestRejectReason": "Reason for rejection",
+  "bdRequestRefundNote": "{amount} will be returned to the customer’s balance",
+  "@bdRequestRefundNote": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bdRequestAlreadyDecided": "This request has already been decided",
+  "bdSourceApp": "App"
 }
