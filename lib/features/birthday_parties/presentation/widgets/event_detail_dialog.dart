@@ -429,7 +429,9 @@ class _EventDetailDialogState extends State<EventDetailDialog> {
   Widget _footer(AppLocalization l10n, BirthdayParty party) {
     final booked = _booked;
     final canPay =
-        party.debtUzs > 0 && party.status != BirthdayPartyStatus.cancelled;
+        party.debtUzs > 0 &&
+        (party.status == BirthdayPartyStatus.booked ||
+            party.status == BirthdayPartyStatus.completed);
     final complete = FilledButton.tonal(
       key: const ValueKey('bd-complete'),
       onPressed: _busy || !_canComplete ? null : _complete,
