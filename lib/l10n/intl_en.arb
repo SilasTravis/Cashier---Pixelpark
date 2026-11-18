@@ -1323,5 +1323,163 @@
     }
   },
   "bdRequestAlreadyDecided": "This request has already been decided",
-  "bdSourceApp": "App"
+  "bdSourceApp": "App",
+  "bdRequestDetails": "Details",
+  "bdDetailsAwaiting": "Awaiting confirmation",
+  "bdDetailsFromApp": "from the app",
+  "bdDetailsFromTill": "from the till",
+  "bdAgoJustNow": "just now",
+  "bdAgoMinutes": "{count} min ago",
+  "@bdAgoMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bdAgoHours": "{count} h ago",
+  "@bdAgoHours": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bdAgoDays": "{count} days ago",
+  "@bdAgoDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bdInDays": "in {count} days",
+  "@bdInDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bdDetailsParty": "Party",
+  "bdDetailsPackage": "Package",
+  "bdDetailsPayment": "Payment",
+  "bdDetailsNote": "Note",
+  "bdChildBirthDate": "Born {date}",
+  "@bdChildBirthDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "bdTurnsAge": "turns {age}",
+  "@bdTurnsAge": {
+    "placeholders": {
+      "age": {
+        "type": "int"
+      }
+    }
+  },
+  "bdKidsCount": "{count} kids",
+  "@bdKidsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bdKidsWithExtra": "{count} kids + {extra} extra",
+  "@bdKidsWithExtra": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "extra": {
+        "type": "int"
+      }
+    }
+  },
+  "bdPackageLine": "Package ({count} kids)",
+  "@bdPackageLine": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bdExtraChildLine": "Extra kids {count} × {price}",
+  "@bdExtraChildLine": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "bdDiscountLine": "Discount",
+  "bdTotalLine": "Total",
+  "bdPaidFromBalance": "From balance",
+  "bdPaidCard": "Card",
+  "bdCashAtTill": "Cash at the till",
+  "bdNothingPaidInApp": "Nothing paid in the app",
+  "bdMonthsShort": "JAN,FEB,MAR,APR,MAY,JUN,JUL,AUG,SEP,OCT,NOV,DEC",
+  "bdMonthsLong": "January,February,March,April,May,June,July,August,September,October,November,December",
+  "bdWeekdays": "Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday",
+  "bdDayMonth": "{month} {day}",
+  "@bdDayMonth": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "month": {
+        "type": "String"
+      }
+    }
+  },
+  "bdTimeTitle": "Pick the party time",
+  "bdTimeDayAt": "That day at {branch}",
+  "@bdTimeDayAt": {
+    "placeholders": {
+      "branch": {
+        "type": "String"
+      }
+    }
+  },
+  "bdTimeDayCount": "{count} parties",
+  "@bdTimeDayCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bdTimeDayEmpty": "No other parties",
+  "bdTimeDayFailed": "The day’s schedule did not load",
+  "bdTimeMorning": "Morning",
+  "bdTimeAfternoon": "Afternoon and evening",
+  "bdTimeLegendSelected": "selected",
+  "bdTimeLegendBusy": "another party",
+  "bdTimeLegendNear": "close, within an hour",
+  "bdTimeOther": "Other time",
+  "bdTimeOtherInvalid": "HH:MM, 00:00–23:59",
+  "bdTimeBusyWarning": "Another party at this time: {party}",
+  "@bdTimeBusyWarning": {
+    "placeholders": {
+      "party": {
+        "type": "String"
+      }
+    }
+  },
+  "bdTimeHint": "A busy time can still be chosen — it only warns.",
+  "bdTimeConfirmAt": "Confirm for {time}",
+  "@bdTimeConfirmAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  }
 }

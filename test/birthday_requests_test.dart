@@ -220,9 +220,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(_button(tester, 'bd-confirm-submit').onPressed, isNull);
 
-    await tester.tap(find.byKey(const ValueKey('bd-confirm-time')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('OK'));
+    await tester.tap(find.byKey(const ValueKey('bd-slot-12:00')));
     await tester.pumpAndSettle();
     expect(_button(tester, 'bd-confirm-submit').onPressed, isNotNull);
 
@@ -233,6 +231,36 @@ void main() {
     // The card left the section and the booked list was refreshed.
     expect(find.byKey(const ValueKey('bd-request-r1')), findsNothing);
     expect(repo.listCalls, contains(BirthdayPartyStatus.booked));
+  });
+
+  testWidgets('Batafsil opens the panel; its Tasdiqlash opens the picker', (
+    tester,
+  ) async {
+    final repo = await _pump(tester, [_request()]);
+    await tester.tap(find.byKey(const ValueKey('bd-request-details-r1')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('bd-details-panel')), findsOneWidget);
+    expect(find.text('Tasdiqlash kutilmoqda'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('bd-details-confirm')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('bd-details-panel')), findsNothing);
+    expect(find.text('Bayram vaqtini tanlang'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('bd-slot-15:30')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('bd-confirm-submit')));
+    await tester.pumpAndSettle();
+    expect(repo.confirmed, [('r1', '15:30')]);
+    expect(find.byKey(const ValueKey('bd-request-r1')), findsNothing);
+  });
+
+  testWidgets('the panel\'s Rad etish opens the reject dialog', (tester) async {
+    await _pump(tester, [_request()]);
+    await tester.tap(find.byKey(const ValueKey('bd-request-details-r1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('bd-details-reject')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('bd-reject-reason')), findsOneWidget);
   });
 
   testWidgets('Rad etish needs 3 chars and names the refund', (tester) async {
@@ -274,9 +302,7 @@ void main() {
     );
     await tester.tap(find.byKey(const ValueKey('bd-request-confirm-r1')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('bd-confirm-time')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('OK'));
+    await tester.tap(find.byKey(const ValueKey('bd-slot-12:00')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('bd-confirm-submit')));
     await tester.pumpAndSettle();
