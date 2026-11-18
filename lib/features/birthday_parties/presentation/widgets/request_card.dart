@@ -15,11 +15,15 @@ class RequestCard extends StatelessWidget {
     required this.party,
     required this.onConfirm,
     required this.onReject,
+    this.onDetails,
   });
 
   final BirthdayParty party;
   final VoidCallback onConfirm;
   final VoidCallback onReject;
+
+  /// "Batafsil": opens the side panel; no button when null.
+  final VoidCallback? onDetails;
 
   @override
   Widget build(BuildContext context) {
@@ -105,6 +109,20 @@ class RequestCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
+          if (onDetails != null) ...[
+            OutlinedButton.icon(
+              key: ValueKey('bd-request-details-${party.id}'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: p.accent,
+                backgroundColor: p.surface,
+                side: BorderSide(color: p.accentBorder),
+              ),
+              onPressed: onDetails,
+              icon: const Icon(Icons.info_outline, size: 18),
+              label: Text(l10n.bdRequestDetails),
+            ),
+            const SizedBox(width: 8),
+          ],
           OutlinedButton(
             key: ValueKey('bd-request-reject-${party.id}'),
             style: OutlinedButton.styleFrom(foregroundColor: p.danger),

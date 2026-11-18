@@ -5534,6 +5534,406 @@ class AppLocalization {
   String get bdSourceApp {
     return Intl.message('App', name: 'bdSourceApp', desc: '', args: []);
   }
+
+  /// `Details`
+  String get bdRequestDetails {
+    return Intl.message(
+      'Details',
+      name: 'bdRequestDetails',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Awaiting confirmation`
+  String get bdDetailsAwaiting {
+    return Intl.message(
+      'Awaiting confirmation',
+      name: 'bdDetailsAwaiting',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `from the app`
+  String get bdDetailsFromApp {
+    return Intl.message(
+      'from the app',
+      name: 'bdDetailsFromApp',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `from the till`
+  String get bdDetailsFromTill {
+    return Intl.message(
+      'from the till',
+      name: 'bdDetailsFromTill',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `just now`
+  String get bdAgoJustNow {
+    return Intl.message('just now', name: 'bdAgoJustNow', desc: '', args: []);
+  }
+
+  /// `{count} min ago`
+  String bdAgoMinutes(int count) {
+    return Intl.message(
+      '$count min ago',
+      name: 'bdAgoMinutes',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `{count} h ago`
+  String bdAgoHours(int count) {
+    return Intl.message(
+      '$count h ago',
+      name: 'bdAgoHours',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `{count} days ago`
+  String bdAgoDays(int count) {
+    return Intl.message(
+      '$count days ago',
+      name: 'bdAgoDays',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `in {count} days`
+  String bdInDays(int count) {
+    return Intl.message(
+      'in $count days',
+      name: 'bdInDays',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `Party`
+  String get bdDetailsParty {
+    return Intl.message('Party', name: 'bdDetailsParty', desc: '', args: []);
+  }
+
+  /// `Package`
+  String get bdDetailsPackage {
+    return Intl.message(
+      'Package',
+      name: 'bdDetailsPackage',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Payment`
+  String get bdDetailsPayment {
+    return Intl.message(
+      'Payment',
+      name: 'bdDetailsPayment',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Note`
+  String get bdDetailsNote {
+    return Intl.message('Note', name: 'bdDetailsNote', desc: '', args: []);
+  }
+
+  /// `Born {date}`
+  String bdChildBirthDate(String date) {
+    return Intl.message(
+      'Born $date',
+      name: 'bdChildBirthDate',
+      desc: '',
+      args: [date],
+    );
+  }
+
+  /// `turns {age}`
+  String bdTurnsAge(int age) {
+    return Intl.message(
+      'turns $age',
+      name: 'bdTurnsAge',
+      desc: '',
+      args: [age],
+    );
+  }
+
+  /// `{count} kids`
+  String bdKidsCount(int count) {
+    return Intl.message(
+      '$count kids',
+      name: 'bdKidsCount',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `{count} kids + {extra} extra`
+  String bdKidsWithExtra(int count, int extra) {
+    return Intl.message(
+      '$count kids + $extra extra',
+      name: 'bdKidsWithExtra',
+      desc: '',
+      args: [count, extra],
+    );
+  }
+
+  /// `Package ({count} kids)`
+  String bdPackageLine(int count) {
+    return Intl.message(
+      'Package ($count kids)',
+      name: 'bdPackageLine',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `Extra kids {count} × {price}`
+  String bdExtraChildLine(int count, String price) {
+    return Intl.message(
+      'Extra kids $count × $price',
+      name: 'bdExtraChildLine',
+      desc: '',
+      args: [count, price],
+    );
+  }
+
+  /// `Discount`
+  String get bdDiscountLine {
+    return Intl.message('Discount', name: 'bdDiscountLine', desc: '', args: []);
+  }
+
+  /// `Total`
+  String get bdTotalLine {
+    return Intl.message('Total', name: 'bdTotalLine', desc: '', args: []);
+  }
+
+  /// `From balance`
+  String get bdPaidFromBalance {
+    return Intl.message(
+      'From balance',
+      name: 'bdPaidFromBalance',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Card`
+  String get bdPaidCard {
+    return Intl.message('Card', name: 'bdPaidCard', desc: '', args: []);
+  }
+
+  /// `Cash at the till`
+  String get bdCashAtTill {
+    return Intl.message(
+      'Cash at the till',
+      name: 'bdCashAtTill',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Nothing paid in the app`
+  String get bdNothingPaidInApp {
+    return Intl.message(
+      'Nothing paid in the app',
+      name: 'bdNothingPaidInApp',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `JAN,FEB,MAR,APR,MAY,JUN,JUL,AUG,SEP,OCT,NOV,DEC`
+  String get bdMonthsShort {
+    return Intl.message(
+      'JAN,FEB,MAR,APR,MAY,JUN,JUL,AUG,SEP,OCT,NOV,DEC',
+      name: 'bdMonthsShort',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `January,February,March,April,May,June,July,August,September,October,November,December`
+  String get bdMonthsLong {
+    return Intl.message(
+      'January,February,March,April,May,June,July,August,September,October,November,December',
+      name: 'bdMonthsLong',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday`
+  String get bdWeekdays {
+    return Intl.message(
+      'Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
+      name: 'bdWeekdays',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{month} {day}`
+  String bdDayMonth(String day, String month) {
+    return Intl.message(
+      '$month $day',
+      name: 'bdDayMonth',
+      desc: '',
+      args: [day, month],
+    );
+  }
+
+  /// `Pick the party time`
+  String get bdTimeTitle {
+    return Intl.message(
+      'Pick the party time',
+      name: 'bdTimeTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `That day at {branch}`
+  String bdTimeDayAt(String branch) {
+    return Intl.message(
+      'That day at $branch',
+      name: 'bdTimeDayAt',
+      desc: '',
+      args: [branch],
+    );
+  }
+
+  /// `{count} parties`
+  String bdTimeDayCount(int count) {
+    return Intl.message(
+      '$count parties',
+      name: 'bdTimeDayCount',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `No other parties`
+  String get bdTimeDayEmpty {
+    return Intl.message(
+      'No other parties',
+      name: 'bdTimeDayEmpty',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `The day’s schedule did not load`
+  String get bdTimeDayFailed {
+    return Intl.message(
+      'The day’s schedule did not load',
+      name: 'bdTimeDayFailed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Morning`
+  String get bdTimeMorning {
+    return Intl.message('Morning', name: 'bdTimeMorning', desc: '', args: []);
+  }
+
+  /// `Afternoon and evening`
+  String get bdTimeAfternoon {
+    return Intl.message(
+      'Afternoon and evening',
+      name: 'bdTimeAfternoon',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `selected`
+  String get bdTimeLegendSelected {
+    return Intl.message(
+      'selected',
+      name: 'bdTimeLegendSelected',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `another party`
+  String get bdTimeLegendBusy {
+    return Intl.message(
+      'another party',
+      name: 'bdTimeLegendBusy',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `close, within an hour`
+  String get bdTimeLegendNear {
+    return Intl.message(
+      'close, within an hour',
+      name: 'bdTimeLegendNear',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Other time`
+  String get bdTimeOther {
+    return Intl.message('Other time', name: 'bdTimeOther', desc: '', args: []);
+  }
+
+  /// `HH:MM, 00:00–23:59`
+  String get bdTimeOtherInvalid {
+    return Intl.message(
+      'HH:MM, 00:00–23:59',
+      name: 'bdTimeOtherInvalid',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Another party at this time: {party}`
+  String bdTimeBusyWarning(String party) {
+    return Intl.message(
+      'Another party at this time: $party',
+      name: 'bdTimeBusyWarning',
+      desc: '',
+      args: [party],
+    );
+  }
+
+  /// `A busy time can still be chosen — it only warns.`
+  String get bdTimeHint {
+    return Intl.message(
+      'A busy time can still be chosen — it only warns.',
+      name: 'bdTimeHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Confirm for {time}`
+  String bdTimeConfirmAt(String time) {
+    return Intl.message(
+      'Confirm for $time',
+      name: 'bdTimeConfirmAt',
+      desc: '',
+      args: [time],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalization> {

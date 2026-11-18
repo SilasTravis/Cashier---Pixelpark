@@ -1386,5 +1386,163 @@
     }
   },
   "bdRequestAlreadyDecided": "Bu so‘rov allaqachon ko‘rib chiqilgan",
-  "bdSourceApp": "Ilova"
+  "bdSourceApp": "Ilova",
+  "bdRequestDetails": "Batafsil",
+  "bdDetailsAwaiting": "Tasdiqlash kutilmoqda",
+  "bdDetailsFromApp": "ilovadan",
+  "bdDetailsFromTill": "kassadan",
+  "bdAgoJustNow": "hozirgina",
+  "bdAgoMinutes": "{count} daqiqa oldin",
+  "@bdAgoMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bdAgoHours": "{count} soat oldin",
+  "@bdAgoHours": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bdAgoDays": "{count} kun oldin",
+  "@bdAgoDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bdInDays": "{count} kundan keyin",
+  "@bdInDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bdDetailsParty": "Bayram",
+  "bdDetailsPackage": "Paket",
+  "bdDetailsPayment": "To‘lov",
+  "bdDetailsNote": "Izoh",
+  "bdChildBirthDate": "Tug‘ilgan sana {date}",
+  "@bdChildBirthDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "bdTurnsAge": "{age} yoshga to‘ladi",
+  "@bdTurnsAge": {
+    "placeholders": {
+      "age": {
+        "type": "int"
+      }
+    }
+  },
+  "bdKidsCount": "{count} bola",
+  "@bdKidsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bdKidsWithExtra": "{count} bola + {extra} qo‘shimcha",
+  "@bdKidsWithExtra": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "extra": {
+        "type": "int"
+      }
+    }
+  },
+  "bdPackageLine": "Paket ({count} bola)",
+  "@bdPackageLine": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bdExtraChildLine": "Qo‘shimcha bola {count} × {price}",
+  "@bdExtraChildLine": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "bdDiscountLine": "Chegirma",
+  "bdTotalLine": "Jami",
+  "bdPaidFromBalance": "Balansdan",
+  "bdPaidCard": "Karta",
+  "bdCashAtTill": "Kassada naqd",
+  "bdNothingPaidInApp": "Ilovada to‘lanmagan",
+  "bdMonthsShort": "YAN,FEV,MAR,APR,MAY,IYN,IYL,AVG,SEN,OKT,NOY,DEK",
+  "bdMonthsLong": "yanvar,fevral,mart,aprel,may,iyun,iyul,avgust,sentabr,oktabr,noyabr,dekabr",
+  "bdWeekdays": "Dushanba,Seshanba,Chorshanba,Payshanba,Juma,Shanba,Yakshanba",
+  "bdDayMonth": "{day}-{month}",
+  "@bdDayMonth": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "month": {
+        "type": "String"
+      }
+    }
+  },
+  "bdTimeTitle": "Bayram vaqtini tanlang",
+  "bdTimeDayAt": "Shu kuni {branch}’da",
+  "@bdTimeDayAt": {
+    "placeholders": {
+      "branch": {
+        "type": "String"
+      }
+    }
+  },
+  "bdTimeDayCount": "{count} ta bayram",
+  "@bdTimeDayCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bdTimeDayEmpty": "Boshqa bayram yo‘q",
+  "bdTimeDayFailed": "Kun jadvali yuklanmadi",
+  "bdTimeMorning": "Ertalab",
+  "bdTimeAfternoon": "Kunduzi va kechqurun",
+  "bdTimeLegendSelected": "tanlangan",
+  "bdTimeLegendBusy": "boshqa bayram bor",
+  "bdTimeLegendNear": "yaqin, 1 soat ichida",
+  "bdTimeOther": "Boshqa vaqt",
+  "bdTimeOtherInvalid": "SS:DD, 00:00–23:59",
+  "bdTimeBusyWarning": "Bu vaqtda boshqa bayram bor: {party}",
+  "@bdTimeBusyWarning": {
+    "placeholders": {
+      "party": {
+        "type": "String"
+      }
+    }
+  },
+  "bdTimeHint": "Band vaqtni ham tanlasa bo‘ladi, faqat ogohlantiradi.",
+  "bdTimeConfirmAt": "{time} ga tasdiqlash",
+  "@bdTimeConfirmAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  }
 }

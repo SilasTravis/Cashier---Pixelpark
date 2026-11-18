@@ -1310,5 +1310,163 @@
     }
   },
   "bdRequestAlreadyDecided": "Эта заявка уже обработана",
-  "bdSourceApp": "Приложение"
+  "bdSourceApp": "Приложение",
+  "bdRequestDetails": "Подробнее",
+  "bdDetailsAwaiting": "Ждёт подтверждения",
+  "bdDetailsFromApp": "из приложения",
+  "bdDetailsFromTill": "с кассы",
+  "bdAgoJustNow": "только что",
+  "bdAgoMinutes": "{count} мин назад",
+  "@bdAgoMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bdAgoHours": "{count} ч назад",
+  "@bdAgoHours": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bdAgoDays": "{count} дн. назад",
+  "@bdAgoDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bdInDays": "через {count} дн.",
+  "@bdInDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bdDetailsParty": "Праздник",
+  "bdDetailsPackage": "Пакет",
+  "bdDetailsPayment": "Оплата",
+  "bdDetailsNote": "Комментарий",
+  "bdChildBirthDate": "Дата рождения {date}",
+  "@bdChildBirthDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "bdTurnsAge": "исполнится {age}",
+  "@bdTurnsAge": {
+    "placeholders": {
+      "age": {
+        "type": "int"
+      }
+    }
+  },
+  "bdKidsCount": "{count} детей",
+  "@bdKidsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bdKidsWithExtra": "{count} детей + {extra} доп.",
+  "@bdKidsWithExtra": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "extra": {
+        "type": "int"
+      }
+    }
+  },
+  "bdPackageLine": "Пакет ({count} детей)",
+  "@bdPackageLine": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bdExtraChildLine": "Доп. дети {count} × {price}",
+  "@bdExtraChildLine": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "bdDiscountLine": "Скидка",
+  "bdTotalLine": "Итого",
+  "bdPaidFromBalance": "С баланса",
+  "bdPaidCard": "Карта",
+  "bdCashAtTill": "Наличными на кассе",
+  "bdNothingPaidInApp": "В приложении не оплачено",
+  "bdMonthsShort": "ЯНВ,ФЕВ,МАР,АПР,МАЙ,ИЮН,ИЮЛ,АВГ,СЕН,ОКТ,НОЯ,ДЕК",
+  "bdMonthsLong": "января,февраля,марта,апреля,мая,июня,июля,августа,сентября,октября,ноября,декабря",
+  "bdWeekdays": "Понедельник,Вторник,Среда,Четверг,Пятница,Суббота,Воскресенье",
+  "bdDayMonth": "{day} {month}",
+  "@bdDayMonth": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "month": {
+        "type": "String"
+      }
+    }
+  },
+  "bdTimeTitle": "Выберите время праздника",
+  "bdTimeDayAt": "В этот день в {branch}",
+  "@bdTimeDayAt": {
+    "placeholders": {
+      "branch": {
+        "type": "String"
+      }
+    }
+  },
+  "bdTimeDayCount": "праздников: {count}",
+  "@bdTimeDayCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bdTimeDayEmpty": "Других праздников нет",
+  "bdTimeDayFailed": "Расписание дня не загрузилось",
+  "bdTimeMorning": "Утро",
+  "bdTimeAfternoon": "День и вечер",
+  "bdTimeLegendSelected": "выбрано",
+  "bdTimeLegendBusy": "есть другой праздник",
+  "bdTimeLegendNear": "близко, в пределах часа",
+  "bdTimeOther": "Другое время",
+  "bdTimeOtherInvalid": "ЧЧ:ММ, 00:00–23:59",
+  "bdTimeBusyWarning": "В это время уже есть праздник: {party}",
+  "@bdTimeBusyWarning": {
+    "placeholders": {
+      "party": {
+        "type": "String"
+      }
+    }
+  },
+  "bdTimeHint": "Занятое время тоже можно выбрать — это лишь предупреждение.",
+  "bdTimeConfirmAt": "Подтвердить на {time}",
+  "@bdTimeConfirmAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  }
 }

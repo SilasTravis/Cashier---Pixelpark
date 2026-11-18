@@ -14,6 +14,7 @@ import '../widgets/confirm_request_dialog.dart';
 import '../widgets/event_card.dart';
 import '../widgets/reject_request_dialog.dart';
 import '../widgets/request_card.dart';
+import '../widgets/request_details_panel.dart';
 import '../widgets/event_detail_dialog.dart';
 
 /// Tadbirlar tab: the branch's birthday parties by segment, grouped by date.
@@ -207,23 +208,38 @@ class _RequestsSection extends StatelessWidget {
                 for (final party in state.requests)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
-                    child: RequestCard(
-                      party: party,
-                      onConfirm: () async {
-                        final events = context.read<BirthdayEventsCubit>();
-                        final booked = await showConfirmRequestDialog(
-                          context,
-                          party,
-                          requests,
-                        );
-                        // The confirmed party now belongs to the booked list.
-                        if (booked != null &&
-                            events.state.status == BirthdayPartyStatus.booked) {
-                          events.refresh();
+                    child: Builder(
+                      builder: (context) {
+                        Future<void> confirm() async {
+                          final events = context.read<BirthdayEventsCubit>();
+                          final booked = await showConfirmRequestDialog(
+                            context,
+                            party,
+                            requests,
+                          );
+                          // The confirmed party now belongs to the booked list.
+                          if (booked != null &&
+                              events.state.status ==
+                                  BirthdayPartyStatus.booked) {
+                            events.refresh();
+                          }
                         }
+
+                        void reject() =>
+                            showRejectRequestDialog(context, party, requests);
+
+                        return RequestCard(
+                          party: party,
+                          onConfirm: confirm,
+                          onReject: reject,
+                          onDetails: () => showRequestDetailsPanel(
+                            context,
+                            party,
+                            onConfirm: confirm,
+                            onReject: reject,
+                          ),
+                        );
                       },
-                      onReject: () =>
-                          showRejectRequestDialog(context, party, requests),
                     ),
                   ),
               ],

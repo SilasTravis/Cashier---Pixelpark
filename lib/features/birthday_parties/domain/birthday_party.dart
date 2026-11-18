@@ -24,6 +24,35 @@ String partyDateLabel(String ymd) {
   return m == null ? ymd : '${m[3]}.${m[2]}.${m[1]}';
 }
 
+/// `YYYY-MM-DD` (a longer ISO string is cut to its date); anything else is
+/// null, so an odd or missing value never breaks the list.
+String? parseYmd(Object? raw) {
+  if (raw is! String) return null;
+  final m = RegExp(r'^(\d{4})-(\d{2})-(\d{2})').firstMatch(raw.trim());
+  if (m == null) return null;
+  final month = int.parse(m[2]!);
+  final day = int.parse(m[3]!);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  return '${m[1]}-${m[2]}-${m[3]}';
+}
+
+/// The age a child born on [birthDate] has on [partyDate] (both
+/// `YYYY-MM-DD`): the age they turn if the birthday falls on or before the
+/// party in that year. A 29 February child counts the birthday from
+/// 1 March in common years. Null when either date is missing/unreadable or
+/// the party is before the birth.
+int? turningAge(String? birthDate, String? partyDate) {
+  final b = parseYmd(birthDate);
+  final d = parseYmd(partyDate);
+  if (b == null || d == null) return null;
+  int part(String ymd, int from, int to) => int.parse(ymd.substring(from, to));
+  final by = part(b, 0, 4), bm = part(b, 5, 7), bd = part(b, 8, 10);
+  final py = part(d, 0, 4), pm = part(d, 5, 7), pd = part(d, 8, 10);
+  final hadBirthday = pm > bm || (pm == bm && pd >= bd);
+  final age = py - by - (hadBirthday ? 0 : 1);
+  return age < 0 ? null : age;
+}
+
 DateTime? _date(Object? raw) =>
     raw == null ? null : DateTime.parse(raw as String);
 
@@ -171,6 +200,7 @@ class BirthdayParty extends Equatable {
     this.source = 'till',
     this.partyTime,
     this.childName,
+    this.childBirthDate,
     this.rejectReason,
     this.decidedByName,
     this.decidedByKind,
@@ -222,6 +252,10 @@ class BirthdayParty extends Equatable {
   /// `HH:MM` once confirmed, null before.
   final String? partyTime;
   final String? childName;
+
+  /// The child's birth date, `YYYY-MM-DD`; null when unknown (older
+  /// servers do not send it).
+  final String? childBirthDate;
 
   /// Why a cashier rejected the request, null otherwise.
   final String? rejectReason;
@@ -285,6 +319,10 @@ class BirthdayParty extends Equatable {
       childName: json['child'] == null
           ? null
           : (json['child'] as Map)['name'] as String?,
+      childBirthDate: parseYmd(
+        json['childBirthDate'] ??
+            (json['child'] is Map ? (json['child'] as Map)['birthDate'] : null),
+      ),
       rejectReason: json['rejectReason'] as String?,
       decidedByName: json['decidedBy'] == null
           ? null
@@ -332,6 +370,7 @@ class BirthdayParty extends Equatable {
     source,
     partyTime,
     childName,
+    childBirthDate,
     rejectReason,
     decidedByName,
     decidedByKind,
