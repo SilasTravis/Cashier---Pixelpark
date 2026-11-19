@@ -65,21 +65,16 @@ class ParkingReceiptPrinter {
       pageFormat: const PdfPageFormat(
         79 * _mm,
         double.infinity,
-        marginTop: 4 * _mm,
+        marginTop: 3 * _mm,
         marginLeft: 3 * _mm,
         marginRight: 13 * _mm,
-        marginBottom: 4 * _mm,
+        marginBottom: 3 * _mm,
       ),
       build: (_) => pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.center,
         children: [
           pw.Image(art.logo, width: 20 * _mm),
-          pw.SizedBox(height: 1.8 * _mm),
-          pw.Text(
-            'PIXEL BILAN',
-            style: type(art.bold, 9.5).copyWith(letterSpacing: 1.5),
-          ),
-          pw.SizedBox(height: 1 * _mm),
+          pw.SizedBox(height: 1.6 * _mm),
           pw.Stack(
             alignment: pw.Alignment.center,
             children: [
@@ -102,18 +97,32 @@ class ParkingReceiptPrinter {
               ],
             ),
           ),
-          pw.Text('Sizning xizmatingizdamiz!', style: type(art.bold, 10.5)),
-          pw.SizedBox(height: 1.2 * _mm),
-          pw.Divider(thickness: 0.8, borderStyle: pw.BorderStyle.dashed),
-          if (branchName.trim().isNotEmpty)
-            pw.Text(
-              branchName.trim(),
-              textAlign: pw.TextAlign.center,
-              style: type(art.bold, 9.5),
-            ),
-          pw.Text(
-            DateFormat('dd.MM.yyyy   HH:mm').format(issuedAt.toLocal()),
-            style: type(art.semiBold, 9),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.center,
+            children: [
+              ReceiptArt.svg(ReceiptArt.sparkle, 2.6, 2.6),
+              pw.SizedBox(width: 2.4 * _mm),
+              pw.Text(
+                'Pixel bilan doim foyda!',
+                style: type(art.display, 12.5),
+              ),
+              pw.SizedBox(width: 2.4 * _mm),
+              ReceiptArt.svg(ReceiptArt.sparkle, 2.6, 2.6),
+            ],
+          ),
+          pw.Divider(height: 3 * _mm, thickness: 0.6),
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Expanded(
+                child: pw.Text(branchName.trim(), style: type(art.bold, 9)),
+              ),
+              pw.SizedBox(width: 2 * _mm),
+              pw.Text(
+                DateFormat('dd.MM.yyyy  HH:mm').format(issuedAt.toLocal()),
+                style: type(art.semiBold, 8.5),
+              ),
+            ],
           ),
         ],
       ),

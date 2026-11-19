@@ -25,7 +25,7 @@ void main() {
         expect(RegExp(r'/Type\s*/Page\b').allMatches(pdf), hasLength(1));
         expect(slip.format.width / PdfPageFormat.mm, closeTo(79, 0.01));
       }
-      expect(sample.format.height / PdfPageFormat.mm, lessThan(90));
+      expect(sample.format.height / PdfPageFormat.mm, lessThan(76));
       expect(long.format.height, greaterThan(sample.format.height));
     },
   );
