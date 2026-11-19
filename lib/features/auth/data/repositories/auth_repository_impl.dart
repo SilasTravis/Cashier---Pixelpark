@@ -26,9 +26,10 @@ class AuthRepositoryImpl implements AuthRepository {
       );
       _saveTokens(loginResponse.tokens);
 
-      // The login response doesn't include the branch — fetch it once so
-      // the shell header can show it immediately.
-      final session = await remoteDataSource.getMe();
+      final branch = loginResponse.branch;
+      final session = branch == null
+          ? await remoteDataSource.getMe()
+          : CurrentSessionModel(cashier: loginResponse.cashier, branch: branch);
       _saveSession(session);
       return Right(
         AuthSession(cashier: session.cashier, branch: session.branch),
@@ -88,6 +89,7 @@ class AuthRepositoryImpl implements AuthRepository {
       username: session.cashier.username,
       branchId: session.branch.id,
       branchName: session.branch.name,
+      printParkingReceipt: session.branch.printParkingReceipt,
     );
     localSource.setPrintEntryQr(session.branch.printEntryQr);
   }

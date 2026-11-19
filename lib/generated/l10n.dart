@@ -514,6 +514,16 @@ class AppLocalization {
     );
   }
 
+  /// `Sale complete. The printer did not confirm the parking slip.`
+  String get parkingReceiptUnconfirmed {
+    return Intl.message(
+      'Sale complete. The printer did not confirm the parking slip.',
+      name: 'parkingReceiptUnconfirmed',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Today`
   String get historyToday {
     return Intl.message('Today', name: 'historyToday', desc: '', args: []);

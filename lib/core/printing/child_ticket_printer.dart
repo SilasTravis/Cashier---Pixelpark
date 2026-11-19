@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
+import 'direct_print_job.dart';
 
 /// One child's entry ticket: who, which plan, what it costs. [priceUzs] is
 /// the plan's list price, null for per-minute plans (no fixed price at
@@ -50,29 +50,15 @@ class ChildTicketPrinter {
     String? preferredPrinterName,
   }) async {
     if (entries.isEmpty) return true;
-    final printers = await Printing.listPrinters();
-    final target = preferredPrinterName == null
-        ? printers
-              .where((printer) => printer.name.toLowerCase().contains('slk-'))
-              .firstOrNull
-        : printers
-              .where((printer) => printer.name == preferredPrinterName)
-              .firstOrNull;
-    if (target == null) {
-      debugPrint('ChildTicketPrinter: receipt printer not found');
-      return false;
-    }
-    return Printing.directPrintPdf(
-      printer: target,
-      name: 'child-ticket-${entries.first.ticketId}',
-      format: PdfPageFormat(
+    return DirectPrintJob.submit(
+      bytes: await buildPdf(entries, branchName: branchName),
+      format: const PdfPageFormat(
         _paperWidthMm * PdfPageFormat.mm,
         _pageHeightMm * PdfPageFormat.mm,
         marginAll: 0,
       ),
-      usePrinterSettings: true,
-      dynamicLayout: false,
-      onLayout: (_) => buildPdf(entries, branchName: branchName),
+      name: 'child-ticket-${entries.first.ticketId}',
+      printerName: preferredPrinterName,
     );
   }
 

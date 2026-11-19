@@ -6,6 +6,7 @@ class Branch extends Equatable {
     required this.slug,
     required this.name,
     this.printEntryQr = true,
+    this.printParkingReceipt = false,
   });
 
   final String id;
@@ -15,9 +16,16 @@ class Branch extends Equatable {
   /// The branch's dashboard switch "Kassada QR stiker chiqarilsin". False:
   /// the till prints no entry QR (stickers/tickets), only the receipt.
   final bool printEntryQr;
+  final bool printParkingReceipt;
 
   @override
-  List<Object?> get props => [id, slug, name, printEntryQr];
+  List<Object?> get props => [
+    id,
+    slug,
+    name,
+    printEntryQr,
+    printParkingReceipt,
+  ];
 }
 
 class Cashier extends Equatable {

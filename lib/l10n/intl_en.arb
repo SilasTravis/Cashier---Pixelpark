@@ -62,6 +62,7 @@
   "printReceipt": "Print receipt",
   "printing": "Printing…",
   "receiptPrintFailed": "Receipt could not be printed. Check the printer.",
+  "parkingReceiptUnconfirmed": "Sale complete. The printer did not confirm the parking slip.",
   "historyToday": "Today",
   "history7Days": "7 days",
   "history30Days": "30 days",

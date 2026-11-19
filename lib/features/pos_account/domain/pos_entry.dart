@@ -162,8 +162,12 @@ class PosEntryResult extends Equatable {
     this.promoCode,
     this.cashback,
     this.entrySale,
+    this.paidAdmission = false,
   });
 
+  /// The checkout charged for at least one new admission, including a
+  /// balance-funded pass. A reissued pass can still have a positive face value.
+  final bool paidAdmission;
   final List<PosEntry> entries;
   final List<PosEntryFailure> failures;
 
@@ -202,6 +206,7 @@ class PosEntryResult extends Equatable {
     promoCode,
     cashback,
     entrySale,
+    paidAdmission,
   ];
 }
 

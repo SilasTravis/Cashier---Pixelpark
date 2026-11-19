@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/error/failure.dart';
 import '../../../../core/local_source/local_source.dart';
+import '../../../../core/printing/parking_receipt_dispatcher.dart';
 import '../../../products/domain/product.dart';
 import '../../../pos_sale/domain/discount.dart';
 import '../../data/pos_account_remote_data_source.dart' show CheckoutLine;
@@ -25,7 +26,7 @@ part 'pos_account_event.dart';
 part 'pos_account_state.dart';
 
 class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
-  PosAccountBloc(this._repository, [this._localSource])
+  PosAccountBloc(this._repository, [this._localSource, this._parkingReceipts])
     : super(const PosAccountState()) {
     on<PosAccountDigitPressed>(_onDigitPressed);
     on<PosAccountBackspacePressed>(_onBackspacePressed);
@@ -75,6 +76,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
   }
 
   final PosAccountRepository _repository;
+  final ParkingReceiptDispatcher? _parkingReceipts;
 
   /// Bumped by every promo verify, so a stale answer only clears the busy
   /// flag when no newer verify started after it.
@@ -879,6 +881,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
         clearPromoError: true,
       ),
     );
+    final printParking = _parkingReceipts?.captureForCheckout();
     final result = await _repository.planEntryCheckout(
       customerId: customer.id,
       planKey: event.planKey,
@@ -974,6 +977,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
             ),
           ),
         );
+        if (entryResult.paidAdmission) printParking?.call(DateTime.now());
         // A child's entry discount was unavailable/mismatched (per-child
         // failure, not a whole-request error) — refetch so the catalog is
         // fresh next time the cashier picks one.
@@ -1322,6 +1326,7 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
         clearLastSubscriptionSale: true,
       ),
     );
+    final printParking = _parkingReceipts?.captureForCheckout();
     final result = await _repository.sellSubscription(
       customerId: customer.id,
       childId: event.childId,
@@ -1354,6 +1359,12 @@ class PosAccountBloc extends Bloc<PosAccountEvent, PosAccountState> {
             ],
           ),
         );
+        // An existing pass can be returned for reprinting. Only a pass
+        // linked to this newly sold subscription admits the buyer today.
+        if (sale.receipt.priceUzs > 0 &&
+            sale.pass?.subscription?.id == sale.subscription.id) {
+          printParking?.call(sale.receipt.createdAt);
+        }
         add(const PosAccountSubscriptionsRequested());
         if (sale.pass != null) {
           add(const PosAccountPlayingRequested());

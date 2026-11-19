@@ -1,4 +1,7 @@
+import 'dart:async';
 import 'dart:io';
+
+import 'package:cashier_app/core/printing/parking_receipt_dispatcher.dart';
 
 import 'package:cashier_app/core/error/exceptions.dart';
 import 'package:cashier_app/core/local_source/local_source.dart';
@@ -33,6 +36,7 @@ const _vip = Product(
   category: 'Tariflar',
   icon: 'ph-crown',
   offlineOnly: true,
+  ticketKind: 'vip',
 );
 
 class _Products extends ProductsRemoteDataSourceImpl {
@@ -41,9 +45,17 @@ class _Products extends ProductsRemoteDataSourceImpl {
   Future<List<Product>> listProducts() async => const [_popcorn, _vip];
 }
 
+class _CustomProducts extends ProductsRemoteDataSourceImpl {
+  _CustomProducts(this.items) : super(Dio());
+  final List<Product> items;
+  @override
+  Future<List<Product>> listProducts() async => items;
+}
+
 class _Sales extends PosSaleRemoteDataSourceImpl {
   _Sales() : super(Dio());
   int checkouts = 0;
+  SaleReceipt? response;
   @override
   Future<List<Discount>> fetchDiscounts() async => const [];
   @override
@@ -54,7 +66,7 @@ class _Sales extends PosSaleRemoteDataSourceImpl {
     String? discountId,
   }) async {
     checkouts++;
-    throw UnimplementedError();
+    return response!;
   }
 }
 
@@ -251,14 +263,14 @@ void main() {
       final online = build();
       addTearDown(online.close);
       online.add(const PosSaleStarted());
-      await settle();
+      await settleUntil(() => online.state.products.isNotEmpty);
       expect(online.state.visibleProducts.map((p) => p.id), ['popcorn']);
 
       await store.setOfflineMode(true);
       final offline = build(offlineMode: true);
       addTearDown(offline.close);
       offline.add(const PosSaleStarted());
-      await settle();
+      await settleUntil(() => offline.state.products.isNotEmpty);
       expect(
         offline.state.visibleProducts.map((p) => p.id),
         containsAll(['popcorn', 'vip']),
@@ -288,6 +300,95 @@ void main() {
       expect(bloc.state.lastReceipt?.subtotalUzs, 150000);
       expect(bloc.state.cart, isEmpty);
       expect(store.sales().single.lines.single.qty, 2);
+    },
+  );
+
+  test(
+    'online and offline ticket purchases print once, only after a positive sale with a ticket',
+    () async {
+      final spooler = Completer<void>();
+      final printed = <DateTime>[];
+      final dispatcher = ParkingReceiptDispatcher(
+        local,
+        printReceipt:
+            ({required branchName, required issuedAt, preferredPrinterName}) {
+              printed.add(issuedAt);
+              return spooler.future;
+            },
+      );
+      await local.setPrintParkingReceipt(true);
+      final issuedAt = DateTime.utc(2026, 11, 19, 10);
+      final onlineTicket = Product.fromJson({
+        ..._vip.toJson(),
+        'offlineOnly': false,
+        'ticketKind': 'standard',
+      });
+      final plain = Product.fromJson({
+        ..._popcorn.toJson(),
+        'offlineOnly': true,
+      });
+      final catalog = ProductsRepository(
+        _CustomProducts([plain, onlineTicket]),
+        store,
+        local,
+      );
+      final bloc = PosSaleBloc(
+        PosSaleRepository(sales, store),
+        catalog,
+        OfflineCheckout(store, local),
+        parkingReceipts: dispatcher,
+      );
+      addTearDown(bloc.close);
+      bloc.add(const PosSaleStarted());
+      await settleUntil(() => bloc.state.products.isNotEmpty);
+      SaleReceipt receipt(int net) => SaleReceipt(
+        id: 'sale',
+        subtotalUzs: net,
+        cashUzs: net,
+        cardUzs: 0,
+        createdAt: issuedAt,
+        items: const [
+          SaleReceiptItem(
+            productId: 'vip',
+            nameSnapshot: 'VIP',
+            priceSnapshotUzs: 75000,
+            qty: 2,
+            lineTotalUzs: 150000,
+          ),
+        ],
+      );
+      Future<void> buy(Product item, int amount) async {
+        final completion = bloc.stream.firstWhere(
+          (s) => !s.isCheckingOut && s.cart.isEmpty && s.lastReceipt != null,
+        );
+        bloc
+          ..add(PosSaleProductAdded(item))
+          ..add(PosSaleProductAdded(item))
+          ..add(PosSaleCheckoutRequested(cashUzs: amount, cardUzs: 0));
+        await completion;
+      }
+
+      sales.response = receipt(150000);
+      await buy(onlineTicket, 150000);
+      expect(printed, [issuedAt]);
+      sales.response = receipt(0);
+      await buy(onlineTicket, 0);
+      expect(printed, hasLength(1));
+      await store.setOfflineMode(true);
+      bloc.add(const PosSaleModeChanged(true));
+      await settleUntil(
+        () => bloc.state.offlineMode && !bloc.state.isLoadingProducts,
+      );
+      await buy(plain, 24000);
+      expect(printed, hasLength(1));
+      await buy(onlineTicket, 150000);
+      expect(printed, hasLength(2));
+      spooler.completeError(StateError('offline printer'));
+      await buy(onlineTicket, 150000);
+      expect(printed, hasLength(3));
+      expect(store.sales(), hasLength(3));
+      expect(sales.checkouts, 2);
+      expect(bloc.state.errorMessage, isNull);
     },
   );
 

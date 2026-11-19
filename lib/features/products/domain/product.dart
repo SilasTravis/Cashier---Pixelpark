@@ -8,6 +8,7 @@ class Product extends Equatable {
     required this.category,
     required this.icon,
     this.offlineOnly = false,
+    this.ticketKind,
     this.imageUrl,
     this.showInExtras = false,
   });
@@ -26,6 +27,11 @@ class Product extends Equatable {
   /// grid online; the backend also refuses them at online checkout.
   final bool offlineOnly;
 
+  /// Entry-ticket classification from the POS catalogue, also cached offline.
+  final String? ticketKind;
+
+  bool get isAdmissionTicket => ticketKind == 'standard' || ticketKind == 'vip';
+
   /// The product photo uploaded in the Dashboard, or null. A backend that
   /// predates photos — or an offline cache saved before them — has no key.
   final String? imageUrl;
@@ -42,6 +48,9 @@ class Product extends Equatable {
     category: json['category'] as String,
     icon: json['icon'] as String,
     offlineOnly: json['offlineOnly'] as bool? ?? false,
+    ticketKind: json['ticketKind'] is String
+        ? json['ticketKind'] as String
+        : null,
     imageUrl: _readImageUrl(json['imageUrl']),
     showInExtras: json['showInExtras'] as bool? ?? false,
   );
@@ -64,6 +73,7 @@ class Product extends Equatable {
     'category': category,
     'icon': icon,
     'offlineOnly': offlineOnly,
+    'ticketKind': ticketKind,
     'imageUrl': imageUrl,
     'showInExtras': showInExtras,
   };
@@ -76,6 +86,7 @@ class Product extends Equatable {
     category,
     icon,
     offlineOnly,
+    ticketKind,
     imageUrl,
     showInExtras,
   ];

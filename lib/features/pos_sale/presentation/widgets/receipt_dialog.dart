@@ -149,7 +149,7 @@ class _ReceiptDialogState extends State<_ReceiptDialog> {
             ),
           ),
         FilledButton(
-          onPressed: _isPrinting ? null : () => Navigator.of(context).pop(),
+          onPressed: () => Navigator.of(context).pop(),
           child: Text(AppLocalization.of(context).close),
         ),
       ],

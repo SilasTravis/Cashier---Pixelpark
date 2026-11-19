@@ -38,10 +38,10 @@ Future<void> printSubscriptionSale(
   } catch (_) {
     printed = false;
   }
+  if (!context.mounted || !messenger.mounted) return;
   if (!printed) {
     messenger.showSnackBar(SnackBar(content: Text(l10n.receiptPrintFailed)));
   }
-  if (!context.mounted) return;
 
   final pass = sale.pass;
   if (pass != null) {

@@ -35,7 +35,8 @@ std::wstring Utf16FromUtf8(const std::string& value) {
 
 bool PrintRgbaPages(const std::wstring& printer_name,
                     const std::wstring& job_name,
-                    const EncodableList& pages, std::string* error) {
+                    const EncodableList& pages, short paper_width,
+                    short paper_length, bool label, std::string* error) {
   HANDLE printer = nullptr;
   if (!OpenPrinter(const_cast<wchar_t*>(printer_name.c_str()), &printer,
                    nullptr)) {
@@ -68,16 +69,14 @@ bool PrintRgbaPages(const std::wstring& printer_name,
       DM_ORIENTATION | DM_PAPERSIZE | DM_PAPERWIDTH | DM_PAPERLENGTH;
   devmode->dmOrientation = DMORIENT_PORTRAIT;
   devmode->dmPaperSize = 0;
-  // DEVMODE dimensions are tenths of a millimetre. The roll is 58 mm across
-  // the print head and advances 40 mm per label; keeping this in the driver's
-  // unrotated orientation makes the finished artwork horizontal.
-  devmode->dmPaperWidth = 580;
-  devmode->dmPaperLength = 400;
+  // DEVMODE uses tenths of a millimetre for both label and receipt stock.
+  devmode->dmPaperWidth = paper_width;
+  devmode->dmPaperLength = paper_length;
 
   HDC dc = CreateDC(L"WINSPOOL", printer_name.c_str(), nullptr, devmode);
   ClosePrinter(printer);
   if (dc == nullptr) {
-    *error = "Windows could not create the 58x40-mm printer page";
+    *error = "Windows could not create the thermal printer page";
     return false;
   }
 
@@ -155,18 +154,20 @@ bool PrintRgbaPages(const std::wstring& printer_name,
       break;
     }
     SetStretchBltMode(dc, COLORONCOLOR);
-    const int page_width = GetDeviceCaps(dc, PHYSICALWIDTH);
-    const int page_height = GetDeviceCaps(dc, PHYSICALHEIGHT);
+    // A receipt driver can report a full roll as its physical page. Draw
+    // the parking slip at its true 203 dpi size even on those drivers.
+    const int page_width = label ? GetDeviceCaps(dc, PHYSICALWIDTH)
+                                 : MulDiv(*width, GetDeviceCaps(dc, LOGPIXELSX), 203);
+    const int page_height = label ? GetDeviceCaps(dc, PHYSICALHEIGHT)
+                                  : MulDiv(*height, GetDeviceCaps(dc, LOGPIXELSY), 203);
     if (page_width <= 0 || page_height <= 0) {
       ok = false;
       break;
     }
-    // The HDC is explicitly 58x40 mm now, so this is a full-page operation
-    // (the form thermal drivers reliably accept) without the old 4x4 scaling.
     const int rendered = StretchDIBits(
         dc, -offset_x, -offset_y, page_width, page_height, 0, 0, *width,
         *height, bgr.data(), &bitmap_info, DIB_RGB_COLORS, SRCCOPY);
-    if (rendered == GDI_ERROR || EndPage(dc) <= 0) {
+    if (rendered <= 0 || EndPage(dc) <= 0) {
       ok = false;
       break;
     }
@@ -178,7 +179,7 @@ bool PrintRgbaPages(const std::wstring& printer_name,
     AbortDoc(dc);
   }
   DeleteDC(dc);
-  if (!ok) *error = "Windows failed while writing the label bitmap";
+  if (!ok) *error = "Windows failed while writing the thermal print job";
   return ok;
 }
 
@@ -216,9 +217,27 @@ void RegisterNativeLabelPrinter(flutter::FlutterEngine* engine) {
           result->Error("bad-arguments", "Printer, job, or pages are missing");
           return;
         }
+        // Label callers omit the paper size and use the calibrated 58x40
+        // stock. Parking slips carry the actual PDF height in tenths of mm.
+        short paper_width = 580;
+        short paper_length = 400;
+        const auto* width_value = Find(*args, "paperWidth");
+        const auto* length_value = Find(*args, "paperLength");
+        const bool label = !width_value && !length_value;
+        if (!label) {
+          const auto* width = width_value ? std::get_if<int32_t>(width_value) : nullptr;
+          const auto* length = length_value ? std::get_if<int32_t>(length_value) : nullptr;
+          if (!width || !length || *width != 790 || *length <= 0 || *length > 32767) {
+            result->Error("bad-arguments", "Invalid receipt dimensions");
+            return;
+          }
+          paper_width = static_cast<short>(*width);
+          paper_length = static_cast<short>(*length);
+        }
         std::string error;
         const bool ok = PrintRgbaPages(Utf16FromUtf8(*printer),
-                                       Utf16FromUtf8(*job), *pages, &error);
+                                       Utf16FromUtf8(*job), *pages, paper_width,
+                                       paper_length, label, &error);
         if (!ok) {
           result->Error("print-failed", error);
           return;

@@ -22,6 +22,7 @@ class LocalSource {
       AppKeys.branchId,
       AppKeys.branchName,
       AppKeys.printEntryQr,
+      AppKeys.printParkingReceipt,
     ]);
   }
 
@@ -49,6 +50,7 @@ class LocalSource {
     required String username,
     required String branchId,
     required String branchName,
+    bool printParkingReceipt = false,
   }) {
     box.putAll({
       AppKeys.cashierId: id,
@@ -56,6 +58,7 @@ class LocalSource {
       AppKeys.cashierUsername: username,
       AppKeys.branchId: branchId,
       AppKeys.branchName: branchName,
+      AppKeys.printParkingReceipt: printParkingReceipt,
     });
   }
 
@@ -74,6 +77,11 @@ class LocalSource {
   /// and re-prints. True when never set.
   bool getPrintEntryQr() =>
       box.get(AppKeys.printEntryQr, defaultValue: true) as bool;
+
+  bool getPrintParkingReceipt() => box.get(AppKeys.printParkingReceipt) == true;
+
+  Future<void> setPrintParkingReceipt(bool value) =>
+      box.put(AppKeys.printParkingReceipt, value);
 
   Future<void> setApiBaseUrl(String value) async {
     await box.put(AppKeys.apiBaseUrl, value);

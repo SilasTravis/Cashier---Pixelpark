@@ -16,6 +16,9 @@ import 'core/localization/locale_cubit.dart';
 import 'core/network/api_client.dart';
 import 'core/network/token_refresher.dart';
 import 'core/offline/app_mode_cubit.dart';
+import 'core/printing/parking_receipt_dispatcher.dart';
+import 'core/printing/parking_receipt_notice.dart';
+import 'core/printing/parking_receipt_printer.dart';
 import 'core/terminal/terminal_heartbeat_service.dart';
 import 'core/update/release_source.dart';
 import 'core/update/update_failure_log.dart';
@@ -54,6 +57,13 @@ final GetIt sl = GetIt.instance;
 
 Future<void> init() async {
   await _initHive();
+  sl.registerLazySingleton<ParkingReceiptDispatcher>(
+    () => ParkingReceiptDispatcher(
+      sl(),
+      printReceipt: ParkingReceiptPrinter.printReceipt,
+      onUnconfirmed: showParkingReceiptNotice,
+    ),
+  );
 
   sl.registerLazySingleton<TokenRefresher>(() => TokenRefresher(sl()));
   sl.registerLazySingleton<ConnectivityMonitor>(
@@ -128,6 +138,9 @@ void _terminalFeature(String appVersion) {
       lastUpdateFailure: sl<UpdateFailureLog>().current,
       hostname: () => Platform.localHostname,
       osVersion: () => Platform.operatingSystemVersion,
+      branchId: sl<LocalSource>().getBranchId,
+      onPrintParkingReceipt: (value) =>
+          unawaited(sl<LocalSource>().setPrintParkingReceipt(value)),
       onPrintEntryQr: (value) =>
           unawaited(sl<LocalSource>().setPrintEntryQr(value)),
     ),
@@ -266,7 +279,7 @@ void _productsFeature() {
 }
 
 void _posAccountFeature() {
-  sl.registerFactory<PosAccountBloc>(() => PosAccountBloc(sl(), sl()));
+  sl.registerFactory<PosAccountBloc>(() => PosAccountBloc(sl(), sl(), sl()));
 
   sl.registerLazySingleton<PosAccountRepository>(
     () => PosAccountRepository(sl()),
@@ -284,6 +297,7 @@ void _posSaleFeature() {
       sl(),
       sl(),
       offlineMode: sl<OfflineStore>().isOfflineMode,
+      parkingReceipts: sl(),
     ),
   );
   sl.registerLazySingleton<OfflineCheckout>(() => OfflineCheckout(sl(), sl()));

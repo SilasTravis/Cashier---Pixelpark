@@ -10,6 +10,7 @@ import '../../features/pos_account/domain/subscription.dart';
 import '../../features/pos_sale/domain/sale_receipt.dart';
 import 'birthday_receipt.dart';
 import '../utils/receipt_id.dart';
+import 'direct_print_job.dart';
 import 'receipt_art.dart';
 
 class SaleReceiptPrinter {
@@ -61,23 +62,16 @@ class SaleReceiptPrinter {
     String? preferredPrinterName,
   }) async {
     if (!hasPrintableProducts(receipt)) return true;
-    final target = await findReceiptPrinter(preferredPrinterName);
-    if (target == null) {
-      debugPrint('SaleReceiptPrinter: SLK receipt printer not found');
-      return false;
-    }
     final rendered = await render(
       receipt,
       branchName: branchName,
       cashierName: cashierName,
     );
-    return Printing.directPrintPdf(
-      printer: target,
+    return DirectPrintJob.submit(
+      bytes: rendered.bytes,
+      printerName: preferredPrinterName,
       name: 'sale-${formatReceiptId(receipt.id)}',
       format: _paperFormat(rendered.heightMm),
-      usePrinterSettings: true,
-      dynamicLayout: false,
-      onLayout: (_) async => rendered.bytes,
     );
   }
 

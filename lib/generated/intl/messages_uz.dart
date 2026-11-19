@@ -983,6 +983,9 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "paidLabel": MessageLookupByLibrary.simpleMessage("to\'langan"),
     "parentQr": MessageLookupByLibrary.simpleMessage("Ota-ona QR"),
+    "parkingReceiptUnconfirmed": MessageLookupByLibrary.simpleMessage(
+      "Savdo yakunlandi. Avtoturargoh cheki chop etilgani tasdiqlanmadi.",
+    ),
     "pay": MessageLookupByLibrary.simpleMessage("To‘lash"),
     "payFromBalance": MessageLookupByLibrary.simpleMessage("Balansdan yechish"),
     "paymentAmount": MessageLookupByLibrary.simpleMessage("To‘lov summasi"),

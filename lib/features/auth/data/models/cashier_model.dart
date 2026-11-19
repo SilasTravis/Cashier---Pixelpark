@@ -24,6 +24,7 @@ class BranchModel extends Branch {
     required super.slug,
     required super.name,
     super.printEntryQr,
+    super.printParkingReceipt,
   });
 
   factory BranchModel.fromJson(Map<String, dynamic> json) => BranchModel(
@@ -32,5 +33,6 @@ class BranchModel extends Branch {
     name: json['name'] as String,
     // Older backends omit it: print, as before.
     printEntryQr: json['printEntryQr'] as bool? ?? true,
+    printParkingReceipt: json['printParkingReceipt'] == true,
   );
 }

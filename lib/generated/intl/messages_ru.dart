@@ -997,6 +997,9 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "paidLabel": MessageLookupByLibrary.simpleMessage("оплачено"),
     "parentQr": MessageLookupByLibrary.simpleMessage("QR родителя"),
+    "parkingReceiptUnconfirmed": MessageLookupByLibrary.simpleMessage(
+      "Продажа завершена. Печать парковочного талона не подтверждена.",
+    ),
     "pay": MessageLookupByLibrary.simpleMessage("Оплатить"),
     "payFromBalance": MessageLookupByLibrary.simpleMessage("Списать с баланса"),
     "paymentAmount": MessageLookupByLibrary.simpleMessage("Сумма оплаты"),

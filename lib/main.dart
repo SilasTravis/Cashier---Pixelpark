@@ -1,4 +1,6 @@
 // Entry point of the Bolajon cashier terminal (Windows POS).
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -9,6 +11,7 @@ import 'core/lan_bridge/lan_bridge_control_client.dart';
 import 'core/lan_bridge/terminal_token_issuer.dart';
 import 'core/terminal/terminal_heartbeat_service.dart';
 import 'core/local_source/local_source.dart';
+import 'core/printing/direct_print_job.dart';
 import 'core/theme/app_theme_mode.dart';
 import 'core/theme/nocturne_colors.dart';
 import 'core/update/update_service.dart';
@@ -42,4 +45,16 @@ void main() async {
   });
 
   runApp(const App());
+}
+
+// The headless Windows runner starts here, without opening the till database
+// or starting any of the cashier's background services.
+@pragma('vm:entry-point')
+Future<void> printJobMain() async {
+  try {
+    WidgetsFlutterBinding.ensureInitialized();
+    exit(await DirectPrintJob.runWorker() ? 0 : 2);
+  } catch (_) {
+    exit(1);
+  }
 }

@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/error/failure.dart';
+import '../../../../core/printing/parking_receipt_dispatcher.dart';
 import '../../../offline/application/offline_checkout.dart';
 import '../../../offline/domain/offline_sale.dart';
 import '../../../products/data/products_repository_impl.dart';
@@ -21,6 +22,7 @@ class PosSaleBloc extends Bloc<PosSaleEvent, PosSaleState> {
     this._products,
     this._offlineCheckout, {
     bool offlineMode = false,
+    this.parkingReceipts,
   }) : super(PosSaleState(offlineMode: offlineMode)) {
     on<PosSaleStarted>(_onStarted);
     on<PosSaleSearchChanged>(_onSearchChanged);
@@ -38,6 +40,7 @@ class PosSaleBloc extends Bloc<PosSaleEvent, PosSaleState> {
   final PosSaleRepository _repository;
   final ProductsRepository _products;
   final OfflineCheckout _offlineCheckout;
+  final ParkingReceiptDispatcher? parkingReceipts;
 
   Future<void> _onStarted(
     PosSaleStarted event,
@@ -136,11 +139,19 @@ class PosSaleBloc extends Bloc<PosSaleEvent, PosSaleState> {
   ) async {
     if (state.cart.isEmpty || state.isCheckingOut) return;
     emit(state.copyWith(isCheckingOut: true, errorMessage: null));
+    final cartLines = state.cartLines;
+    final ticketIds = {
+      for (final line in cartLines)
+        if (line.product.isAdmissionTicket) line.product.id,
+    };
+    final printParking = ticketIds.isEmpty
+        ? null
+        : parkingReceipts?.captureForCheckout();
     if (state.offlineMode) {
       final OfflineSale sale;
       try {
         sale = await _offlineCheckout.record(
-          lines: state.cartLines,
+          lines: cartLines,
           discount: state.selectedDiscount,
           cashUzs: event.cashUzs,
           cardUzs: event.cardUzs,
@@ -190,6 +201,14 @@ class PosSaleBloc extends Bloc<PosSaleEvent, PosSaleState> {
               : null,
         ),
       );
+      if (sale.totalUzs > 0 &&
+          sale.lines.any(
+            (line) =>
+                ticketIds.contains(line.productId) &&
+                line.qty * line.priceUzs > 0,
+          )) {
+        printParking?.call(sale.createdAt);
+      }
       return;
     }
     final lines = [
@@ -238,14 +257,23 @@ class PosSaleBloc extends Bloc<PosSaleEvent, PosSaleState> {
             ),
           );
         },
-        (receipt) async => emit(
-          state.copyWith(
-            isCheckingOut: false,
-            cart: const {},
-            clearSelectedDiscountId: true,
-            lastReceipt: receipt,
-          ),
-        ),
+        (receipt) async {
+          emit(
+            state.copyWith(
+              isCheckingOut: false,
+              cart: const {},
+              clearSelectedDiscountId: true,
+              lastReceipt: receipt,
+            ),
+          );
+          if (receipt.subtotalUzs > 0 &&
+              receipt.items.any(
+                (line) =>
+                    ticketIds.contains(line.productId) && line.lineTotalUzs > 0,
+              )) {
+            printParking?.call(receipt.createdAt);
+          }
+        },
       );
     } catch (_) {
       // The request may already have reached the server and committed the

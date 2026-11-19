@@ -62,6 +62,7 @@
   "printReceipt": "Распечатать чек",
   "printing": "Печать…",
   "receiptPrintFailed": "Не удалось распечатать чек. Проверьте принтер.",
+  "parkingReceiptUnconfirmed": "Продажа завершена. Печать парковочного талона не подтверждена.",
   "historyToday": "Сегодня",
   "history7Days": "7 дней",
   "history30Days": "30 дней",

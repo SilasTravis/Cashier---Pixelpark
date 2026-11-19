@@ -322,61 +322,71 @@ DateTime? _lastFallbackNoticeAt;
 /// still reached the customer, so it is not an error. Only when the receipt
 /// printer fails too is a real "not printed" error shown: a silently
 /// swallowed QR is the worst failure mode a gate can have.
-void printPassesWithTicketFallback(
+Future<void> printPassesWithTicketFallback(
   ScaffoldMessengerState messenger,
   AppLocalization l10n, {
   required List<GatePassLabelEntry> stickers,
   required List<ChildTicketEntry> tickets,
-}) {
-  GatePassLabelPrinter.printDirect(
-    stickers,
-    preferredPrinterName: sl<LocalSource>().getQrPrinterName(),
-  ).then((ok) async {
-    if (ok) return;
-    var ticketsPrinted = false;
-    if (tickets.isNotEmpty) {
-      final local = sl<LocalSource>();
-      try {
-        ticketsPrinted = await ChildTicketPrinter.printDirect(
-          tickets,
-          branchName: local.getBranchName() ?? '',
-          preferredPrinterName: local.getReceiptPrinterName(),
-        );
-      } catch (_) {}
-    }
-    if (ticketsPrinted) {
-      final now = DateTime.now();
-      final last = _lastFallbackNoticeAt;
-      if (last != null && now.difference(last) < const Duration(seconds: 5)) {
-        return;
-      }
-      _lastFallbackNoticeAt = now;
-      messenger.showSnackBar(
-        SnackBar(
-          backgroundColor: NocturneColors.surface,
-          content: Row(
-            children: [
-              Icon(
-                PhosphorIconsRegular.printer,
-                size: 16,
-                color: NocturneColors.accent300,
-              ),
-              const SizedBox(width: 8),
-              Expanded(child: Text(l10n.qrPrinterFallbackNotice)),
-            ],
-          ),
-        ),
+}) async {
+  String? branchName;
+  String? receiptPrinter;
+  try {
+    final local = sl<LocalSource>();
+    branchName = local.getBranchName() ?? '';
+    receiptPrinter = local.getReceiptPrinterName();
+    final printed = await GatePassLabelPrinter.printDirect(
+      stickers,
+      preferredPrinterName: local.getQrPrinterName(),
+    );
+    if (printed) return;
+  } catch (error) {
+    debugPrint('Entry label print failed: $error');
+  }
+  var ticketsPrinted = false;
+  if (tickets.isNotEmpty && branchName != null) {
+    try {
+      ticketsPrinted = await ChildTicketPrinter.printDirect(
+        tickets,
+        branchName: branchName,
+        preferredPrinterName: receiptPrinter,
       );
+    } catch (error) {
+      debugPrint('Entry ticket print failed: $error');
+    }
+  }
+  if (!messenger.mounted) return;
+  if (ticketsPrinted) {
+    final now = DateTime.now();
+    final last = _lastFallbackNoticeAt;
+    if (last != null && now.difference(last) < const Duration(seconds: 5)) {
       return;
     }
+    _lastFallbackNoticeAt = now;
     messenger.showSnackBar(
       SnackBar(
         backgroundColor: NocturneColors.surface,
-        content: Text(
-          l10n.stickerPrintFailed,
-          style: TextStyle(color: NocturneColors.danger),
+        content: Row(
+          children: [
+            Icon(
+              PhosphorIconsRegular.printer,
+              size: 16,
+              color: NocturneColors.accent300,
+            ),
+            const SizedBox(width: 8),
+            Expanded(child: Text(l10n.qrPrinterFallbackNotice)),
+          ],
         ),
       ),
     );
-  });
+    return;
+  }
+  messenger.showSnackBar(
+    SnackBar(
+      backgroundColor: NocturneColors.surface,
+      content: Text(
+        l10n.stickerPrintFailed,
+        style: TextStyle(color: NocturneColors.danger),
+      ),
+    ),
+  );
 }

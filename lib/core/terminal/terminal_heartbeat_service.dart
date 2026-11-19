@@ -34,6 +34,8 @@ class TerminalHeartbeatService {
     required this._osVersion,
     this._sessionChanges,
     this._onPrintEntryQr,
+    required this._branchId,
+    this._onPrintParkingReceipt,
     this._interval = const Duration(minutes: 2),
   });
 
@@ -76,6 +78,11 @@ class TerminalHeartbeatService {
   /// the beat's reply, so a change reaches the till within one beat. An
   /// older backend replies 204 with no body: nothing is called.
   final void Function(bool printEntryQr)? _onPrintEntryQr;
+
+  final String? Function() _branchId;
+  final void Function(bool value)? _onPrintParkingReceipt;
+  int _beatSequence = 0;
+  int _appliedSequence = 0;
 
   final Duration _interval;
 
@@ -146,6 +153,8 @@ class TerminalHeartbeatService {
     try {
       if (!_hasSession()) return;
       _hadSession = true;
+      final branch = _branchId();
+      final sequence = ++_beatSequence;
       final response = await _api.post<Object?>(
         path,
         data: buildBody(),
@@ -156,7 +165,19 @@ class TerminalHeartbeatService {
         ),
       );
       final body = response.data;
-      if (body is Map && body['printEntryQr'] is bool) {
+      if (body is! Map ||
+          _disposed ||
+          !_hasSession() ||
+          branch == null ||
+          branch != _branchId() ||
+          sequence < _appliedSequence) {
+        return;
+      }
+      _appliedSequence = sequence;
+      if (body['printParkingReceipt'] case final bool enabled) {
+        _onPrintParkingReceipt?.call(enabled);
+      }
+      if (body['printEntryQr'] is bool) {
         _onPrintEntryQr?.call(body['printEntryQr'] as bool);
       }
     } catch (_) {

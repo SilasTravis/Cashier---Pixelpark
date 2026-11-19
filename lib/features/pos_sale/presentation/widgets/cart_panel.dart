@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:phosphor_icons/phosphor_icons.dart';
@@ -40,8 +42,7 @@ class _CartPanelState extends State<CartPanel> {
               previous.lastReceipt != current.lastReceipt &&
               current.lastReceipt != null,
           listener: (context, state) async {
-            await printSaleReceiptDirect(context, state.lastReceipt!);
-            if (!context.mounted) return;
+            unawaited(printSaleReceiptDirect(context, state.lastReceipt!));
             await showReceiptDialog(context, state.lastReceipt!);
             if (context.mounted) {
               context.read<PosSaleBloc>().add(

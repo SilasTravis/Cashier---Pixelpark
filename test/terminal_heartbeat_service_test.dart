@@ -63,6 +63,8 @@ class _Harness {
   String hostname = 'KASSA-1';
   String osVersion = 'Windows 10 Pro 22H2 (build 19045)';
   final printEntryQr = <bool>[];
+  final parking = <bool>[];
+  String branch = 'a';
 
   late final TerminalHeartbeatService service = TerminalHeartbeatService(
     api: api,
@@ -77,6 +79,8 @@ class _Harness {
     hostname: () => hostname,
     osVersion: () => osVersion,
     onPrintEntryQr: printEntryQr.add,
+    branchId: () => branch,
+    onPrintParkingReceipt: parking.add,
   );
 
   List<Map<String, dynamic>> get bodies => [
@@ -171,6 +175,28 @@ void main() {
     await old.service.beat();
     expect(old.printEntryQr, isEmpty);
   });
+
+  test(
+    'applies parking switch independently and discards a previous branch reply',
+    () async {
+      final h = _Harness(
+        adapter: _RecordingAdapter(
+          statusCode: 200,
+          body: '{"printParkingReceipt":true}',
+        ),
+      );
+      final oldBeat = h.service.beat();
+      h.branch = 'b';
+      await oldBeat;
+      expect(h.parking, isEmpty);
+      await h.service.beat();
+      expect(h.parking, [true]);
+      expect(h.printEntryQr, isEmpty);
+      final old = _Harness();
+      await old.service.beat();
+      expect(old.parking, isEmpty);
+    },
+  );
 
   test('sends nothing without a session', () async {
     final h = _Harness()..hasSession = false;

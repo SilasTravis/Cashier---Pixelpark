@@ -60,6 +60,27 @@ jobs:
       - run: flutter config --enable-windows-desktop
       - run: flutter pub get
       - run: flutter build windows --release --dart-define=API_BASE_URL=${{ env.API_BASE_URL }}
+      # Exercise the packaged headless entry point, stdin, plugin registration
+      # and discovery without sending a job to a real printer. Exit 2 means
+      # the worker reached discovery and declined the nonexistent target.
+      - name: Verify isolated Windows printer worker
+        shell: pwsh
+        run: |
+          $start = [Diagnostics.ProcessStartInfo]::new()
+          $start.FileName = (Resolve-Path 'build/windows/x64/runner/Release/cashier_app.exe').Path
+          $start.Arguments = '--cashier-print-job'
+          $start.UseShellExecute = $false
+          $start.RedirectStandardInput = $true
+          $worker = [Diagnostics.Process]::Start($start)
+          try {
+            $worker.StandardInput.Write('{"name":"probe","printer":"pixel-absent-ci-printer","document":"parking","width":224,"height":280,"pdf":""}')
+            $worker.StandardInput.Close()
+            if (!$worker.WaitForExit(20000)) { throw 'Print worker did not exit' }
+            if ($worker.ExitCode -ne 2) { throw "Unexpected print worker exit code $($worker.ExitCode)" }
+          } finally {
+            if (!$worker.HasExited) { $worker.Kill() }
+            $worker.Dispose()
+          }
       - uses: actions/upload-artifact@v4
         with:
           name: cashier_app-windows-${{ github.sha }}

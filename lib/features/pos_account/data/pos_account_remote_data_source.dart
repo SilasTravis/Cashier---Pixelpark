@@ -566,6 +566,7 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
           : PromoCodeOutcome.fromJson(map['promoCode'] as Map<String, dynamic>),
       cashback: SaleCashback.tryFromJson(map['cashback']),
       entrySale: EntrySalePayment.tryFromJson(map['entrySale']),
+      paidAdmission: map['paidAdmission'] == true,
     );
   }
 

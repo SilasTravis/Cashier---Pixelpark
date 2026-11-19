@@ -335,13 +335,12 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
           listenWhen: (previous, current) =>
               previous.lastEntryResult != current.lastEntryResult &&
               current.lastEntryResult != null,
-          listener: (context, state) async {
+          listener: (context, state) {
             final result = state.lastEntryResult!;
             final productReceipt =
                 result.productSale ?? _legacyProductReceipt(result, state);
             if (productReceipt != null) {
-              await printSaleReceiptDirect(context, productReceipt);
-              if (!context.mounted) return;
+              unawaited(printSaleReceiptDirect(context, productReceipt));
             }
             // Group seats print nameless: a class is a count, not names.
             final childNames = {
@@ -1521,7 +1520,7 @@ class _CustomerDetailPanelState extends State<CustomerDetailPanel> {
     final bloc = context.read<PosAccountBloc>();
     final outcome = await showSubscriptionSellDialog(context);
     if (outcome == null || !context.mounted) return;
-    await printSubscriptionSale(context, outcome);
+    unawaited(printSubscriptionSale(context, outcome));
     bloc
       ..add(const PosAccountSubscriptionSaleAcknowledged())
       ..add(const PosAccountCustomerRefreshRequested());

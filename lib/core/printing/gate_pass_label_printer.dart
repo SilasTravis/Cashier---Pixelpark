@@ -3,11 +3,12 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart' show debugPrint, visibleForTesting;
-import 'package:flutter/services.dart'
-    show MethodChannel, PlatformException, rootBundle;
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+
+import 'direct_print_job.dart';
 
 /// One gate-pass sticker to print. [invertName] renders the name strip as
 /// a filled dark bar with the name in white — the PARENT sticker style,
@@ -47,9 +48,6 @@ typedef GatePassLabelEntry = ({String qrData, String name, bool invertName});
 /// resample the 1-bit art back into grays). Only the QR/name overlays go
 /// through the safe-area mapping — they are PDF vectors and stay sharp.
 class GatePassLabelPrinter {
-  static const _windowsPrintChannel = MethodChannel(
-    'cashier/native_label_printer',
-  );
   // ---- Label geometry (mm) ------------------------------------------------
 
   static const double _labelWidthMm = 58.0;
@@ -116,93 +114,17 @@ class GatePassLabelPrinter {
     String? preferredPrinterName,
   }) async {
     assert(entries.isNotEmpty, 'GatePassLabelPrinter.printDirect: no entries');
-    final printers = await Printing.listPrinters();
-    debugPrint(
-      'GatePassLabelPrinter: printers=${printers.map((p) => '${p.name}${p.isDefault ? '*' : ''}').join(', ')}',
-    );
-    Printer? target;
-    if (preferredPrinterName != null) {
-      target = printers
-          .where((printer) => printer.name == preferredPrinterName)
-          .firstOrNull;
-    } else {
-      for (final p in printers) {
-        if (p.name.toLowerCase().contains('godex')) {
-          target = p;
-          break;
-        }
-      }
-    }
-    if (target == null) {
-      debugPrint('GatePassLabelPrinter: configured/Godex printer not found');
-      return false;
-    }
-    debugPrint('GatePassLabelPrinter: direct print → ${target.name}');
-    if (Platform.isWindows) {
-      return _printDirectWindows(entries, target);
-    }
-    final ok = await Printing.directPrintPdf(
-      printer: target,
-      // The label size MUST be passed here: on macOS the plugin takes the
-      // job's paper size from this format (defaulting to A4/Letter if
-      // omitted, which prints our 58×40 label into a corner of a blank
-      // letter-sized page). On Windows usePrinterSettings hands media
-      // handling to the driver's saved stock settings instead.
+    return DirectPrintJob.submit(
+      bytes: await _buildPdf(entries),
       format: PdfPageFormat(
         _mm(_labelWidthMm),
         _mm(_labelHeightMm),
         marginAll: 0,
       ),
-      onLayout: (_) => _printablePdf(entries),
       name: _jobName(entries),
-      usePrinterSettings: true,
-      // false = skip the OS print-options modal entirely and send straight
-      // to the printer. (directPrintPdf defaults this to true, which on
-      // macOS runs NSPrintOperation.runModal — the popup we're avoiding.)
-      dynamicLayout: false,
+      printerName: preferredPrinterName,
+      document: ThermalDocument.label,
     );
-    debugPrint('GatePassLabelPrinter: direct print result=$ok');
-    return ok;
-  }
-
-  /// Windows' PDFium-to-printer-HDC path can produce a successful but blank
-  /// job on thermal drivers. Send opaque raster pages to a native DIB spooler
-  /// so the driver receives the same simple bitmap operation as its test page.
-  static Future<bool> _printDirectWindows(
-    List<GatePassLabelEntry> entries,
-    Printer target,
-  ) async {
-    final vector = await _buildPdf(entries);
-    final pages = <Map<String, Object>>[];
-    await for (final page in Printing.raster(vector, dpi: _printerDpi)) {
-      pages.add({
-        'width': page.width,
-        'height': page.height,
-        'pixels': page.pixels,
-      });
-    }
-    if (pages.isEmpty) {
-      debugPrint('GatePassLabelPrinter: Windows raster produced 0 pages');
-      return false;
-    }
-    try {
-      final ok = await _windowsPrintChannel.invokeMethod<bool>(
-        'printRgbaPages',
-        {
-          'printerName': target.name,
-          'jobName': _jobName(entries),
-          'pages': pages,
-        },
-      );
-      debugPrint('GatePassLabelPrinter: native Windows print result=$ok');
-      return ok ?? false;
-    } on PlatformException catch (error) {
-      debugPrint(
-        'GatePassLabelPrinter: native Windows print failed: '
-        '${error.code}: ${error.message}',
-      );
-      return false;
-    }
   }
 
   /// Prints via the OS print dialog (manual printer choice).

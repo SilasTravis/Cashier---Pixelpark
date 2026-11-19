@@ -948,6 +948,9 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "paidLabel": MessageLookupByLibrary.simpleMessage("paid"),
     "parentQr": MessageLookupByLibrary.simpleMessage("Parent QR"),
+    "parkingReceiptUnconfirmed": MessageLookupByLibrary.simpleMessage(
+      "Sale complete. The printer did not confirm the parking slip.",
+    ),
     "pay": MessageLookupByLibrary.simpleMessage("Pay"),
     "payFromBalance": MessageLookupByLibrary.simpleMessage("Pay from balance"),
     "paymentAmount": MessageLookupByLibrary.simpleMessage("Payment amount"),

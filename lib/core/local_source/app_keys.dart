@@ -16,6 +16,7 @@ abstract final class AppKeys {
   /// Session: refreshed on login and by every terminal heartbeat, cleared
   /// on logout (absent = on).
   static const String printEntryQr = 'printEntryQr';
+  static const String printParkingReceipt = 'printParkingReceipt';
 
   static const String apiBaseUrl = 'apiBaseUrl';
   static const String languageCode = 'languageCode';

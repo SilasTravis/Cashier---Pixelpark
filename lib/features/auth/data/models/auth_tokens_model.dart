@@ -19,16 +19,24 @@ class AuthTokensModel {
       );
 }
 
-/// `POST cashier/auth/login` response: the cashier plus a fresh token pair.
+/// Older login responses omit the branch and require a separate /me call.
 class LoginResponseModel {
-  const LoginResponseModel({required this.cashier, required this.tokens});
+  const LoginResponseModel({
+    required this.cashier,
+    required this.tokens,
+    this.branch,
+  });
 
   final CashierModel cashier;
   final AuthTokensModel tokens;
+  final BranchModel? branch;
 
   factory LoginResponseModel.fromJson(Map<String, dynamic> json) =>
       LoginResponseModel(
         cashier: CashierModel.fromJson(json['cashier'] as Map<String, dynamic>),
+        branch: json['branch'] is Map<String, dynamic>
+            ? BranchModel.fromJson(json['branch'] as Map<String, dynamic>)
+            : null,
         tokens: AuthTokensModel.fromJson(
           json['tokens'] as Map<String, dynamic>,
         ),
