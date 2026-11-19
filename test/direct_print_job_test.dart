@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'dart:async';
 import 'dart:io';
 
@@ -39,5 +41,20 @@ void main() {
       '[void][Console]::In.ReadToEnd()',
     );
     expect(await DirectPrintJob.finishWorker(next, 'next job'), isTrue);
+  });
+
+  test('flattens transparent raster pixels onto white paper', () {
+    final out = DirectPrintJob.flattenOnWhite(
+      Uint8List.fromList([
+        0, 0, 0, 0, // blank PDFium background -> white, not black
+        0, 0, 0, 255, // ink stays black
+        0, 0, 0, 128, // half-covered edge -> mid grey
+        10, 20, 30, 255, // opaque colour untouched
+      ]),
+    );
+    expect(out.sublist(0, 4), [255, 255, 255, 255]);
+    expect(out.sublist(4, 8), [0, 0, 0, 255]);
+    expect(out[8], inInclusiveRange(126, 128));
+    expect(out.sublist(12, 16), [10, 20, 30, 255]);
   });
 }

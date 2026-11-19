@@ -2,7 +2,7 @@ name: cashier_app
 description: "Bolajon kassa terminali — Flutter Windows desktop POS."
 publish_to: 'none'
 
-version: 1.0.41+42
+version: 1.0.42+43
 
 environment:
   sdk: ^3.12.2

@@ -129,10 +129,13 @@ bool PrintRgbaPages(const std::wstring& printer_name,
       for (int x = 0; x < *width; x++) {
         const size_t source =
             (static_cast<size_t>(y) * *width + x) * 4;
-        const int luminance = ((*rgba)[source] * 299 +
-                               (*rgba)[source + 1] * 587 +
-                               (*rgba)[source + 2] * 114) /
-                              1000;
+        // Transparent pixels are paper, not black: composite onto white.
+        const int alpha = (*rgba)[source + 3];
+        const int paper = 255 * (255 - alpha);
+        const int r = ((*rgba)[source] * alpha + paper) / 255;
+        const int g = ((*rgba)[source + 1] * alpha + paper) / 255;
+        const int b = ((*rgba)[source + 2] * alpha + paper) / 255;
+        const int luminance = (r * 299 + g * 587 + b * 114) / 1000;
         const uint8_t value = luminance < 176 ? 0x00 : 0xff;
         const size_t target = static_cast<size_t>(y) * dib_stride + x * 3;
         bgr[target] = value;

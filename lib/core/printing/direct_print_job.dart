@@ -114,6 +114,24 @@ class DirectPrintJob {
     );
   }
 
+  /// PDFium rasterizes on Windows into a transparent bitmap: every blank
+  /// pixel is RGBA (0,0,0,0). The native spooler reads RGB only, so an
+  /// unpainted background printed as solid black. Composite onto paper white.
+  @visibleForTesting
+  static Uint8List flattenOnWhite(Uint8List rgba) {
+    final out = Uint8List.fromList(rgba);
+    for (var i = 0; i + 3 < out.length; i += 4) {
+      final a = out[i + 3];
+      if (a == 255) continue;
+      final paper = 255 * (255 - a);
+      out[i] = (out[i] * a + paper) ~/ 255;
+      out[i + 1] = (out[i + 1] * a + paper) ~/ 255;
+      out[i + 2] = (out[i + 2] * a + paper) ~/ 255;
+      out[i + 3] = 255;
+    }
+    return out;
+  }
+
   static Future<bool> _send(
     Uint8List bytes,
     PdfPageFormat format,
@@ -140,7 +158,7 @@ class DirectPrintJob {
         pages.add({
           'width': page.width,
           'height': page.height,
-          'pixels': page.pixels,
+          'pixels': flattenOnWhite(page.pixels),
         });
       }
       if (pages.isEmpty) return false;
