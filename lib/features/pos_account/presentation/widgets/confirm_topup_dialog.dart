@@ -31,7 +31,8 @@ Future<bool?> showConfirmTopupDialog(
           '${l10n.paymentCard} ${formatUzs(cardUzs)}',
   };
 
-  final bonusUzs = topUpBonusFor(amountUzs);
+  // The bonus is paid only for an all-cash top-up (backend rule).
+  final bonusUzs = cardUzs == 0 ? topUpBonusFor(amountUzs) : 0;
   final p = PosPalette.of(context);
   return showDialog<bool>(
     context: context,
