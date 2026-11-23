@@ -643,6 +643,7 @@
   "topupConfirmCustomer": "Mijoz",
   "topupConfirmAmount": "To‘ldirish summasi",
   "topupConfirmNewBalance": "Yangi balans",
+  "topupConfirmBonus": "Bonus",
   "topupConfirmAction": "To‘ldirish",
   "topupConfirmWarning": "Tasdiqlagandan keyin summa mijoz balansiga qo‘shiladi. Xato bo‘lsa, chekni “Tahrirlash” orqali to‘g‘irlash mumkin.",
   "topupConfirmMethod": "To‘lov usuli",

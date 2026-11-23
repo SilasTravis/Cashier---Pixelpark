@@ -567,6 +567,7 @@
   "topupConfirmCustomer": "Клиент",
   "topupConfirmAmount": "Сумма пополнения",
   "topupConfirmNewBalance": "Новый баланс",
+  "topupConfirmBonus": "Бонус",
   "topupConfirmAction": "Пополнить",
   "topupConfirmWarning": "После подтверждения сумма зачислится на баланс клиента. Если она неверна, чек можно исправить через «Редактировать».",
   "topupConfirmMethod": "Способ оплаты",

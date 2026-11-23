@@ -567,6 +567,7 @@
   "topupConfirmCustomer": "Customer",
   "topupConfirmAmount": "Top-up amount",
   "topupConfirmNewBalance": "New balance",
+  "topupConfirmBonus": "Bonus",
   "topupConfirmAction": "Top up",
   "topupConfirmWarning": "Once confirmed the amount is credited to the customer's balance. If it is wrong, the receipt can be put right with Edit.",
   "topupConfirmMethod": "Payment method",

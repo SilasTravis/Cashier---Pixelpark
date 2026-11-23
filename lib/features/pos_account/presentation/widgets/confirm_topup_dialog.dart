@@ -6,6 +6,7 @@ import '../../../../core/utils/currency.dart';
 import '../../../../core/widgets/payment_method_selector.dart';
 import '../../../../generated/l10n.dart';
 import '../../domain/customer.dart';
+import '../../domain/top_up_bonus.dart';
 
 /// Asks the cashier to confirm a balance top-up before the money moves.
 ///
@@ -30,6 +31,7 @@ Future<bool?> showConfirmTopupDialog(
           '${l10n.paymentCard} ${formatUzs(cardUzs)}',
   };
 
+  final bonusUzs = topUpBonusFor(amountUzs);
   final p = PosPalette.of(context);
   return showDialog<bool>(
     context: context,
@@ -64,11 +66,17 @@ Future<bool?> showConfirmTopupDialog(
               value: formatUzs(amountUzs),
               emphasized: true,
             ),
+            if (bonusUzs > 0)
+              _Row(
+                label: l10n.topupConfirmBonus,
+                value: '+${formatUzs(bonusUzs)}',
+                emphasized: true,
+              ),
             _Row(label: l10n.topupConfirmMethod, value: methodLabel),
             _Row(label: l10n.balance, value: formatUzs(customer.balance)),
             _Row(
               label: l10n.topupConfirmNewBalance,
-              value: formatUzs(customer.balance + amountUzs),
+              value: formatUzs(customer.balance + amountUzs + bonusUzs),
               emphasized: true,
             ),
             const SizedBox(height: 14),

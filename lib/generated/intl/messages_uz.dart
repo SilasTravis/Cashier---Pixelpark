@@ -1336,6 +1336,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "topupConfirmAmount": MessageLookupByLibrary.simpleMessage(
       "To‘ldirish summasi",
     ),
+    "topupConfirmBonus": MessageLookupByLibrary.simpleMessage("Bonus"),
     "topupConfirmCustomer": MessageLookupByLibrary.simpleMessage("Mijoz"),
     "topupConfirmMethod": MessageLookupByLibrary.simpleMessage("To‘lov usuli"),
     "topupConfirmNewBalance": MessageLookupByLibrary.simpleMessage(

@@ -2519,6 +2519,11 @@ class AppLocalization {
     );
   }
 
+  /// `Bonus`
+  String get topupConfirmBonus {
+    return Intl.message('Bonus', name: 'topupConfirmBonus', desc: '', args: []);
+  }
+
   /// `Top up`
   String get topupConfirmAction {
     return Intl.message(

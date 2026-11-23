@@ -18,9 +18,17 @@ import '../domain/subscription.dart';
 typedef CheckoutLine = ({String productId, int qty});
 
 class TopupResult {
-  const TopupResult({required this.balance, required this.transactionId});
+  const TopupResult({
+    required this.balance,
+    required this.transactionId,
+    this.bonusUzs = 0,
+  });
 
+  /// Balance after the deposit AND the bonus.
   final int balance;
+
+  /// Bonus the backend credited on top of the paid amount (0 for old servers).
+  final int bonusUzs;
   final int transactionId;
 }
 
@@ -305,6 +313,7 @@ class PosAccountRemoteDataSourceImpl implements PosAccountRemoteDataSource {
     return TopupResult(
       balance: map['balance'] as int,
       transactionId: map['transactionId'] as int,
+      bonusUzs: (map['bonusUzs'] as int?) ?? 0,
     );
   }
 
